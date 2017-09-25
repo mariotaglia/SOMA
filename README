@@ -1,0 +1,153 @@
+--------------------------------------------------------------------------------
+Copyright (C) 2016-2017 Ludwig Schneider
+
+This file is part of SOMA.
+
+SOMA is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+SOMA is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+
+--------------------------------------------------------------------------------
+
+SOMA: Soma Offers Monte Carlo Acceleration
+or SOft coarse grained Monte-carlo Acceleration
+--------------------------------------------------------------------------------
+
+SOMA is a software package, which offers High Performance Computing Monte-Carlo
+simulations of the "Single Chain in Mean Field" model for soft coarse grained
+polymers.
+The paper for this model is:
+  Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18
+
+This version is a short introduction for more details refer the doxygen
+documentation.
+
+License
+--------------------------------------------------------------------------------
+
+SOMA is free and open source software. It is licensed with the GNU Lesser General
+Public License. For more details read COPYING and COPYING.LESSER.
+
+Authors
+--------------------------------------------------------------------------------
+
+read AUTHORS.
+
+Dependencies
+--------------------------------------------------------------------------------
+
+- CMake
+- c99 compiler*
+- MPI
+- MPI IO
+- parallel HDF5
+- h5py**
+- doxygen***
+
+*) SOMA  is tested with GCC and PGI compilers. The latter is required for GPU
+accelerated versions via OpenACC.
+**) The h5py package is not required to build, install or run SOMA, but to
+prepare input files.
+***) Doxygen is only required to build the documentation.
+
+Install
+--------------------------------------------------------------------------------
+
+ SOMA is designed for the out of source compilation using CMake. So CMake is
+ required to build SOMA. This section will step by step guide you to build and
+ install SOMA.
+
+ * Git checkout your desired branch our tag of SOMA. Suggested is the latest
+   tag or the "master" branch.
+
+  git checkout master
+
+* Create your build directory. And enter it.
+
+  mkdir build
+  cd build
+
+* Configure CMake. This step depends on the type of build:
+  * If you want a standard build with your standard compiler and you have system
+    wide installed parallel hdf5.
+
+   cmake -DCMAKE_INSTALL_PREFIX=/path/to/SOMAinstall ../
+
+  * If you want to use a specific compiler, for example "pgcc"
+    set it up for CMake.
+
+     export CC=my_compiler
+     cmake -DCMAKE_INSTALL_PREFIX=/path/to/SOMAinstall ../
+
+  * If you are not using a system wide HDF5 installation set
+    the "HDF5_ROOT" variable.
+
+     HDF5_ROOT=/path/to/hdf5install \
+     cmake -DCMAKE_INSTALL_PREFIX=/path/to/SOMAinstall ../
+
+     It is important that the path is HDF5_ROOT is absolute.
+     Sometimes problems occur and the wrong library of hdf5 is found.
+     Try to guide cmake appropriately.
+
+  * Now you can easily modify the options of SOMA build using
+
+    ccmake .
+
+  * Build SOMA:
+
+    make
+
+  * Install SOMA:
+
+    make install
+
+  Now you find the SOMA executables at "/path/to/SOMAinstall/bin" and if you
+  haven't deactivated the installation of the python scripts you can find them
+  at "/path/to/SOMAinstall/python-script".
+  You may want to set your PATH accordingly.
+
+  * Compiling the Documentation:
+
+  To compile the documentation you need doxygen and then can run in the
+  build directory
+
+   make doc
+
+  As a result, you find a html and a latex documentation in the
+  "documentation" folder.
+
+  For builds on commonly used clusters try, if you find an appropriate
+  file in "setups".
+
+Example Usage
+--------------------------------------------------------------------------------
+
+Example input files can be found in the example directory.
+
+ * Create yourself an HDF5 input configuration:
+
+   python ConfGen.py -i coord.xml
+
+ * This creates two files:
+    * "coord.h5" with the simulation configuration.   
+    * "coord_ana.h" with the analysis description, where the
+      observables are stored.
+
+ * Now you can finally run your simulation by using
+
+    mpiexec -n [N] ./SOMA -c coord.h5 -a coord_ana.h5 -t #steps [options]
+
+    Also run "./SOMA --help" for more options, especially if you want
+    to run with GPU or OpenMP support.
+
+ * The final configuration is saved in the file "end.h5". The final analyzed
+   observables are saved in your input ana file.
