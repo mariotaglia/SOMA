@@ -144,7 +144,7 @@ Example input files can be found in the example directory.
 
  * This creates two files:
     * "coord.h5" with the simulation configuration.   
-    * "coord_ana.h" with the analysis description, where the
+    * "coord_ana.h5" with the analysis description, where the
       observables are stored.
 
  * Now you can finally run your simulation by using
