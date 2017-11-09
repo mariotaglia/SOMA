@@ -1,0 +1,180 @@
+/* Copyright (C) 2016-2017 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*!\page install Installation
+ \section CMake SOMA uses CMake for Building
+
+ \deprecated Former versions of SOMA used to ship with an HDF5 copy and a Unix Makefile.
+ Both is now deprecated and no longer supported.
+
+ \warning Building SOMA is designed for out of source building and Unix/Linux systems only.
+ Any other method is currently not supported or tested by the developers.
+
+ This page is intended to help the user install SOMA. Before the actual installation of the SOMA package,
+ please install and setup the dependency of SOMA.
+
+ \subsection Dependency Dependencies
+
+ \subsubsection MPI Message Passing Interface (MPI)
+
+ SOMA is an HPC application utilizing multiple levels of parallelism. As a consequence,
+ the Message Passing Interface MPI is used for parallelism across non-shared memory systems
+ and across multiple GPUs.
+ Because parallel IO is important, your version of MPI needs the parallel IO components.
+
+ We will not explain how to install MPI here, but installation instructions can be found for the different
+ MPI implementations. Or you can install the corresponding package of your distribution. Just make sure parallel IO is supported.
+
+ For example:
+ - <a href="www.open-mpi.org"> OpenMPI </a>
+ - <a href="www.mpich.org"> MPICH </a>
+
+ \subsubsection HDF5 HDF5 Library
+
+ HDF5 is a data format to store complex binary data in convenient containers.
+ SOMA uses the functionality to read and write configurational and analysis data.
+ In addition, to the easy to use and flexible binary containers HDF5 supports parallel
+ IO via the MPI parallel IO interface.
+ SOMA uses this functionality intensively and would not work without it.
+
+ In this section the basic installation of hdf5 is explained.
+ To get the newest version of the library you can download directly from the <a href="https://www.hdfgroup.org/">hdf5group</a>.
+ You can find the download page <a href="https://www.hdfgroup.org/downloads/"> here </a>. For more information and especially
+ also parallel build questions refer the hdf5 <a href=" https://www.hdfgroup.org/HDF5-FAQ.html">FAQ</a>.
+
+ SOMA has been tested with HDF5 version 1.8.16. And here I will briefly explain how to install hdf5. You may follow them, or find
+ your own way to install a parallel version of hdf5.
+
+ - The first step is to download and unpack the source from the HDF5 group.
+ - Configure you MPI wrappers such that "mpicc" calls the compiler you want.
+ - Enter the directory of the source.
+ - Configure the build
+   \code
+   ./configure CC=mpicc --enable-parallel --prefix=/path/to/hdf5install
+   \endcode
+ - Compile hdf5. That may take a while.
+   \code
+   make
+   \endcode
+ - Install HDF5
+   \code
+   make install
+   \endcode
+
+ \subsubsection H5PY Python HDF5 Binding
+
+ For several of the python scripts, which are required to configure input scripts for SOMA the "h5py" library is required.
+ Some of the scripts may also be helpful to analyze the results produced by SOMA.
+
+ Although, for running SOMA on a server you don't need this library. But you will need some machine with this library.
+ You can obtain via your package manager or download from <a href="http://www.h5py.org/">here</a> and install it yourself.
+
+ \subsection Build Building SOMA.
+
+ SOMA is designed for the out of source compilation using CMake. So CMake is required to build SOMA.
+ This section will step by step guide you to build and install SOMA.
+
+ - Git checkout your desired branch our tag of SOMA. Suggested is the latest tag or the "master" branch.
+   \code
+	git checkout master
+   \endcode
+ - Create your build directory. And enter it.
+   \code
+   mkdir build
+   cd build
+   \endcode
+ - Configure CMake. This step depends on the type of build:
+   - If you want a standard build with your standard compiler and you have system wide installed parallel hdf5.
+     \code
+     cmake -DCMAKE_INSTALL_PREFIX=/path/to/SOMAinstall ../
+     \endcode
+   - If you want to use a specific compiler, for example "pgcc" set it.
+     \code
+     export CC=my_compiler
+     cmake -DCMAKE_INSTALL_PREFIX=/path/to/SOMAinstall ../
+     \endcode
+   - If you are not using a system wide HDF5 installation (refer \ref HDF5) set the "HDF5_ROOT" variable.
+     \code
+     HDF5_ROOT=/path/to/hdf5install cmake -DCMAKE_INSTALL_PREFIX=/path/to/SOMAinstall ../
+     \endcode
+     It is important that the path is HDF5_ROOT is absolute.
+     \note
+     Sometimes problems occur and the wrong library of hdf5 is found. Try to guide cmake appropriately.
+
+   - Now you can easily modify the options of SOMA build using
+     \code
+     ccmake .
+     \endcode
+ - Build SOMA:
+    \code
+    make
+    \endcode
+ - Install SOMA:
+    \code
+    make install
+    \endcode
+
+Now you find the SOMA executables at "/path/to/SOMAinstall/bin" and if you haven't deactivated the installation of
+the python scripts you can find them at "/path/to/SOMAinstall/python-script". You may want to set your PATH accordingly.
+
+  \subsubsection Doc Compiling the Documentation
+
+  To compile the documentation you need doxygen and then can run in the build directory
+  \code make doc \endcode
+  As a result, you find a html and a latex documentation in the "documentation" folder.
+  \note For building the documentation a working Doxygen and Dot installation is needed.
+
+\section Server Building on Known Severs
+ For the common servers we have access to and we use. There are scripts that help building and running SOMA.
+ Those scripts can be found in the "setups" directory of SOMA.
+ They are intended to be source before a building or running SOMA.
+
+
+\subsection taurus Compilation on the taurus Cluster (TU-Dresden)
+
+ The taurus cluster in dresden is ready to be used with SOMA.  The
+ modules required for the installation and running can be found in the
+ file "taurus.sh".
+ As a consequence, sourcing this files \code source taurus.sh \endcode
+ should set up the correct environment for compiling and running SOMA.
+ The HDF5 on taurus is not suitable for our purpose. So you need to build
+ your own parallel version yourself.
+
+\subsection jureca Compilation on the jureca Cluster (HPC Jülich)
+ Similar to taurus the  simple "jureca.sh" file can be sourced
+ for compiling and running SOMA.
+ \code source jureca.sh\endcode
+
+ The PGI tool chain of jureca does not have a suitable parallel hdf5 library.
+ So you need to build one before you can build SOMA.
+
+\subsection theorie Compilation on our local GPU clusters. (GAU-Göttingen)
+
+ Our local GPU cluster (cuda01-cuda05) features a PGI compiler. So you
+ can use it to run SOMA simulation on our GPUs.
+ To setup the environment on the cluster use:
+
+ \code source theorie.sh\endcode
+
+ There is no precompiled parallel HDF library, so you have to compile it.
+*/

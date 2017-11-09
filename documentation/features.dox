@@ -1,0 +1,112 @@
+/* Copyright (C) 2016-2017 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*!\page features Features of SOMA
+ All implemented features of SOMA are compiled on this page on a list. In addition, a short description how to enable the features is given.
+
+ \section list List of All Features
+
+ - Full implementation of the model.
+ - Two different levels of parallelism for iteration of all beads on the GPU:
+   - %Polymer level: The parallelism is entirely on the level of polymers. This ensures detailed balance and known Rouse dynamics in combination with smart Monte-Carlo moves.
+   - Independent Set level: In addition to the polymer
+     level. Independent beads inside a single polymer are moved in
+     parallel. To do so, at the initialization sets of independent
+     beads are calculated. Each Monte-Carlo move selects a random
+     permutation of these sets and iterates the sets
+     sequentially. This can improve the performance for GPU simulation
+     significantly. Instead of detailed balance this move fulfills
+     only global balance and the dynamics is a little bit different,
+     compared to the other iteration scheme.
+
+   Choose the "--iteration-alg" flag to select the iteration algorithm of SOMA. Default is polymer iteration.
+ - Two non-bonded hamiltonian available (SCMF0 and SCMF1), for details refer update_omega_fields_scmf0() and update_omega_fields_scmf1().
+ - Documentation via Doxygen. Almost all executables offer a help page.
+ - Simple random displacement MC.
+ - Smart Monte-Carlo moves.
+ - Distributed computation via MPI.
+ - CPU and GPU implementations via OpenACC.
+ - Shared memory CPU parallelism via OpenMP.
+ - Human readable xml input files.
+ - XDMF file conversion for analytics of density fields as an interface to paraview.
+ - Forbidden areas (area51) for confinement or non-periodic boundary conditions.
+ - Exact non passing area51.
+ - External fields.
+ - 3 different random number generators.
+ - Signal management. SIGINT and SIGTERM are catched and SOMA exits gracefully with final configuration. ( Only some MPI implementation support this. The jureca setup does. Use "#SBATCH --signal=SIGINT@360" to gracefully exist 1 min. before time limit.
+ - Checkpointing: User specified interval to "dump" full configurations.
+ - Online output file compression. (gzip for density_field).
+ - Automatic random configuration generation.
+ - Human readable updating of existing configurations.
+ - Scripts to handle hdf5 output data.
+ - Conversion tools to support the old data format.
+ - Online run estimation time output.
+ - Center of mass simple Monte-Carlo algorithm for full molecule diffusion.
+ - Doxygen API documentation.
+
+ \subsection observables Available Observables
+
+Observables are averaged in a single time frame per polymer type. The radius of gyration for example generates 4 values for each polymer type. Suppose you simulated 2 polymer types in 5 time frames.
+The output matrix in the hdf5 has than the dimensions 5x8, the first dimension is counting the time frames.
+
+
+ - \f$ Re \f$ Average squared distance of the first and last (in
+   memory) monomer of a polymer. In some topologies this might be the
+   end-to-end distance of the polymer. 4 values per polymer type: \f$ Re^2 Re_x^2 Re_y^2 Re_z^2 \f$
+
+ - The radius of gyration \f$ R_g \f$. 4 values per polymer type: \f$ Rgx^2 Rg_x^2 Rg_y^2 Rg_z^2 \f$
+
+ - Mean squared displacement. 8 values per polymer_type: \f$ g_{1x} g_{1y} g_{1z} g_{1} g_{3x} g_{3y} g_{3z} g_{3}\f$
+
+ - Stress tensor of the bond stresses. 6 values per polymer type \f$ \sigma_{xx} \sigma_{yy} \sigma_{zz} \sigma_{xy} \sigma_{xz} \sigma_{yz}\f$
+
+ - Output of the density-field. For each particle type a matrix of the grid dimension.
+
+ - The acceptance ratio of the Monte-Carlo move. (Normal single bead moves.)
+   \warning Because of reduction problems in the GPU implementation.
+   OpenACC builds return -1.
+
+ - The acceptance ratio of the Monte-Carlo move. (Center of Mass moves.)
+   \warning Because of reduction problems in the GPU implementation.
+   OpenACC builds return -1.
+
+ - Density variation. Variance of the density fields compared to the last analysed step.
+
+ - Non-Bonded energy: For each particle type \f$ k \f$: \f$ E_k = \sum_{c}^{N_cells} \omega_k(c) \cdot N_k(c) \f$, where \f$ N_k(c) \f$ denotes the number of particles of type \f$k\f$ in cell \f$c\f$.
+
+ - Non-Bonded energy: For each bond type \f$ k \f$: \f$ E_k = \sum_{<ij>} V_k(r_{ij}) \delta_{i<j} \f$, where \f$ <ij> \f$ denotes all bonded (of bond type \f$ k \f$) particles \f$ i,j\f$.
+
+ \subsection no-features Not Available Features
+
+ If you want to implement a feature, please do not hesitate to help
+ us. But talk to us during the process.
+
+ - Smoothing neighbor functions like NEIGHBOUR8 or NEIGHBOUR27,
+   because useful physical application is rare.
+
+ - Domain decomposition, because the scaling is good enough with GPUs.
+
+ - Dynamic load balance, because so far only chains of similar length
+   were considered.
+
+*/

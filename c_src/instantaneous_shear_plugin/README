@@ -1,0 +1,35 @@
+SOMA supports custom plugins, which offer additional features to the users.
+The plugins are intended to offer additional tools for users to modify and or analyze
+in the SOMA framework. Those tools are not intended to be part of the actual simulation.
+
+This document and gives a guideline how to create more plugins.
+The plugins discussed in this document cover C-code plugins only. Python scripts or other
+types of plugins may get at some there own framework.
+
+In general the plugins are not part of the SOMA project and are not maintained or
+distributed together with it.
+There is an exception to this rule. The "CMakeLists.txt" of the SOMA project may include
+reference to several plugins, even if they are not distributed with SOMA.
+
+Step 0:
+     Create a directory in "c_src" with the name of your project.
+Step 1:
+     Implement your plugin. You may use any kind of functions offered by SOMA,
+     but no function of another plugin.
+Step 2:
+     Copy the "CMakeLists.txt" of this directory to your plugin in directory.
+     Use it as a template to create a "CMakeLists.txt" for the compilation of your plugin.
+Step 3:
+     Modify the "CMakeLists.txt" of the parent directory "c_src" to include your
+     plugin directory.
+     Use the section of the "INSTANTANEOUS_SHEAR_PLUGIN" as a template. But make sure,
+     it is only parsed by CMake if plugin directory exists.
+     Try to not modify the file prior the "#SECTION FOR PLUGINS" marker.
+     You may want to ask the SOMA project to integrate this changes.
+Step 4:
+     In the building process of SOMA with CMake you should find a switch to
+     activate your plugin. After activation, "make install" is installs your plugin
+     along SOMA.
+
+The present plugin reads a configuration file with bead data and applies a step strain to
+all positions of the particles and writes the modified data back to the file.

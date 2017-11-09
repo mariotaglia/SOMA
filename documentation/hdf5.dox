@@ -1,0 +1,46 @@
+/* Copyright (C) 2016-2017 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*!\page hdf5 The HDF5 File-Format
+
+The HDF5 file format is one of the key features you will need to perform simulations with SOMA on a HPC Cluster.
+The HDF5 is a data model, library, and file format for storing and managing data. In our case it will guarantee a well optimized
+real parallel IO. It means every MPI process writes at the same time to a previous defined data container exclusively.
+If you want to know how to compile with hdf5: \ref HDF5.
+
+\section hdf5edit2 How to edit a hdf5 file
+
+To edit a hdf5 file you can follow different strategies.
+In a terminal you can use h5dump to dump data out of your file.
+If you prefer a visual tool you can use hdfviewer as well but therefore an X server is required which can become
+difficult in some cluster environments. The most gently way to deal with hdf5 files from our point of view is the usage of python (import h5py).
+To get an idea how to perform with python you can go for our handleAnaH5.py example.
+
+- <a href="http://docs.h5py.org/">  python module </a>: import h5py, most flexible but has to installed
+- <a href="https://www.hdfgroup.org/HDF5/doc/RM/Tools.html#Tools-Dump/">h5dump </a>, more or less always available first step to check specific observables
+- <a href="https://www.hdfgroup.org/products/java/hdfview/">hdfviewer </a>, visual environment with simple statistical analysis included.
+
+\section hdf5info2 Full documentation of HDF5
+For more information visit the page of the <a href="https://www.hdfgroup.org/"> HDF5 Group </a>.
+
+*/

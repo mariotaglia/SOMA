@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#   Copyright (C) 2016-2017 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+
+DELTA=0
+
+@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
+
+if [ ! $? -eq 0 ]; then
+    exit -1
+fi
+
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 0 @ACC_FLAG@
+mv end.h5 step0.h5
+
+if [ ! $? -eq 0 ]; then
+    exit -5
+fi
+
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 1 @ACC_FLAG@
+
+if [ ! $? -eq 0 ]; then
+    exit -2
+fi
+
+mv end.h5 norestart.h5
+
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c step0.h5 -r 11 -t 1 @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -3
+fi
+mv end.h5 restart.h5
+
+@HDF5_DIFF_EXECUTABLE@ -v -d $DELTA norestart.h5 restart.h5
+if [ ! $? -eq 0 ]; then
+    exit -4
+fi

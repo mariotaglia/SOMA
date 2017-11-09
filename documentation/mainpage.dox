@@ -1,0 +1,64 @@
+/* Copyright (C) 2016-2017 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*! \mainpage SOMA: SOft coarse grained Monte-carlo Acceleration
+
+ \section intro_sec Introduction
+
+ This is the documentation of SOMA it is intended to help to use the
+ program. In addition it provides a documentation of the functionality
+ of the code. So for developer working with SOMA this is a good
+ starting point for anything. If you have nothing developed for SOMA
+ before, please read our \ref design page first.
+
+ \subsection Theoretical Background
+
+  The program performs a single-chain in mean-field simulation. For
+  further details look for the publication: <a
+  href="http://dx.doi.org/10.1063/1.2364506"> "Single chain in mean
+  field simulations: Quasi-instantaneous field approximation and
+  quantitative comparison with Monte Carlo simulations", Daoulas,
+  Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, Volume 125,
+  Number 18. </a> <br> For details how this model is implemented in
+  SOMA refer also the \ref theory page.
+
+\subsection Detailed Description
+ The following list provides an overview about SOMA group in separate aspects.
+
+ - \ref workflow Summary how to productively use the program if no new features are needed.
+ - \ref input Explanation of the XML input files.
+ - \ref features List of all implemented features and an explanation how to use them.
+ - \ref install Introduction to get SOMA running on Linux systems.
+ - \ref theory Introduction of the implementation of before mentioned model in SOMA.
+ - \ref design Guidelines and comments about the code of SOMA.
+ - \ref hdf5 All data for SOMA is stored using the hdf5 data format. This introduction helps to get started.
+ - \ref prng_gen Gives you Background information about the pseudo random number generators which are used
+ - \ref plugin Help page for writing plugins for SOMA.
+*/
+
+
+
+
+
+
+

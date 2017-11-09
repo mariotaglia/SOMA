@@ -1,0 +1,210 @@
+/*!\page hdf5 The HDF5 File-Format
+
+The HDF5 file format is one of the key features you will need to perform simulations with SOMA on a HPC Cluster.
+The HDF5 is a data model, library, and file format for storing and managing data. In our case it will guarantee a well optimized
+real parallel IO. It means every MPI process writes at the same time to a previous defined data container exclusively.
+If you want to know how to compile with hdf5: \ref HDF5.
+
+\section hdf5edit How to edit a hdf5 file
+
+To edit a hdf5 file you can follow different strategies.
+In a terminal you can use h5dump to dump data out of your file.
+If you prefer a visual tool you can use hdfviewer as well but therefore an X server is required which can become
+difficult in some cluster environments. The most gently way to deal with hdf5 files from our point of view is the usage of python (import h5py).
+To get an idea how to perform with python you can go for our handleAnaH5.py example.
+
+- <a href="http://docs.h5py.org/">  python module </a>: import h5py, most flexible but has to installed
+- <a href="https://www.hdfgroup.org/HDF5/doc/RM/Tools.html#Tools-Dump/">h5dump </a>, more or less always available first step to check specific observables
+- <a href="https://www.hdfgroup.org/products/java/hdfview/">hdfviewer </a>, visual environment with simple statistical analysis included.
+
+\section hdf5info Full documentation of HDF5
+For more information visit the page of the <a href="https://www.hdfgroup.org/"> HDF5 Group </a>.
+
+
+
+*/
+
+/*!\page design Design Rationale
+\section Reviewing a Branch
+This section helps to check certain points before a reviewer accepts a branch for SOMA.
+- license acceptance from the authors of the branch
+- license header and output
+- "git diff" with master
+  - coding style: \ref accept_code
+  - flexibility
+  - performance
+  - never repeat yourself
+  - part of the SOMA core or plugin
+- compilation without warnings and errors for CPU and GPU builds. (gcc and pgcc)
+- all "old" tests pass without incident
+- ensure physically correct (integrated unit test)
+- coding correctness (integrated unit test + your own test)
+- ensure no performance degradation
+- optimized for GPUs and CPUs
+- profiling if necessary
+
+\section general General Remarks
+
+We the development team of SOMA put in a lot of effort to get SOMA
+fast and flexible at the same time. This required a decent
+design. This sections compiles a few general remarks about this
+design. As well as a list of quality requirements for further
+extensions of SOMA. Please respect these guidelines, to keep SOMA
+flexible, fast and up-to-date. So before you start the development of
+anything, start by reading this page.
+
+One important aspect for coordinated programming with more than one
+person is version control. For SOMA we agreed to use "git" for this
+purpose. The location of SOMA git server might change from time to
+time. Right now the location is the fusionforge sever of the
+TU-Dresden. You can find it <a
+href="https://fusionforge.zih.tu-dresden.de/scm/?group_id=1593"> here
+</a>. For access it might be required to get an account on fusionforge
+and talk to Ludwig (ludwig.schneider (at) theorie.physik.uni-goettingen.de),
+he can grand access for you. To keep SOMA one
+consistent program please do all your development in the frame work of
+this git repository. But do your development \a not on the master
+branch. This branch is reserved for tested and accepted features of
+SOMA. Instead create your own branch and develop there.
+\code
+git branch your-branch-name
+git checkout your-branch-name
+#do stuff
+git commit -am "I implemented this and that .."
+git push origin your-branch name
+\endcode
+
+If you finished the development of this single feature and you tested
+it. You can think of making it to an accepted part of SOMA. This means
+we merge your branch to the master branch. Before we merge your
+branch, we check your code against our coding guidelines. (See section
+\ref accept_code.) For users only, do not use \a any branch for productive use.
+Use a tagged version of SOMA. For a list of all available tagged version type
+\code git tag\endcode and checkout the desired version:
+\code git checkout tag-specifier\endcode
+
+This is the only way for you to get a stable version of SOMA. If you
+know what you do and you talked the developer of a specific branch, you
+are welcome to use this branch.
+
+By the way we cannot guarantee any correctness of SOMA, but for the
+tagged versions, we do our best that the code is stable and does what
+you expect.
+
+
+\section synchronous Particle and Density Data
+
+ There are two types of information if the model of SOMA. The particle
+ data and the density data. And we have two times, two memory locations for
+ the data, the host and the device.  Per default the memory location
+ is the device for performance reasons. If you want to the access the
+ data on the host, you have to copy it from the device first. And if
+ you modified something you have to upload the modifications
+ afterwards. But be aware copying data back and forth can easily be a
+ bottle neck. Consider, whether you can write a kernel for your
+ access.  All functions can assume that particle and density data are
+ in agreement with each other. To ensure this a few notes are listed
+ here.
+
+ - Each function that calculates something from a configuration should
+   do this only once for a call of p->time. If the function is called
+   more than once it should return fast in constant time.
+
+ - Each function that needs precondition, that can be fulfilled by the
+   call of a function should call this function at the beginning of
+   the body.
+
+ - Any function that modifies the bead positions or the density fields
+   has to make sure, those characteristics are synchronous after the
+   function call. E.g. call update_density_fields() before it returns.
+
+
+\section analysis Steps to be done if a new observable is implemented.
+
+If you want to add a new analysis routine to SOMA you should do a few steps. As an example orient at the existing observable \f$ Rg \f$. Do the following steps:
+ - Edit the example analysis field in example/coord.xml and example/complex.xml
+ - Edit the python script to generate a new ana.h5: "ConfGen.py"
+   - Add your observable with default values to the default generation
+   function of "AnalysisFile._init_ana_dict()"
+ - Test your results by creating a new ana.h5 file.
+ - Extend the Ana_Info struct with your new DeltaMc. DeltaMc is the increment of your analysis,
+ - Extend the init_ana() with the read in of your new DeltaMc.
+   - Test your modifications.
+ - Implement your analysis function in ana.h and ana.c. Do not forget the proper doc.
+   - Check compliance with the design rationale of calculators. (Lammps: Computes).
+   - The default storage for updated data is on the GPU, so if you process data on
+     the CPU dowload it first from the GPU. And if manipulate the data, upload the
+     modifications afterwards.
+ - Add to the analytics() function a section for your new output.
+   Try to reuse as much of the code as possible.
+ - Check your results.
+ - Add an entry of your observable to the feature list: \ref features
+ - If your name is not already in the AUTHORS file, add it. In addition, add your name
+   in the the license header of the files you modified.
+ - Enjoy your success of adding a analysis routine to the program.
+
+ \section accept_code Guidelines for Coding
+
+ This section is intended to summarize mandatory aspects that the code
+ of SOMA should feature at any point. If new functionalties or fixes
+ are applied to SOMA, this new code fragments have to fulfill this
+ criteria, otherwise the code will be rejected. So for coders this is
+ a list of dos and donts and for reviewers this is a list to consider
+ before new code is accepted. These guidelines are not designed to
+ make your life harder, but to keep the life of everybody else as easy
+ as possible.
+
+ - The list of importance is: 1) Performance 2) Readability 3) Design. <br>
+   But non of this points is negligible.
+
+ - The feature has to be physically correct. (In future version strict
+   unit test are required.) Now simple test function are okay.
+
+ - Test runs for every provided CMake configuration.
+
+ - No warnings or errors of any compiler are tolerated.
+
+ - "Quick and dirty" will never be accepted.
+
+ - Every declaration in a header file has to be fully documented for
+   doxygen. For declaration or implicit declaration in .c files a good
+   reason to omit the documentation is needed and at least the declaration
+   has to be declared as \\private. <br> The general "mainpage"
+   documentation has to be up to date.
+
+ - "Never Repeat Yourself" is strictly enforced.
+
+ - Every functionality has to be as modular as possible.
+
+ - Use runtime command line switches are welcome for new features.
+
+ - Every new feature is not allowed to decrease the performance of the
+   existing features.
+
+ - GPU performance is weighted more important than CPU performance.
+
+ - Any computationally demanding part has to be profiled. (The
+   reviewer might ask for a profile.)
+
+ - The code should have a decent format style. The format might be
+   overwritten by an automatic indenting.
+
+ - Defines to control the program execution are not permitted. In
+   general defines are not to be used. If a constant is required, use
+   a constant global variable (or local if possible). To this rule two
+   exceptions can be granted. The first are inclusion guards for
+   header files. Moreover, the inclusion guards are mandatory for
+   every header file. The second exception are allowed if architecture
+   depend parts of the code (like GPU oder OpenMP) specific parts have
+   to be capsuled.
+
+ - Merge the newest master to your branch before you ask to merge your branch to master.
+
+ - Core developers may be charged with cookies according to the cookie.list.
+
+ - A reviewer might ask for further changes before merging, if a good
+   reason is known.
+
+ If you disagree or you would like to propose a change of this list. Please talk to Ludwig.
+
+ */

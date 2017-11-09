@@ -1,0 +1,318 @@
+/* Copyright (C) 2016-2017 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*! \page input XML Input Format
+
+    SOMA offers a designated input format. The purpose of this format
+    is to be human readable in contrast to the hdf5 input files, which
+    are optimized for the computation, both IO wise and optimal for
+    computational purposes. For this reason the hdf5 file format might
+    change at any time, if the performance can be increased with these
+    changes. On the other hand to offer stability for the user the
+    helper scripts and the XML format should change as less as
+    possible.<br> On this page we describe the input format, so that
+    any user can create its own input file for her/his purpose.
+
+    \section example Example Input File
+
+    The input format is based on <a
+    href="https://en.wikipedia.org/wiki/XML">xml</a> and for the
+    description we use an ASCII representation of Molecules that is
+    inspired by the <a
+    href="http://jcheminf.springeropen.com/articles/10.1186/1758-2946-3-1">Curley-Smiles</a>
+    standard.
+    \note We do not cover the full Curley-Smiles spectrum and we have our own flavor.
+
+    An example input for a small system of linear diblock-copolymers may look like:
+
+    \include coord.xml
+
+    But let us discuss the tags step by step. In general the order of
+    the tags is without meaning, while the hierachy is not. There are
+    a few execeptions, where is order has a meaning. If there are more
+    than one tag of the same type on the same hierachy level, usually
+    their context will be summarized. In addition, in the "text" region of xml tags usually blank or lines beginning with '#' are ignored.
+
+    - \code <xml>\endcode introduces the file as xml
+    - \code <soma> \endcode Specifies that this xml is a SOMA input file. This tag is the root for all other tags. Anything outside will be ignored.
+    - \code <interactions>\endcode Is defining the interaction of the particle of different types. There are 3 sub-tags expeceted:
+      -\code <kappaN>\endcode Defines \f$ \kappa N\f$ the interaction between particles of the same type.
+      -\code <chiN> \endcode Defines \f$ \chi N\f$, the interaction
+       between 2 different particle types. The syntax is line based
+       and expects "typeA typeB value" for each unequal type. If you
+       specify \f$ \chi N \f$ for equal or \a equivalent particle
+       types the parsing will fail.
+       \note \f$ N \f$ of \f$ \chi N \f$ and \f$ \kappa N\f$ refers to the reference N.
+     - \code <bonds>\endcode Specifies the bond type between any half-bond type. The syntax is line based and expectes "typeA typeB bond-type".
+
+    - \code <A> \endcode Defines the mobility of the different particle
+      types in the smart Monte-Carlo moves. The syntax is line based and
+      expects "type value", where value is the friction of the Langevin
+      Dynamics.
+      \note The value corresponds to "dt*N/xi" of the old format divided by "reference_Nbeads"
+
+      Alternatively, you specify after your text based input an \code <dt> \endcode tag.
+      This value is exactly identical to the input "dt*N/xi" of the old input format.
+      If this tag is specified the default "A" for every type is calculated. You may omit
+      any text input if you like the default value. But with the text you can overwrite the
+      mobility for any type.
+      \warning The order of text based input and "dt" tag is important. First specify the text based input.
+      After the text you can add a "dt" tag.
+      \note You may specify a mobility of zero for a type, to get an immobile anchor.
+      Which can be desired for the end monomer of a brush.
+    - \code <time> \endcode Defines the timestep of the configuration.
+    - \code <hamiltonian> \endcode Defines the non bonded hamiltonian of the configuration.
+    If not specified the default "SCMF0" is selected. For options refer "enum Hamiltonian" in struct.h.
+    - \code <reference_Nbeads> \endcode Defines the number of
+      reference beads of the configuration. All values that depend on
+      a number of monomers refer to this value. This is required
+      because SOMA supports the simulation of multiple chain
+      architectures with varying number of monomers.
+
+      \note Even the length unit depends on this value, because the
+       length unit is in units of \f$ Re \f$, which is defined by a number of
+        beads.
+    - \code <lxyz> \endcode X,Y,Z of the box dimensions in units of \f$ Re \f$.
+    - \code <nxyz> \endcode X,Y,Z of the grid dimensions in grid units.
+    - \code <poly_arch> \endcode Curley-Smiles description of a simple linear diblock-copolymer.
+      For more details refer to \ref curley-smiles
+    - \code <analysis> \endcode Description of Analysis elements.
+      - SOMA uses a separate analysis file to observable states of the simulation on the fly.
+      - To describe, which observable is analysed how, this section is used.
+      - Each Oberservable has its own tag and all modifier go there.
+      - Inside of an observable tag, each new tag is interpreted as an individual hdf5 attribute for the element.
+        - The tag is the Name of the attribute and the content is converted via numpy.loadtxt to a matrix of integer as attr data.
+      - \code DeltaMC \endcode Each obs has an DeltaMC field. This specifies how often in MC steps this obs is analysed.
+      - \code end_mono \endcode Is a special attribute of the "Re" observable. Specifying which monomers of a polytype are considered as "end-monomers".
+        Matrix shape, should be n_poly_types x 2. The first dimension is counting the poly_type the second start and end monomer. Refer the complex example for an example.
+
+    \subsection confgen.py The Conversion Script.
+    This example should give you a rough overview over the input
+    format. Such a file can be converted by the "./ConfGen.py" script.
+    \code ./ConfGen.py -i coord.xml -o coord.h5 \endcode
+    The resulting hdf5 file can be used as an input hdf5 for the SOMA tool.
+
+    It will not generate the position for all beads, but SOMA detects
+    the lack of beads and automatically generates this information at
+    the startup.
+    \warning Be careful if you set up configuration containing rings. The random scheme recursively generate
+
+    The script can also be used to change parameter of an existing hdf5 ("old.hdf5") configuration. The procedure is as follows:
+    - Prepare a xml file containing all information of your existing configuration.
+    \warning You cannot leave out any data field.
+    - Modify this file according to your needs. ("mod.xml")
+    - Run the script:
+    \code ./ConfGen.py -i mod.xml -o old.hdf5 --udpate\endcode
+
+    The script compares the parameter of the xml file with hdf5 file
+    and updates any differences. The script prints out messages about
+    changed fields.<br> You can change almost any parameter except the
+    number of total polymers, the number of polymer architectures and
+    the number of monomers for each polymer. An AssertionError will be
+    raised if you try such a modification and the original hdf5 is
+    kept unchanged.
+
+  \section curley-smiles SOMA Flavor of Curley Smiles
+
+  To enable you to describe you molecule for SOMA in a human- and
+  machine-readable way SOMA uses its own flavor of the Curley-Smiles
+  standard to describe your molecule architecture with characters.<br>
+
+  A molecule is described by a single line. The first part of the line
+  specifies the number of molecules of this type. This is followed by
+  a Curley-Smiles string to describe the molecule architecture.<br>
+
+  In general the basis of each molecule is here a main backbone of a
+  linear molecule. In addition, you can specify branches of this
+  backbone (and inside branches) and additional bonds on branch
+  level. This enables almost any molecule architecture. (But not all
+  architectures.)
+
+  To achieve this there are two basic elements of which a every molecule description is composed.
+  - A molecule part. This specifies a linear piece of a molecule. And defines additional connections. Such a molecular part has 3 region and no whitespaces.
+    - The first region is the name of the monomer type. The is a string enclosed by "'". Inside you can use any number of whitespaces.
+    - The second region is a list of additional bond tags. These tags
+      are integer number and are separated by the "%" character. The
+      scope of this tags is the branch, so you can overshadow an index
+      in following branches. In this branch additional bond between
+      monomers with the same tag are introduced. The "0" tag is
+      special. Any monomer has to have this tag, but it introduces no
+      additional bond.
+    - The last region is the "Curley" part. In curly brackets "{}"
+      enclosed is an integer number which specifies the repetition of
+      this linear segment.
+
+  - A branch is enclosed by normal brackets "()" and encloses any
+    number of molecule parts and branches. A closing branch ")" is
+    followed by a curly repetition region, which specify how many of
+    the branches are used. After a branch another branch or a molecule
+    part follows.
+
+  To make the life of you easier you can apply a number of abbreviation to your Curly-Smiles string.
+  - The tag "0" of every monomer can be left out.
+  - The "%" at the end of a tag list is optional
+  - If your type name is a single "alpha"-character you can omit the enclosing "'".
+  - If you want a repetition of 1, you can omit the "{1}".
+
+  \subsection example-mol Example Molecules
+  Here are a few examples of increasing complexity.
+  - \code 100 A{16}B{16}\endcode are 100 diblock copolymers with 16 A monomers followed by 16 B monomers.
+  - \code 100 A{16}(B{16})C{16}\endcode are 100 star polymers with 3
+    arms of 16 monomers each. The type of the branches is A,B,C
+    respectively. An equivalent description is \code 100 A{16}(B{16})(C{16})\endcode
+  - \code 100 A1A{28}A1 \endcode are 100 rings of 30 A monomers.
+  - \code 100 A{16}(B{4}){10} \endcode are 100 linear A strands of 16 monomers, which branch into 10 equal branches of 4 B monomers.
+  - \code 1 A1A2A1{2}('B'{2}A1('Qe'{2}){2}AB1){2}A1%2\endcode A drawing of this input molecule looks like:
+  \dot
+	 digraph ExamplexMolecule {
+	  0 [label="A"];
+	  1 [label="A"];
+	  2 [label="A"];
+	  3 [label="A"];
+	  4 [label="B"];
+	  5 [label="B"];
+	  6 [label="A"];
+
+	  7 [label="Qe"];
+	  8 [label="Qe"];
+	  9 [label="Qe"];
+	  10 [label="Qe"];
+
+	  11 [label="A"];
+	  12 [label="B"];
+
+	  13 [label="B"];
+	  14 [label="B"];
+	  15 [label="A"];
+
+	  16 [label="Qe"];
+	  17 [label="Qe"];
+	  18 [label="Qe"];
+	  19 [label="Qe"];
+
+	  20 [label="A"];
+	  21 [label="B"];
+
+  	  22 [label="A"];
+
+	  0 -> 1 [arrowhead=none];
+	  1 -> 2 [arrowhead=none];
+  	  2 -> 3 [arrowhead=none];
+	  3 -> 4 [arrowhead=none];
+	  4 -> 5 [arrowhead=none];
+	  5 -> 6 [arrowhead=none];
+	  6 -> 7 [arrowhead=none];
+	  7 -> 8 [arrowhead=none];
+	  6 -> 9 [arrowhead=none];
+	  9 -> 10 [arrowhead=none];
+	  6 -> 11 [arrowhead=none];
+	  11 -> 12 [arrowhead=none];
+	  6 -> 12 [arrowhead=none];
+
+	  3 -> 13 [arrowhead=none];
+	  13 -> 14 [arrowhead=none];
+	  14 -> 15 [arrowhead=none];
+
+	  15 -> 16 [arrowhead=none];
+	  16 -> 17 [arrowhead=none];
+	  15 -> 18 [arrowhead=none];
+	  18 -> 19 [arrowhead=none];
+
+	  15 -> 20 [arrowhead=none];
+	  15 -> 21 [arrowhead=none];
+
+	  20 -> 21 [arrowhead=none];
+
+	  3 -> 22 [arrowhead=none];
+	  0 -> 2 [arrowhead=none];
+	  0 -> 3 [arrowhead=none];
+	  0 -> 22 [arrowhead=none];
+	  1 -> 22 [arrowhead=none];
+	  2 -> 22 [arrowhead=none];
+	  }
+  \enddot
+  \note If you like a graphical representation of your molecule, run
+  \code ./ConfGen.py --dot-graph \endcode
+  with the corresponding flag. You will get for each molecule a "dot" representation of your molecule.
+  Using the "dot" tool from the Graphviz package you can convert this output to visual graphs.
+
+  \subsection complex A More Complex Example
+  We end this page with a more complex input file, which uses a few more options and tags.
+  \include complex.xml
+  In the following we briefly discuss the additional tags, that are used here:
+
+  - \code <equivalent_particle_types>\endcode In case you need more
+    types to describe your bond types than you have different interaction
+    parameter between particles, you can specify that certain types are
+    treated as a single particle type, but for the bond structure they are
+    still distinguished.<br>
+    The syntax is line based and all listed monomer types are treated as equivalent.
+
+  - \code <harmonicvariablescale> \endcode For bonds with type
+    HARMONICVARIABLESCALE you can set an individual factor to scale
+    bond length with respect to the "normal" harmonic bonds. Actually,
+    the energy is scaled with the factor, so setting it to 2 halves
+    the length of the HARMONICVARIABLESCALE bonds.
+
+  - \code <cm_a> \endcode Center of mass mobility of the polymer types.
+    If this tag is specified in addition to normal Monte-Carlo moves,
+    simple center of mass Monte-Carlo moves are applied. The data of the tag is
+    float value for each polymer quantifying its center of mass mobility.
+
+  - \code <area51>\endcode
+    \note area51 applies always for all types. If after the summation
+    on the grid a grid site has a value <= 0 it is cropped to 0 and
+    means accessible.  Value bigger the 0 are cropped to 1 and mean
+    forbidden area.
+
+    \warning The coordinates specified for all GridObjects are in grid
+     units, not in units of Re. That includes \<point\> tags and \<radius\>
+     tags. Your input has to be integer, except \<radius\>.
+
+
+    This tags helps you to specify forbidden
+    areas for the monomers on your grid. This can be useful if you
+    want to simulate in confinements or you don't want to you periodic
+    boundary conditions. For this purpose 4 different GridObject are available.
+
+    - \code <point_cloud>\endcode The easiest object. You can specify any X,Y,Z grid site and assign it a value.<br>
+    The syntax is line base and expects first "x y z" and than a list of values. Each value applies for a type.
+
+      \note The values per type refer to type ids rather than types. So
+      compare the script output with your assumption of type/type id
+      mapping.
+
+    - \code <box>\endcode is a rectangular box. The syntax is equivalent to povray, except that SOMA uses a right-handed coordinate system instead of povray left-hand one.
+    So with the two \code <point> \endcode tags two opposite edges are specified. The \code <value> \endcode tag captures the values for each type.
+    - \code <cylinder> \endcode Defines a cylinder in space. The two points define the two centers of the end circles and a radius is specified. Again this is equivalent to povray.
+    - \code <sphere> \endcode Is a sphere in space and is defined by its center and a radius.
+
+  - \code <external_field> \endcode allows to apply any external field
+    to the grid per monomer type. The units are in \f$ k_B T\f$. The
+    objects you can define are equivalent to the ones of "area51". All
+    values of a grid site are summed up.
+  \note Objects that leave the grid are mapped back via periodic boundary conditions.
+
+
+
+*/

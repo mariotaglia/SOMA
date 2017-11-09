@@ -19,7 +19,6 @@ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 --------------------------------------------------------------------------------
 
 SOMA: Soma Offers Monte Carlo Acceleration
-or SOft coarse grained Monte-carlo Acceleration
 --------------------------------------------------------------------------------
 
 SOMA is a software package, which offers High Performance Computing Monte-Carlo
@@ -105,6 +104,12 @@ Install
   * Build SOMA:
 
     make
+
+  * Test your compilation result:
+
+    make test
+
+    This may take some time.
 
   * Install SOMA:
 

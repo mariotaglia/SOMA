@@ -1,0 +1,165 @@
+#!/usr/bin/env python
+
+#   Copyright (C) 2016-2017 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+import sys
+sys.path.append( @SOMA_PYTHON_DIR@ )
+import h5py
+import argparse
+import subprocess as sp
+
+SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
+CONVERT = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/CONVERT"
+CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+HANDLEANAH5 = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/handleAnaH5.py"
+epsilon = 2.
+
+def convert_files():
+    ret = sp.call([CONFGEN,"-i","homo.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call([CONFGEN,"-i","diblock.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call([CONFGEN,"-i","scmf1.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def equilibrating(prefix,additional_flags):
+    ret = sp.call(prefix+[SOMA,"-c","homo.h5","-t","10000"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","end.h5","homo.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+    ret = sp.call(prefix+[SOMA,"-c","diblock.h5","-t","10000"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","end.h5","diblock.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+    ret = sp.call(prefix+[SOMA,"-c","scmf1.h5","-t","10000"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","end.h5","scmf1.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def run(prefix,additional_flags):
+    ret = sp.call(prefix+[SOMA,"-c","homo.h5","-t","20000","-a","homo_ana.h5"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","end.h5","homo.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+    ret = sp.call(prefix+[SOMA,"-c","diblock.h5","-t","20000","-a","diblock_ana.h5"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","end.h5","diblock.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+    ret = sp.call(prefix+[SOMA,"-c","scmf1.h5","-t","20000","-a","scmf1_ana.h5"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","end.h5","scmf1.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def check_value(value,std,ref_value,msg):
+    if abs(value - ref_value) < std*epsilon:
+        print("\t"+msg+" passed: "+str(((value-ref_value),std,epsilon)))
+    else:
+        raise RuntimeError("\t"+msg+" *FAILED*: "+str(((value-ref_value),std,epsilon)))
+
+def ana():
+    proc = sp.Popen([HANDLEANAH5,"-i","homo_ana.h5","-d","Re","--av"],stdout=sp.PIPE)
+    line =proc.communicate()[0]
+    ret=proc.wait()
+    if ret != 0 : raise RuntimeError("Test failed")
+    line = line.strip().split("\t")
+    value = line[0].split("+-")
+    check_value(float(value[0]),float(value[1]),1.,"homo Re ")
+
+    proc = sp.Popen([HANDLEANAH5,"-i","diblock_ana.h5","-d","Re","--av"],stdout=sp.PIPE)
+    line =proc.communicate()[0]
+    ret=proc.wait()
+    if ret != 0 : raise RuntimeError("Test failed")
+    line = line.strip().split("\t")
+    value = line[0].split("+-")
+    check_value(float(value[0]),float(value[1]),1.28,"diblock Re ")
+
+    proc = sp.Popen([HANDLEANAH5,"-i","scmf1_ana.h5","-d","Re","--av"],stdout=sp.PIPE)
+    line =proc.communicate()[0]
+    ret=proc.wait()
+    if ret != 0 : raise RuntimeError("Test failed")
+    line = line.strip().split("\t")
+    value = line[0].split("+-")
+    check_value(float(value[0]),float(value[1]),1.28,"scmf1 Re ")
+
+    proc = sp.Popen([HANDLEANAH5,"-i","homo_ana.h5","-d","bond_anisotropy","--av"],stdout=sp.PIPE)
+    line =proc.communicate()[0]
+    ret=proc.wait()
+    if ret != 0 : raise RuntimeError("Test failed")
+    line = line.strip().split("\t")
+    value0,value1,value2 = line[3].split("+-"),line[4].split("+-"),line[5].split("+-")
+    check_value(float(value0[0])+float(value1[0])+float(value2[0]),float(value0[1])+float(value1[1])+float(value2[1]),0,"homo bond_anisotropy ")
+
+    proc = sp.Popen([HANDLEANAH5,"-i","diblock_ana.h5","-d","bond_anisotropy","--av"],stdout=sp.PIPE)
+    line =proc.communicate()[0]
+    ret=proc.wait()
+    if ret != 0 : raise RuntimeError("Test failed")
+    line = line.strip().split("\t")
+    value0,value1,value2 = line[3].split("+-"),line[4].split("+-"),line[5].split("+-")
+    check_value(float(value0[0])+float(value1[0])+float(value2[0]),float(value0[1])+float(value1[1])+float(value2[1]),0,"diblock bond_anisotropy ")
+
+    proc = sp.Popen([HANDLEANAH5,"-i","scmf1_ana.h5","-d","bond_anisotropy","--av"],stdout=sp.PIPE)
+    line =proc.communicate()[0]
+    ret=proc.wait()
+    if ret != 0 : raise RuntimeError("Test failed")
+    line = line.strip().split("\t")
+    value0,value1,value2 = line[3].split("+-"),line[4].split("+-"),line[5].split("+-")
+    check_value(float(value0[0])+float(value1[0])+float(value2[0]),float(value0[1])+float(value1[1])+float(value2[1]),0,"scmf1 bond_anisotropy ")
+
+
+    proc = sp.Popen([HANDLEANAH5,"-i","homo_ana.h5","-d","Rg","--av"],stdout=sp.PIPE)
+    line =proc.communicate()[0]
+    ret=proc.wait()
+    if ret != 0 : raise RuntimeError("Test failed")
+    line = line.strip().split("\t")
+    value = line[0].split("+-")
+    check_value(float(value[0]),float(value[1]),1./6.,"homo Rg ")
+
+    for i in range(1,4):
+        value = line[i].split("+-")
+        check_value(float(value[0]),float(value[1]),1./6./3.,"homo Rg "+str(i))
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description = "Perform test to check the correct statistic results of SOMA.")
+    parser.add_argument('--additional-flags',metavar="add-flags",type=str,help="Additional flags you might want to pass to SOMA for all tests.",default="" )
+    parser.add_argument('--prefix',metavar="add-flags",type=str,help="Prefix before the call of SOMA",default="" )
+    arguments =  parser.parse_args()
+
+    prefix = []
+    for element in arguments.prefix.split():
+        if len(element) > 0:
+            prefix.append(element.strip())
+    additional_flags =[]
+    for element in arguments.additional_flags.split():
+        if len(element) > 0:
+            additional_flags.append(element.strip())
+
+    convert_files()
+    equilibrating(prefix,additional_flags)
+    run(prefix,additional_flags)
+    ana()
+
+    return 0
+
+
+if __name__ == "__main__":
+    ret = main(sys.argv)
+    exit(ret)

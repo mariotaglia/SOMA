@@ -1,0 +1,54 @@
+/* Copyright (C) 2016-2017 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+/*!\page prng_gen Pseudo Random number generator
+We perform Monte-Carlo Simulations therefore good random numbers are a prior condition.
+To validate the efficiency of an random number generator (RNG), we use the statistics
+of the end to end distance Re, bond isotropy, and Diffusion time of a polymer chain.
+However strictly formal we cannot speak from a Diffusion because of the characteristics of a Monte-Carlo Simulation.
+Our main focus is the performance of SOMA on GPUs.
+Since our simulation is a memory bounded problem and not a computational
+one we have to take the memory access of our RNG into account.
+The internal state of the PCG32 is quite small and the statistics was satisfactory,
+therefore we decided to use this RNG by default. If you have the feeling that
+something with your random numbers went wrong select the Mersenne-Twister
+or reduced Mersenne-Twister TT800 with a command line flag
+\note PCG32 is used by default without any cmdline flags. Independent of the choice of your rng every polymer will have a different one which is used by every polymer exclusively.
+    \section PCG32 PCG32
+    - used by default, -p PCG32
+    - internal state 1x uint64_t
+    - internal stream 1x uint64_t
+    - seeded with seed, MPI process, polymer id
+    - <a href="http://www.pcg-random.org/"> PCG32 developer page </a>
+
+    \section MTWISTER Mersenne-Twister
+    - use with: -p MT
+    - internal state 624x uint32_t
+    - internal state is seeded with PCG32
+
+    \section TT800
+    - use with: -p TT800
+    - internal state 27x uint32_t
+    - internal state is seeded with PCG32
+*/

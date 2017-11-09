@@ -1,0 +1,74 @@
+/* Copyright (C) 2016-2017 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*!\page workflow Work Flow
+\section Basics
+ This section describes the general work flow for a simulation.
+ - Build your simulation. For details refer the \ref install page.
+ - Create yourself a configuration by a) using the old SCMF format (only linear chains supported) or b) use XML input files.<br>
+   \code ./ConfGen.py -i coord.xml \endcode Generates you an "coord.h5" input file out of a ".xml" input file. For more details about the "ConfGen.py" script run \code ./ConfGen.py --help\endcode
+   If you want to know more about the input format refer to \ref input.
+   - If you have used the old format: Convert the coord.dat to a coord.h5 by using the "CONVERT" tool.
+     \code ./CONVERT coord.dat <geometry.dat>\endcode
+   - An example old format file is "coord.dat".
+   - Additionally you can add a geometry file for CONVERT. This adds a forbidden area and external fields. For details ask Ulrich.
+ - An hdf5 analysis file is automatically created by the ConvGen.py tool, if you have converted and xml-file. If you work with an old ".dat" file,
+   you need to create an xml file, which describes the same configuration like your ".dat" file. In this file you can add an analysis section describing
+   the analysis file. You can suppress the creation of the configuration file in this step, refer "./ConfGen.py --help" for details.
+   \note The configuration in the xml has to match the later used configuration for this file. Otherwise, using the file might cause problems.
+
+ - Now you should have a "coord.h5" with your configuration and a "coord_ana.h5" with your specification how the analysis is performed.
+   - The "ana.h5" will contain all your results after the run so handle it with care.
+   - For more details about the analysis file refer also the Density-Field Analysis section on this page.
+ - Now you can finally run your simulation by using \code mpiexec/srun -n [N] ./SOMA -c coord.h5 -a coord_ana.h5 -t #steps [options]\endcode
+   - Also run \code ./SOMA --help \endcode for more options, especially if you want to run with GPU support.
+ - After your run analyze your observables in the "ana.h5" file.
+   - The "ana.h5" are intended to be used for only a single run or
+     subsequent runs of the same configuration. As consequence SOMA
+     appends data to the configuring file. It is up to the user to
+     make sure that data on a single files really represents a time
+     sequence of data points.
+   - For all scalare obsevables of your analysis, you can use h5dump handleAnah5.py or hdfview to postprocess your data.
+   - For the density fields we recommend the function "get_mayavi_matrix" of handleAnaH5.py, which returns you a specific numpy array containing the data.
+   - Or you can plot your density fields directly via for example <a href="http://www.paraview.org">paraview</a> by creating a corresponding light-data <a href="http://www.xdfm.org">xdmf</a> file.
+     \code ./create_xdmf.py -a ana.h5 \endcode The script touches only light data so no worries about large files. The result would be "ana.xmf", which can be directly imported by "paraview".
+     If you would like to visualize your external fields or area51 as well, you may add your configuration file, via the "-c" option.
+   - For further details about the hdf5 files and tools to analyze those refer the \ref hdf5 page.
+ - The final configuration is saved in the file "end.h5"
+
+ \subsection Density-Field Analysis
+ With the program a routine to write the density fields to disk is shipped.
+
+ The output format of this routine is again hdf5. And it writes out
+ the field of all types with the most important attributes.  However,
+ the density field might not be a 3d-matrix as one might expect, because it
+ represents the cache-optimized memory layout in the
+ simulation. Conversion tools for the output are discussed on the \ref
+ hdf5 page.
+
+ \note By default SOMA appends always analyzed data to a given
+ hdf5 file. But in case of the density fields that only works, if the
+ previous dimension of the density field match with the actual
+ dimension. If the dimension differ you will be warned and no data is
+ written to disc.
+*/

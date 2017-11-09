@@ -1,0 +1,5 @@
+This directory collects several files that can be sourced for the environment setup.
+The files "jureca.sh" and "jureca_python.sh" for example are for the JURECA super-computer
+in Juelich, Germany.
+The "titan.sh" files are for TITAN at Oak Ridge, USA.
+More setup files are welcome.

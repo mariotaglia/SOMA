@@ -1,0 +1,194 @@
+#!/usr/bin/env python
+
+#   Copyright (C) 2016-2017 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+
+import sys
+sys.path.append( @SOMA_PYTHON_DIR@ )
+import ConfGen
+import numpy
+import h5py
+
+def get_particle_type(info_bl):
+    return ConfGen.get_particle_type(info_bl)
+
+def get_xyz(f,ipoly,ibead):
+    tu = f['beads'][ipoly][ibead]
+    return (tu[0],tu[1],tu[2])
+
+def get_type(f,ipoly,ibead):
+    #change implementation in future with polyarch
+    poly_arch = f['/parameter/poly_arch']
+    poly_type_offset = f['/parameter/poly_type_offset']
+    poly_type = f['poly_type'][ipoly]
+    info = poly_arch[ poly_type_offset[poly_type] + 1 + ibead]
+    type = get_particle_type(info)
+    return type
+
+def check_first_line(line,h5):
+    ret = 0
+    line = line.strip().split(";")
+    for i in range(len(line)):
+        line[i] = line[i].strip()
+    non_ign = [1,2,10,11,12,13]
+    for i in range(len(line)):
+        attr = line[i]
+        if i not in non_ign:
+            print("Ignoring attribute:  \""+attr+"\"")
+        else:
+            if i == 1:
+                chiN = float(attr.split("=")[1].strip())
+
+                for j in range(h5['/parameter/xn'].shape[0]):
+                    for k in range(h5['/parameter/xn'].shape[1]):
+                        value = h5['/parameter/xn'][j][k]
+                        if k != j and chiN != value:
+                            print("chiN mismatch :"+str( (j,k,chiN,value) ))
+                            ret += 1
+            if i == 2:
+                kappaN = float(line[2].split("=")[1].strip())
+                for j in range(h5['/parameter/xn'].shape[0]):
+                    for k in range(h5['/parameter/xn'].shape[1]):
+                        value = h5['/parameter/xn'][j][k]
+                        if k==j and kappaN != value:
+                            print("kappaN mismatch :"+str( (j,k,chiN,value) ))
+                            ret += 1
+            if i == 10:
+                Lx = float(attr.split("=")[1].strip())
+                if Lx != h5['/parameter/lxyz'][0]:
+                    print("Lx mismatch: "+str((Lx,h5['/parameter/lxyz'][0])))
+                    ret += 1
+            if i == 11:
+                Ly = float(attr.split("=")[1].strip())
+                if Ly != h5['/parameter/lxyz'][1]:
+                    print("Lx mismatch: "+str((Ly,h5['/parameter/lxyz'][0])))
+                    ret += 1
+            if i == 12:
+                Lz = float(attr.split("=")[1].strip())
+                if Ly != h5['/parameter/lxyz'][2]:
+                    print("Lx mismatch: "+str((Lz,h5['/parameter/lxyz'][0])))
+                    ret += 1
+            if i==13:
+                for i in range(3):
+                    N = int(attr.split("=")[1].strip().split()[i])
+                    if N != h5['/parameter/nxyz'][i]:
+                        print("Grid size mismatch: "+str((N,h5['/parameter/nxyz'][i])))
+                        ret += 1
+    return ret
+
+def check_second_line(line,h5):
+    ret = 0
+    line = line.strip().split(";")
+    for i in range(len(line)):
+        line[i] = line[i].strip()
+    non_ign = [0,4]
+    for i in range(len(line)):
+        attr = line[i]
+        if i not in non_ign:
+            print("Ignoring attribute:  \""+attr+"\"")
+        else:
+            if i == 0:
+                time = int(float(attr.split("=")[1]))
+                if time != h5['/parameter/time'][0]:
+                    print("Time mismatch: "+str((time,h5['/parameter/time'][0])))
+                    ret += 1
+            if i == 4:
+                dt = float(attr.split("=")[1])
+                Nrefence = h5['/parameter/reference_Nbeads'][0]
+                for A in h5['/parameter/A']:
+                    if A != dt/Nrefence:
+                        print("Mismatch in dt=A*Nrefenrence: "+str(( dt,Nrefence,A,dt/Nrefence)))
+                        ret += 1
+
+    return ret
+
+def check_fourth_line(line,h5):
+    ret = 0
+    line = line.strip().split()
+    for i in range(len(line)):
+        line[i] = line[i].strip()
+    non_ign = [0,1]
+    for i in range(len(line)):
+        attr = line[i]
+        if i not in non_ign:
+            print("Ignoring attribute:  \""+attr+"\"")
+        else:
+            if i == 0:
+                Npoly = int(attr)
+                if Npoly != h5['/parameter/n_polymers'][0]:
+                    print(" Mismatch Npoly: "+str((Npoly,h5['/parameter/n_polymers'][0])))
+                    ret += 1
+            if i == 1:
+                print("Using NmonoA as refenrence beads and lenght of the polymers.")
+                NmonoA = int(attr)
+                for offset in h5['/parameter/poly_type_offset']:
+                    if NmonoA != h5['/parameter/poly_arch'][offset]:
+                        print("Poly_Arch 'N' mismatch: "+str((NmonoA,h5['/parameter/poly_arch'][0],offset)))
+                        ret += 1
+                if NmonoA != h5['/parameter/reference_Nbeads'][0]:
+                    print("Nrefence mismatch: "+str((NmonoA,h5['/parameter/reference_Nbeads'][0])))
+                    ret += 1
+
+    return ret
+
+def check_particle_data(pdata,h5,epsilon=1e-25):
+    ret = 0
+    NmonoA = h5['/parameter/poly_arch'][0]
+    for i in range(len(pdata)):
+        line = pdata[i].strip()
+        if len(line) > 0 and line[0] != '#':
+            ipoly = i/NmonoA
+            ibead = i%NmonoA
+            line = line.split()
+            xyz = (line[0],line[1],line[2])
+            norm =0
+            for i in range(3):
+                norm += abs(float(xyz[i])-get_xyz(h5,ipoly,ibead)[i])
+            if norm > epsilon:
+                print("Particle data mismatch x,y,z: "+str((xyz,get_xyz(h5,ipoly,ibead),ipoly,ibead)))
+                ret += 1
+            if int(line[3])-1 != get_type(h5,ipoly,ibead):
+                print("Mismatch type (maybe unsupported polymer mixture): "+str((line[3],get_type(h5,ipoly,ibead),ipoly,ibead)))
+                ret += 1
+
+    return ret
+
+def main(argv):
+    if len(argv) != 3:
+        print("Usage: ./script.py file.dat file.h5")
+        return 1
+    ret = 0
+    dat = open(argv[1],"r").read().split("\n")
+    h5 = h5py.File(argv[2],"r")
+
+    ret += check_first_line(dat[0],h5)
+    ret += check_second_line(dat[1],h5)
+    print("Ignoring free comment line: \""+dat[2].strip()+"\"")
+    ret += check_fourth_line(dat[3],h5)
+    ret += check_particle_data(dat[4:],h5)
+
+    if ret != 0:
+        print("ERROR: "+str(ret)+" mismatches detected.")
+
+    h5.close()
+    return ret
+
+
+
+if __name__ == "__main__":
+    ret = main(sys.argv)
+    exit(ret)

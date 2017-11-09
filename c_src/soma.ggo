@@ -1,0 +1,43 @@
+#   Copyright (C) 2016-2017 Ludwig Schneider
+#   Copyright (C) 2016-2017 Marcel Langenberg
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+
+
+package "SOMA"
+version "replace-version"
+versiontext "SOMA  Copyright (C) 2016-2017 Ludwig Schneider, Ulrich Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco and more. This program comes with ABSOLUTELY NO WARRANTY; see GNU Lesser General Public Licence v3 for details. This is free software, and you are welcome to redistribute it under certain conditions; see GNU Lesser General Public Licence v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to Computer Physics Communications. \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18"
+purpose "Running SCMF simulations and timings."
+usage "./SOMA options"
+
+
+option "coord-file" c "File containing the system description and all Coordinates. (HDF5-Format)" string typestr="filename" required
+option "timesteps" t "Number of MC sweeps carried out by SOMA." int typestr="timesteps" required
+option "ana-file" a "File containing the analysis frequency and is going to be appended by the new measured observables. (HDF5-Format)" details="The appending characteristics require, that the user makes sure, that previous data also refers to the same system. Especially in the case of different grid sizes this can cause issue and maybe no data is written, if the dimension do not match." string typestr="filename" optional default=""
+option "gpus" g "Number of GPUs per MPI-node to use. The devices 0-(gpus-1) are going to be occupied by SOMA. Every node must feature this number of nodes and it is assumed that the scheduler assignes the ranks consequently to the nodes. If set to 0, SOMA tries to run on host-code. Ignored if compiled without OPENACC."  int typestr="gpus" optional default="0"
+option "only-gpu" o "Specify a specific Device for all ranks. Useful for MPI-single rank runs. This option overrides the --gpus option." int typestr="gpuId" optional
+option "screen-output-interval" s "Specify the number of seconds between an output about timings on the screen." double typestr="seconds" optional default="10"
+option "rng-seed" r "Global seed for the pseudo-random number generator. If you pass seed < 0, seed = time(NULL) will be used. Option useful for debuggin purposes." int typestr="seed" optional default="-1"
+option "pseudo-random-number-generator" p "Option to select the pseudo random number generator." enum typestr="PRNG" values="PCG32","MT", "TT800" default="PCG32" optional
+option "omp-threads" n "Number of omp threads used per MPI rank. If you pass n < 1 it will be set to 1." int typestr="omp_threads" optional default="1"
+option "nonexact-area51" - "Specify to use the exact check of area51. This includes checks, whether a particle moves through a forbidden area51. Performance might be slightly increased if switched to nonexact. Configuration generation is always in exact mode." flag off
+option "move-type" - "Specify the Monte-Carlo move type." enum typestr="MVT" values="TRIAL","SMART" default="SMART" optional
+option "iteration-alg" - "Specify the iteration algorithm of the beads. This specifies also the level of parallelism that is possible." enum typestr="ITR-ALG" values="POLYMER","SET" default="POLYMER" optional
+option "skip-tests" - "Skip tests SOMA is usually preforming before and after the simulation to ensure integrety of the data." flag off
+option "load-balance" l "Frequency of the load balancer. For homogenous architectures this can be set to high values, for hetereogenous architectures across the MPI ranks small values help to equilibrate faster. Non-MPI runs are uneffected. Values < 0 deactivate the load-balancer." int typestr="freq" optional default="500"
+option "accepted-load-inbalance" - " [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
+option "autotuner-restart-period" - "Period in which the autotuner is restarted." int typestr="period" optional default="10000"
+option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="user-args" optional

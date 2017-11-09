@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soma version="0.2.0">
+  <interactions>
+    <kappaN>
+      30
+    </kappaN>
+    <chiN>
+      A B 20
+    </chiN>
+    <bonds>
+    A A  harmonic
+    A B  harmonic
+
+    B B  harmonic
+    </bonds>
+  </interactions>
+  <A>
+    <dt>
+      0.17
+    </dt>
+  </A>
+  <time>
+    0
+  </time>
+  <poly_arch>
+    120 A{32}B{32}
+  </poly_arch>
+    <reference_Nbeads>
+    64
+  </reference_Nbeads>
+  <lxyz>
+    1.677 0.8385 0.8385
+  </lxyz>
+  <nxyz>
+    12 6 6
+  </nxyz>
+  <analysis>
+    <Re>
+      <DeltaMC> 100 </DeltaMC>
+    </Re>
+    <Rg>
+      <DeltaMC> 100 </DeltaMC>
+    </Rg>
+    <bond_anisotropy>
+      <DeltaMC> 100 </DeltaMC>
+    </bond_anisotropy>
+    <density_var>
+      <DeltaMC> 500 </DeltaMC>
+    </density_var>
+    <acc_ratio>
+      <DeltaMC> 500 </DeltaMC>
+    </acc_ratio>
+    <MSD>
+      <DeltaMC> 500 </DeltaMC>
+    </MSD>
+    <dump>
+      <DeltaMC> 500 </DeltaMC>
+    </dump>
+    <density_field>
+      <DeltaMC> 500 </DeltaMC>
+      <compression> gzip </compression>
+    </density_field>
+    <non_bonded_energy>
+      <DeltaMC> 500</DeltaMC>
+    </non_bonded_energy>
+    <bonded_energy>
+      <DeltaMC> 500</DeltaMC>
+    </bonded_energy>
+  </analysis>
+</soma>
