@@ -84,6 +84,7 @@ typedef struct Phase{
     soma_scalar_t * omega_field_unified;  /*!< \brief calculates the omega fields according to the Hamiltonian, unified access*/
     //soma_scalar_t ** external_field; /*!< \brief external fields that act on the polymers, one field per type */
     soma_scalar_t * external_field_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells of external_fields */
+    soma_scalar_t * string_field; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells of string_field */
     soma_scalar_t * tempfield; /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
     uint64_t *num_bead_type; /*!< \brief stores the number of beads of a specific type*/
     uint64_t *num_bead_type_local; /*!< \brief stores the number of beads of a specific type locally (for this mpi-core)*/
@@ -99,6 +100,8 @@ typedef struct Phase{
     unsigned int n_acc_cm;
 
     soma_scalar_t *field_scaling_type; /*!< \brief stores the scaling factor according to the density */
+
+    soma_scalar_t * k_umbrella; //!< Strength prefactor for the umbrella Hamiltonians for each type, if needed. Default 0
 
     unsigned int time; /*!< \brief MC steps into the simulation */
     uint64_t num_all_beads; //!< Number of all monomer/beads in the global system

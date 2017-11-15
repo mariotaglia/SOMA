@@ -51,20 +51,33 @@ int main(int argc, char *argv[])
 
     Phase phase;
     Phase *const p = &phase;
-    /* initialize MPI */
-    p->info_MPI.SOMA_MPI_Comm = MPI_COMM_WORLD;
+   /* initialize MPI */
+    const int error = MPI_Comm_dup( MPI_COMM_WORLD, &(p->info_MPI.SOMA_comm_world) );
+    if( error != MPI_SUCCESS)
+	{
+	fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
+	return -1;
+	}
+    const int error2 = MPI_Comm_dup( p->info_MPI.SOMA_comm_world, &(p->info_MPI.SOMA_comm_sim) );
+    if( error2 != MPI_SUCCESS)
+	{
+	fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
+	return -1;
+	}
+    p->args.N_domains_arg = 1;
     init_MPI(p);
+
     if ( !(argc == 2 || argc ==3) ) {
-	if (p->info_MPI.current_core == 0)
+	if (p->info_MPI.world_rank == 0)
 	    fprintf(stderr, "Usage: %s filename-to-convert-to-hdf5 <geometry-file>\n",
 		    argv[0]);
 	finalize_MPI();
 	return 0;		//mpi restrictions -- no errorcode
 	}
-    if (p->info_MPI.Ncores != 1) {
-	if (p->info_MPI.current_core == 0)
+    if (p->info_MPI.world_size != 1) {
+	if (p->info_MPI.world_rank == 0)
 	    fprintf(stderr, "Use the convert tool only with 1 core.%d \n",
-		    p->info_MPI.Ncores);
+		    p->info_MPI.world_size);
 	finalize_MPI();
 	return 0;		//mpi restrictions -- no errorcode
 	}

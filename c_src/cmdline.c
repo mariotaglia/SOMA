@@ -29,7 +29,7 @@ const char *som_args_purpose = "Running SCMF simulations and timings.";
 
 const char *som_args_usage = "Usage: ./SOMA options";
 
-const char *som_args_versiontext = "SOMA  Copyright (C) 2016-2017 Ludwig Schneider, Ulrich Welling, Marcel\nLangenberg, Fabien Leonforte, Juan Orozco and more. This program comes with\nABSOLUTELY NO WARRANTY; see GNU Lesser General Public Licence v3 for details.\nThis is free software, and you are welcome to redistribute it under certain\nconditions; see GNU Lesser General Public Licence v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to\nComputer Physics Communications. \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18";
+const char *som_args_versiontext = "SOMA  Copyright (C) 2016-2017 Ludwig Schneider, Ulrich Welling, Marcel\nLangenberg, Fabien Leonforte, Juan Orozco and more. This program comes with\nABSOLUTELY NO WARRANTY; see GNU Lesser General Public Licence v3 for details.\nThis is free software, and you are welcome to redistribute it under certain\nconditions; see GNU Lesser General Public Licence v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", in preparation. \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18";
 
 const char *som_args_description = "";
 
@@ -54,7 +54,10 @@ const char *som_args_detailed_help[] = {
   "  -l, --load-balance=freq       Frequency of the load balancer. For homogenous\n                                  architectures this can be set to high values,\n                                  for hetereogenous architectures across the\n                                  MPI ranks small values help to equilibrate\n                                  faster. Non-MPI runs are uneffected. Values <\n                                  0 deactivate the load-balancer.\n                                  (default=`500')",
   "      --accepted-load-inbalance=percent\n                                 [0,100] Percent of step time which is ignored\n                                  by load balancer. Low values enable better\n                                  load balancing, but could cause fluctuation\n                                  of polymers.  (default=`8')",
   "      --autotuner-restart-period=period\n                                Period in which the autotuner is restarted.\n                                  (default=`10000')",
-  "      --user=user-args          Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
+  "      --user=args-string        Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
+  "  -d, --N-domains=N             Number of domains for a domain decomposition.\n                                  (Domain decomposition is only made linear\n                                  along the Z-Axes)  (default=`1')",
+  "      --domain-buffer=N         Number of buffer cells which can contain ghost\n                                  particles. Experiment and find the optimum\n                                  for your simulation.  (default=`10')",
+  "      --rcm-update=f            Frequency of the update of the molecule center\n                                  of mass. If they enter the ghost layer they\n                                  are sen. Experiment and find the optimum for\n                                  your simulation  (default=`10')",
     0
 };
 
@@ -81,11 +84,14 @@ init_help_array(void)
   som_args_help[17] = som_args_detailed_help[18];
   som_args_help[18] = som_args_detailed_help[19];
   som_args_help[19] = som_args_detailed_help[20];
-  som_args_help[20] = 0; 
+  som_args_help[20] = som_args_detailed_help[21];
+  som_args_help[21] = som_args_detailed_help[22];
+  som_args_help[22] = som_args_detailed_help[23];
+  som_args_help[23] = 0; 
   
 }
 
-const char *som_args_help[21];
+const char *som_args_help[24];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -137,6 +143,9 @@ void clear_given (struct som_args *args_info)
   args_info->accepted_load_inbalance_given = 0 ;
   args_info->autotuner_restart_period_given = 0 ;
   args_info->user_given = 0 ;
+  args_info->N_domains_given = 0 ;
+  args_info->domain_buffer_given = 0 ;
+  args_info->rcm_update_given = 0 ;
 }
 
 static
@@ -173,6 +182,12 @@ void clear_args (struct som_args *args_info)
   args_info->autotuner_restart_period_orig = NULL;
   args_info->user_arg = NULL;
   args_info->user_orig = NULL;
+  args_info->N_domains_arg = 1;
+  args_info->N_domains_orig = NULL;
+  args_info->domain_buffer_arg = 10;
+  args_info->domain_buffer_orig = NULL;
+  args_info->rcm_update_arg = 10;
+  args_info->rcm_update_orig = NULL;
   
 }
 
@@ -201,6 +216,9 @@ void init_args_info(struct som_args *args_info)
   args_info->accepted_load_inbalance_help = som_args_detailed_help[18] ;
   args_info->autotuner_restart_period_help = som_args_detailed_help[19] ;
   args_info->user_help = som_args_detailed_help[20] ;
+  args_info->N_domains_help = som_args_detailed_help[21] ;
+  args_info->domain_buffer_help = som_args_detailed_help[22] ;
+  args_info->rcm_update_help = som_args_detailed_help[23] ;
   
 }
 
@@ -311,6 +329,9 @@ cmdline_parser_release (struct som_args *args_info)
   free_string_field (&(args_info->autotuner_restart_period_orig));
   free_string_field (&(args_info->user_arg));
   free_string_field (&(args_info->user_orig));
+  free_string_field (&(args_info->N_domains_orig));
+  free_string_field (&(args_info->domain_buffer_orig));
+  free_string_field (&(args_info->rcm_update_orig));
   
   
 
@@ -422,6 +443,12 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "autotuner-restart-period", args_info->autotuner_restart_period_orig, 0);
   if (args_info->user_given)
     write_into_file(outfile, "user", args_info->user_orig, 0);
+  if (args_info->N_domains_given)
+    write_into_file(outfile, "N-domains", args_info->N_domains_orig, 0);
+  if (args_info->domain_buffer_given)
+    write_into_file(outfile, "domain-buffer", args_info->domain_buffer_orig, 0);
+  if (args_info->rcm_update_given)
+    write_into_file(outfile, "rcm-update", args_info->rcm_update_orig, 0);
   
 
   i =  1 ;
@@ -748,10 +775,13 @@ cmdline_parser_internal (
         { "accepted-load-inbalance",	1, NULL, 0 },
         { "autotuner-restart-period",	1, NULL, 0 },
         { "user",	1, NULL, 0 },
+        { "N-domains",	1, NULL, 'd' },
+        { "domain-buffer",	1, NULL, 0 },
+        { "rcm-update",	1, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:d:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -887,6 +917,18 @@ cmdline_parser_internal (
             goto failure;
         
           break;
+        case 'd':	/* Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes).  */
+        
+        
+          if (update_arg( (void *)&(args_info->N_domains_arg), 
+               &(args_info->N_domains_orig), &(args_info->N_domains_given),
+              &(local_args_info.N_domains_given), optarg, 0, "1", ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "N-domains", 'd',
+              additional_error))
+            goto failure;
+        
+          break;
 
         case 0:	/* Long option with no short option */
           if (strcmp (long_options[option_index].name, "detailed-help") == 0) {
@@ -985,6 +1027,34 @@ cmdline_parser_internal (
                 &(local_args_info.user_given), optarg, 0, 0, ARG_STRING,
                 check_ambiguity, override, 0, 0,
                 "user", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation..  */
+          else if (strcmp (long_options[option_index].name, "domain-buffer") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->domain_buffer_arg), 
+                 &(args_info->domain_buffer_orig), &(args_info->domain_buffer_given),
+                &(local_args_info.domain_buffer_given), optarg, 0, "10", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "domain-buffer", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation.  */
+          else if (strcmp (long_options[option_index].name, "rcm-update") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->rcm_update_arg), 
+                 &(args_info->rcm_update_orig), &(args_info->rcm_update_given),
+                &(local_args_info.rcm_update_given), optarg, 0, "10", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "rcm-update", '-',
                 additional_error))
               goto failure;
           

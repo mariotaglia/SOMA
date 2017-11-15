@@ -40,7 +40,7 @@ int test_read_write_hdf5(const struct Phase * const p)
 	return status;
 	}
 
-    MPI_Barrier(p->info_MPI.SOMA_MPI_Comm);
+    MPI_Barrier(p->info_MPI.SOMA_comm_sim);
 
     struct Phase phase2;
     struct Phase *const p2 = &phase2;
@@ -73,7 +73,7 @@ int test_read_write_hdf5(const struct Phase * const p)
     if (syserror != 0)
 	fprintf(stderr, "ERROR: removing p2.h5 failed\n");
 
-    if (p->info_MPI.current_core == 0)
+    if (p->info_MPI.world_rank == 0)
 	printf("INFO: At t= %d read_write_hdf5 test passed\n", p->time);
     return 0;
     }
@@ -98,7 +98,7 @@ int test_particle_types(const struct Phase * const p)
 		}
 	    }
 	}
-    if (p->info_MPI.current_core == 0)
+    if (p->info_MPI.world_rank == 0)
 	printf("INFO: At t= %d particle_type test test passed\n", p->time);
     return 0;
     }
@@ -123,7 +123,7 @@ int test_area51_violation(const struct Phase * const p)
 		}
 	    }
 	}
-    if (p->info_MPI.current_core == 0)
+    if (p->info_MPI.world_rank == 0)
 	printf("INFO: At t= %d area51 violation test passed\n", p->time);
     return 0;
     }
@@ -172,7 +172,7 @@ int test_independet_sets(const struct Phase*const p)
 			    }while(end==0);
 			}
 		    }
-		if(p->info_MPI.current_core == 0 && n_neigh >0)
+		if(p->info_MPI.domain_rank == 0 && n_neigh >0)
 		    fprintf(stderr,"ERROR: mono %d of poly_type %d has neighbors in its set %d.\n",
 			    pi,poly_type,set_id);
 		ret += n_neigh;
@@ -183,7 +183,7 @@ int test_independet_sets(const struct Phase*const p)
 	    divergence = largest_set - smallest_set;
 	}
 
-    if( p->info_MPI.current_core == 0 && ret == 0)
+    if( p->info_MPI.world_rank == 0 && ret == 0)
 	printf("INFO: Test independet sets passed with max divergence %d.\n",divergence);
     return ret;
     }
@@ -209,8 +209,8 @@ int test_area51_exact(const struct Phase * const p)
 		}
 	    }
 	}
-    MPI_Allreduce(MPI_IN_PLACE,&violations,1,MPI_UNSIGNED,MPI_SUM,p->info_MPI.SOMA_MPI_Comm);
-    if (p->info_MPI.current_core == 0)
+    MPI_Allreduce(MPI_IN_PLACE,&violations,1,MPI_UNSIGNED,MPI_SUM,p->info_MPI.SOMA_comm_sim);
+    if (p->info_MPI.sim_rank == 0)
 	{
 	if( violations == 0)
 	    printf("INFO: At t= %d area51 exact test passed\n", p->time);

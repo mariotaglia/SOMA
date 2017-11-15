@@ -79,9 +79,9 @@ uint32_t get_info_bl(const unsigned int offset_bl,const unsigned int type)
     return ret;
     }
 
-struct som_args post_process_args(struct som_args*args,const struct Info_MPI*const mpi_info)
+struct som_args post_process_args(struct som_args*args,const unsigned int world_rank)
     {
-    if( mpi_info->current_core == 0)
+    if( world_rank == 0)
 	{
 	cmdline_parser_print_version();
 	printf("\n");
@@ -89,14 +89,14 @@ struct som_args post_process_args(struct som_args*args,const struct Info_MPI*con
 
     if( args->timesteps_arg < 0)
 	{
-	if(mpi_info->current_core == 0)
+	if(world_rank == 0)
 	    fprintf(stderr,"WARNING: negative number of timesteps given. Is set to 0.\n");
 	args->timesteps_arg = 0;
 	}
 
     if( ! args->ana_file_given )
 	{
-	if(mpi_info->current_core == 0)
+	if(world_rank == 0)
 	    fprintf(stderr,"WARNING: No ana-file specified.\n"
 		    "WARNING: This causes that NO observables are going to be analysed during the whole run.\n"
 		    "WARNING: This might be useful for timing runs or pure equilibration,\n"
@@ -105,50 +105,60 @@ struct som_args post_process_args(struct som_args*args,const struct Info_MPI*con
 #ifdef OPENACC
     if( (!args->gpus_given && !args->only_gpu_given) || (args->gpus_given && args->gpus_arg <= 0) )
 	{
-	if(mpi_info->current_core == 0)
+	if(world_rank == 0)
 	    fprintf(stderr,"WARNING: No GPU usage specified, but this version has been compiled with OpenACC support.\n"
 		    "WARNING: Are you sure, that you do not want to set a GPU? If not, try the options --gpus or --only-gpu.\n");
 	}
     if( args->gpus_given && args->gpus_arg < 0 )
 	{
-	if(mpi_info->current_core == 0)
+	if(world_rank == 0)
 	    fprintf(stderr,"WARNING: Negative number of gpus specified. Option will be ignored.\n");
 	args->gpus_given = false;
 	}
 #endif
     if( args->screen_output_interval_arg < 0)
 	{
-	if(mpi_info->current_core == 0)
+	if(world_rank == 0)
 	    fprintf(stderr,"WARNING: Negative number of seconds for screen ouput given. Screen ouput is switched off.\n");
 	args->screen_output_interval_arg = 0;
 	}
 
     if(args->autotuner_restart_period_arg < 0)
 	{
-	if( mpi_info->current_core == 0)
+	if( world_rank == 0)
 	    fprintf(stderr,"WARNING: Negative number for autotuner restart given, is switched off.\n");
 	args->autotuner_restart_period_arg = 0;
 	}
 
     if(args->load_balance_arg < 0)
 	{
-	if( mpi_info->current_core == 0)
+	if( world_rank == 0)
 	    fprintf(stderr,"WARNING: Negative number for load-balance freq given, is switched off.\n");
 	args->load_balance_arg = 0;
 	}
 
-    uint32_t fixed_seed;
-    if( ! args->rng_seed_given || args->rng_seed_arg < 0)
-	fixed_seed = time(NULL);
-    else
-	fixed_seed = args->rng_seed_arg;
+    if(args->N_domains_arg < 1)
+	{
+	if( world_rank == 0)
+	    fprintf(stderr,"WARNING: Non positive number for domain decompostion given. Using 1 domain.\n");
+	args->N_domains_arg = 1;
+	}
 
-    MPI_Bcast(&fixed_seed,1,MPI_UINT32_T,0,mpi_info->SOMA_MPI_Comm);
-    args->rng_seed_arg = fixed_seed;
-    if(mpi_info->current_core == 0)
-	printf("All %d ranks use fixed seed %u.\n",mpi_info->Ncores,args->rng_seed_arg);
+    if(args->domain_buffer_arg < 0)
+	{
+	if( world_rank == 0)
+	    fprintf(stderr,"WARNING: Negative number for domain buffer given. Using 0 buffer cells.");
+	args->domain_buffer_arg = 0;
+	}
 
-    if(mpi_info->current_core == 0)
+    if(args->rcm_update_arg < 1)
+	{
+	if( world_rank == 0)
+	    fprintf(stderr,"WARNING: Non positive number for update of molecule center of mass given. Using frequency of 1.\n");
+	args->rcm_update_arg = 1;
+	}
+
+    if(world_rank == 0)
 	cmdline_parser_dump(stdout, args);
     return *args;
     }
@@ -183,7 +193,7 @@ unsigned int get_number_bond_type(const struct Phase*const p,const enum Bondtype
 int reseed(struct Phase*const p,const unsigned int seed)
     {
     uint64_t n_polymer_offset;
-    MPI_Scan( &(p->n_polymers), &n_polymer_offset, 1,MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_MPI_Comm);
+    MPI_Scan( &(p->n_polymers), &n_polymer_offset, 1,MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     n_polymer_offset -= p->n_polymers;
 
     //Reset PRNG to initial state

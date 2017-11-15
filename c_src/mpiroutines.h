@@ -32,17 +32,40 @@ struct Phase;
 */
 
 //! \brief All information about the MPI setup.
+//! Information about the MPI setup of the simulation.
+//! There are three different levels in the MPI hierachy.
+//!
+//! a) WORLD: This is the coarsed level and contains all MPI ranks
+//! assigned to the simulation via mpiexec
+//!
+//! b) SIMULATION: The world communicator can be split in multiple
+//! simulations. Each simulation is basically an indepent instance of
+//! SOMA. Each simulation can simulate a different system and is
+//! usually supplied by an individual input file and analysis file.
+//! SOMA itself does not do any communication between different
+//! simulations. For meta-dynamics like the string algorithms this
+//! instance is useful. Each simulation can be split into multiple domains.
+//!
+//! c) DOMAIN: A simulation can be split into different spatial domains.
+//! This finest level is used to communicate between the different domains.
+//! Each domain can have multiple mpi ranks.
 typedef struct Info_MPI{
-    int colour;
-    int Ncores;	/*!< \brief total number of cores    */
-    int current_core;	/*!< \brief current core index   */
-    MPI_Comm  	SOMA_MPI_Comm;	/*!< \brief communicator within one conf, SCMF parallelization */
+    int world_rank; //!< Rank of the world communicator
+    int world_size; //!< Size of the world communicator
+    int sim_size; //!< Size of the simulation communicator
+    int sim_rank; //!< Rank of the simulation communicator
+    int domain_size; //!< Size of a single domain communicator
+    int domain_rank; //!< Rank of a single domain communicator
+    MPI_Comm    SOMA_comm_world; //!< Global communicator for 1 simulation
+    MPI_Comm  	SOMA_comm_sim;	/*!< \brief communicator within one conf, SCMF parallelization */
+    MPI_Comm  	SOMA_comm_domain;	/*!< \brief communicator within one domain of a SCMF simulation parallelization */
+    MPI_Comm left_neigh_edge; //!< Communicator of the left domain neighbor (for ghost all_reduce)
+    MPI_Comm right_neigh_edge; //!< Communicator of the right domain neighbor (for ghost all_reduce)
     MPI_Status     	mpi_status; //!< Status of the mpi init.
-    //! Store MPI divergence of all ranks.
-    double divergence_sec;
-    //! Counter of all mpi divergence calls.
-    unsigned int divergence_counter;
-    /* ... */
+    //! Store MPI divergence in between domain ranks.
+    double domain_divergence_sec;
+    //! Counter for the MPI divergence in between domain ranks.
+    unsigned int domain_divergence_counter;
     }Info_MPI;
 
 /*! \brief Initialize MPI.
@@ -97,8 +120,10 @@ int collective_global_update(struct Phase*const p);
 //! \param p System.
 //! \param poly_id Id of the polymer to send.
 //! \param destination Id of the recving MPI rank.
+//! \param comm MPI communicator in which the polymer should be sent
 //! \return Errorcode.
-int send_polymer_chain(struct Phase*const p, const uint64_t poly_id, const int destination);
+int send_polymer_chain(struct Phase*const p, const uint64_t poly_id,
+                       const int destination, const MPI_Comm comm);
 
 //! Recv a polymer from one MPI rank to another.
 //!
@@ -106,8 +131,9 @@ int send_polymer_chain(struct Phase*const p, const uint64_t poly_id, const int d
 //! If something changes you have to update it afterwards.
 //! \param p System.
 //! \param source Id of the recving MPI rank.
+//! \param comm MPI communicator in which the polymer should be recieved
 //! \return Errorcode.
-int recv_polymer_chain(struct Phase*const p, const int source);
+int recv_polymer_chain(struct Phase*const p, const int source,const MPI_Comm comm);
 
 //! Send a multiple polymers from one MPI rank to another.
 //!
@@ -116,8 +142,10 @@ int recv_polymer_chain(struct Phase*const p, const int source);
 //! \param p System.
 //! \param Nsends Number of polymers to send
 //! \param destination Id of the recving MPI rank.
+//! \param comm MPI communicator in which the polymer should be sent
 //! \return >= 0 Number of polymers send. else Errorcode
-int send_mult_polymers(struct Phase*const p,const int destination,unsigned int Nsends);
+int send_mult_polymers(struct Phase*const p,const int destination,
+                       unsigned int Nsends,const MPI_Comm comm);
 
 //! Recv multiple polymers from one MPI rank to another.
 //!
@@ -125,8 +153,9 @@ int send_mult_polymers(struct Phase*const p,const int destination,unsigned int N
 //! If something changes you have to update it afterwards.
 //! \param p System.
 //! \param source Id of the recving MPI rank.
+//! \param comm MPI communicator in which the polymer should be sent
 //! \return Errorcode.
-int recv_mult_polymers(struct Phase*const p, const int source);
+int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm comm);
 
 //! Load balance the MPI ranks.
 //!
@@ -134,6 +163,7 @@ int recv_mult_polymers(struct Phase*const p, const int source);
 //! difference of more than 1/50. s waiting time in the barrier
 //! between the ranks, the slowest rank sends a single chain to the
 //! fastest rank.
+//! The load balancing is done inside an MPI domain
 //! \note This function is not designed for frequent calls.
 //! \note This function is MPI collective.
 //! \param p System.
