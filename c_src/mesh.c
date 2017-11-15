@@ -123,7 +123,7 @@ void update_density_fields(const struct Phase *const p)
 		    MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, n_indices, MPI_UINT16_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->fields_unified[0:n_indices])
 #else//ENABLE_MPI_CUDA
-		    uint64_t * fields_unified = p->fields_unified ;
+		    uint16_t * fields_unified = p->fields_unified ;
 #pragma acc host_data use_device(fields_unified)
 			{
 			MPI_Allreduce(MPI_IN_PLACE, fields_unified, n_indices, MPI_UINT16_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);

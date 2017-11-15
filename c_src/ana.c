@@ -354,6 +354,7 @@ void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_e
 			switch (bond_type) {
 			case HARMONICVARIABLESCALE:
 			    scale = p->harmonic_normb_variable_scale;
+			    /* intentionally falls through */
 			case HARMONIC:
 			    energy = p->harmonic_normb * r2 *scale;
 			    break;
