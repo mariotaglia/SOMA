@@ -202,11 +202,10 @@ int init_phase(struct Phase * const p)
 	   }
 
     int ret=0;
-    if(p->args.coord_file_arg != NULL){ //Is it a full init Phase?
-	     ret = init_ana(p,p->args.ana_file_arg,p->args.coord_file_arg);
-
-    }
-
+    if(p->args.coord_file_arg != NULL) //Is it a full init Phase?
+	ret = init_ana(p,p->args.ana_file_arg,p->args.coord_file_arg);
+    else
+	ret = init_ana(p,NULL,NULL);
 
     return ret;
 }
@@ -379,10 +378,7 @@ int free_phase(struct Phase * const p)
         free(p->string_field);
     }
 
-
-    if(p->args.coord_file_arg != NULL) //Is it a full init Phase?
-	close_ana(&(p->ana_info));
-
+    close_ana(&(p->ana_info));
     return 0;
 }
 

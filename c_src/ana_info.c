@@ -44,6 +44,7 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     p->ana_info.filename = NULL;
     p->ana_info.coord_filename = NULL;
+    p->ana_info.file_id = -1;
     //Copy no ana conf as backup to device.
 #pragma acc update device(p->ana_info)
 
