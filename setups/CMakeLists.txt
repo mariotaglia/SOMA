@@ -2,8 +2,7 @@
 set(setup_scripts
 	jureca.sh
 	jureca_python.sh
-	taurus.sh
-	theorie.sh
+	GAUG_intern.sh
 	titan_python.sh
 	titan.sh )
 
