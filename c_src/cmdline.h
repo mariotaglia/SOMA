@@ -94,6 +94,15 @@ struct som_args
   char * user_arg;	/**< @brief Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments..  */
   char * user_orig;	/**< @brief Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments. original value given at command line.  */
   const char *user_help; /**< @brief Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments. help description.  */
+  int N_domains_arg;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes) (default='1').  */
+  char * N_domains_orig;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes) original value given at command line.  */
+  const char *N_domains_help; /**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes) help description.  */
+  int domain_buffer_arg;	/**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. (default='10').  */
+  char * domain_buffer_orig;	/**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. original value given at command line.  */
+  const char *domain_buffer_help; /**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. help description.  */
+  int rcm_update_arg;	/**< @brief Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation (default='10').  */
+  char * rcm_update_orig;	/**< @brief Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation original value given at command line.  */
+  const char *rcm_update_help; /**< @brief Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int detailed_help_given ;	/**< @brief Whether detailed-help was given.  */
@@ -115,6 +124,9 @@ struct som_args
   unsigned int accepted_load_inbalance_given ;	/**< @brief Whether accepted-load-inbalance was given.  */
   unsigned int autotuner_restart_period_given ;	/**< @brief Whether autotuner-restart-period was given.  */
   unsigned int user_given ;	/**< @brief Whether user was given.  */
+  unsigned int N_domains_given ;	/**< @brief Whether N-domains was given.  */
+  unsigned int domain_buffer_given ;	/**< @brief Whether domain-buffer was given.  */
+  unsigned int rcm_update_given ;	/**< @brief Whether rcm-update was given.  */
 
 } ;
 

@@ -97,7 +97,7 @@ int reallocate_polymer_mem(struct Phase*const p)
     {
     const uint64_t new_storage = p->n_polymers_storage * 1.05 + 1;
     printf("INFO: @t=%d rank %d is reallocating space for polymers %ld %ld.\n",
-	   p->time,p->info_MPI.current_core,new_storage,p->n_polymers_storage);
+	   p->time,p->info_MPI.world_rank,new_storage,p->n_polymers_storage);
 
     struct Polymer*const tmp_poly = (struct Polymer*const)malloc(new_storage*sizeof(struct Polymer));
     if( tmp_poly == NULL)
@@ -169,7 +169,7 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
     if( poly_id >= p->n_polymers)
 	{
 	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
-		,p->info_MPI.current_core,poly_id,p->n_polymers);
+		,p->info_MPI.world_rank,poly_id,p->n_polymers);
 	return -1;
 	}
 

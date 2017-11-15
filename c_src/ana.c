@@ -64,9 +64,9 @@ void calc_Re(const struct Phase * p, soma_scalar_t *const result)
 	}
 
     MPI_Allreduce(MPI_IN_PLACE, result, 4*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
 
     for(unsigned int type=0 ; type < p->n_poly_type; type++)
 	for(unsigned int i=0; i < 4; i++)
@@ -132,9 +132,9 @@ void calc_Rg(const struct Phase *p, soma_scalar_t *const result)
 	}
 
     MPI_Allreduce(MPI_IN_PLACE, result, 4*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
 
     for(unsigned int type=0 ; type < p->n_poly_type; type++)
 	for(unsigned int i=0; i < 4; i++)
@@ -201,9 +201,9 @@ void calc_anisotropy(const struct Phase * p, soma_scalar_t *const result)
 	}
 
     MPI_Allreduce(MPI_IN_PLACE, result, 6*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
 
     for(unsigned int type=0 ; type < p->n_poly_type; type++)
 	for(unsigned int i=0; i < 6; i++)
@@ -261,9 +261,9 @@ void calc_MSD(const struct Phase * p, soma_scalar_t *const result)
 	}
 
     MPI_Allreduce(MPI_IN_PLACE, result, 8*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, 2*p->n_poly_type, MPI_UINT64_T, MPI_SUM,
-		  p->info_MPI.SOMA_MPI_Comm);
+		  p->info_MPI.SOMA_comm_sim);
 
     //Looping over twice the number of poly types. But loop over half the elements
     // 8/2 = 4, because the norm for first and second half differ.
@@ -293,7 +293,7 @@ void calc_acc_ratio(struct Phase*const p,soma_scalar_t*const acc_ratio)
     uint64_t exchange[4] = {p->n_accepts,p->n_moves,p->n_accepts,p->n_moves};
     //Zero out result for next calc
     p->n_accepts = p->n_moves = 0;
-    MPI_Reduce(exchange+2,exchange,2,MPI_UINT64_T,MPI_SUM,0,p->info_MPI.SOMA_MPI_Comm);
+    MPI_Reduce(exchange+2,exchange,2,MPI_UINT64_T,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     if( exchange[1] > 0)
 	last_acc = exchange[0]/(soma_scalar_t)exchange[1];
     else
@@ -354,7 +354,6 @@ void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_e
 			switch (bond_type) {
 			case HARMONICVARIABLESCALE:
 			    scale = p->harmonic_normb_variable_scale;
-			    /* intentionally falls through */
 			case HARMONIC:
 			    energy = p->harmonic_normb * r2 *scale;
 			    break;
@@ -376,10 +375,10 @@ void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_e
 		}
 	    }
 	}
-    if( p->info_MPI.current_core == 0)
-	MPI_Reduce(MPI_IN_PLACE,bonded_energy,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_MPI_Comm);
+    if( p->info_MPI.sim_rank == 0)
+	MPI_Reduce(MPI_IN_PLACE,bonded_energy,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     else
-	MPI_Reduce(bonded_energy, NULL ,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_MPI_Comm);
+	MPI_Reduce(bonded_energy, NULL ,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     }
 
 int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,const char*const name,const hid_t file_id)
@@ -442,13 +441,14 @@ int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,con
     return 0;
     }
 
-int extent_density_field(const struct Phase*const p)
+int extent_density_field(const struct Phase*const p,void * field_pointer,char * field_name, hid_t type)
     {
-    char name[] = "/density_field";
+    char * name = (char*)malloc(250*sizeof(char));
+    strcpy(name,field_name);
     update_density_fields(p);
     //This is a draft verion that outputs only with a single core.
     //! \todo Parallel output
-    if(p->info_MPI.current_core == 0 )
+    if(p->info_MPI.sim_rank == 0 )
     	{
 	herr_t status;
 
@@ -514,7 +514,7 @@ int extent_density_field(const struct Phase*const p)
 	status = H5Sselect_hyperslab(filespace,H5S_SELECT_SET,dims_offset,NULL,dims_memspace,NULL);
 	HDF5_ERROR_CHECK(status);
 
-	status = H5Dwrite(dset,H5T_NATIVE_UINT16,memspace,filespace,plist_id,p->fields_unified);
+	status = H5Dwrite(dset,type,memspace,filespace,plist_id,field_pointer);
 	HDF5_ERROR_CHECK(status);
 
 	status = H5Sclose(memspace);
@@ -543,7 +543,7 @@ int analytics(struct Phase *const p)
 	soma_scalar_t*const Re=(soma_scalar_t*const)malloc(4*p->n_poly_type*sizeof(soma_scalar_t));
 	if(Re == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
 	calc_Re(p,Re);
-	if(p->info_MPI.current_core == 0 )
+	if(p->info_MPI.sim_rank == 0 )
 	    extent_ana_by_field(Re, 4*p->n_poly_type, "/Re",p->ana_info.file_id);
 	written = true;
 	free(Re);
@@ -554,7 +554,7 @@ int analytics(struct Phase *const p)
 	update_self_phase(p);
 	soma_scalar_t dvar[1];
 	calc_dvar(p,dvar);
-	if(p->info_MPI.current_core == 0 )
+	if(p->info_MPI.sim_rank == 0 )
 	    extent_ana_by_field(dvar, 1, "/density_var",p->ana_info.file_id);
 	}
     // Gyration radius
@@ -563,7 +563,7 @@ int analytics(struct Phase *const p)
     	soma_scalar_t*const Rg = (soma_scalar_t*const)malloc(4*p->n_poly_type*sizeof(soma_scalar_t));
 	if(Rg == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
     	calc_Rg(p, Rg);
-    	if (p->info_MPI.current_core == 0)
+    	if (p->info_MPI.sim_rank == 0)
 	    extent_ana_by_field(Rg, 4*p->n_poly_type, "/Rg",p->ana_info.file_id);
 	free(Rg);
 	written = true;
@@ -574,7 +574,7 @@ int analytics(struct Phase *const p)
 	soma_scalar_t*const a=(soma_scalar_t*const)malloc(6*p->n_poly_type*sizeof(soma_scalar_t));
 	if(a == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
     	calc_anisotropy(p, a);
-    	if (p->info_MPI.current_core == 0)
+    	if (p->info_MPI.sim_rank == 0)
 	    extent_ana_by_field(a, 6*p->n_poly_type, "/bond_anisotropy",p->ana_info.file_id);
 	written = true;
 	free(a);
@@ -583,7 +583,7 @@ int analytics(struct Phase *const p)
     if (p->ana_info.delta_mc_acc_ratio != 0 && p->time % p->ana_info.delta_mc_acc_ratio == 0) {
 	soma_scalar_t acc_ration;
     	calc_acc_ratio(p, &acc_ration);
-    	if (p->info_MPI.current_core == 0)
+    	if (p->info_MPI.sim_rank == 0)
 	    extent_ana_by_field(&acc_ration, 1, "/acc_ratio",p->ana_info.file_id);
 	written = true;
 	}
@@ -593,7 +593,7 @@ int analytics(struct Phase *const p)
 	if(msd == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
 	update_self_phase(p);
     	calc_MSD(p, msd);
-    	if (p->info_MPI.current_core == 0)
+    	if (p->info_MPI.sim_rank == 0)
 	    extent_ana_by_field(msd, 8*p->n_poly_type, "/MSD",p->ana_info.file_id);
 	written = true;
 	free(msd);
@@ -606,7 +606,7 @@ int analytics(struct Phase *const p)
 	if(nb_energy == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
 	update_self_phase(p);
 	calc_non_bonded_energy(p, nb_energy);
-	if(p->info_MPI.current_core == 0)
+	if(p->info_MPI.sim_rank == 0)
 	    extent_ana_by_field(nb_energy, p->n_types, "/non_bonded_energy",p->ana_info.file_id);
 	written = true;
 	free(nb_energy);
@@ -619,7 +619,7 @@ int analytics(struct Phase *const p)
 	if(b_energy == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
 	update_self_phase(p);
 	calc_bonded_energy(p, b_energy);
-	if(p->info_MPI.current_core == 0)
+	if(p->info_MPI.sim_rank == 0)
 	    extent_ana_by_field(b_energy, NUMBER_SOMA_BOND_TYPES, "/bonded_energy",p->ana_info.file_id);
 	written = true;
 	free(b_energy);
@@ -629,14 +629,24 @@ int analytics(struct Phase *const p)
     if (p->ana_info.delta_mc_density_field != 0 && p->time % p->ana_info.delta_mc_density_field == 0) {
 	// if we run on one core+gpu only we avoid the stepwise field transfer, so for writing fields
 	// we need to update the local field
-	if (p->info_MPI.Ncores == 1){
+	if (p->info_MPI.sim_size == 1){
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
 	    }
 
     	//Collective IO, not yet.
-    	extent_density_field(p);
+    	extent_density_field(p,p->fields_unified,"/density_field",H5T_NATIVE_UINT16);
 	written = true;
     	}
+
+    //string_field
+        if (p->ana_info.delta_mc_string_field != 0 && p->time % p->ana_info.delta_mc_string_field == 0){
+          if (p->info_MPI.sim_size == 1){
+#pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
+              }
+            extent_density_field(p,p->string_field,"/string_field",H5T_SOMA_NATIVE_SCALAR );
+            written = true;
+            }
+
     //dump
     if (p->ana_info.delta_mc_dump != 0 && p->time % p->ana_info.delta_mc_dump == 0) {
 	update_self_phase(p);
@@ -650,7 +660,7 @@ int analytics(struct Phase *const p)
 	    write_config_hdf5(p,filename);
 	}
 
-    if(written && p->info_MPI.current_core == 0) //If something has been written to hdf5 flush it.
+    if(written && p->info_MPI.sim_rank == 0) //If something has been written to hdf5 flush it.
 	{
 	herr_t status = H5Fflush(p->ana_info.file_id,H5F_SCOPE_LOCAL);
 	if( status < 0)

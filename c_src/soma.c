@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Ludwig Schneider
+/* Copyright (C) 2016-2017 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -51,25 +51,42 @@
 //! \return Errorcode
 int main(int argc, char *argv[])
 {
-  
+
+    Phase phase;
+    Phase *const p = &phase;
+
     if (MPI_Init(NULL, NULL) != MPI_SUCCESS) {
       fprintf(stderr, "MPI_ERROR (start)\n");
       return -1;
     }
-
-    Phase phase;
-    Phase *const p = &phase;
-    //Set the communicator for this process to world.
-    p->info_MPI.SOMA_MPI_Comm = MPI_COMM_WORLD;
     /* initialize MPI */
+    const int error = MPI_Comm_dup( MPI_COMM_WORLD, &(p->info_MPI.SOMA_comm_world) );
+    if( error != MPI_SUCCESS)
+	{
+	fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
+	return -1;
+	}
+    const int error2 = MPI_Comm_dup( p->info_MPI.SOMA_comm_world, &(p->info_MPI.SOMA_comm_sim) );
+    if( error2 != MPI_SUCCESS)
+	{
+	fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
+	return -1;
+	}
+
+    const int args_success = cmdline_parser(argc,argv,&(p->args));
+    if( args_success < 0 )
+	{
+	fprintf(stderr,"Process %d failed to read the cmdline. Exiting.\n",p->info_MPI.world_rank);
+	return -2;
+	}
+    post_process_args( &(p->args), p->info_MPI.world_rank);
+
+
     init_MPI(p);
 
     const int signal_success = init_soma_signal();
     MPI_ERROR_CHECK(signal_success, "Signal init");
 
-    const int args_success = cmdline_parser(argc,argv,&(p->args));
-    if( args_success < 0 )
-	fprintf(stderr,"Process %d failed to read the cmdline. Exiting.\n",p->info_MPI.current_core);
     const int mpi_args = check_status_on_mpi(p,args_success);
 
     if( mpi_args != 0 )
@@ -77,7 +94,7 @@ int main(int argc, char *argv[])
 	finalize_MPI();
 	return 0;
 	}
-    post_process_args( &(p->args), &(p->info_MPI));
+
     if(p->args.move_type_arg == move_type_arg_TRIAL)
 	{MPI_ERROR_CHECK(1,"ERROR: Trial move type is currently not working.");}
 
@@ -86,7 +103,7 @@ int main(int argc, char *argv[])
 
     const int open_acc = set_openacc_devices(p);
     if( check_status_on_mpi(p,open_acc) != 0){
-	if(p->info_MPI.current_core == 0)
+	if(p->info_MPI.sim_rank == 0)
 	    fprintf(stderr,"ERROR: cannot set openacc devices.\n");
 	finalize_MPI();
 	return 1;
@@ -103,7 +120,7 @@ int main(int argc, char *argv[])
 
     if( !p->bead_data_read )
 	{
-	if(p->info_MPI.current_core == 0)
+	if(p->info_MPI.sim_rank == 0)
 	    printf("INFO: Generating new bead initial data. "
 		   "If your configuration contains rings "
 		   "equilibration might take long.\n");
@@ -134,7 +151,7 @@ int main(int argc, char *argv[])
 	const int mc_error = monte_carlo_propagation(p, 1);
         if( mc_error != 0)
 	    fprintf(stderr,"ERROR %d in monte_carlo_propagation on rank %d.\n"
-		    ,mc_error,p->info_MPI.current_core);
+		    ,mc_error,p->info_MPI.world_rank);
 	analytics(p);
 	screen_output(p,N_steps);
 	if(p->args.load_balance_arg > 0 && i % p->args.load_balance_arg  == (unsigned int) p->args.load_balance_arg -1 )
@@ -142,10 +159,10 @@ int main(int argc, char *argv[])
 
 	stop_iteration = check_signal_stop();
 	//Sync all mpi cores
-	MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_MPI_Comm);
+	MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_comm_world);
 	if(stop_iteration)
 	    {
-	    if(p->info_MPI.current_core == 0)
+	    if(p->info_MPI.world_rank == 0)
 		fprintf(stdout,"Signal to stop iteration at time %d catched.\n",p->time);
 	    break;
 	    }
@@ -174,10 +191,10 @@ int main(int argc, char *argv[])
     /* deallocate all memory */
     free_phase(p);
 
-    printf("Rank: %d \t polymers %ld\n",p->info_MPI.current_core, p->n_polymers);
+    printf("Rank: %d \t polymers %ld\n",p->info_MPI.world_rank, p->n_polymers);
 
     finalize_MPI();
-    if(p->info_MPI.current_core == 0)
+    if(p->info_MPI.world_rank == 0)
 	printf("SOMA finished execution without errors.\n");
     return 0;
 }

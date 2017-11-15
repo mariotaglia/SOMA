@@ -76,7 +76,6 @@ int set_neighbour(const unsigned int jbead,const Monomer*const neigh,
 	{
 	case HARMONICVARIABLESCALE:;
 	    scale = p->harmonic_normb_variable_scale;
-	    /* intentionally falls through */
 	case HARMONIC: ;
 	    soma_normal_vector(&(poly->poly_state),p->args.pseudo_random_number_generator_arg
 			       , &(dx.x), &(dx.y), &(dx.z));

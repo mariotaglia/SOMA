@@ -31,7 +31,7 @@ struct Info_MPI;
 //! Enum to select the hamiltonian for the non-bonded interaction
 enum Hamiltonian{
     SCMF0=0, //!< Original SCMF hamiltonian. For details refer doc of update_omega_fields_scmf0().
-    SCMF1=1 //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
+    SCMF1=1, //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
     };
 
 //!  Function to extract the bond_type for poly_arch elements.
@@ -93,7 +93,7 @@ uint32_t get_info_bl(const unsigned int offset_bl,const unsigned int type);
 //! \param args Argument struct to interpret.
 //! \param mpi_info Information about MPI configuration
 //! \return corrected struct copy. (The original is modified as well.)
-struct som_args post_process_args(struct som_args*args,const struct Info_MPI*const mpi_info);
+struct som_args post_process_args(struct som_args*args,const unsigned int world_rank);
 
 //! \brief Returns the number of bonds of specific type in the poly_arch structure.
 //! \param p Phase of the system.

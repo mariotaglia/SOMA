@@ -33,7 +33,7 @@
 
 int init_phase(struct Phase * const p)
     {
-    print_version(p->info_MPI.current_core);
+    print_version(p->info_MPI.world_rank);
     p->start_time = p->time;
     p->start_clock = time(NULL);
     p->n_accepts = 0;
@@ -45,7 +45,7 @@ int init_phase(struct Phase * const p)
     p->tps_elapsed_steps = 1; //Bla default, bigger 0
 
     uint64_t n_polymer_offset;
-    MPI_Scan( &(p->n_polymers), &n_polymer_offset, 1,MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_MPI_Comm);
+    MPI_Scan( &(p->n_polymers), &n_polymer_offset, 1,MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     n_polymer_offset -= p->n_polymers;
 
     for(uint64_t i=0; i < p->n_polymers;i++)
@@ -74,7 +74,7 @@ int init_phase(struct Phase * const p)
     p->n_cells = p->nx * p->ny * p->nz;
     uint64_t n_polymers_global_sum;
     MPI_Allreduce(&(p->n_polymers), &n_polymers_global_sum, 1,
-		  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_MPI_Comm);
+		  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     assert(p->n_polymers_global == n_polymers_global_sum);
     //Allocate Fields
     p->fields_unified =     (uint16_t *) malloc(p->n_cells*p->n_types*sizeof(uint16_t));
@@ -98,6 +98,7 @@ int init_phase(struct Phase * const p)
 	    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
 	    return -1;
 	}
+
 
     p->tempfield =
 	(soma_scalar_t *) malloc(p->nx * p->ny * p->nz * sizeof(soma_scalar_t));
@@ -125,6 +126,7 @@ int init_phase(struct Phase * const p)
     }
 
     // Set all values to zero
+
     p->num_all_beads = 0;
     p->num_all_beads_local = 0;
     for (unsigned int i = 0; i < p->n_types; i++)
@@ -141,12 +143,12 @@ int init_phase(struct Phase * const p)
     }
     // Share p->num_all_beads
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1,
-		  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_MPI_Comm);
+		  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 
     // Share p->num_bead_type
     for (unsigned int i = 0; i < p->n_types; i++) {
 	MPI_Allreduce(&(p->num_bead_type_local[i]), &(p->num_bead_type[i]),
-		      1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_MPI_Comm);
+		      1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     }
     // Check if uint16_t density field is enough
     soma_scalar_t check_short = p->num_all_beads/p->n_cells;
@@ -192,15 +194,21 @@ int init_phase(struct Phase * const p)
 
     copyin_phase(p);
     // call update_fields routine
+
     if(p->bead_data_read)
 	{
 	update_density_fields(p);
+
 	memcpy(p->old_fields_unified, p->fields_unified, p->n_cells*p->n_types*sizeof(uint16_t));
 	}
 
     int ret=0;
-    if(p->args.coord_file_arg != NULL) //Is it a full init Phase?
+    if(p->args.coord_file_arg != NULL){ //Is it a full init Phase?
+
 	ret = init_ana(p,p->args.ana_file_arg,p->args.coord_file_arg);
+
+}
+
 
     return ret;
 }
@@ -221,12 +229,16 @@ int copyin_phase(struct Phase*const p)
     if (p->external_field_unified != NULL){
 #pragma acc enter data copyin(p->external_field_unified[0:p->n_cells*p->n_types])
 	}
+  if (p->string_field != NULL){
+#pragma acc enter data copyin(p->string_field[0:p->n_cells*p->n_types])
+  }
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells])
 #pragma acc enter data copyin(p->num_bead_type[0:p->n_types])
 #pragma acc enter data copyin(p->num_bead_type_local[0:p->n_types])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
 #pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
+#pragma acc enter data copyin(p->k_umbrella[0:p->n_types])
 #pragma acc enter data copyin(p->poly_type_offset[0:p->n_poly_type])
 #pragma acc enter data copyin(p->poly_arch[0:p->poly_arch_length])
 
@@ -271,12 +283,18 @@ int copyout_phase(struct Phase*const p)
     if (p->external_field_unified != NULL){
 #pragma acc exit data delete(p->external_field_unified[0:p->n_cells*p->n_types])
 	}
+
+  if (p->string_field != NULL){
+#pragma acc exit data delete(p->string_field[0:p->n_cells*p->n_types])
+}
+
 #pragma acc exit data delete(p->tempfield[0:p->n_cells])
 #pragma acc exit data delete(p->num_bead_type[0:p->n_types])
 #pragma acc exit data delete(p->num_bead_type_local[0:p->n_types])
 #pragma acc exit data delete(p->A[0:p->n_types])
 #pragma acc exit data delete(p->R[0:p->n_types])
 #pragma acc exit data delete(p->field_scaling_type[0:p->n_types])
+#pragma acc exit data delete(p->k_umbrella[0:p->n_types])
 #pragma acc exit data delete(p->poly_type_offset[0:p->n_poly_type])
 #pragma acc exit data delete(p->poly_arch[0:p->poly_arch_length])
 
@@ -318,6 +336,7 @@ int free_phase(struct Phase * const p)
     free(p->num_bead_type);
     free(p->num_bead_type_local);
     free(p->field_scaling_type);
+    free(p->k_umbrella);
     free(p->A);
     free(p->R);
     free(p->end_mono);
@@ -361,6 +380,11 @@ int free_phase(struct Phase * const p)
 	free(p->external_field_unified);
     }
 
+    if (p->string_field != NULL){
+  free(p->string_field);
+    }
+
+
     if(p->args.coord_file_arg != NULL) //Is it a full init Phase?
 	close_ana(&(p->ana_info));
 
@@ -396,12 +420,18 @@ int update_self_phase(const Phase * const p)
 	{
 #pragma acc update self(p->external_field_unified[0:p->n_cells*p->n_types])
 	}
+    if (p->string_field != NULL)
+	{
+#pragma acc update self(p->string_field[0:p->n_cells*p->n_types])
+	}
+
 #pragma acc update self(p->tempfield[0:p->n_cells])
 #pragma acc update self(p->num_bead_type[0:p->n_types])
 #pragma acc update self(p->num_bead_type_local[0:p->n_types])
 #pragma acc update self(p->A[0:p->n_types])
 #pragma acc update self(p->R[0:p->n_types])
 #pragma acc update self(p->field_scaling_type[0:p->n_types])
+#pragma acc update self(p->k_umbrella[0:p->n_types])
 #pragma acc update self(p->poly_type_offset[0:p->n_poly_type])
 #pragma acc update self(p->poly_arch[0:p->poly_arch_length])
     if(p->cm_a != NULL)

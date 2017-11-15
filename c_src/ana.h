@@ -118,7 +118,7 @@ int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,con
 //! \param p Pointer to the state of the system.
 //! \return Errorcode.
 //! \todo The ouput is not yet parallel.
-int extent_density_field(const struct Phase*const p);
+int extent_density_field(const struct Phase*const p,void * field_pointer,char * field_name,hid_t type);
 
 
 #endif//SOMA_ANA_H
