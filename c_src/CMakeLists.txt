@@ -90,11 +90,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 #END SPLIT_PLUGIN
 
-#START STRING_PLUGIN
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
+#START DOUBLE_PLUGIN
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string)
   option(ENABLE_STRING_PLUGIN "Running multiple SOMA-instances for the application of the string-method." off)
   if(ENABLE_STRING_PLUGIN)
-    add_subdirectory(string_plugin)
+    add_subdirectory(string)
   endif(ENABLE_STRING_PLUGIN)
-endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
-#END STRING_PLUGIN
+endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string)
+#END DOUBLE_PLUGIN

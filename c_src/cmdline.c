@@ -297,7 +297,7 @@ cmdline_parser_params_create(void)
 }
 
 static void
-free_umbrella_field (char **s)
+free_string_field (char **s)
 {
   if (*s)
     {
@@ -311,27 +311,27 @@ static void
 cmdline_parser_release (struct som_args *args_info)
 {
 
-  free_umbrella_field (&(args_info->coord_file_arg));
-  free_umbrella_field (&(args_info->coord_file_orig));
-  free_umbrella_field (&(args_info->timesteps_orig));
-  free_umbrella_field (&(args_info->ana_file_arg));
-  free_umbrella_field (&(args_info->ana_file_orig));
-  free_umbrella_field (&(args_info->gpus_orig));
-  free_umbrella_field (&(args_info->only_gpu_orig));
-  free_umbrella_field (&(args_info->screen_output_interval_orig));
-  free_umbrella_field (&(args_info->rng_seed_orig));
-  free_umbrella_field (&(args_info->pseudo_random_number_generator_orig));
-  free_umbrella_field (&(args_info->omp_threads_orig));
-  free_umbrella_field (&(args_info->move_type_orig));
-  free_umbrella_field (&(args_info->iteration_alg_orig));
-  free_umbrella_field (&(args_info->load_balance_orig));
-  free_umbrella_field (&(args_info->accepted_load_inbalance_orig));
-  free_umbrella_field (&(args_info->autotuner_restart_period_orig));
-  free_umbrella_field (&(args_info->user_arg));
-  free_umbrella_field (&(args_info->user_orig));
-  free_umbrella_field (&(args_info->N_domains_orig));
-  free_umbrella_field (&(args_info->domain_buffer_orig));
-  free_umbrella_field (&(args_info->rcm_update_orig));
+  free_string_field (&(args_info->coord_file_arg));
+  free_string_field (&(args_info->coord_file_orig));
+  free_string_field (&(args_info->timesteps_orig));
+  free_string_field (&(args_info->ana_file_arg));
+  free_string_field (&(args_info->ana_file_orig));
+  free_string_field (&(args_info->gpus_orig));
+  free_string_field (&(args_info->only_gpu_orig));
+  free_string_field (&(args_info->screen_output_interval_orig));
+  free_string_field (&(args_info->rng_seed_orig));
+  free_string_field (&(args_info->pseudo_random_number_generator_orig));
+  free_string_field (&(args_info->omp_threads_orig));
+  free_string_field (&(args_info->move_type_orig));
+  free_string_field (&(args_info->iteration_alg_orig));
+  free_string_field (&(args_info->load_balance_orig));
+  free_string_field (&(args_info->accepted_load_inbalance_orig));
+  free_string_field (&(args_info->autotuner_restart_period_orig));
+  free_string_field (&(args_info->user_arg));
+  free_string_field (&(args_info->user_orig));
+  free_string_field (&(args_info->N_domains_orig));
+  free_string_field (&(args_info->domain_buffer_orig));
+  free_string_field (&(args_info->rcm_update_orig));
   
   
 
@@ -618,7 +618,7 @@ int update_arg(void *field, char **orig_field,
   char *stop_char = 0;
   const char *val = value;
   int found;
-  char **umbrella_field;
+  char **string_field;
   FIX_UNUSED (field);
 
   stop_char = 0;
@@ -674,10 +674,10 @@ int update_arg(void *field, char **orig_field,
     break;
   case ARG_STRING:
     if (val) {
-      umbrella_field = (char **)field;
-      if (!no_free && *umbrella_field)
-        free (*umbrella_field); /* free previous string */
-      *umbrella_field = gengetopt_strdup (val);
+      string_field = (char **)field;
+      if (!no_free && *string_field)
+        free (*string_field); /* free previous string */
+      *string_field = gengetopt_strdup (val);
     }
     break;
   default:

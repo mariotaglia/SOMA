@@ -109,16 +109,13 @@ int analytics(struct Phase *const p);
 //! \return Errorcode.
 int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,const char*const name,const hid_t file_id);
 
-//! Helper to ouput data to a hdf5 , may be used for the density fields.
+//! Helper to ouput data to a hdf5 , here specifially for the density fields.
 //!
 //! \note This function does not feature a parallel output of the
-//! (density) field. If anyone knows how to fix it, you are welcome to
+//! density field. If anyone knows how to fix it, you are welcome to
 //! help.
 //!
 //! \param p Pointer to the state of the system.
-//! \param field_pointer Pointer to the field that should be outputted
-//! \param field_name Name of the field, eg. "\density_field"
-//! \param type The H5-Datatype for the output of the field
 //! \return Errorcode.
 //! \todo The ouput is not yet parallel.
 int extent_density_field(const struct Phase*const p,void * field_pointer,char * field_name,hid_t type);

@@ -276,7 +276,7 @@ int read_old_config(struct Phase * p, char *const filename)
 
     p->area51 = NULL;
     p->external_field_unified = NULL;
-    p->umbrella_field = NULL;
+    p->string_field = NULL;
     p->hamiltonian = SCMF0;
     p->k_umbrella = (soma_scalar_t*const)malloc(p->n_types*sizeof(soma_scalar_t));
     if( p->k_umbrella == NULL)
@@ -748,33 +748,33 @@ int write_config_hdf5(const struct Phase * const p, const char *filename)
 	    }
 
 	}
-    if(p->umbrella_field)
+    if(p->string_field)
 	{
 	const hsize_t hsize_ncells = p->n_cells*p->n_types;
 	hid_t n_cells_dataspace =
 	    H5Screate_simple(1, &(hsize_ncells), NULL);
 
 	hid_t n_cells_dataset =
-	    H5Dcreate2(file_id, "/umbrella_field", H5T_SOMA_FILE_SCALAR, n_cells_dataspace,
+	    H5Dcreate2(file_id, "/string_field", H5T_SOMA_FILE_SCALAR, n_cells_dataspace,
 		       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
 	n_cells_dataspace = H5Dget_space(n_cells_dataset);
-	hsize_t umbrella_field_offset = p->info_MPI.sim_rank * ( hsize_ncells/p->info_MPI.sim_size);
+	hsize_t string_field_offset = p->info_MPI.sim_rank * ( hsize_ncells/p->info_MPI.sim_size);
 	if( (unsigned int)p->info_MPI.sim_rank < ( hsize_ncells) % p->info_MPI.sim_size )
-	    umbrella_field_offset += p->info_MPI.sim_rank;
+	    string_field_offset += p->info_MPI.sim_rank;
 	else
-	    umbrella_field_offset += hsize_ncells % p->info_MPI.sim_size;
+	    string_field_offset += hsize_ncells % p->info_MPI.sim_size;
 
-	hsize_t umbrella_field_local = hsize_ncells/p->info_MPI.sim_size;
+	hsize_t string_field_local = hsize_ncells/p->info_MPI.sim_size;
 	if( (unsigned int)p->info_MPI.sim_rank < hsize_ncells % p->info_MPI.sim_size)
-	    umbrella_field_local += 1;
-	hid_t n_cells_memspace = H5Screate_simple(1, &(umbrella_field_local), NULL);
+	    string_field_local += 1;
+	hid_t n_cells_memspace = H5Screate_simple(1, &(string_field_local), NULL);
 	H5Sselect_hyperslab(n_cells_dataspace, H5S_SELECT_SET,
-			    &(umbrella_field_offset), NULL, &(umbrella_field_local),NULL);
+			    &(string_field_offset), NULL, &(string_field_local),NULL);
 
 	if ((status =
 	     H5Dwrite(n_cells_dataset, H5T_SOMA_NATIVE_SCALAR, n_cells_memspace,
-		      n_cells_dataspace, plist_id, p->umbrella_field+umbrella_field_offset)) < 0) {
+		      n_cells_dataspace, plist_id, p->string_field+string_field_offset)) < 0) {
 	    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
 		    p->info_MPI.world_rank, __FILE__, __LINE__, status);
 	    return status;
@@ -1157,7 +1157,7 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 
     p->area51 = NULL;
     p->external_field_unified = NULL;
-    p->umbrella_field = NULL;
+    p->string_field = NULL;
     p->n_cells = p->nx*p->ny*p->nz;
 
     if(H5Lexists(file_id,"/area51",H5P_DEFAULT) > 0)
@@ -1257,12 +1257,12 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 
     	}
 
-    if(H5Lexists(file_id,"/umbrella_field",H5P_DEFAULT) > 0)
+    if(H5Lexists(file_id,"/string_field",H5P_DEFAULT) > 0)
         {
         const hsize_t hsize_ncells = p->n_cells*p->n_types;
 	hid_t n_cells_memspace = H5Screate_simple(1, &(hsize_ncells), NULL);
 
-        hid_t n_cells_dataset = H5Dopen2(file_id, "/umbrella_field", H5P_DEFAULT);
+        hid_t n_cells_dataset = H5Dopen2(file_id, "/string_field", H5P_DEFAULT);
         hid_t n_cells_dataspace = H5Dget_space(n_cells_dataset);
 	hsize_t dims;
 	status = H5Sget_simple_extent_dims(n_cells_dataspace,&dims,NULL);
@@ -1270,8 +1270,8 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 	assert(dims == hsize_ncells);
 
 	assert(p->n_types > 0);
-	p->umbrella_field = (soma_scalar_t*)malloc( hsize_ncells*p->n_types*sizeof(soma_scalar_t));
-	if (p->umbrella_field == NULL) {
+	p->string_field = (soma_scalar_t*)malloc( hsize_ncells*p->n_types*sizeof(soma_scalar_t));
+	if (p->string_field == NULL) {
 	    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__,
 		    __LINE__);
 	    return -1;
@@ -1279,7 +1279,7 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 
         if ((status =
              H5Dread(n_cells_dataset, H5T_SOMA_NATIVE_SCALAR, n_cells_memspace,
-		     n_cells_dataspace, plist_id, p->umbrella_field)) < 0) {
+		     n_cells_dataspace, plist_id, p->string_field)) < 0) {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
 		    p->info_MPI.world_rank, __FILE__, __LINE__, status);
             return status;

@@ -189,7 +189,6 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * const p,const Monomer*const
 	    switch (bond_type) {
 	    case HARMONICVARIABLESCALE:
 		scale = p->harmonic_normb_variable_scale;
-		/* intentionally falls through */
 	    case HARMONIC:
 		//Empty statement, because a statement after a label
 		//has to come before any declaration
@@ -689,7 +688,6 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 		{
 		case HARMONICVARIABLESCALE:
 		    scale = p->harmonic_normb_variable_scale;
-		    /* intentionally falls through */
 		case HARMONIC:
 		    //Empty statement, because a statement after a label
 		    //has to come before any declaration
