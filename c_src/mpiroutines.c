@@ -87,7 +87,7 @@ int init_MPI(struct Phase * p)
 	return -2;
 	}
     p->info_MPI.domain_size = test;
-    assert( domain_size == p->info_MPI.domain_size );
+    assert( (int) domain_size == p->info_MPI.domain_size );
 
     if (MPI_Comm_rank(p->info_MPI.SOMA_comm_domain, &(test)) != MPI_SUCCESS) {
 	fprintf(stderr, "MPI_ERROR (3) %d \n", test);

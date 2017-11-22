@@ -40,7 +40,7 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     p->ana_info.delta_mc_density_var = 0;
     p->ana_info.delta_mc_non_bonded_energy = 0;
     p->ana_info.delta_mc_bonded_energy = 0;
-    p->ana_info.delta_mc_string_field = 0;
+    p->ana_info.delta_mc_umbrella_field = 0;
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     p->ana_info.filename = NULL;
     p->ana_info.coord_filename = NULL;
@@ -113,8 +113,8 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     delta_mc[8] = &(p->ana_info.delta_mc_non_bonded_energy);
     names[9] = "/bonded_energy";
     delta_mc[9] = &(p->ana_info.delta_mc_bonded_energy);
-    names[10] = "/string_field";
-    delta_mc[10] = &(p->ana_info.delta_mc_string_field);
+    names[10] = "/umbrella_field";
+    delta_mc[10] = &(p->ana_info.delta_mc_umbrella_field);
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for(unsigned int i=0; i< SOMA_NUM_OBS; i++)
 	{
@@ -333,16 +333,16 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 	}
 
 
-  if(p->ana_info.delta_mc_string_field> 0)
+  if(p->ana_info.delta_mc_umbrella_field> 0)
 {
   //Exception safety:
-  const unsigned int tmd_delta_mc_string = p->ana_info.delta_mc_string_field;
-  p->ana_info.delta_mc_string_field = 0;
+  const unsigned int tmd_delta_mc_string = p->ana_info.delta_mc_umbrella_field;
+  p->ana_info.delta_mc_umbrella_field = 0;
   #pragma acc update device(p->ana_info)
   const hsize_t three = 3;
   const hsize_t one = 1;
 
-  hid_t dataset = H5Dopen2(p->ana_info.file_id,"/string_field",H5P_DEFAULT);
+  hid_t dataset = H5Dopen2(p->ana_info.file_id,"/umbrella_field",H5P_DEFAULT);
   status = dataset;
   HDF5_ERROR_CHECK(status);
 
@@ -352,12 +352,12 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 
   htri_t nxyz_exists = H5Aexists(dataset,"nxyz");
   if( nxyz_exists > 0){//Nxyz attr exists
-      hid_t nxyz_attr = H5Aopen_by_name(dataset,"/string_field","nxyz",H5P_DEFAULT,H5P_DEFAULT);
+      hid_t nxyz_attr = H5Aopen_by_name(dataset,"/umbrella_field","nxyz",H5P_DEFAULT,H5P_DEFAULT);
       unsigned int nxyz_tmp[3];
       status = H5Aread(nxyz_attr,H5T_NATIVE_UINT,nxyz_tmp);
       HDF5_ERROR_CHECK(status);
       if( (nxyz_tmp[0] != p->nx) || (nxyz_tmp[1] != p->ny) || (nxyz_tmp[2] != p->nz)){
-        fprintf(stderr,"WARNING: existing nxyz attr of string_field"
+        fprintf(stderr,"WARNING: existing nxyz attr of umbrella_field"
           "does not match with the system data. No density field output possible. (Try with fresh ana.h5 file.).\n");
         return 0;
     }
@@ -377,12 +377,12 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 
   htri_t ntypes_exists = H5Aexists(dataset,"ntypes");
   if( ntypes_exists > 0){//n_types attr exists
-      hid_t ntypes_attr = H5Aopen_by_name(dataset,"/string_field","ntypes",H5P_DEFAULT,H5P_DEFAULT);
+      hid_t ntypes_attr = H5Aopen_by_name(dataset,"/umbrella_field","ntypes",H5P_DEFAULT,H5P_DEFAULT);
       unsigned int ntypes_tmp;
       status = H5Aread(ntypes_attr,H5T_NATIVE_UINT,&ntypes_tmp);
       HDF5_ERROR_CHECK(status);
       if( (ntypes_tmp != p->n_types) ) {
-    fprintf(stderr,"Error: existing ntypes attr of string_field"
+    fprintf(stderr,"Error: existing ntypes attr of umbrella_field"
       "does not match with the system data. No density field output possible. (Try with fresh ana.h5 file.).\n");
         return 0;
     }
@@ -402,12 +402,12 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 
   htri_t lxyz_exists = H5Aexists(dataset,"lxyz");
   if( lxyz_exists > 0){//lxyz attr exists
-      hid_t lxyz_attr = H5Aopen_by_name(dataset,"/string_field","lxyz",H5P_DEFAULT,H5P_DEFAULT);
+      hid_t lxyz_attr = H5Aopen_by_name(dataset,"/umbrella_field","lxyz",H5P_DEFAULT,H5P_DEFAULT);
       soma_scalar_t lxyz_tmp[3];
       status = H5Aread(lxyz_attr,H5T_SOMA_NATIVE_SCALAR,lxyz_tmp);
       HDF5_ERROR_CHECK(status);
       if( (lxyz_tmp[0] != p->Lx) || (lxyz_tmp[1] != p->Ly) || (lxyz_tmp[2] != p->Lz)){
-        fprintf(stderr,"WARNING: existing lxyz attr of string_field"
+        fprintf(stderr,"WARNING: existing lxyz attr of umbrella_field"
           "does not match with the system data. No dumping possible.\n");
         return 0;
     }
@@ -427,7 +427,7 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 
   htri_t typescale_exists = H5Aexists(dataset,"typescale");
   if( typescale_exists > 0){//type_scale attr exists
-      hid_t typescale_attr = H5Aopen_by_name(dataset,"/string_field","typescale",H5P_DEFAULT,H5P_DEFAULT);
+      hid_t typescale_attr = H5Aopen_by_name(dataset,"/umbrella_field","typescale",H5P_DEFAULT,H5P_DEFAULT);
       soma_scalar_t*const typescale_tmp =(soma_scalar_t*const)malloc(p->n_types*sizeof(soma_scalar_t));
       if(typescale_tmp == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
       status = H5Aread(typescale_attr,H5T_SOMA_NATIVE_SCALAR,typescale_tmp);
@@ -437,8 +437,8 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     if( typescale_tmp[i] != p->field_scaling_type[i])
         match = false;
       if( !match ){
-    fprintf(stderr,"Error: existing typescale attr of string_field"
-      "does not match with the system data. No string_field output possible. (Try with fresh ana.h5 file.)\n");
+    fprintf(stderr,"Error: existing typescale attr of umbrella_field"
+      "does not match with the system data. No umbrella_field output possible. (Try with fresh ana.h5 file.)\n");
     return 0;
     }
       status = H5Aclose(typescale_attr);
@@ -462,20 +462,20 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
   HDF5_ERROR_CHECK(d_space);
   const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
   if( ndims != 5)
-      {fprintf(stderr,"ERROR: %s:%d not the correct number of dimensions for a string_field.\n",__FILE__,__LINE__);return -3;}
+      {fprintf(stderr,"ERROR: %s:%d not the correct number of dimensions for a umbrella_field.\n",__FILE__,__LINE__);return -3;}
   hsize_t dims[5];//ndims
   status = H5Sget_simple_extent_dims(d_space,dims,NULL);
   HDF5_ERROR_CHECK(status);
   if( dims[1] != p->n_types || dims[2] != p->nx || dims[3] != p->ny || dims[4] != p->nz )
       {
-      fprintf(stderr,"Error: The string_field dimensions do not match! No string_field output possible. (Try with fresh ana.h5 file.)\n");
+      fprintf(stderr,"Error: The umbrella_field dimensions do not match! No umbrella_field output possible. (Try with fresh ana.h5 file.)\n");
       return 0;
       }
   status = H5Dclose(dataset);
   HDF5_ERROR_CHECK(status);
 
   //If everything was successful set the ana period again.
-  p->ana_info.delta_mc_string_field = tmd_delta_mc_string;
+  p->ana_info.delta_mc_umbrella_field = tmd_delta_mc_string;
 }
 
 
