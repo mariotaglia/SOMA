@@ -639,12 +639,12 @@ int analytics(struct Phase *const p)
 	written = true;
     	}
 
-    //string_field
-        if (p->ana_info.delta_mc_string_field != 0 && p->time % p->ana_info.delta_mc_string_field == 0){
+    //umbrella_field
+        if (p->ana_info.delta_mc_umbrella_field != 0 && p->time % p->ana_info.delta_mc_umbrella_field == 0){
           if (p->info_MPI.sim_size == 1){
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
               }
-            extent_density_field(p,p->string_field,"/string_field",H5T_SOMA_NATIVE_SCALAR );
+            extent_density_field(p,p->umbrella_field,"/umbrella_field",H5T_SOMA_NATIVE_SCALAR );
             written = true;
             }
 

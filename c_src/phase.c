@@ -227,8 +227,8 @@ int copyin_phase(struct Phase*const p)
     if (p->external_field_unified != NULL){
 #pragma acc enter data copyin(p->external_field_unified[0:p->n_cells*p->n_types])
 	}
-  if (p->string_field != NULL){
-#pragma acc enter data copyin(p->string_field[0:p->n_cells*p->n_types])
+  if (p->umbrella_field != NULL){
+#pragma acc enter data copyin(p->umbrella_field[0:p->n_cells*p->n_types])
   }
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells])
 #pragma acc enter data copyin(p->num_bead_type[0:p->n_types])
@@ -280,8 +280,8 @@ int copyout_phase(struct Phase*const p)
     if (p->external_field_unified != NULL){
 #pragma acc exit data delete(p->external_field_unified[0:p->n_cells*p->n_types])
 	}
-    if (p->string_field != NULL){
-#pragma acc exit data delete(p->string_field[0:p->n_cells*p->n_types])
+    if (p->umbrella_field != NULL){
+#pragma acc exit data delete(p->umbrella_field[0:p->n_cells*p->n_types])
 }
 #pragma acc exit data delete(p->tempfield[0:p->n_cells])
 #pragma acc exit data delete(p->num_bead_type[0:p->n_types])
@@ -375,8 +375,8 @@ int free_phase(struct Phase * const p)
 	free(p->external_field_unified);
     }
 
-    if (p->string_field != NULL){
-        free(p->string_field);
+    if (p->umbrella_field != NULL){
+        free(p->umbrella_field);
     }
 
 
@@ -415,9 +415,9 @@ int update_self_phase(const Phase * const p)
 	{
 #pragma acc update self(p->external_field_unified[0:p->n_cells*p->n_types])
 	}
-    if (p->string_field != NULL)
+    if (p->umbrella_field != NULL)
 	{
-#pragma acc update self(p->string_field[0:p->n_cells*p->n_types])
+#pragma acc update self(p->umbrella_field[0:p->n_cells*p->n_types])
 	}
 
 #pragma acc update self(p->tempfield[0:p->n_cells])
