@@ -123,7 +123,7 @@ void update_density_fields(const struct Phase *const p)
 		    MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, n_indices, MPI_UINT16_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->fields_unified[0:n_indices])
 #else//ENABLE_MPI_CUDA
-		    uint64_t * fields_unified = p->fields_unified ;
+		    uint16_t * fields_unified = p->fields_unified ;
 #pragma acc host_data use_device(fields_unified)
 			{
 			MPI_Allreduce(MPI_IN_PLACE, fields_unified, n_indices, MPI_UINT16_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
@@ -205,9 +205,9 @@ void self_omega_field(const struct Phase *const p)
 		p->omega_field_unified[cell + T_types*p->n_cells] += inverse_refbeads * p->external_field_unified[ cell+T_types*p->n_cells];
 		}
 	    //umbrella part
-	    if( p->string_field != NULL)
+	    if( p->umbrella_field != NULL)
 		{
-		p->omega_field_unified[cell + T_types*p->n_cells] += -inverse_refbeads*p->field_scaling_type[T_types]*p->k_umbrella[T_types]*(p->string_field[cell + T_types*p->n_cells]-p->fields_unified[cell + T_types*p->n_cells]);
+		p->omega_field_unified[cell + T_types*p->n_cells] += -inverse_refbeads*p->field_scaling_type[T_types]*p->k_umbrella[T_types]*(p->umbrella_field[cell + T_types*p->n_cells]-p->fields_unified[cell + T_types*p->n_cells]);
     }
 	    }
 	}
