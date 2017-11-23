@@ -333,8 +333,6 @@ cmdline_parser_release (struct som_args *args_info)
   free_umbrella_field (&(args_info->domain_buffer_orig));
   free_umbrella_field (&(args_info->rcm_update_orig));
 
-
-
   clear_given (args_info);
 }
 
