@@ -19,7 +19,7 @@
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
-sys.path.append( "/home/niklas.blagojevic/gpuhack-matters/installCUDA14/python-script" )
+sys.path.append( @SOMA_PYTHON_INSTALL_DIR@ )
 import h5py
 import numpy
 import argparse
