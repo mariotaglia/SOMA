@@ -162,6 +162,37 @@ def add_external_field(nxyz,n_types,t,h5file):
     string += "</Attribute>\n"
     return string
 
+def add_umbrella_field(timestep,type,timesteps,types,nxyz,argemuents):
+    string =""
+    if argemuents['a']:
+        h5file = argemuents['a']
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"str"+str(type)+"\">\n"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<DataItem ItemType=\"Function\" Function = \"$" + str(type) + " / ("
+        for type_func in range(types):
+		string += "$" + str(type_func)
+		if type_func != types-1: string+= " + "
+        string += " )\" "
+        string += "Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        for type_func in range(types):
+		string += "<!-- Result will be 3 dimensions -->"
+		string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+		string += "<!-- The source is 5 dimensions -->\n"
+		string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
+		string += "<DataItem Dimensions=\"3 5\" Format=\"XML\">\n"
+		string += str(timestep)+" "+str(type_func)+" 0 0 0\n"
+		string += "1 1 1 1 1\n"
+		string += "1 1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+		string += "</DataItem>\n"
+		string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+str(types)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+		string += h5file+":/umbrella_field\n"
+		string +="</DataItem>\n"
+		string +="</DataItem>\n"
+        string +="</DataItem>\n"
+        string += "</Attribute>\n"
+    return string
+
+
 def get_area51(nxyz,arguments,fex_name):
     string = ""
     if arguments['c']:
@@ -179,6 +210,15 @@ def get_external_field(nxyz,arguments,fex_name,types,t):
             string += add_external_field(nxyz,types,t,fex_name)
         f.close()
     return string
+
+# def get_umbrella_field(nxyz,arguments,fex_name,types,t):
+#     string = ""
+#     if arguments['a']:
+#         f = h5py.File(arguments['a'],"r")
+#         if '/umbrella_field' in f:
+#             string += add_umbrella_field(nxyz,types,t,fex_name)
+#         f.close()
+#     return string
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Script to create paraview input files.")
@@ -209,6 +249,11 @@ def main(argv):
             data = data.reshape( (nxyz[0],nxyz[1],nxyz[2]) )
             fex.create_dataset("/area51",data=data)
 
+        if '/umbrella_field' in f:
+            data = f['/umbrella_field'][0:]
+            data = data.reshape( (types,nxyz[0],nxyz[1],nxyz[2]) )
+            fex.create_dataset("/umbrella_field",data=data)
+
         fex.close()
         f.close()
 
@@ -224,6 +269,7 @@ def main(argv):
             string += add_attribute(time,type,timesteps,types,nxyz,arguments)
             string += add_phi(time,type,timesteps,types,nxyz,arguments)
             string += get_external_field(nxyz,arguments,fex_name,types,type)
+            string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
         string += get_area51(nxyz,arguments,fex_name)
         string += "</Grid>\n"
     string += "</Grid>\n"
