@@ -26,7 +26,7 @@
 #include <assert.h>
 #include "soma_util.h"
 #include "phase.h"
-
+//#include "crosslink/readIn_lib.h"
 //! Sort the indecies of the set_length in sort_array with the highest at pos=0.
 //!
 //! \private Used only in the contex of independet set creation
@@ -159,8 +159,27 @@ int balance_sets(const struct Phase *const p,const unsigned int N,const unsigned
     return 0;
     }
 
-
 int generate_independet_sets(struct Phase*const p)
+{
+  int res=0; 
+  
+  switch( p->args.set_generation_algorithm_arg)
+    {
+    case set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS:
+      res=independent_set_fixed(p);
+      break;
+    case set_generation_algorithm_arg_SIMPLE:  
+      res=independent_sets_simple(p);
+      break;
+    case set_generation_algorithm__NULL:
+    default:
+      fprintf(stderr,"ERROR: Unknown independent set generation algorithm selected.\n");
+    }
+  return 0;
+}
+
+
+int independent_sets_simple(struct Phase* const p)
     {
     struct IndependetSets*const sets = (struct IndependetSets*)malloc( p->n_poly_type * sizeof(IndependetSets) );
     p->max_set_members = 0;
@@ -291,3 +310,210 @@ int generate_independet_sets(struct Phase*const p)
 
     return 0;
     }
+
+
+
+int independent_set_fixed(struct Phase* const poly){
+  
+  struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(1* sizeof(IndependetSets) );
+  //poly->n_sets=1;
+  //struct IndependetSets set_tmp;
+
+  unsigned int sequence=poly->num_all_beads;
+
+  /*for(unsigned int i=0;i<b->old_N_polymers;i++){
+    sequence=sequence+b->number_of_beads[i];
+    }*/
+  unsigned int max_bond_number=0,max_bond=0;
+
+  int* bond_number_total;
+  bond_number_total= (int*) malloc(sequence*sizeof(int));
+  if( bond_number_total== NULL){
+    fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
+    return -4;
+  }
+  memset(bond_number_total,0,sequence*sizeof(int));
+  unsigned int **bonds_total=(unsigned int **)malloc(sequence*sizeof(unsigned int*));
+  if(bonds_total == NULL){
+    fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
+    return -4;
+  }
+  
+  for(int current_tmp=poly->poly_type_offset[1]+1;current_tmp<sequence+poly->poly_type_offset[1]+1;current_tmp++){
+  
+    uint32_t bonds_of_monomer=0, bond_number=0;
+    uint32_t  current_poly_arch=poly->poly_arch[current_tmp];
+    int start_offset_bond=get_bondlist_offset(current_poly_arch);
+    do{
+      bonds_of_monomer=poly->poly_arch[start_offset_bond];
+      int end=get_end(bonds_of_monomer);		
+      bond_number++;
+      if(end==1) break;
+      start_offset_bond++;
+    }while(0==0); 
+
+    bond_number_total[current_tmp-poly->poly_type_offset[1]-1]=bond_number;
+    bonds_total[current_tmp-poly->poly_type_offset[1]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
+    memset(&bonds_total[current_tmp-poly->poly_type_offset[1]-1][0],0,bond_number*sizeof(unsigned int));     
+	  
+    start_offset_bond=get_bondlist_offset(poly->poly_arch[current_tmp]);
+    for(int tmp=0;tmp<bond_number;tmp++){      
+      bonds_of_monomer=poly->poly_arch[start_offset_bond];
+     
+      bonds_total[current_tmp-poly->poly_type_offset[1]-1][tmp]=get_offset(bonds_of_monomer)+current_tmp-poly->poly_type_offset[1]-1;
+      start_offset_bond++;
+    }
+    
+    if(bond_number>max_bond_number){    
+      max_bond_number=bond_number; 
+      max_bond=current_tmp-poly->poly_type_offset[1]-1;
+    }  
+ 
+  }  
+  
+  int* monomer_checked;
+  monomer_checked= (int*) malloc(sequence*sizeof(int));
+  if(monomer_checked== NULL){
+    fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
+    return -4;
+  }
+  memset(monomer_checked,0,sequence*sizeof(int));
+  unsigned int current_monomer=max_bond;
+  unsigned int** independent_sets;
+  independent_sets= (unsigned int**) malloc((max_bond_number+1)*sizeof(unsigned int*));
+  if( independent_sets== NULL){
+    fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
+    return -4;
+  }
+  unsigned int offset_set[max_bond_number+1]; //only members between offset_set and end_set are unchecked for neighbours  
+
+  unsigned int end_set[max_bond_number+1];
+  
+  for(int aaa=0;aaa<max_bond_number+1;aaa++){
+    end_set[aaa]=0;
+    offset_set[aaa]=0;
+  }
+  for(int bb=0;bb<max_bond_number+1;bb++){
+    independent_sets[bb]=(unsigned int*) malloc(sequence*sizeof(unsigned int));
+    memset(&independent_sets[bb][0],0,sequence*sizeof(unsigned int)); 
+  }
+  int total_assigned_monomer=0;
+
+  ///loop over all monomer
+  for(int mono_i=0;mono_i<sequence;mono_i++){
+    if(total_assigned_monomer==sequence)
+      break;
+    if(monomer_checked[mono_i]==-1)
+      continue;
+    monomer_checked[mono_i]=-1;
+    current_monomer=mono_i;
+    independent_sets[0][end_set[0]]=current_monomer;//write the first element in each set
+    end_set[0]++;
+    monomer_checked[current_monomer]=-1;
+    total_assigned_monomer++;
+    for(int aa=1; aa<=bond_number_total[current_monomer];aa++){   
+      independent_sets[aa][end_set[aa]]=bonds_total[current_monomer][aa-1];
+      total_assigned_monomer++;
+      monomer_checked[bonds_total[current_monomer][aa-1]]=-1;
+      end_set[aa]++;
+    }
+    offset_set[0]=offset_set[0]+1;//neighbour of inde*[0][offset_set] are all found now 
+    int current_set=1; //the one needs to be checked
+    int wang=0;
+    
+
+    while(total_assigned_monomer<sequence){
+      int chain_finished=0;
+      for(int i_tmp=0;i_tmp<max_bond_number+1;i_tmp++){
+	if(offset_set[i_tmp]!=end_set[i_tmp]){	  
+	  chain_finished=1;
+	}
+      }    
+       if(chain_finished==0){
+	 break;
+       }         
+      int writein_set=current_set-1; //which set to put the new element into, namely the left one !! no problem, because this is the last current one
+      if(current_set==0)
+	writein_set=max_bond_number;
+     
+      if(end_set[current_set]==offset_set[current_set]){
+	current_set++;
+	if(current_set>max_bond_number)
+	  current_set=current_set-max_bond_number-1;
+	continue;
+      }    
+     
+      for(int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){     
+	current_monomer=independent_sets[current_set][member_set]; 
+	int number_tmp=0;
+	if(monomer_checked[bonds_total[current_monomer][0]]!=-1){
+	  independent_sets[writein_set][end_set[writein_set]]=bonds_total[current_monomer][0];
+	  monomer_checked[bonds_total[current_monomer][0]]=-1;
+	  total_assigned_monomer++;
+	  end_set[writein_set]++;
+	}
+	for(int bb=1;bb<bond_number_total[current_monomer];bb++){
+	  if(monomer_checked[bonds_total[current_monomer][bb]]==-1)
+	    continue;
+	  int found=0;
+	  while(found==0){ 
+	    int meet=0;
+	    for(int neighbour_index_of_bb=0;neighbour_index_of_bb<bond_number_total[bonds_total[current_monomer][bb]];neighbour_index_of_bb++){ //loop over all bonds of bb
+	      unsigned int neighbour_of_bb=bonds_total[bonds_total[current_monomer][bb]][neighbour_index_of_bb];	  
+	      for(int cc=offset_set[writein_set];cc<end_set[writein_set];cc++){
+		if(neighbour_of_bb==independent_sets[writein_set][cc]){
+		  meet=1;
+		}
+	      }
+	      if(meet==1){
+		writein_set++;
+		if(writein_set>max_bond_number)
+		  writein_set=writein_set-max_bond_number-1;
+		if(writein_set==current_set){ 
+		  writein_set++;
+		  if(writein_set>max_bond_number)
+		    writein_set=writein_set-max_bond_number-1;
+		}
+		break;
+	      }
+	      else
+		found=1;
+	    }
+	  }
+	  independent_sets[writein_set][end_set[writein_set]]=bonds_total[current_monomer][bb];
+	  monomer_checked[bonds_total[current_monomer][bb]]=-1;
+	  total_assigned_monomer++;
+	  end_set[writein_set]++;
+	}
+	offset_set[current_set]++;      
+      }
+      current_set++;
+      if(current_set>max_bond_number)
+	current_set=current_set-max_bond_number-1;
+    }   //end while
+  }//end loop over all monomer
+  ///////
+  set_tmp[0].n_sets=max_bond_number+1;
+  
+  int ccc=0;
+  for(int aaa=0;aaa<max_bond_number+1;aaa++){
+    if(offset_set[aaa]>set_tmp[0].max_member)
+      set_tmp[0].max_member=offset_set[aaa];
+  }
+
+  unsigned int * inde_set_tmp= (unsigned int*) malloc(set_tmp[0].max_member*(max_bond_number+1)*sizeof(unsigned int));
+  for(int aaa=0;aaa<max_bond_number+1;aaa++){
+    ccc=aaa*set_tmp[0].max_member;
+    for(int bbb=0;bbb<offset_set[aaa];bbb++){
+      inde_set_tmp[ccc]=independent_sets[aaa][bbb];
+      ccc++;
+    }
+  }
+  set_tmp[0].set_length=offset_set; 
+  printf("here %i\n",poly->n_poly_type);
+  set_tmp[0].sets=inde_set_tmp;
+  poly->sets=set_tmp;
+
+  return 0;
+}
+

@@ -15,7 +15,7 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+//#include "crosslink/readIn_lib.h"
 #ifndef INDEPENDENT_SETS_H
 #define INDEPENDENT_SETS_H
 
@@ -42,6 +42,8 @@ typedef struct IndependetSets{
 //!
 //! \param p Phase where sets are calculated
 //! \return Errorcode
-int generate_independet_sets(struct Phase*const p);
+int generate_independet_sets(struct Phase* const p);
 
+int independent_sets_simple(struct Phase* const p);
+int independent_set_fixed(struct Phase* const poly);
 #endif//INDEPENDENT_SETS_H
