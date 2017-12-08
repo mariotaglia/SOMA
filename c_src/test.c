@@ -143,7 +143,7 @@ int test_independet_sets(const struct Phase*const p)
 	//printf("PolyType %d:\n",poly_type);
 	for(unsigned int set_id =0; set_id < set->n_sets; set_id++)
 	    {
-	    //printf("\tSetId: %d\n\t\t",set_id);
+	      //printf("\tSetId: %d\n\t\t",set_id);
 	    if(set->set_length[set_id] > largest_set)
 		largest_set = set->set_length[set_id];
 	    if(set->set_length[set_id] < smallest_set)
@@ -151,12 +151,13 @@ int test_independet_sets(const struct Phase*const p)
 	    for(unsigned int i=0; i < set->set_length[set_id]; i++)
 		{
 		const unsigned int pi = set->sets[ set_id*set->max_member + i];
-		//printf(" %d ",pi);
+		//printf("here!!! %d %d\n",set_id,set->set_length[set_id],i);
 		unsigned int n_neigh = 0;
 		for(unsigned int j=0; j < set->set_length[set_id]; j++)
 		    {
-		    const unsigned int pj =set->sets[ set_id*set->max_member +j];
-		    const int start = get_bondlist_offset(
+		      const unsigned int pj =set->sets[ set_id*set->max_member +j];	
+		      // printf("here!!! %i %d %d\n",pj,set_id,j);
+		      const int start = get_bondlist_offset(
 			p->poly_arch[p->poly_type_offset[poly_type] + pj + 1]);
 		    if(start > 0)
 			{

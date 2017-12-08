@@ -315,15 +315,8 @@ int independent_sets_simple(struct Phase* const p)
 
 int independent_set_fixed(struct Phase* const poly){
   
-  struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(1* sizeof(IndependetSets) );
-  //poly->n_sets=1;
-  //struct IndependetSets set_tmp;
-
+  struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(1* sizeof(IndependetSets) ); 
   unsigned int sequence=poly->num_all_beads;
-
-  /*for(unsigned int i=0;i<b->old_N_polymers;i++){
-    sequence=sequence+b->number_of_beads[i];
-    }*/
   unsigned int max_bond_number=0,max_bond=0;
 
   int* bond_number_total;
@@ -358,8 +351,7 @@ int independent_set_fixed(struct Phase* const poly){
 	  
     start_offset_bond=get_bondlist_offset(poly->poly_arch[current_tmp]);
     for(int tmp=0;tmp<bond_number;tmp++){      
-      bonds_of_monomer=poly->poly_arch[start_offset_bond];
-     
+      bonds_of_monomer=poly->poly_arch[start_offset_bond];     
       bonds_total[current_tmp-poly->poly_type_offset[1]-1][tmp]=get_offset(bonds_of_monomer)+current_tmp-poly->poly_type_offset[1]-1;
       start_offset_bond++;
     }
@@ -385,10 +377,11 @@ int independent_set_fixed(struct Phase* const poly){
     fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
     return -4;
   }
-  unsigned int offset_set[max_bond_number+1]; //only members between offset_set and end_set are unchecked for neighbours  
+  //unsigned int offset_set[max_bond_number+1]; //only members between offset_set and end_set are unchecked for neighbours  
+  //unsigned int end_set[max_bond_number+1];
 
-  unsigned int end_set[max_bond_number+1];
-  
+  unsigned int* end_set= (unsigned int*) malloc((max_bond_number+1)*sizeof(unsigned int));
+  unsigned int* offset_set= (unsigned int*) malloc((max_bond_number+1)*sizeof(unsigned int));
   for(int aaa=0;aaa<max_bond_number+1;aaa++){
     end_set[aaa]=0;
     offset_set[aaa]=0;
@@ -409,7 +402,7 @@ int independent_set_fixed(struct Phase* const poly){
     current_monomer=mono_i;
     independent_sets[0][end_set[0]]=current_monomer;//write the first element in each set
     end_set[0]++;
-    monomer_checked[current_monomer]=-1;
+    //monomer_checked[current_monomer]=-1;
     total_assigned_monomer++;
     for(int aa=1; aa<=bond_number_total[current_monomer];aa++){   
       independent_sets[aa][end_set[aa]]=bonds_total[current_monomer][aa-1];
@@ -419,9 +412,7 @@ int independent_set_fixed(struct Phase* const poly){
     }
     offset_set[0]=offset_set[0]+1;//neighbour of inde*[0][offset_set] are all found now 
     int current_set=1; //the one needs to be checked
-    int wang=0;
-    
-
+ 
     while(total_assigned_monomer<sequence){
       int chain_finished=0;
       for(int i_tmp=0;i_tmp<max_bond_number+1;i_tmp++){
@@ -446,12 +437,38 @@ int independent_set_fixed(struct Phase* const poly){
       for(int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){     
 	current_monomer=independent_sets[current_set][member_set]; 
 	int number_tmp=0;
-	if(monomer_checked[bonds_total[current_monomer][0]]!=-1){
+	if(monomer_checked[bonds_total[current_monomer][0]]!=-1){	  
+	  int found=0;
+	  while(found==0){ 
+	    int meet=0;
+	    for(int cc=offset_set[writein_set];cc<end_set[writein_set];cc++){
+	      for(int neighbour_index=0;neighbour_index<bond_number_total[bonds_total[current_monomer][0]];neighbour_index++){
+		int neighbour=bonds_total[bonds_total[current_monomer][0]][neighbour_index];
+		if(neighbour==independent_sets[writein_set][cc]){
+		  meet=1;
+		}
+	      }
+	    }
+	    if(meet==1){
+	      writein_set++;
+	      if(writein_set>max_bond_number)
+		writein_set=writein_set-max_bond_number-1;
+	      if(writein_set==current_set){ 
+		writein_set++;
+		if(writein_set>max_bond_number)
+		  writein_set=writein_set-max_bond_number-1;
+	      }
+	      break;
+	    }
+	    else 
+	      found =1;
+	  }
 	  independent_sets[writein_set][end_set[writein_set]]=bonds_total[current_monomer][0];
 	  monomer_checked[bonds_total[current_monomer][0]]=-1;
 	  total_assigned_monomer++;
-	  end_set[writein_set]++;
+	  end_set[writein_set]++;	 
 	}
+
 	for(int bb=1;bb<bond_number_total[current_monomer];bb++){
 	  if(monomer_checked[bonds_total[current_monomer][bb]]==-1)
 	    continue;
@@ -492,9 +509,7 @@ int independent_set_fixed(struct Phase* const poly){
 	current_set=current_set-max_bond_number-1;
     }   //end while
   }//end loop over all monomer
-  ///////
-  set_tmp[0].n_sets=max_bond_number+1;
-  
+  set_tmp[0].n_sets=max_bond_number+1;  
   int ccc=0;
   for(int aaa=0;aaa<max_bond_number+1;aaa++){
     if(offset_set[aaa]>set_tmp[0].max_member)
@@ -509,11 +524,42 @@ int independent_set_fixed(struct Phase* const poly){
       ccc++;
     }
   }
-  set_tmp[0].set_length=offset_set; 
-  printf("here %i\n",poly->n_poly_type);
+  set_tmp[0].set_length = (unsigned int*)malloc((max_bond_number+1) * sizeof(unsigned int));
+  set_tmp[0].set_length=offset_set;
+  /* for(int aaa=0;aaa<max_bond_number+1;aaa++){
+    set_tmp[0].set_length[aaa]=offset_set[aaa]; 
+    }*/
   set_tmp[0].sets=inde_set_tmp;
   poly->sets=set_tmp;
 
+  //Allocate and init memory for polymer states
+  for(unsigned int i=0; i < poly->n_polymers;i++)
+    {
+      Polymer*const poly_tmp = poly->polymers+i;
+
+      poly_tmp->set_permutation = (unsigned int*)malloc( poly->max_n_sets * sizeof(unsigned int));
+      if( poly_tmp->set_permutation == NULL )
+	{
+	  fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__);
+	  return -1;
+	}
+
+      poly_tmp->set_states = (struct RNG_STATE*)malloc(poly->max_set_members * sizeof(struct RNG_STATE));
+      if( poly_tmp->set_states == NULL )
+	{
+	  fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__);
+	  return -1;
+	}
+
+      //Init every state in the polymer
+      const unsigned int seed = soma_rng_uint(&(poly_tmp->poly_state),pseudo_random_number_generator_arg_PCG32);
+      for(unsigned int j=0; j < poly->max_set_members; j++)
+	{
+	  struct RNG_STATE*const state = &(poly_tmp->set_states[j]);
+	  allocate_rng_state(state, poly->args.pseudo_random_number_generator_arg);
+	  seed_rng_state(state, seed, j, poly->args.pseudo_random_number_generator_arg);
+	}
+    }
   return 0;
 }
 
