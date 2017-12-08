@@ -37,13 +37,17 @@ typedef struct IndependetSets{
 
 //! \file independent_sets.h
 //! \brief Functions needed for independent set preparations
-
-//! Generate the independet set information for each poly_type.
-//!
+//! According to the cmdline argument, this function calls either the "simple algorithm" or the "fixed n sets algorithm"
 //! \param p Phase where sets are calculated
-//! \return Errorcode
 int generate_independet_sets(struct Phase* const p);
 
+
+//! Generate the independet set information for each poly_type.
+//! \return Errorcode 
 int independent_sets_simple(struct Phase* const p);
+
+//! Generate independent sets for network
+//! Can be used for only one molecule
+//! This algorithm uses n+1 sets to store the particles, with n the number of bonds of the particle with the most bonds
 int independent_set_fixed(struct Phase* const poly);
 #endif//INDEPENDENT_SETS_H

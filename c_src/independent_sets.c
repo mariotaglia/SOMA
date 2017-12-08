@@ -161,10 +161,10 @@ int balance_sets(const struct Phase *const p,const unsigned int N,const unsigned
 
 int generate_independet_sets(struct Phase*const p)
 {
-  int res=0; 
-  
+  int res=0;
   switch( p->args.set_generation_algorithm_arg)
     {
+      
     case set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS:
       res=independent_set_fixed(p);
       break;
@@ -175,7 +175,7 @@ int generate_independet_sets(struct Phase*const p)
     default:
       fprintf(stderr,"ERROR: Unknown independent set generation algorithm selected.\n");
     }
-  return 0;
+  return res;
 }
 
 
@@ -318,7 +318,6 @@ int independent_set_fixed(struct Phase* const poly){
   struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(1* sizeof(IndependetSets) ); 
   unsigned int sequence=poly->num_all_beads;
   unsigned int max_bond_number=0,max_bond=0;
-
   int* bond_number_total;
   bond_number_total= (int*) malloc(sequence*sizeof(int));
   if( bond_number_total== NULL){
@@ -332,8 +331,7 @@ int independent_set_fixed(struct Phase* const poly){
     return -4;
   }
   
-  for(int current_tmp=poly->poly_type_offset[1]+1;current_tmp<sequence+poly->poly_type_offset[1]+1;current_tmp++){
-  
+  for(unsigned int current_tmp=poly->poly_type_offset[1]+1;current_tmp<sequence+poly->poly_type_offset[1]+1;current_tmp++){ 
     uint32_t bonds_of_monomer=0, bond_number=0;
     uint32_t  current_poly_arch=poly->poly_arch[current_tmp];
     int start_offset_bond=get_bondlist_offset(current_poly_arch);
@@ -347,20 +345,17 @@ int independent_set_fixed(struct Phase* const poly){
 
     bond_number_total[current_tmp-poly->poly_type_offset[1]-1]=bond_number;
     bonds_total[current_tmp-poly->poly_type_offset[1]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
-    memset(&bonds_total[current_tmp-poly->poly_type_offset[1]-1][0],0,bond_number*sizeof(unsigned int));     
-	  
+    memset(&bonds_total[current_tmp-poly->poly_type_offset[1]-1][0],0,bond_number*sizeof(unsigned int));     	  
     start_offset_bond=get_bondlist_offset(poly->poly_arch[current_tmp]);
-    for(int tmp=0;tmp<bond_number;tmp++){      
+    for(unsigned int tmp=0;tmp<bond_number;tmp++){      
       bonds_of_monomer=poly->poly_arch[start_offset_bond];     
       bonds_total[current_tmp-poly->poly_type_offset[1]-1][tmp]=get_offset(bonds_of_monomer)+current_tmp-poly->poly_type_offset[1]-1;
       start_offset_bond++;
-    }
-    
+    }    
     if(bond_number>max_bond_number){    
       max_bond_number=bond_number; 
       max_bond=current_tmp-poly->poly_type_offset[1]-1;
     }  
- 
   }  
   
   int* monomer_checked;
@@ -382,18 +377,18 @@ int independent_set_fixed(struct Phase* const poly){
 
   unsigned int* end_set= (unsigned int*) malloc((max_bond_number+1)*sizeof(unsigned int));
   unsigned int* offset_set= (unsigned int*) malloc((max_bond_number+1)*sizeof(unsigned int));
-  for(int aaa=0;aaa<max_bond_number+1;aaa++){
+  for(unsigned int aaa=0;aaa<max_bond_number+1;aaa++){
     end_set[aaa]=0;
     offset_set[aaa]=0;
   }
-  for(int bb=0;bb<max_bond_number+1;bb++){
+  for(unsigned int bb=0;bb<max_bond_number+1;bb++){
     independent_sets[bb]=(unsigned int*) malloc(sequence*sizeof(unsigned int));
     memset(&independent_sets[bb][0],0,sequence*sizeof(unsigned int)); 
   }
-  int total_assigned_monomer=0;
+  unsigned int total_assigned_monomer=0;
 
   ///loop over all monomer
-  for(int mono_i=0;mono_i<sequence;mono_i++){
+  for(unsigned int mono_i=0;mono_i<sequence;mono_i++){
     if(total_assigned_monomer==sequence)
       break;
     if(monomer_checked[mono_i]==-1)
@@ -411,11 +406,11 @@ int independent_set_fixed(struct Phase* const poly){
       end_set[aa]++;
     }
     offset_set[0]=offset_set[0]+1;//neighbour of inde*[0][offset_set] are all found now 
-    int current_set=1; //the one needs to be checked
+    unsigned int current_set=1; //the one needs to be checked
  
     while(total_assigned_monomer<sequence){
       int chain_finished=0;
-      for(int i_tmp=0;i_tmp<max_bond_number+1;i_tmp++){
+      for(unsigned int i_tmp=0;i_tmp<max_bond_number+1;i_tmp++){
 	if(offset_set[i_tmp]!=end_set[i_tmp]){	  
 	  chain_finished=1;
 	}
@@ -423,7 +418,7 @@ int independent_set_fixed(struct Phase* const poly){
        if(chain_finished==0){
 	 break;
        }         
-      int writein_set=current_set-1; //which set to put the new element into, namely the left one !! no problem, because this is the last current one
+      unsigned int writein_set=current_set-1; //which set to put the new element into, namely the left one !! 
       if(current_set==0)
 	writein_set=max_bond_number;
      
@@ -434,16 +429,15 @@ int independent_set_fixed(struct Phase* const poly){
 	continue;
       }    
      
-      for(int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){     
+      for(unsigned int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){     
 	current_monomer=independent_sets[current_set][member_set]; 
-	int number_tmp=0;
 	if(monomer_checked[bonds_total[current_monomer][0]]!=-1){	  
 	  int found=0;
 	  while(found==0){ 
 	    int meet=0;
-	    for(int cc=offset_set[writein_set];cc<end_set[writein_set];cc++){
+	    for(unsigned int cc=offset_set[writein_set];cc<end_set[writein_set];cc++){
 	      for(int neighbour_index=0;neighbour_index<bond_number_total[bonds_total[current_monomer][0]];neighbour_index++){
-		int neighbour=bonds_total[bonds_total[current_monomer][0]][neighbour_index];
+		unsigned int neighbour=bonds_total[bonds_total[current_monomer][0]][neighbour_index];
 		if(neighbour==independent_sets[writein_set][cc]){
 		  meet=1;
 		}
@@ -477,7 +471,7 @@ int independent_set_fixed(struct Phase* const poly){
 	    int meet=0;
 	    for(int neighbour_index_of_bb=0;neighbour_index_of_bb<bond_number_total[bonds_total[current_monomer][bb]];neighbour_index_of_bb++){ //loop over all bonds of bb
 	      unsigned int neighbour_of_bb=bonds_total[bonds_total[current_monomer][bb]][neighbour_index_of_bb];	  
-	      for(int cc=offset_set[writein_set];cc<end_set[writein_set];cc++){
+	      for(unsigned int cc=offset_set[writein_set];cc<end_set[writein_set];cc++){
 		if(neighbour_of_bb==independent_sets[writein_set][cc]){
 		  meet=1;
 		}
@@ -511,24 +505,21 @@ int independent_set_fixed(struct Phase* const poly){
   }//end loop over all monomer
   set_tmp[0].n_sets=max_bond_number+1;  
   int ccc=0;
-  for(int aaa=0;aaa<max_bond_number+1;aaa++){
+  for(unsigned int aaa=0;aaa<max_bond_number+1;aaa++){
     if(offset_set[aaa]>set_tmp[0].max_member)
       set_tmp[0].max_member=offset_set[aaa];
   }
 
   unsigned int * inde_set_tmp= (unsigned int*) malloc(set_tmp[0].max_member*(max_bond_number+1)*sizeof(unsigned int));
-  for(int aaa=0;aaa<max_bond_number+1;aaa++){
+  for(unsigned int aaa=0;aaa<max_bond_number+1;aaa++){
     ccc=aaa*set_tmp[0].max_member;
-    for(int bbb=0;bbb<offset_set[aaa];bbb++){
+    for(unsigned int bbb=0;bbb<offset_set[aaa];bbb++){
       inde_set_tmp[ccc]=independent_sets[aaa][bbb];
       ccc++;
     }
   }
   set_tmp[0].set_length = (unsigned int*)malloc((max_bond_number+1) * sizeof(unsigned int));
   set_tmp[0].set_length=offset_set;
-  /* for(int aaa=0;aaa<max_bond_number+1;aaa++){
-    set_tmp[0].set_length[aaa]=offset_set[aaa]; 
-    }*/
   set_tmp[0].sets=inde_set_tmp;
   poly->sets=set_tmp;
 
