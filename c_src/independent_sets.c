@@ -315,7 +315,9 @@ int independent_sets_simple(struct Phase* const p)
 int independent_set_fixed(struct Phase* const poly){
   
   struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(1* sizeof(IndependetSets) ); 
-  unsigned int sequence=poly->num_all_beads;
+  int poly_type=0;
+  unsigned int sequence=poly->poly_arch[poly->poly_type_offset[poly_type]]/*poly->num_all_beads*/;
+  printf("sequence %i\n",sequence);
   unsigned int max_bond_number=0,max_bond=0;
   int* bond_number_total;
   bond_number_total= (int*) malloc(sequence*sizeof(int));
@@ -330,7 +332,7 @@ int independent_set_fixed(struct Phase* const poly){
     return -4;
   }
   
-  for(unsigned int current_tmp=poly->poly_type_offset[1]+1;current_tmp<sequence+poly->poly_type_offset[1]+1;current_tmp++){ 
+  for(unsigned int current_tmp=poly->poly_type_offset[poly_type]+1;current_tmp<sequence+poly->poly_type_offset[poly_type]+1;current_tmp++){ 
     uint32_t bonds_of_monomer=0, bond_number=0;
     uint32_t  current_poly_arch=poly->poly_arch[current_tmp];
     int start_offset_bond=get_bondlist_offset(current_poly_arch);
@@ -343,18 +345,18 @@ int independent_set_fixed(struct Phase* const poly){
       start_offset_bond++;
     }while(0==0); 
 
-    bond_number_total[current_tmp-poly->poly_type_offset[1]-1]=bond_number;
-    bonds_total[current_tmp-poly->poly_type_offset[1]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
-    memset(&bonds_total[current_tmp-poly->poly_type_offset[1]-1][0],0,bond_number*sizeof(unsigned int));     	  
+    bond_number_total[current_tmp-poly->poly_type_offset[poly_type]-1]=bond_number;
+    bonds_total[current_tmp-poly->poly_type_offset[poly_type]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
+    memset(&bonds_total[current_tmp-poly->poly_type_offset[poly_type]-1][0],0,bond_number*sizeof(unsigned int));     	  
     start_offset_bond=get_bondlist_offset(poly->poly_arch[current_tmp]);
     for(unsigned int tmp=0;tmp<bond_number;tmp++){      
       bonds_of_monomer=poly->poly_arch[start_offset_bond];     
-      bonds_total[current_tmp-poly->poly_type_offset[1]-1][tmp]=get_offset(bonds_of_monomer)+current_tmp-poly->poly_type_offset[1]-1;
+      bonds_total[current_tmp-poly->poly_type_offset[poly_type]-1][tmp]=get_offset(bonds_of_monomer)+current_tmp-poly->poly_type_offset[poly_type]-1;
       start_offset_bond++;
     }    
     if(bond_number>max_bond_number){    //count the number of sets needed
       max_bond_number=bond_number; 
-      max_bond=current_tmp-poly->poly_type_offset[1]-1;
+      max_bond=current_tmp-poly->poly_type_offset[poly_type]-1;
     }  
   }  
   
@@ -527,7 +529,8 @@ int independent_set_fixed(struct Phase* const poly){
   set_tmp[0].set_length=offset_set;
   set_tmp[0].sets=inde_set_tmp;
   poly->sets=set_tmp;
-
+  poly->max_set_members=set_tmp[0].max_member;
+  poly->max_n_sets = max_bond_number+1;
   //Allocate and init memory for polymer states
   for(unsigned int i=0; i < poly->n_polymers;i++)
     {
