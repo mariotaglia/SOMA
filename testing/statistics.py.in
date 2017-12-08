@@ -37,6 +37,7 @@ def convert_files():
     if ret != 0: raise RuntimeError("Test failed")
 
 def equilibrating(prefix,additional_flags):
+    print(prefix+[SOMA,"-c","homo.h5","-t","10000"]+additional_flags)
     ret = sp.call(prefix+[SOMA,"-c","homo.h5","-t","10000"]+additional_flags)
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["cp","end.h5","homo.h5"])
