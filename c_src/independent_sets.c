@@ -314,10 +314,10 @@ int independent_sets_simple(struct Phase* const p)
 
 int independent_set_fixed(struct Phase* const poly){
   
-  struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(1* sizeof(IndependetSets) ); 
+  struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(poly->n_poly_type* sizeof(IndependetSets) ); 
   int poly_type=0;
   unsigned int sequence=poly->poly_arch[poly->poly_type_offset[poly_type]]/*poly->num_all_beads*/;
-  printf("sequence %i\n",sequence);
+  // printf("sequence %i\n",sequence);
   unsigned int max_bond_number=0,max_bond=0;
   int* bond_number_total;
   bond_number_total= (int*) malloc(sequence*sizeof(int));
@@ -511,8 +511,10 @@ int independent_set_fixed(struct Phase* const poly){
     }   //end while
   }//end loop over all monomer
   set_tmp[0].n_sets=max_bond_number+1;  
+  printf("nsets %i\n",max_bond_number+1);
+  set_tmp[0].max_member=offset_set[0];
   int ccc=0;
-  for(unsigned int aaa=0;aaa<max_bond_number+1;aaa++){
+  for(unsigned int aaa=1;aaa<max_bond_number+1;aaa++){
     if(offset_set[aaa]>set_tmp[0].max_member)
       set_tmp[0].max_member=offset_set[aaa];
   }
@@ -526,11 +528,16 @@ int independent_set_fixed(struct Phase* const poly){
     }
   }
   set_tmp[0].set_length = (unsigned int*)malloc((max_bond_number+1) * sizeof(unsigned int));
-  set_tmp[0].set_length=offset_set;
+  for(unsigned int aaaa=0;aaaa<max_bond_number+1;aaaa++){
+    set_tmp[0].set_length[aaaa]=end_set[aaaa];
+  }
+
   set_tmp[0].sets=inde_set_tmp;
   poly->sets=set_tmp;
   poly->max_set_members=set_tmp[0].max_member;
   poly->max_n_sets = max_bond_number+1;
+
+
   //Allocate and init memory for polymer states
   for(unsigned int i=0; i < poly->n_polymers;i++)
     {
