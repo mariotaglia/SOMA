@@ -11,7 +11,7 @@ int check_perkolation_monomer(const char* const filename,bead_data*b,polymer_dat
 
 
 //Count the number of perkolation
-int check_perkolation_monomer1(const char* const filename,bead_data*b,polymer_data*poly, const int poly_start);
+int check_perkolation_monomer1(const char* const filename,bead_data*b,polymer_data*poly);
 
 void perkolation(const char* const filename,const char* const perkofile);
 int check_configfile(const char* const filename);
