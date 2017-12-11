@@ -315,7 +315,7 @@ int independent_sets_simple(struct Phase* const p)
 int independent_set_fixed(struct Phase* const poly){
   
   struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(poly->n_poly_type* sizeof(IndependetSets)); 
-  int max_number=0;
+  unsigned int max_number=0;
   unsigned int *sequence=(unsigned int *)malloc(poly->n_poly_type*sizeof(unsigned int));
   for(unsigned int n_poly=0;n_poly<poly->n_poly_type;n_poly++){
     sequence[n_poly]=poly->poly_arch[poly->poly_type_offset[n_poly]];

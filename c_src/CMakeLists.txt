@@ -99,11 +99,3 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/double_plugin)
 endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/double_plugin)
 #END DOUBLE_PLUGIN
 
-#START CROSSLINK_PLUGIN
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/crosslink)
-  option(ENABLE_CROSSLINK_PLUGIN "Plugin for crosslinking." off)
-  if(ENABLE_CROSSLINK_PLUGIN)
-    add_subdirectory(crosslink)
-  endif(ENABLE_CROSSLINK_PLUGIN)
-endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/crosslink)
-#END SPLIT_PLUGIN
