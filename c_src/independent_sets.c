@@ -277,9 +277,9 @@ int independent_sets_simple(struct Phase* const p)
 	}
     p->sets = sets;
     p->max_n_sets = max_nsets;
-
+    allo_init_memory_for_Polystates(p);
     //Allocate and init memory for polymer states
-    for(unsigned int i=0; i < p->n_polymers;i++)
+    /*for(unsigned int i=0; i < p->n_polymers;i++)
 	{
 	Polymer*const poly = p->polymers+i;
 
@@ -305,7 +305,7 @@ int independent_sets_simple(struct Phase* const p)
 	    allocate_rng_state(state, p->args.pseudo_random_number_generator_arg);
 	    seed_rng_state(state, seed, j, p->args.pseudo_random_number_generator_arg);
 	    }
-	}
+	    }*/
 
     return 0;
     }
@@ -315,13 +315,24 @@ int independent_sets_simple(struct Phase* const p)
 int independent_set_fixed(struct Phase* const poly){
   
   struct IndependetSets*const set_tmp = (struct IndependetSets*)malloc(poly->n_poly_type* sizeof(IndependetSets)); 
+  if(set_tmp == NULL)
+	{
+	fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
+	return -1;
+	}
   unsigned int max_number=0;
   unsigned int *sequence=(unsigned int *)malloc(poly->n_poly_type*sizeof(unsigned int));
+  if(sequence == NULL)
+	{
+	fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
+	return -1;
+	}
   for(unsigned int n_poly=0;n_poly<poly->n_poly_type;n_poly++){
     sequence[n_poly]=poly->poly_arch[poly->poly_type_offset[n_poly]];
   }
   for(unsigned int n_poly=0;n_poly<poly->n_poly_type;n_poly++){
-    unsigned int max_bond_number=0,max_bond=0;
+    unsigned int max_bond_number=0; //number of maximal bonds number
+    unsigned max_bond=0; //the monomer with the maximal bonds number
     int* bond_number_total;
     bond_number_total= (int*) malloc(sequence[n_poly]*sizeof(int));
     if( bond_number_total== NULL){
@@ -346,10 +357,15 @@ int independent_set_fixed(struct Phase* const poly){
 	bond_number++;
 	if(end==1) break;
 	start_offset_bond++;
-      }while(0==0); 
+      }while(1==1); 
 
       bond_number_total[current_tmp-poly->poly_type_offset[n_poly]-1]=bond_number;
       bonds_total[current_tmp-poly->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
+      if(bonds_total[current_tmp-poly->poly_type_offset[n_poly]-1] == NULL)
+	{
+	fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
+	return -1;
+	}
       memset(&bonds_total[current_tmp-poly->poly_type_offset[n_poly]-1][0],0,bond_number*sizeof(unsigned int));     	  
       start_offset_bond=get_bondlist_offset(poly->poly_arch[current_tmp]);
 
@@ -388,6 +404,10 @@ int independent_set_fixed(struct Phase* const poly){
     }
     for(unsigned int bb=0;bb<max_bond_number+1;bb++){
       independent_sets[bb]=(unsigned int*) malloc(sequence[n_poly]*sizeof(unsigned int));
+      if( independent_sets[bb]== NULL){
+	fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
+	return -4;
+      } 
       memset(&independent_sets[bb][0],0,sequence[n_poly]*sizeof(unsigned int)); 
     }
     unsigned int total_assigned_monomer=0;
@@ -560,8 +580,40 @@ int independent_set_fixed(struct Phase* const poly){
 
   poly->sets=set_tmp;  
   poly->max_n_sets =max_number;
-
+  allo_init_memory_for_Polystates(poly);
   //Allocate and init memory for polymer states
+  /* for(unsigned int i=0; i < poly->n_polymers;i++)
+    {
+      Polymer*const poly_tmp = poly->polymers+i;
+
+      poly_tmp->set_permutation = (unsigned int*)malloc( poly->max_n_sets * sizeof(unsigned int));
+      if( poly_tmp->set_permutation == NULL )
+	{
+	  fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__);
+	  return -1;
+	}
+
+      poly_tmp->set_states = (struct RNG_STATE*)malloc(poly->max_set_members * sizeof(struct RNG_STATE));
+      if( poly_tmp->set_states == NULL )
+	{
+	  fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__);
+	  return -1;
+	}
+
+      //Init every state in the polymer
+      const unsigned int seed = soma_rng_uint(&(poly_tmp->poly_state),pseudo_random_number_generator_arg_PCG32);
+      for(unsigned int j=0; j < poly->max_set_members; j++)
+	{
+	  struct RNG_STATE*const state = &(poly_tmp->set_states[j]);
+	  allocate_rng_state(state, poly->args.pseudo_random_number_generator_arg);
+	  seed_rng_state(state, seed, j, poly->args.pseudo_random_number_generator_arg);
+	}
+	}*/
+  return 0;
+}
+
+
+int allo_init_memory_for_Polystates(struct Phase* const poly){
   for(unsigned int i=0; i < poly->n_polymers;i++)
     {
       Polymer*const poly_tmp = poly->polymers+i;
@@ -591,4 +643,3 @@ int independent_set_fixed(struct Phase* const poly){
     }
   return 0;
 }
-

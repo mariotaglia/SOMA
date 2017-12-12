@@ -153,8 +153,8 @@ int test_independet_sets(const struct Phase*const p)
 		unsigned int n_neigh = 0;
 		for(unsigned int j=0; j < set->set_length[set_id]; j++)
 		    {
-		     const int start = get_bondlist_offset(
-		     const unsigned int pj =set->sets[ set_id*set->max_member +j]; 
+		     const unsigned int pj = set->sets[ set_id*set->max_member +j];
+		     const int start = get_bondlist_offset(		      
 		     p->poly_arch[p->poly_type_offset[poly_type] + pj + 1]);
 		     if(start > 0)
 			{

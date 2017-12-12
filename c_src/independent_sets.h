@@ -48,5 +48,8 @@ int independent_sets_simple(struct Phase* const p);
 //! Generate independent sets for network
 //! Can be used for only one molecule
 //! This algorithm uses n+1 sets to store the particles, with n the number of bonds of the particle with the most bonds
-int independent_set_fixed(struct Phase* const poly);
+int independent_set_fixed(struct Phase* const p);
+
+
+int allo_init_memory_for_Polystates(struct Phase* const p);
 #endif//INDEPENDENT_SETS_H
