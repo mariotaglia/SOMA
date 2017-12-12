@@ -189,6 +189,15 @@ int serialize_rng_state(const struct Phase*const p,const RNG_STATE*const state, 
 //! \return Number of written bytes. If < 0 Errorcode.
 int deserialize_rng_state(const struct Phase*const p,RNG_STATE*const state, const unsigned char*const buffer);
 
+//! Function to initialize an RNG_STATE
+//!
+//! \param state State to initialize
+//! \param seed Seed used for initialization
+//! \param stream Stream used for initialization
+//! \param rng_type Type of the RNG to use
+//! \return Errorcode
+int init_rng_state(struct RNG_STATE*const state,const unsigned int seed, const unsigned int stream,const enum enum_pseudo_random_number_generator rng_type);
+
 //! Function to allocate memory for the RNG_STATE if necessary, and enter data for device
 //!
 //! \param state RNG_STATE to init
