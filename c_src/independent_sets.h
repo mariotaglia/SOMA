@@ -37,24 +37,35 @@ typedef struct IndependetSets{
 //! \file independent_sets.h
 //! \brief Functions needed for independent set preparations
 //! According to the cmdline argument, this function calls either the "simple algorithm" or the "fixed n sets algorithm"
-//! \param p Phase where sets are calculated
+//! "simple algorithm" is well suited for cases like linear chain
+//! "fixed n set algothrim" is suited for complex crosslinked polymer system
+//! \param p Phase for which the polymers are assigned to sets
+//! \return Errorcode
 int generate_independet_sets(struct Phase* const p);
 
-
+//! \param p Phase for which the polymers are assigned to sets
 //! Generate the independet set information for each poly_type.
 //! \return Errorcode 
 int independent_sets_simple(struct Phase* const p);
 
-//! Generate independent sets for network
-//! Can be used for only one molecule
+//! Generate independent sets for each poly_type
 //! This algorithm uses n+1 sets to store the particles, with n the number of bonds of the particle with the most bonds
+//! It is much faster then the "simple algorithm" for very long chains
+//! \return Errorcode
+//! \param p Phase for which the polymers are assigned to sets
 int independent_set_fixed(struct Phase* const p);
 
+//! return Errorcode
+//! private funtion, to be used in combination with independent_set_fixed()
 int allo_init_memory_for_Polystates(struct Phase* const p);
 
-int record_bond_info(unsigned int **bonds_total,int* bond_number_total,unsigned int *max_bond_number_pointer,unsigned int *max_bond_pointer,unsigned int sequence,struct Phase* const poly,unsigned int n_poly);
+//! return Errorcode
+//! private funtion, to be used in combination with independent_set_fixed()
+//! find the writein_set that can store the new monomer
+void check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total,unsigned int max_bond_number,unsigned int writein_set,unsigned int current_set,unsigned int * offset_set,unsigned int * end_set,unsigned int **independent_sets,int bond_i,unsigned int current_monomer);
 
-int check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total,unsigned int max_bond_number,unsigned int writein_set,unsigned int current_set,unsigned int * offset_set,unsigned int * end_set,unsigned int **independent_sets,int bond_i,unsigned int current_monomer);
-
+//! return Errorcode
+//! private funtion, to be used in combination with independent_set_fixed()
+//! this function calculates independent sets for a single chain
 int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,unsigned int n_poly,struct Phase* const poly);
 #endif//INDEPENDENT_SETS_H
