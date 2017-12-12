@@ -21,9 +21,6 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//! \file mc.c
-//! \brief Implementation of mc.h
-
 #include "mc.h"
 #include <math.h>
 #include <stdbool.h>
@@ -34,17 +31,6 @@
 #include "mesh.h"
 #include "independent_sets.h"
 
-//! Generate a trial move
-//! \private Function for internal use only
-//! \param p System
-//! \param ipoly Polymer index
-//! \param ibead Particle index
-//! \param dx Pointer to generated trial
-//! \param dy Pointer to generated trial
-//! \param dz Pointer to generated trial
-//! \param iwtype Type of the particle
-//! \param arg_rng_type Type of the PRNG
-//! \param rng_state State of the PRNG
 void trial_move(const Phase * p, const uint64_t ipoly, const int ibead,
 		soma_scalar_t *dx, soma_scalar_t *dy, soma_scalar_t *dz,const unsigned int iwtype,const enum enum_pseudo_random_number_generator arg_rng_type,RNG_STATE*const rng_state)
     {
@@ -58,15 +44,6 @@ void trial_move(const Phase * p, const uint64_t ipoly, const int ibead,
     *dz = scale * (soma_rng_soma_scalar(rng_state,arg_rng_type) - 0.5);
     }
 
-//! Generate a trial move for the center of mass of a molecule
-//! \private Function for internal use only
-//! \param p System
-//! \param poly_type Type of the molecule
-//! \param dx Pointer to generated trial
-//! \param dy Pointer to generated trial
-//! \param dz Pointer to generated trial
-//! \param arg_rng_type Type of the PRNG
-//! \param rng_state State of the PRNG
 void trial_move_cm(const Phase * p, const uint64_t poly_type,soma_scalar_t *const dx, soma_scalar_t *const dy, soma_scalar_t *const dz,
 		   const enum enum_pseudo_random_number_generator arg_rng_type,RNG_STATE*const rng_state)
     {
@@ -83,7 +60,7 @@ void trial_move_cm(const Phase * p, const uint64_t poly_type,soma_scalar_t *cons
 
 bool som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator rng_type , soma_scalar_t delta_energy)
     {
-    //! \todo kBT reqired
+    // \todo kBT reqired
     const soma_scalar_t p_acc = exp(-1.0 * delta_energy );
 
     //Use lazy eval.
@@ -97,15 +74,6 @@ bool som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator 
 	}
     }
 
-//! Calculate the non-bonded energy difference of a particle that is moved.
-//! \private function for internal use only
-//! \param p System
-//! \param monomer Moving Monomer
-//! \param dx x displacement
-//! \param dy y displacement
-//! \param dz z displacement
-//! \pragma iwtype Type of the monomer
-//! \return Energy difference
 soma_scalar_t calc_delta_nonbonded_energy(const Phase * p,const Monomer*const monomer,
 					  const soma_scalar_t dx, const soma_scalar_t dy,const soma_scalar_t dz,
 					  const unsigned int iwtype)
@@ -125,17 +93,6 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p,const Monomer*const mo
     return energy;
     }
 
-//! Calculate the total energy difference of a particle that is moved.
-//! \private function for internal use only
-//! \param p System
-//! \param ipoly Polymer index
-//! \param monomer Moving Monomer
-//! \param monomer index
-//! \param dx x displacement
-//! \param dy y displacement
-//! \param dz z displacement
-//! \pragma iwtype Type of the monomer
-//! \return Energy difference
 soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly,const Monomer*const monomer,
 				const unsigned int ibead,const soma_scalar_t dx,const soma_scalar_t dy,
 				const soma_scalar_t dz,const unsigned int iwtype)
@@ -149,16 +106,6 @@ soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly,const Mono
     return energy;
 }
 
-//! Calculate the bonded energy difference of a particle that is moved.
-//! \private function for internal use only
-//! \param p System
-//! \param monomer Moving Monomer
-//! \param ipoly Polymer index
-//! \param monomer index
-//! \param dx x displacement
-//! \param dy y displacement
-//! \param dz z displacement
-//! \return Energy difference
 soma_scalar_t calc_delta_bonded_energy(const Phase * const p,const Monomer*const monomer,
 				       const uint64_t ipoly,const unsigned int ibead,
 				       const soma_scalar_t dx,const soma_scalar_t dy, const soma_scalar_t dz)
@@ -609,39 +556,39 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
     }
 
 void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma_scalar_t *const dx, soma_scalar_t *const dy, soma_scalar_t *const dz,
-		    soma_scalar_t * smc_deltaE,const Monomer *const mybead, RNG_STATE *const myrngstate, const enum enum_pseudo_random_number_generator rng_type,const unsigned int iwtype)
+		    soma_scalar_t * smc_deltaE,const Monomer *const mybead, RNG_STATE *const myrngstate, const enum enum_pseudo_random_number_generator arg_rng_type,const unsigned int iwtype)
     {
     soma_scalar_t x=mybead->x;
     soma_scalar_t y=mybead->y;
     soma_scalar_t z=mybead->z;
 
-    /** R calculated from A according to: Rossky, Doll and Friedman, J.Chem.Phys 69(10)1978 **/
+    /* R calculated from A according to: Rossky, Doll and Friedman, J.Chem.Phys 69(10)1978 */
     const soma_scalar_t A=p->A[iwtype];
     const soma_scalar_t R=p->R[iwtype];
 
-    /** calculate forces in current position **/
+    /* calculate forces in current position */
     soma_scalar_t fx=0.0; soma_scalar_t fy=0.0; soma_scalar_t fz=0.0;
     add_bond_forces(p,ipoly,ibead,x,y,z,&fx,&fy,&fz);
 
-    /** generate a normal distributed random vector **/
+    /* generate a normal distributed random vector */
     soma_scalar_t rx, ry, rz;
-    soma_normal_vector(myrngstate, rng_type, &rx, &ry, &rz);
+    soma_normal_vector(myrngstate, arg_rng_type, &rx, &ry, &rz);
 
-    /** combine the random offset with the forces, to obtain Brownian motion **/
+    /* combine the random offset with the forces, to obtain Brownian motion */
     *dx = A*fx + rx*R;
     *dy = A*fy + ry*R;
     *dz = A*fz + rz*R;
 
-    /** calculate proposed position **/
+    /* calculate proposed position */
     x+=*dx;
     y+=*dy;
     z+=*dz;
 
-    /** calculate forces in the proposed position **/
+    /* calculate forces in the proposed position */
     soma_scalar_t nfx=0.0; soma_scalar_t nfy=0.0; soma_scalar_t nfz=0.0;
     add_bond_forces(p,ipoly,ibead,x,y,z,&nfx,&nfy,&nfz);
 
-    /** calculate additional terms for scm energy change **/
+    /* calculate additional terms for scm energy change */
     *smc_deltaE = 0.0;
     *smc_deltaE += 0.5*((nfx+fx)*(*dx) +
 		      (nfy+fy)*(*dy) +
@@ -652,17 +599,6 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
 
     }
 
-//! Add the bond forces for a monomer.
-//! \private for internal use only
-//! \param p System
-//! \param ipoly Index of the molecule
-//! \param ibead Index of the monomer
-//! \param x  x position of monomer
-//! \param y  y position of monomer
-//! \param z  z position of monomer
-//! \param fx Force in in x
-//! \param fy Force in in y
-//! \param fz Force in in z
 void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
                      soma_scalar_t *fx, soma_scalar_t *fy, soma_scalar_t *fz)
@@ -721,17 +657,6 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
     *fz += v1z;
 }
 
-//! Return is a particle is allowed to move to new position.
-//! \private Internal use only.
-//! \param p System
-//! \param oldx Old X of particle
-//! \param oldy Old Z of particle
-//! \param oldz Old Z of particle
-//! \param dx Proposed displacement in x direction
-//! \param dy Proposed displacement in y direction
-//! \param dz Proposed displacement in z direction
-//! \param nonexact specify if exact or nonexact algorithm is used
-//! \return Is move possible?
 inline int possible_move_area51(const Phase*p,const soma_scalar_t oldx,const soma_scalar_t oldy,const soma_scalar_t oldz, soma_scalar_t dx,soma_scalar_t dy,soma_scalar_t dz,const int nonexact)
     {
     if( p->area51 == NULL)

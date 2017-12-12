@@ -27,6 +27,13 @@
 #include <assert.h>
 #include "phase.h"
 
+//! \def SOMA_NUM_OBS
+//! \brief Number of known observables to SOMA.
+#ifdef SOMA_NUM_OBS
+#error "Namespace violation SOMA_NUM_OBS already defined."
+#endif//SOMA_NUM_OBS
+
+
 int init_ana(struct Phase * const p,const char*const filename,const char*const coord_filename)
     {
     //******** START EDIT FOR NEW OBSERVABLES HERE**********
@@ -84,11 +91,6 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     /* if (p->info_MPI.Ncores > 1) */
     /* 	H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE); */
     //******** START EDIT FOR NEW OBSERVABLES HERE**********
-#ifdef SOMA_NUM_OBS
-#error "Namespace violation SOMA_NUM_OBS already defined."
-#endif//SOMA_NUM_OBS
-//! Number of known observables to SOMA.
-//! \private
 #define SOMA_NUM_OBS 10
     const char* names[SOMA_NUM_OBS];
     unsigned int*delta_mc[SOMA_NUM_OBS];

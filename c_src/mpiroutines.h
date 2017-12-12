@@ -33,7 +33,6 @@ struct Phase;
 
 //! \brief All information about the MPI setup.
 typedef struct Info_MPI{
-    int colour;
     int Ncores;	/*!< \brief total number of cores    */
     int current_core;	/*!< \brief current core index   */
     MPI_Comm  	SOMA_MPI_Comm;	/*!< \brief communicator within one conf, SCMF parallelization */
