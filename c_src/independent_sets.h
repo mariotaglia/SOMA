@@ -50,6 +50,11 @@ int independent_sets_simple(struct Phase* const p);
 //! This algorithm uses n+1 sets to store the particles, with n the number of bonds of the particle with the most bonds
 int independent_set_fixed(struct Phase* const p);
 
-
 int allo_init_memory_for_Polystates(struct Phase* const p);
+
+int record_bond_info(unsigned int **bonds_total,int* bond_number_total,unsigned int *max_bond_number_pointer,unsigned int *max_bond_pointer,unsigned int sequence,struct Phase* const poly,unsigned int n_poly);
+
+int check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total,unsigned int max_bond_number,unsigned int writein_set,unsigned int current_set,unsigned int * offset_set,unsigned int * end_set,unsigned int **independent_sets,int bond_i,unsigned int current_monomer);
+
+int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,unsigned int n_poly,struct Phase* const poly);
 #endif//INDEPENDENT_SETS_H
