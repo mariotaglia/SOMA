@@ -467,7 +467,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
 	unsigned int n_accepts=0;
 
 //#pragma acc parallel for vector_length(tuning_parameter) reduction(+:n_accepts)
-#pragma acc parallel for vector_length(tuning_parameter)
+#pragma acc parallel loop vector_length(tuning_parameter)
 #pragma omp parallel for reduction(+:n_accepts)
 	for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
 	    {

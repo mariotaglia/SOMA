@@ -5,9 +5,13 @@ Please add your contributions.
 
 	*
 
-	v0.6.1 not-yet-released
+	v0.5.1 not-yet-released
 
 	* Minor Typo in README		Ludwig Schneider
+	* Adding contribution guideline Ludwig Schneider
+	* BUGFIX: correct OpenACC
+	  pragma for SET iteration
+	  for better performance	Ludwig Schneider
 
 	v0.5.0 released 11/9/17
 	* first public version		Ludwig Schneider
