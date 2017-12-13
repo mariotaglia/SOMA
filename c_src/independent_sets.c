@@ -26,7 +26,7 @@
 #include <assert.h>
 #include "soma_util.h"
 #include "phase.h"
-//#include "crosslink/readIn_lib.h"
+
 //! Sort the indecies of the set_length in sort_array with the highest at pos=0.
 //!
 //! \private Used only in the contex of independet set creation
@@ -161,26 +161,27 @@ int balance_sets(const struct Phase *const p,const unsigned int N,const unsigned
 
 int generate_independet_sets(struct Phase*const p)
 {
-  int res=0;
+  int ret=0;
   switch( p->args.set_generation_algorithm_arg)
     {     
     case set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS:
-      res=independent_set_fixed(p);
+      ret=independent_set_fixed(p);
       break;
     case set_generation_algorithm_arg_SIMPLE:  
-      res=independent_sets_simple(p);
+      ret=independent_sets_simple(p);
       break;
     case set_generation_algorithm__NULL:
     default:
       fprintf(stderr,"ERROR: Unknown independent set generation algorithm selected.\n");
-      res=-2;
+      ret=-2;
     }
-  return res;
+  return ret;
 }
 
 
 int independent_sets_simple(struct Phase* const p)
 {
+  int ret=0;
   struct IndependetSets*const sets = (struct IndependetSets*)malloc( p->n_poly_type * sizeof(IndependetSets) );
   if(sets == NULL)
     {
@@ -278,47 +279,51 @@ int independent_sets_simple(struct Phase* const p)
     }
   p->sets = sets;
   p->max_n_sets = max_nsets;
-  allo_init_memory_for_Polystates(p);
-  return 0;
+  ret=allo_init_memory_for_Polystates(p);
+  return ret;
 }
 
 
 
-int independent_set_fixed(struct Phase* const poly){
-  
-  struct IndependetSets* set_tmp = (struct IndependetSets*)malloc(poly->n_poly_type* sizeof(IndependetSets)); 
+int independent_set_fixed(struct Phase* const p){
+  int ret=0;
+  struct IndependetSets* set_tmp = (struct IndependetSets*)malloc(p->n_poly_type* sizeof(IndependetSets)); 
   if(set_tmp == NULL)
     {
       fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
       return -1;
     }
-  poly->max_set_members=0;
-  poly->max_n_sets=0;
+  p->max_set_members=0;
+  p->max_n_sets=0;
   
-  for(unsigned int n_poly=0;n_poly<poly->n_poly_type;n_poly++){
-    printf("npoly %i\n",n_poly);
-    independent_sets_one_polymer(&set_tmp,n_poly,poly); 
+  for(unsigned int n_poly=0;n_poly<p->n_poly_type;n_poly++){
+    ret=independent_sets_one_polymer(&set_tmp,n_poly,p); 
+    if(ret!=0)
+      {
+	fprintf(stderr,"ERROR: Function independent_sets_one_polymer failed",__FILE__,__LINE__);
+	return ret;
+      } 
   }
 
-  poly->sets=set_tmp;  
-  allo_init_memory_for_Polystates(poly);
-  return 0;
+  p->sets=set_tmp;  
+  ret=allo_init_memory_for_Polystates(p);
+  return ret;
 }
 
 
-int allo_init_memory_for_Polystates(struct Phase* const poly){
-  for(unsigned int i=0; i < poly->n_polymers;i++)
+int allo_init_memory_for_Polystates(struct Phase* const p){
+  for(unsigned int i=0; i < p->n_polymers;i++)
     {
-      Polymer*const poly_tmp = poly->polymers+i;
+      Polymer*const poly_tmp = p->polymers+i;
 
-      poly_tmp->set_permutation = (unsigned int*)malloc( poly->max_n_sets * sizeof(unsigned int));
+      poly_tmp->set_permutation = (unsigned int*)malloc( p->max_n_sets * sizeof(unsigned int));
       if( poly_tmp->set_permutation == NULL )
 	{
 	  fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__);
 	  return -1;
 	}
 
-      poly_tmp->set_states = (struct RNG_STATE*)malloc(poly->max_set_members * sizeof(struct RNG_STATE));
+      poly_tmp->set_states = (struct RNG_STATE*)malloc(p->max_set_members * sizeof(struct RNG_STATE));
       if( poly_tmp->set_states == NULL )
 	{
 	  fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__);
@@ -327,11 +332,11 @@ int allo_init_memory_for_Polystates(struct Phase* const poly){
 
       //Init every state in the polymer
       const unsigned int seed = soma_rng_uint(&(poly_tmp->poly_state),pseudo_random_number_generator_arg_PCG32);
-      for(unsigned int j=0; j < poly->max_set_members; j++)
+      for(unsigned int j=0; j < p->max_set_members; j++)
 	{
 	  struct RNG_STATE*const state = &(poly_tmp->set_states[j]);
-	  allocate_rng_state(state, poly->args.pseudo_random_number_generator_arg);
-	  seed_rng_state(state, seed, j, poly->args.pseudo_random_number_generator_arg);
+	  allocate_rng_state(state, p->args.pseudo_random_number_generator_arg);
+	  seed_rng_state(state, seed, j, p->args.pseudo_random_number_generator_arg);
 	}
     }
   return 0;
@@ -362,28 +367,27 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     int start_offset_bond=get_bondlist_offset(current_poly_arch);
     //store all bonds information
     if(start_offset_bond<0){
-     bond_number=0;
-     bond_number_total[monomer_i-poly->poly_type_offset[n_poly]-1]=bond_number;
-     bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(sizeof(unsigned int));
+      bond_number=0;
+      bond_number_total[monomer_i-poly->poly_type_offset[n_poly]-1]=bond_number;
     }
     else{
-    int end=0;
-    do{
-      bonds_of_monomer=poly->poly_arch[start_offset_bond];
-      end=get_end(bonds_of_monomer);		
-      bond_number++;
-      start_offset_bond++;
-    }while(end!=1); 
+      int end=0;
+      do{
+	bonds_of_monomer=poly->poly_arch[start_offset_bond];
+	end=get_end(bonds_of_monomer);		
+	bond_number++;
+	start_offset_bond++;
+      }while(end!=1); 
 
-    bond_number_total[monomer_i-poly->poly_type_offset[n_poly]-1]=bond_number;
-    bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
-    if(bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1] == NULL)
-      {
-	fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
-	return -1;
-      }
-    memset(&bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1][0],0,bond_number*sizeof(unsigned int));     	  
-    start_offset_bond=get_bondlist_offset(poly->poly_arch[monomer_i]);
+      bond_number_total[monomer_i-poly->poly_type_offset[n_poly]-1]=bond_number;
+      bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
+      if(bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1] == NULL)
+	{
+	  fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
+	  return -1;
+	}
+      memset(&bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1][0],0,bond_number*sizeof(unsigned int));     	  
+      start_offset_bond=get_bondlist_offset(poly->poly_arch[monomer_i]);
     }
     //store the bonds of all monomer to the array bonds_total
     for(unsigned int bond_i=0;bond_i<bond_number;bond_i++){      
@@ -426,8 +430,6 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
   for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
     end_set[set_i]=0;
     offset_set[set_i]=0;
-  }
-  for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
     independent_sets[set_i]=(unsigned int*) malloc(sequence*sizeof(unsigned int));
     if( independent_sets[set_i]== NULL){
       fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
@@ -436,10 +438,11 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     memset(&independent_sets[set_i][0],0,sequence*sizeof(unsigned int)); 
   }
   unsigned int total_assigned_monomer=0; 
-   for(unsigned int mono_i=0;mono_i<sequence;mono_i++){//start:loop over all monomer of a poly_type
+  //loop over all monomer of a poly_type (if the chain consists several molecules)
+  for(unsigned int mono_i=0;mono_i<sequence;mono_i++){
     unsigned int mono_i=0;
     if(total_assigned_monomer==sequence)
-     break;
+      break;
     if(monomer_checked[mono_i]==-1)
       continue;
     monomer_checked[mono_i]=-1;
@@ -509,7 +512,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 	}
       }
     }
-   }//end:loop over all monomer of a poly_type
+  }//end:loop over all monomer of a poly_type
   (*set_tmp_pointer)[n_poly].n_sets=max_bond_number+1;  
   (*set_tmp_pointer)[n_poly].max_member=offset_set[0];
   int start_i=0;
@@ -519,7 +522,10 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
   }
   //restore the sets into inde_set_tmp
   unsigned int * inde_set_tmp= (unsigned int*) malloc((*set_tmp_pointer)[n_poly].max_member*(max_bond_number+1)*sizeof(unsigned int));
-  
+  if( inde_set_tmp== NULL){
+    fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
+    return -4;
+  }
   for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
     start_i=set_i*(*set_tmp_pointer)[n_poly].max_member;
     for(unsigned int member_i=0;member_i<end_set[set_i];member_i++){
@@ -528,8 +534,13 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     }
   }
   (*set_tmp_pointer)[n_poly].set_length = (unsigned int*)malloc((max_bond_number+1) * sizeof(unsigned int));
-  for(unsigned int aaaa=0;aaaa<max_bond_number+1;aaaa++){
-    (*set_tmp_pointer)[n_poly].set_length[aaaa]=end_set[aaaa];
+  if(  (*set_tmp_pointer)[n_poly].set_length== NULL){
+    fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
+    return -4;
+  }
+
+  for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
+    (*set_tmp_pointer)[n_poly].set_length[set_i]=end_set[set_i];
   }
   (*set_tmp_pointer)[n_poly].sets=inde_set_tmp;
   if(poly->max_n_sets<max_bond_number+1)

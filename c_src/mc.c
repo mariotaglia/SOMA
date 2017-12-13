@@ -458,7 +458,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
     int error_flag[1]={0};
 #pragma acc enter data copyin(error_flag[0:1])
 #endif //CHECK_PGI_BUG
-    //printf("nsets!! %i\n",p->sets[0].n_sets);
+
     const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
     const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
     for(unsigned int step = 0; step < nsteps; step++)
@@ -477,7 +477,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
 
             Polymer *const mypoly = &p->polymers[npoly];
 	    const unsigned int poly_type = mypoly->type;
-	    //printf("poly type!! %i\n",poly_type);
+
             const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
 	    accepted_moves_poly += 0*myN; // Shutup compiler warning
 	    const IndependetSets mySets= p->sets[mypoly->type];
@@ -512,7 +512,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
 		    }
 		else
 #endif//CHECK_PGI_BUG
-		    {		   
+		    {
 		    const unsigned int len = set_length[set_id];
 
 //#pragma acc loop vector reduction(+:accepted_moves_set)
