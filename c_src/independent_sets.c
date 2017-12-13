@@ -300,7 +300,7 @@ int independent_set_fixed(struct Phase* const p){
     ret=independent_sets_one_polymer(&set_tmp,n_poly,p); 
     if(ret!=0)
       {
-	fprintf(stderr,"ERROR: Function independent_sets_one_polymer failed",__FILE__,__LINE__);
+	fprintf(stderr,"ERROR: Function independent_sets_one_polymer failed %s:%d\n",__FILE__,__LINE__);
 	return ret;
       } 
   }
