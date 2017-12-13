@@ -343,9 +343,9 @@ int allo_init_memory_for_Polystates(struct Phase* const p){
 }
 
 
-int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,unsigned int n_poly,struct Phase* const poly){
+int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,unsigned int n_poly,struct Phase* const p){
   //struct IndependetSets*const set_tmp=*set_tmp_pointer;
-  unsigned int sequence=poly->poly_arch[poly->poly_type_offset[n_poly]];
+  unsigned int sequence=p->poly_arch[p->poly_type_offset[n_poly]];
   unsigned int max_bond_number=0;//the maximal number of bonds of a monomer in the chain
   unsigned int max_bond=0;//the monomer which has the maximal number of bonds
   int* bond_number_total;//total number of bonds of all monomer
@@ -361,47 +361,46 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     return -4;
   }
   // loop over all monomer to record the bond information
-  for(unsigned int monomer_i=poly->poly_type_offset[n_poly]+1;monomer_i<sequence+poly->poly_type_offset[n_poly]+1;monomer_i++){     
+  for(unsigned int monomer_i=p->poly_type_offset[n_poly]+1;monomer_i<sequence+p->poly_type_offset[n_poly]+1;monomer_i++){     
     uint32_t bonds_of_monomer=0, bond_number=0;//the current bond and the number of bonds of the current monomer
-    const uint32_t current_poly_arch=poly->poly_arch[monomer_i];
+    const uint32_t current_poly_arch=p->poly_arch[monomer_i];
     int start_offset_bond=get_bondlist_offset(current_poly_arch);
     //store all bonds information
     if(start_offset_bond<0){
       bond_number=0;
-      bond_number_total[monomer_i-poly->poly_type_offset[n_poly]-1]=bond_number;
+      bond_number_total[monomer_i-p->poly_type_offset[n_poly]-1]=bond_number;
     }
     else{
       int end=0;
       do{
-	bonds_of_monomer=poly->poly_arch[start_offset_bond];
+	bonds_of_monomer=p->poly_arch[start_offset_bond];
 	end=get_end(bonds_of_monomer);		
 	bond_number++;
 	start_offset_bond++;
       }while(end!=1); 
 
-      bond_number_total[monomer_i-poly->poly_type_offset[n_poly]-1]=bond_number;
-      bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
-      if(bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1] == NULL)
+      bond_number_total[monomer_i-p->poly_type_offset[n_poly]-1]=bond_number;
+      bonds_total[monomer_i-p->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
+      if(bonds_total[monomer_i-p->poly_type_offset[n_poly]-1] == NULL)
 	{
 	  fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
 	  return -1;
 	}
-      memset(&bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1][0],0,bond_number*sizeof(unsigned int));     	  
-      start_offset_bond=get_bondlist_offset(poly->poly_arch[monomer_i]);
+      memset(&bonds_total[monomer_i-p->poly_type_offset[n_poly]-1][0],0,bond_number*sizeof(unsigned int));     	  
+      start_offset_bond=get_bondlist_offset(p->poly_arch[monomer_i]);
     }
     //store the bonds of all monomer to the array bonds_total
     for(unsigned int bond_i=0;bond_i<bond_number;bond_i++){      
-      bonds_of_monomer=poly->poly_arch[start_offset_bond];     
-      bonds_total[monomer_i-poly->poly_type_offset[n_poly]-1][bond_i]=get_offset(bonds_of_monomer)+monomer_i-poly->poly_type_offset[n_poly]-1;
+      bonds_of_monomer=p->poly_arch[start_offset_bond];     
+      bonds_total[monomer_i-p->poly_type_offset[n_poly]-1][bond_i]=get_offset(bonds_of_monomer)+monomer_i-p->poly_type_offset[n_poly]-1;
       start_offset_bond++;
     }    
 
     if(bond_number>max_bond_number){    //count the number of sets needed
       max_bond_number=bond_number; 
-      max_bond=monomer_i-poly->poly_type_offset[n_poly]-1;
+      max_bond=monomer_i-p->poly_type_offset[n_poly]-1;
     }  
   }
-  //record_bond_info(bonds_total,bond_number_total,max_bond_number_pointer,max_bond_pointer,sequence,poly,n_poly);
   int* monomer_checked;
   monomer_checked= (int*) malloc(sequence*sizeof(int));
   if(monomer_checked== NULL){
@@ -543,11 +542,11 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     (*set_tmp_pointer)[n_poly].set_length[set_i]=end_set[set_i];
   }
   (*set_tmp_pointer)[n_poly].sets=inde_set_tmp;
-  if(poly->max_n_sets<max_bond_number+1)
-    poly->max_n_sets=max_bond_number+1;   
+  if(p->max_n_sets<max_bond_number+1)
+    p->max_n_sets=max_bond_number+1;   
 
-  if(poly->max_set_members<(*set_tmp_pointer)[n_poly].max_member)
-    poly->max_set_members=(*set_tmp_pointer)[n_poly].max_member;
+  if(p->max_set_members<(*set_tmp_pointer)[n_poly].max_member)
+    p->max_set_members=(*set_tmp_pointer)[n_poly].max_member;
  
   //free memory
   free(end_set);
