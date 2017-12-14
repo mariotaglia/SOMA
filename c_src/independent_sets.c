@@ -369,6 +369,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     if(start_offset_bond<0){
       bond_number=0;
       bond_number_total[monomer_i-p->poly_type_offset[n_poly]-1]=bond_number;
+      bonds_total[monomer_i-p->poly_type_offset[n_poly]-1]=NULL;
     }
     else{
       int end=0;
@@ -460,8 +461,11 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     //write the neighbour of the central monomer into remaining sets
     for(int set_i=1; set_i<=bond_number_total[current_monomer];set_i++){
       unsigned int loop_set=set_i+start_set;
-      if(loop_set>max_bond_number)
+      if(loop_set>max_bond_number){
 	loop_set=loop_set-max_bond_number-1;
+	//That should be zero.
+	assert(loop_set == 0);
+	}
       independent_sets[loop_set][end_set[loop_set]]=bonds_total[current_monomer][set_i-1];
       total_assigned_monomer++;
       monomer_checked[bonds_total[current_monomer][set_i-1]]=-1;
