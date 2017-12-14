@@ -40,6 +40,9 @@
      compared to the other iteration scheme.
 
    Choose the "--iteration-alg" flag to select the iteration algorithm of SOMA. Default is polymer iteration.
+ - Two options to calculate the independent sets.
+   - SIMPLE heuristic to obtain the fewest number of balanced sets. O(N^2) where N is the number of beads in a molecule. Suitable for simple molecules (like linear chains).
+   - FIXED-N-SETS set generation that scales like O(N), but uses m+1 sets. m is max number of bonds a bead has. Suitable for large molecules like networks.
  - Two non-bonded hamiltonian available (SCMF0 and SCMF1), for details refer update_omega_fields_scmf0() and update_omega_fields_scmf1().
  - Documentation via Doxygen. Almost all executables offer a help page.
  - Simple random displacement MC.

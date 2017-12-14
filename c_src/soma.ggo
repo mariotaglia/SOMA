@@ -41,3 +41,4 @@ option "load-balance" l "Frequency of the load balancer. For homogenous architec
 option "accepted-load-inbalance" - " [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
 option "autotuner-restart-period" - "Period in which the autotuner is restarted." int typestr="period" optional default="10000"
 option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="user-args" optional
+option "set-generation-algorithm" - "Option to select the algorithm to generate the indepent sets." enum typestr="SET-ALG" values="SIMPLE","FIXED-N-SETS" default="SIMPLE" optional

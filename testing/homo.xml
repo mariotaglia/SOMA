@@ -23,7 +23,9 @@
     0
   </time>
   <poly_arch>
-    120 A{32}B{32}
+    60 A{32}B{32}
+    30 A{64}
+    30 A1B{62}A1
   </poly_arch>
     <reference_Nbeads>
     64
