@@ -163,11 +163,11 @@ int generate_independet_sets(struct Phase*const p)
 {
   int ret=0;
   switch( p->args.set_generation_algorithm_arg)
-    {     
+    {
     case set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS:
       ret=independent_set_fixed(p);
       break;
-    case set_generation_algorithm_arg_SIMPLE:  
+    case set_generation_algorithm_arg_SIMPLE:
       ret=independent_sets_simple(p);
       break;
     case set_generation_algorithm__NULL:
@@ -287,7 +287,7 @@ int independent_sets_simple(struct Phase* const p)
 
 int independent_set_fixed(struct Phase* const p){
   int ret=0;
-  struct IndependetSets* set_tmp = (struct IndependetSets*)malloc(p->n_poly_type* sizeof(IndependetSets)); 
+  struct IndependetSets* set_tmp = (struct IndependetSets*)malloc(p->n_poly_type* sizeof(IndependetSets));
   if(set_tmp == NULL)
     {
       fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
@@ -295,17 +295,17 @@ int independent_set_fixed(struct Phase* const p){
     }
   p->max_set_members=0;
   p->max_n_sets=0;
-  
+
   for(unsigned int n_poly=0;n_poly<p->n_poly_type;n_poly++){
-    ret=independent_sets_one_polymer(&set_tmp,n_poly,p); 
+    ret=independent_sets_one_polymer(&set_tmp,n_poly,p);
     if(ret!=0)
       {
 	fprintf(stderr,"ERROR: Function independent_sets_one_polymer failed %s:%d\n",__FILE__,__LINE__);
 	return ret;
-      } 
+      }
   }
 
-  p->sets=set_tmp;  
+  p->sets=set_tmp;
   ret=allo_init_memory_for_Polystates(p);
   return ret;
 }
@@ -361,7 +361,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     return -4;
   }
   // loop over all monomer to record the bond information
-  for(unsigned int monomer_i=p->poly_type_offset[n_poly]+1;monomer_i<sequence+p->poly_type_offset[n_poly]+1;monomer_i++){     
+  for(unsigned int monomer_i=p->poly_type_offset[n_poly]+1;monomer_i<sequence+p->poly_type_offset[n_poly]+1;monomer_i++){
     uint32_t bonds_of_monomer=0, bond_number=0;//the current bond and the number of bonds of the current monomer
     const uint32_t current_poly_arch=p->poly_arch[monomer_i];
     int start_offset_bond=get_bondlist_offset(current_poly_arch);
@@ -374,10 +374,10 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
       int end=0;
       do{
 	bonds_of_monomer=p->poly_arch[start_offset_bond];
-	end=get_end(bonds_of_monomer);		
+	end=get_end(bonds_of_monomer);
 	bond_number++;
 	start_offset_bond++;
-      }while(end!=1); 
+      }while(end!=1);
 
       bond_number_total[monomer_i-p->poly_type_offset[n_poly]-1]=bond_number;
       bonds_total[monomer_i-p->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
@@ -386,20 +386,20 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 	  fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
 	  return -1;
 	}
-      memset(&bonds_total[monomer_i-p->poly_type_offset[n_poly]-1][0],0,bond_number*sizeof(unsigned int));     	  
+      memset(&bonds_total[monomer_i-p->poly_type_offset[n_poly]-1][0],0,bond_number*sizeof(unsigned int));
       start_offset_bond=get_bondlist_offset(p->poly_arch[monomer_i]);
     }
     //store the bonds of all monomer to the array bonds_total
-    for(unsigned int bond_i=0;bond_i<bond_number;bond_i++){      
-      bonds_of_monomer=p->poly_arch[start_offset_bond];     
+    for(unsigned int bond_i=0;bond_i<bond_number;bond_i++){
+      bonds_of_monomer=p->poly_arch[start_offset_bond];
       bonds_total[monomer_i-p->poly_type_offset[n_poly]-1][bond_i]=get_offset(bonds_of_monomer)+monomer_i-p->poly_type_offset[n_poly]-1;
       start_offset_bond++;
-    }    
+    }
 
     if(bond_number>max_bond_number){    //count the number of sets needed
-      max_bond_number=bond_number; 
+      max_bond_number=bond_number;
       max_bond=monomer_i-p->poly_type_offset[n_poly]-1;
-    }  
+    }
   }
   int* monomer_checked;
   monomer_checked= (int*) malloc(sequence*sizeof(int));
@@ -414,18 +414,18 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
   if( independent_sets== NULL){
     fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
     return -4;
-  } 
+  }
   //the monomers stored between offset_set and end_set are the ones whose heighbour are not stored in the sets yet
   unsigned int* end_set= (unsigned int*) malloc((max_bond_number+1)*sizeof(unsigned int));
   if(end_set== NULL){
     fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
     return -4;
-  } 
+  }
   unsigned int* offset_set= (unsigned int*) malloc((max_bond_number+1)*sizeof(unsigned int));
   if(offset_set== NULL){
     fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
     return -4;
-  } 
+  }
   for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
     end_set[set_i]=0;
     offset_set[set_i]=0;
@@ -433,10 +433,10 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     if( independent_sets[set_i]== NULL){
       fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
       return -4;
-    } 
-    memset(&independent_sets[set_i][0],0,sequence*sizeof(unsigned int)); 
+    }
+    memset(&independent_sets[set_i][0],0,sequence*sizeof(unsigned int));
   }
-  unsigned int total_assigned_monomer=0; 
+  unsigned int total_assigned_monomer=0;
   //loop over all monomer of a poly_type (if the chain consists several molecules)
   for(unsigned int mono_i=0;mono_i<sequence;mono_i++){
     unsigned int mono_i=0;
@@ -454,11 +454,11 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 	start_set=set_i;
     }
 
-    independent_sets[start_set][end_set[start_set]]=current_monomer;//write the central monomer into start_set 
+    independent_sets[start_set][end_set[start_set]]=current_monomer;//write the central monomer into start_set
     end_set[start_set]++;
     total_assigned_monomer++;
     //write the neighbour of the central monomer into remaining sets
-    for(int set_i=1; set_i<=bond_number_total[current_monomer];set_i++){   
+    for(int set_i=1; set_i<=bond_number_total[current_monomer];set_i++){
       unsigned int loop_set=set_i+start_set;
       if(loop_set>max_bond_number)
 	loop_set=loop_set-max_bond_number-1;
@@ -468,51 +468,51 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
       end_set[loop_set]++;
     }
 
-    offset_set[start_set]++;//neighbour of central monomer are all found now 
+    offset_set[start_set]++;//neighbour of central monomer are all found now
     unsigned int current_set=start_set+1; //the current set we are studying
-    int chain_finished=0;    
+    int chain_finished=0;
     for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
-      if(offset_set[set_i]!=end_set[set_i]){	  
+      if(offset_set[set_i]!=end_set[set_i]){
 	chain_finished=1;
       }
     }
     //start: while not all monomers are checked
     while(chain_finished==1){
-      chain_finished=0;       
+      chain_finished=0;
       unsigned int writein_set=current_set-1; //which set to put the new element into (the left one)
       if(current_set==0)
 	writein_set=max_bond_number;
-     
+
       if(end_set[current_set]==offset_set[current_set]){
-	current_set++;	
+	current_set++;
 	if(current_set>max_bond_number)
-	  current_set=current_set-max_bond_number-1;      
-      }    
-      //loop over all monomers in the current_set, whose neighbours are not studied yet 
-      for(unsigned int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){    
-	current_monomer=independent_sets[current_set][member_set]; 
+	  current_set=current_set-max_bond_number-1;
+      }
+      //loop over all monomers in the current_set, whose neighbours are not studied yet
+      for(unsigned int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){
+	current_monomer=independent_sets[current_set][member_set];
 	for(int bond_i=0;bond_i<bond_number_total[current_monomer];bond_i++){
 	  if(monomer_checked[bonds_total[current_monomer][bond_i]]==-1)
 	    continue;
-	  check_bond_members_of_set(bonds_total,bond_number_total,max_bond_number,writein_set,current_set,offset_set,end_set,independent_sets,bond_i,current_monomer);	  
-	  independent_sets[writein_set][end_set[writein_set]]=bonds_total[current_monomer][bond_i];	 
+	  check_bond_members_of_set(bonds_total,bond_number_total,max_bond_number,writein_set,current_set,offset_set,end_set,independent_sets,bond_i,current_monomer);
+	  independent_sets[writein_set][end_set[writein_set]]=bonds_total[current_monomer][bond_i];
 	  monomer_checked[bonds_total[current_monomer][bond_i]]=-1;
-	  total_assigned_monomer++;	  
+	  total_assigned_monomer++;
 	  end_set[writein_set]++;
 	}
-	offset_set[current_set]++;      
-      } 
+	offset_set[current_set]++;
+      }
       current_set++;
       if(current_set>max_bond_number)
 	current_set=current_set-max_bond_number-1;
       for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
-	if(offset_set[set_i]!=end_set[set_i]){	  
+	if(offset_set[set_i]!=end_set[set_i]){
 	  chain_finished=1;
 	}
       }
     }
   }//end:loop over all monomer of a poly_type
-  (*set_tmp_pointer)[n_poly].n_sets=max_bond_number+1;  
+  (*set_tmp_pointer)[n_poly].n_sets=max_bond_number+1;
   (*set_tmp_pointer)[n_poly].max_member=offset_set[0];
   int start_i=0;
   for(unsigned int set_i=1;set_i<max_bond_number+1;set_i++){
@@ -543,11 +543,11 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
   }
   (*set_tmp_pointer)[n_poly].sets=inde_set_tmp;
   if(p->max_n_sets<max_bond_number+1)
-    p->max_n_sets=max_bond_number+1;   
+    p->max_n_sets=max_bond_number+1;
 
   if(p->max_set_members<(*set_tmp_pointer)[n_poly].max_member)
     p->max_set_members=(*set_tmp_pointer)[n_poly].max_member;
- 
+
   //free memory
   free(end_set);
   free(offset_set);
@@ -557,7 +557,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
   }
   free(bonds_total);
   free(monomer_checked);
-  
+
   for(unsigned int tmp=0;tmp<max_bond_number+1;tmp++){
     free(independent_sets[tmp]);
   }
@@ -570,8 +570,8 @@ void check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total
   int found=0;
   int meet=0;
   while(found==0){
-    for(int neighbour_index=0;neighbour_index<bond_number_total[bonds_total[current_monomer][bond_i]];neighbour_index++){ //loop over all bonds 
-      unsigned int neighbour=bonds_total[bonds_total[current_monomer][bond_i]][neighbour_index];	  
+    for(int neighbour_index=0;neighbour_index<bond_number_total[bonds_total[current_monomer][bond_i]];neighbour_index++){ //loop over all bonds
+      unsigned int neighbour=bonds_total[bonds_total[current_monomer][bond_i]][neighbour_index];
       for(unsigned int member_i=offset_set[writein_set];member_i<end_set[writein_set];member_i++){
 	if(neighbour==independent_sets[writein_set][member_i]){
 	  meet=1;
@@ -581,7 +581,7 @@ void check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total
 	writein_set++;
 	if(writein_set>max_bond_number)
 	  writein_set=writein_set-max_bond_number-1;
-	if(writein_set==current_set){ 
+	if(writein_set==current_set){
 	  writein_set++;
 	  if(writein_set>max_bond_number)
 	    writein_set=writein_set-max_bond_number-1;

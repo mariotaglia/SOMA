@@ -46,7 +46,7 @@ int generate_independet_sets(struct Phase* const p);
 
 //! Generate the independet set information for each poly_type.
 //! \param p Phase for which the polymers are assigned to sets
-//! \return Errorcode 
+//! \return Errorcode
 int independent_sets_simple(struct Phase* const p);
 
 //! Generate independent sets for each poly_type.
@@ -69,7 +69,7 @@ int allo_init_memory_for_Polystates(struct Phase* const p);
 //! \param bond_number_total Array to store the number of bonds for all monomers
 //! \param max_bond_number Maximal number of bonds of one monomer
 //! \param writein_set The set where new monomers are stored
-//! \param current_set The set, the member of which is being studied 
+//! \param current_set The set, the member of which is being studied
 //! \param offset_set Array which tells how many members of a set is checked
 //! \param end_set Array with the number of member in a set
 //! \param independent_sets Two-D-Array that stores the independent sets
