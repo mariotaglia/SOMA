@@ -4,12 +4,22 @@ Please add your contributions.
 	v0.6.0 not-yet-released
 
 	* A second option for independent
-	  sets calculation
+	  sets calculation FIXED-N-SETS
 	  (suitable for networks)       Gaoyuan Wang
+	*
 
-	v0.6.1 not-yet-released
+	v0.5.2 not-yet-released
+
+	*
+
+	v0.5.1 released 12/12/17
 
 	* Minor Typo in README		Ludwig Schneider
+	* Adding contribution guideline Ludwig Schneider
+	* BUGFIX: correct OpenACC
+	  pragma for SET iteration
+	  for better performance	Ludwig Schneider
+	* FIX documentation issues	Ludwig Schneider
 
 	v0.5.0 released 11/9/17
 	* first public version		Ludwig Schneider
