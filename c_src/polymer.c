@@ -93,9 +93,12 @@ int copyout_polymer(struct Phase*const p, Polymer*const poly)
       return 0*N;
     }
 
-int reallocate_polymer_mem(struct Phase*const p)
+int reallocate_polymer_mem(struct Phase*const p,uint64_t new_storage)
     {
-    const uint64_t new_storage = p->n_polymers_storage * 1.05 + 1;
+    const uint64_t heuristics = p->n_polymers_storage * 1.05 + 1;
+    if( heuristics > new_storage)
+	new_storage = heuristics;
+
     printf("INFO: @t=%d rank %d is reallocating space for polymers %ld %ld.\n",
 	   p->time,p->info_MPI.world_rank,new_storage,p->n_polymers_storage);
 
@@ -132,7 +135,7 @@ int push_polymer(struct Phase*const p,const Polymer*const poly)
     {
     assert(poly);
     if(p->n_polymers >= p->n_polymers_storage)
-	reallocate_polymer_mem(p);
+	reallocate_polymer_mem(p,0);
     assert( p->n_polymers < p->n_polymers_storage);
 
     p->polymers[p->n_polymers] = *poly;
@@ -213,6 +216,9 @@ unsigned int poly_serial_length(const struct Phase*const p,const Polymer*const p
     //Type data
     length += sizeof(unsigned int);
 
+    //Rcm data
+    length += sizeof( Monomer);
+
     //Beads data
     length += N*sizeof( Monomer );
 
@@ -245,6 +251,9 @@ int serialize_polymer(const struct Phase*const p,const Polymer*const poly,unsign
     memcpy(buffer + position, &(poly->type), sizeof(unsigned int));
     position += sizeof(unsigned int);
 
+    memcpy(buffer + position, &(poly->rcm), sizeof(Monomer) );
+    position += sizeof( Monomer );
+
     //Beads data
     memcpy(buffer + position, poly->beads, N*sizeof(Monomer) );
     position += N*sizeof(Monomer);
@@ -270,7 +279,7 @@ int serialize_polymer(const struct Phase*const p,const Polymer*const poly,unsign
     return position;
     }
 
-int deserialize_polymer(const struct Phase*const p, Polymer*const poly,unsigned char*const buffer)
+int deserialize_polymer(const struct Phase*const p, Polymer*const poly,const unsigned char*const buffer)
     {
     unsigned int position = 0;
 
@@ -283,6 +292,10 @@ int deserialize_polymer(const struct Phase*const p, Polymer*const poly,unsigned 
     memcpy(&(poly->type),buffer + position, sizeof(unsigned int));
     position += sizeof(unsigned int);
     const unsigned int N =p->poly_arch[p->poly_type_offset[poly->type]];
+
+    //RCM
+    memcpy(&(poly->rcm), buffer + position, sizeof(Monomer) );
+    position += sizeof(Monomer);
 
     //Beads data
     poly->beads = (Monomer*)malloc( N*sizeof(Monomer) );
@@ -358,5 +371,36 @@ int update_self_polymer(const struct Phase*const p,Polymer*const poly)
 	}
 
 #pragma acc update self(poly->type)
+#pragma acc update self(poly->rcm);
     return 0 + 1*N*0;
+    }
+
+int update_polymer_rcm(struct Phase*const p)
+    {
+    static unsigned int last_time_call = 0;
+    if( last_time_call == 0 || p->time > last_time_call)
+	last_time_call = p->time;
+    else
+	return 0;
+
+    const unsigned int n_polymers = p->n_polymers;
+
+    #pragma acc parallel loop
+    for(uint64_t npoly=0; npoly < n_polymers; npoly++)
+	{
+	Polymer *const mypoly = &( p->polymers[npoly] );
+	const unsigned int N = p->poly_arch[ p->poly_type_offset[ mypoly->type ]];
+	Monomer rcm = make_monomer(0, 0, 0);
+	for(unsigned int i=0; i < N; i++)
+	    {
+	    rcm.x += mypoly->beads[i].x;
+	    rcm.y += mypoly->beads[i].y;
+	    rcm.z += mypoly->beads[i].z;
+	    }
+	rcm.x /= N;
+	rcm.y /= N;
+	rcm.z /= N;
+	mypoly->rcm = rcm;
+	}
+    return 0;
     }

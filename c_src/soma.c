@@ -81,14 +81,12 @@ int main(int argc, char *argv[])
 	}
     post_process_args( &(p->args), p->info_MPI.world_rank);
 
-
     init_MPI(p);
 
     const int signal_success = init_soma_signal();
     MPI_ERROR_CHECK(signal_success, "Signal init");
 
     const int mpi_args = check_status_on_mpi(p,args_success);
-
     if( mpi_args != 0 )
 	{
 	finalize_MPI();
@@ -128,6 +126,9 @@ int main(int argc, char *argv[])
 	MPI_ERROR_CHECK(new_beads, "Cannot genrate new bead data.");
 	}
 
+    const int init_domain_chains_status = send_domain_chains(p,true);
+    MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
+
     if( ! p->args.skip_tests_flag)
 	{
 	const int test_p = test_particle_types(p);
@@ -142,6 +143,9 @@ int main(int argc, char *argv[])
 
 	const int indepent_sets = test_independet_sets(p);
 	MPI_ERROR_CHECK(indepent_sets, "Indepent Set test failed.");
+
+	const int chains_domain = test_chains_in_domain(p);
+	MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
 	}
 
     //Reset the RNG to initial starting conditions.
@@ -156,6 +160,12 @@ int main(int argc, char *argv[])
 	screen_output(p,N_steps);
 	if(p->args.load_balance_arg > 0 && i % p->args.load_balance_arg  == (unsigned int) p->args.load_balance_arg -1 )
 	    load_balance_mpi_ranks(p);
+	if( p->args.N_domains_arg > 1 && p->args.rcm_update_arg > 0 && i % p->args.rcm_update_arg == (unsigned int) p->args.rcm_update_arg -1)
+	    {
+	    const int missed_chains = send_domain_chains(p, false);
+	    if( missed_chains != 0)
+		abort();
+	    }
 
 	stop_iteration = check_signal_stop();
 	//Sync all mpi cores
@@ -186,6 +196,9 @@ int main(int argc, char *argv[])
 	const int test51_exact = test_area51_exact(p);
 	if(! p->args.nonexact_area51_flag )
 	    MPI_ERROR_CHECK(test51_exact, "Area51 exact test failed.");
+
+	const int chains_domain = test_chains_in_domain(p);
+	MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
 	}
 
     /* deallocate all memory */

@@ -25,6 +25,7 @@
 
 #include <mpi.h>
 #include <stdint.h>
+#include <stdbool.h>
 struct Phase;
 
 /*! \file mpiroutines.h
@@ -147,6 +148,26 @@ int recv_polymer_chain(struct Phase*const p, const int source,const MPI_Comm com
 int send_mult_polymers(struct Phase*const p,const int destination,
                        unsigned int Nsends,const MPI_Comm comm);
 
+//! Helper function to obtain the malloc allocated buffer containing polymers from another rank.
+//!
+//! \param source Source rank
+//! \param comm MPI_Communicator for the communication
+//! \param Nsends Output parameter for the number of chains
+//! \param buffer_length Ouput parameter for the length of allocated buffer
+//! \return Pointer to buffer if successful, NULL otherwise
+unsigned char* recv_mult_polymers_core(const int source, const MPI_Comm comm,
+                                       unsigned int*const Nsends,unsigned int*const buffer_length);
+
+//! Helper function to deserialize and pop in multiple polymer in a buffer.
+//!
+//! \param p Phase of the system
+//! \param Nsends number of polymers in buffer
+//! \param buffer_length Length of the buffer
+//! \param buffer Pointer to the buffer
+//! \return Errorcode
+int deserialize_mult_polymers(struct Phase*const p,const unsigned int Nsends,
+                              const unsigned int buffer_length,const unsigned char*const buffer);
+
 //! Recv multiple polymers from one MPI rank to another.
 //!
 //! \warning No assumptions about the global system are made.
@@ -169,4 +190,16 @@ int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm com
 //! \param p System.
 //! \return Errorcode
 int load_balance_mpi_ranks(struct Phase*const p);
+
+//! Distribute all chains to their corresponding rank for a domain decomposition
+//!
+//! \param p initialied configuration
+
+//! \param init set to true for initial redistribution, chains can be
+//! send to all ranks. In the false mode, only neighbor ranks can be
+//! addressed. If chains cannot be sent to their corresponding rank an
+//! error is issued.
+//! \return Number of unsent chains should be 0, otherwise error.
+int send_domain_chains(struct Phase*const p,const bool init);
+
 #endif/*SOMA_MPIROUTINES_H*/

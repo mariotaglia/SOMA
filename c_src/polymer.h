@@ -31,6 +31,7 @@ typedef struct Polymer{
     Monomer * msd_beads; //!< \brief bead positions used for MSD calculation. (Not on device.)
     unsigned int type;//!< \brief Type of the polymer architecture.
     RNG_STATE poly_state;   //!< \brief Struct which contains all RNGs
+    Monomer rcm; //!< center of mass of the polymer
     struct RNG_STATE * set_states; //!< RNG states of independet sets. NULL if not used.
     //! Array to store thr permutation of sets for set iteration. NULL if not used.
     unsigned int*set_permutation;
@@ -61,9 +62,10 @@ int copyout_polymer(struct Phase*const p, Polymer*const poly);
 //! this functionallocates more space.
 //!
 //! \param p System to reallocate memory.
+//! \param new_storage Suggestion for new storage allocation. If smaller than heuristics, the heuristics is chosen.
 //! \return Errorcode
 //! \note This function is expensive to call.
-int reallocate_polymer_mem(struct Phase*const p);
+int reallocate_polymer_mem(struct Phase*const p,uint64_t new_storage);
 
 //! Push a polymer to the end of the p->polymers array.
 //!
@@ -120,7 +122,7 @@ int serialize_polymer(const struct Phase*const p,const Polymer*const poly,unsign
 //! , because deep copy data is allocated.
 //! \post You are owner of the Polymer including deep copy data.
 //! \return Number of written bytes. If < 0 Errorcode.
-int deserialize_polymer(const struct Phase*const p, Polymer*const poly,unsigned char*const buffer);
+int deserialize_polymer(const struct Phase*const p, Polymer*const poly,const unsigned char*const buffer);
 
 //! Update the Self Memory of a given polymer
 //!
@@ -129,5 +131,16 @@ int deserialize_polymer(const struct Phase*const p, Polymer*const poly,unsigned 
 //! \return Errorcode
 int update_self_polymer(const struct Phase*const p,Polymer*const poly);
 
+//! Update the center of mass of the polymer from its monomer positions.
+//!
+//! \param p System
+//! \return Errorcode
+int update_polymer_rcm(struct Phase*const p);
 
+//! Get the domain id to which of the given position
+//!
+//! \param p reference system
+//! \param rcm pointer to rcm
+//! \return domain id
+unsigned int get_domain_id(const struct Phase*const p,const Monomer*const rcm);
 #endif//POLYMER_H

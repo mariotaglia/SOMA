@@ -43,5 +43,21 @@ hid_t get_monomer_memtype(void);
 //! \return Type hdf5 identifier.
 hid_t get_monomer_filetype(void);
 
+//! Helper function to create a monomer
+//!
+//! \param x X coordinate of the new monomer
+//! \param y Y coordinate of the new monomer
+//! \param z Z coordinate of the new monomer
+//! \return newly constructed monomer
+static inline Monomer make_monomer(const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z);
+#pragma acc routine(make_monomer) seq
+inline Monomer make_monomer(const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z)
+    {
+    Monomer ret;
+    ret.x = x;
+    ret.y = y;
+    ret.z = z;
+    return ret;
+    }
 
 #endif//MONOMER_H

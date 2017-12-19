@@ -57,4 +57,10 @@ int test_area51_exact(const struct Phase * const p);
 //! \param p Phase to check
 //! \return Errorcode
 int test_independet_sets(const struct Phase*const p);
+
+//! Test if all the polymer chains are in their correct domain.
+//!
+//! \param p Phase to check
+//! \return Errorcode
+int test_chains_in_domain(struct Phase*const p);
 #endif//SOMA_TEST_H
