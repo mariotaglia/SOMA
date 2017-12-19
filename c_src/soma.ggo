@@ -40,7 +40,8 @@ option "skip-tests" - "Skip tests SOMA is usually preforming before and after th
 option "load-balance" l "Frequency of the load balancer. For homogenous architectures this can be set to high values, for hetereogenous architectures across the MPI ranks small values help to equilibrate faster. Non-MPI runs are uneffected. Values < 0 deactivate the load-balancer." int typestr="freq" optional default="500"
 option "accepted-load-inbalance" - " [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
 option "autotuner-restart-period" - "Period in which the autotuner is restarted." int typestr="period" optional default="10000"
-option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="args-string" optional
 option "N-domains" d "Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes)" int typestr="N" optional default="1"
 option "domain-buffer" - "Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation." int typestr="N" optional default="10"
 option "rcm-update" - "Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation" int typestr="f" optional default="10"
+option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="user-args" optional
+option "set-generation-algorithm" - "Option to select the algorithm to generate the indepent sets." enum typestr="SET-ALG" values="SIMPLE","FIXED-N-SETS" default="SIMPLE" optional

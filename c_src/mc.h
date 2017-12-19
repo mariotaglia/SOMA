@@ -20,28 +20,12 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef SOMA_MC_H
-#define SOMA_MC_H
 /*! \file mc.h
   \brief Functions required for any Monte-Carlo move of the system.
 */
 
-/*! \brief Update the configuration in time via Soft Coarse Grained Monte-Carlo sweeps.
-
-  \param p Initialized configuration.
-  \param nsteps \#steps to perform with the system.
-  \return Error code. Returns not equal to zero of an error occured.
-  \post
-  - Particle positions are \a nsteps further in "time"
-  - p->time += \a nsteps.
-  - p->fields are synchronous with the bead positions.
-
-  \warning this function calls update_omega_fields() and
-  update_density_fields() only once.  If nsteps != 1 it might be not
-  what you want.
-
-  \note update_omega_fields called, so it is MPI-collective.
-*/
+#ifndef SOMA_MC_H
+#define SOMA_MC_H
 
 #include <stdbool.h>
 struct Phase;
@@ -113,7 +97,7 @@ int mc_center_mass(struct Phase*const p, const unsigned int nsteps,const unsigne
 //! \return Error code. Returns not equal to zero of an error occured.
 int mc_set_iteration(struct Phase*const p, const unsigned int nsteps,const unsigned int tuning_parameter);
 
-/*!> \brief calculate a trial move for the specified bead
+/*! \brief calculate a trial move for the specified bead
   \param p Phase configuration, in which the trial move is proposed
   \param ipoly Local polymer id of the move
   \param ibead Monomer id of the move
@@ -190,7 +174,11 @@ bool som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator 
   (e.g. external fields) can be added in this function.
 */
 #pragma acc routine(trial_move_smc) seq
-void trial_move_smc(const struct Phase * p, const uint64_t ipoly, const int ibead, soma_scalar_t *const dx, soma_scalar_t *const dy, soma_scalar_t *const dz, soma_scalar_t * smc_deltaE,const Monomer *const mybead,  RNG_STATE *const myrngstate,const enum enum_pseudo_random_number_generator arg_rng_type,const unsigned int iwtype);
+void trial_move_smc(const struct Phase * p, const uint64_t ipoly, const int ibead,
+                    soma_scalar_t *const dx, soma_scalar_t *const dy, soma_scalar_t *const dz,
+                    soma_scalar_t * smc_deltaE,const Monomer *const mybead,
+                    RNG_STATE *const myrngstate,const enum enum_pseudo_random_number_generator arg_rng_type,
+                    const unsigned int iwtype);
 
 /*! \brief Calculate forces acting on a monomer resulting from all of its bonds.
   \param p Initialized configuration.

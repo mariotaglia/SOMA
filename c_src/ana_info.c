@@ -27,6 +27,13 @@
 #include <assert.h>
 #include "phase.h"
 
+//! \def SOMA_NUM_OBS
+//! \brief Number of known observables to SOMA.
+#ifdef SOMA_NUM_OBS
+#error "Namespace violation SOMA_NUM_OBS already defined."
+#endif//SOMA_NUM_OBS
+
+
 int init_ana(struct Phase * const p,const char*const filename,const char*const coord_filename)
     {
     //******** START EDIT FOR NEW OBSERVABLES HERE**********

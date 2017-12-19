@@ -54,10 +54,15 @@ const char *som_args_detailed_help[] = {
   "  -l, --load-balance=freq       Frequency of the load balancer. For homogenous\n                                  architectures this can be set to high values,\n                                  for hetereogenous architectures across the\n                                  MPI ranks small values help to equilibrate\n                                  faster. Non-MPI runs are uneffected. Values <\n                                  0 deactivate the load-balancer.\n                                  (default=`500')",
   "      --accepted-load-inbalance=percent\n                                 [0,100] Percent of step time which is ignored\n                                  by load balancer. Low values enable better\n                                  load balancing, but could cause fluctuation\n                                  of polymers.  (default=`8')",
   "      --autotuner-restart-period=period\n                                Period in which the autotuner is restarted.\n                                  (default=`10000')",
+<<<<<<< HEAD
   "      --user=args-string        Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
   "  -d, --N-domains=N             Number of domains for a domain decomposition.\n                                  (Domain decomposition is only made linear\n                                  along the Z-Axes)  (default=`1')",
   "      --domain-buffer=N         Number of buffer cells which can contain ghost\n                                  particles. Experiment and find the optimum\n                                  for your simulation.  (default=`10')",
   "      --rcm-update=f            Frequency of the update of the molecule center\n                                  of mass. If they enter the ghost layer they\n                                  are sen. Experiment and find the optimum for\n                                  your simulation  (default=`10')",
+=======
+  "      --user=user-args          Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
+  "      --set-generation-algorithm=SET-ALG\n                                Option to select the algorithm to generate the\n                                  indepent sets.  (possible values=\"SIMPLE\",\n                                  \"FIXED-N-SETS\" default=`SIMPLE')",
+>>>>>>> master
     0
 };
 
@@ -85,6 +90,7 @@ init_help_array(void)
   som_args_help[18] = som_args_detailed_help[19];
   som_args_help[19] = som_args_detailed_help[20];
   som_args_help[20] = som_args_detailed_help[21];
+<<<<<<< HEAD
   som_args_help[21] = som_args_detailed_help[22];
   som_args_help[22] = som_args_detailed_help[23];
   som_args_help[23] = 0; 
@@ -92,6 +98,13 @@ init_help_array(void)
 }
 
 const char *som_args_help[24];
+=======
+  som_args_help[21] = 0; 
+  
+}
+
+const char *som_args_help[22];
+>>>>>>> master
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -116,6 +129,7 @@ cmdline_parser_required2 (struct som_args *args_info, const char *prog_name, con
 const char *cmdline_parser_pseudo_random_number_generator_values[] = {"PCG32", "MT", "TT800", 0}; /*< Possible values for pseudo-random-number-generator. */
 const char *cmdline_parser_move_type_values[] = {"TRIAL", "SMART", 0}; /*< Possible values for move-type. */
 const char *cmdline_parser_iteration_alg_values[] = {"POLYMER", "SET", 0}; /*< Possible values for iteration-alg. */
+const char *cmdline_parser_set_generation_algorithm_values[] = {"SIMPLE", "FIXED-N-SETS", 0}; /*< Possible values for set-generation-algorithm. */
 
 static char *
 gengetopt_strdup (const char *s);
@@ -143,9 +157,13 @@ void clear_given (struct som_args *args_info)
   args_info->accepted_load_inbalance_given = 0 ;
   args_info->autotuner_restart_period_given = 0 ;
   args_info->user_given = 0 ;
+<<<<<<< HEAD
   args_info->N_domains_given = 0 ;
   args_info->domain_buffer_given = 0 ;
   args_info->rcm_update_given = 0 ;
+=======
+  args_info->set_generation_algorithm_given = 0 ;
+>>>>>>> master
 }
 
 static
@@ -182,12 +200,17 @@ void clear_args (struct som_args *args_info)
   args_info->autotuner_restart_period_orig = NULL;
   args_info->user_arg = NULL;
   args_info->user_orig = NULL;
+<<<<<<< HEAD
   args_info->N_domains_arg = 1;
   args_info->N_domains_orig = NULL;
   args_info->domain_buffer_arg = 10;
   args_info->domain_buffer_orig = NULL;
   args_info->rcm_update_arg = 10;
   args_info->rcm_update_orig = NULL;
+=======
+  args_info->set_generation_algorithm_arg = set_generation_algorithm_arg_SIMPLE;
+  args_info->set_generation_algorithm_orig = NULL;
+>>>>>>> master
   
 }
 
@@ -216,9 +239,13 @@ void init_args_info(struct som_args *args_info)
   args_info->accepted_load_inbalance_help = som_args_detailed_help[18] ;
   args_info->autotuner_restart_period_help = som_args_detailed_help[19] ;
   args_info->user_help = som_args_detailed_help[20] ;
+<<<<<<< HEAD
   args_info->N_domains_help = som_args_detailed_help[21] ;
   args_info->domain_buffer_help = som_args_detailed_help[22] ;
   args_info->rcm_update_help = som_args_detailed_help[23] ;
+=======
+  args_info->set_generation_algorithm_help = som_args_detailed_help[21] ;
+>>>>>>> master
   
 }
 
@@ -329,9 +356,13 @@ cmdline_parser_release (struct som_args *args_info)
   free_string_field (&(args_info->autotuner_restart_period_orig));
   free_string_field (&(args_info->user_arg));
   free_string_field (&(args_info->user_orig));
+<<<<<<< HEAD
   free_string_field (&(args_info->N_domains_orig));
   free_string_field (&(args_info->domain_buffer_orig));
   free_string_field (&(args_info->rcm_update_orig));
+=======
+  free_string_field (&(args_info->set_generation_algorithm_orig));
+>>>>>>> master
   
   
 
@@ -443,12 +474,17 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "autotuner-restart-period", args_info->autotuner_restart_period_orig, 0);
   if (args_info->user_given)
     write_into_file(outfile, "user", args_info->user_orig, 0);
+<<<<<<< HEAD
   if (args_info->N_domains_given)
     write_into_file(outfile, "N-domains", args_info->N_domains_orig, 0);
   if (args_info->domain_buffer_given)
     write_into_file(outfile, "domain-buffer", args_info->domain_buffer_orig, 0);
   if (args_info->rcm_update_given)
     write_into_file(outfile, "rcm-update", args_info->rcm_update_orig, 0);
+=======
+  if (args_info->set_generation_algorithm_given)
+    write_into_file(outfile, "set-generation-algorithm", args_info->set_generation_algorithm_orig, cmdline_parser_set_generation_algorithm_values);
+>>>>>>> master
   
 
   i =  1 ;
@@ -775,9 +811,13 @@ cmdline_parser_internal (
         { "accepted-load-inbalance",	1, NULL, 0 },
         { "autotuner-restart-period",	1, NULL, 0 },
         { "user",	1, NULL, 0 },
+<<<<<<< HEAD
         { "N-domains",	1, NULL, 'd' },
         { "domain-buffer",	1, NULL, 0 },
         { "rcm-update",	1, NULL, 0 },
+=======
+        { "set-generation-algorithm",	1, NULL, 0 },
+>>>>>>> master
         { 0,  0, 0, 0 }
       };
 
@@ -1031,6 +1071,7 @@ cmdline_parser_internal (
               goto failure;
           
           }
+<<<<<<< HEAD
           /* Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation..  */
           else if (strcmp (long_options[option_index].name, "domain-buffer") == 0)
           {
@@ -1055,6 +1096,18 @@ cmdline_parser_internal (
                 &(local_args_info.rcm_update_given), optarg, 0, "10", ARG_INT,
                 check_ambiguity, override, 0, 0,
                 "rcm-update", '-',
+=======
+          /* Option to select the algorithm to generate the indepent sets..  */
+          else if (strcmp (long_options[option_index].name, "set-generation-algorithm") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->set_generation_algorithm_arg), 
+                 &(args_info->set_generation_algorithm_orig), &(args_info->set_generation_algorithm_given),
+                &(local_args_info.set_generation_algorithm_given), optarg, cmdline_parser_set_generation_algorithm_values, "SIMPLE", ARG_ENUM,
+                check_ambiguity, override, 0, 0,
+                "set-generation-algorithm", '-',
+>>>>>>> master
                 additional_error))
               goto failure;
           

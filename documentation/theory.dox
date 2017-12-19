@@ -24,7 +24,7 @@
 
 /*!\page theory Theory
 For a description of the underlying model, please refer to the articles:
-  - Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to Computer Physics Communications.
+  - Schneider, Ludwig and Müller, Marcus \n  \"Multi-Architecture Monte-Carlo (MC) Simulation of\n   Soft Coarse-Grained Polymeric Materials:\n   SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to Computer Physics Communications.
   - Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18
-  - M. Müller, J. Stat. Phys. 145 (2011) 967 
+  - M. Müller, J. Stat. Phys. 145 (2011) 967
 */

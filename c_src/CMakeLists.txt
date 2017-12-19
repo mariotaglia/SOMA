@@ -90,6 +90,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 #END SPLIT_PLUGIN
 
+
 #START STRING_PLUGIN
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
   option(ENABLE_STRING_PLUGIN "Running multiple SOMA-instances for the application of the string-method." off)
@@ -98,3 +99,12 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
   endif(ENABLE_STRING_PLUGIN)
 endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
 #END STRING_PLUGIN
+
+#START CROSSLINK_PLUGIN
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/crosslink)
+  option(ENABLE_CROSSLINK_PLUGIN "Plugin for crosslinking." off)
+  if(ENABLE_CROSSLINK_PLUGIN)
+    add_subdirectory(crosslink)
+  endif(ENABLE_CROSSLINK_PLUGIN)
+endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/crosslink)
+#END CROSSLINK_PLUGIN
