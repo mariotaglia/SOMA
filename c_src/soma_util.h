@@ -22,8 +22,10 @@
 struct Phase;
 struct Info_MPI;
 #include <stdint.h>
+#include <math.h>
+#include "soma_config.h"
 #include "bond.h"
-
+#include "monomer.h"
 
 //! \file soma_util.h
 //! \brief File collecting several helper functions.
@@ -124,6 +126,23 @@ int reseed(struct Phase*const p,const unsigned int seed);
 
 //! Macro to check and return error code if malloc failed.
 #define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %d\n", __FILE__, __LINE__, (int) (size)); return -1;}
-
+#pragma acc routine(calc_bond_length) seq
+static inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i,const soma_scalar_t x_j,const soma_scalar_t box,const int mic);
+inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i,const soma_scalar_t x_j,const soma_scalar_t box,const int mic)
+    {
+    soma_scalar_t r= x_i - x_j + 0*mic*box; // after "+" to shut up compiler warnings
+#if ( ENABLE_MIC == 1)
+    if(mic)
+        {
+#if ( SINGLE_PRECISION == 1)
+        const soma_scalar_t img = rintf( r/box );
+#else
+        const soma_scalar_t img = rint( r/box );
+#endif//SINGLE_PRECISION
+            r -= img*box;
+        }
+#endif//ENABLE_MIC
+    return r;
+    }
 
 #endif//SOMA_UTIL_H

@@ -103,6 +103,8 @@ struct som_args
   enum enum_set_generation_algorithm set_generation_algorithm_arg;	/**< @brief Option to select the algorithm to generate the indepent sets. (default='SIMPLE').  */
   char * set_generation_algorithm_orig;	/**< @brief Option to select the algorithm to generate the indepent sets. original value given at command line.  */
   const char *set_generation_algorithm_help; /**< @brief Option to select the algorithm to generate the indepent sets. help description.  */
+  int bond_minimum_image_convention_flag;	/**< @brief Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance. (default=off).  */
+  const char *bond_minimum_image_convention_help; /**< @brief Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance. help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int detailed_help_given ;	/**< @brief Whether detailed-help was given.  */
@@ -125,6 +127,7 @@ struct som_args
   unsigned int autotuner_restart_period_given ;	/**< @brief Whether autotuner-restart-period was given.  */
   unsigned int user_given ;	/**< @brief Whether user was given.  */
   unsigned int set_generation_algorithm_given ;	/**< @brief Whether set-generation-algorithm was given.  */
+  unsigned int bond_minimum_image_convention_given ;	/**< @brief Whether bond-minimum-image-convention was given.  */
 
 } ;
 

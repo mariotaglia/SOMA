@@ -26,6 +26,7 @@
 #include "cmdline.h"
 #include "phase.h"
 #include "mpiroutines.h"
+#include <math.h>
 
 unsigned int get_bond_type(const uint32_t info)
     {
@@ -147,6 +148,13 @@ struct som_args post_process_args(struct som_args*args,const struct Info_MPI*con
     args->rng_seed_arg = fixed_seed;
     if(mpi_info->current_core == 0)
 	printf("All %d ranks use fixed seed %u.\n",mpi_info->Ncores,args->rng_seed_arg);
+
+#if (ENABLE_MIC != 1)
+    if(args->bond_minimum_image_convention_flag)
+	{
+	fprintf(stderr, "WARNING: %s:%d compilation without MIC support, but requested via CMDline. Request is ignored.\n", __FILE__, __LINE__);
+	}
+#endif//ENABLE_MIC
 
     if(mpi_info->current_core == 0)
 	cmdline_parser_dump(stdout, args);
