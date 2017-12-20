@@ -570,30 +570,37 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 }
 
 
-void check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total,unsigned int max_bond_number,unsigned int writein_set,unsigned int current_set,unsigned int * offset_set,unsigned int * end_set,unsigned int **independent_sets,int bond_i,unsigned int current_monomer){
+unsigned int check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total,unsigned int max_bond_number,unsigned int writein_set,unsigned int current_set,unsigned int * offset_set,unsigned int * end_set,unsigned int **independent_sets,int bond_i,unsigned int current_monomer){
   int found=0;
-  int meet=0;
+  int meet;
   while(found==0){
+    meet=0;
     for(int neighbour_index=0;neighbour_index<bond_number_total[bonds_total[current_monomer][bond_i]];neighbour_index++){ //loop over all bonds
       unsigned int neighbour=bonds_total[bonds_total[current_monomer][bond_i]][neighbour_index];
+      if(neighbour==current_monomer)
+	continue;  
       for(unsigned int member_i=offset_set[writein_set];member_i<end_set[writein_set];member_i++){
 	if(neighbour==independent_sets[writein_set][member_i]){
 	  meet=1;
 	}
       }
-      if(meet==1){
+    }
+    if(meet==1){
+      writein_set++;
+      if(writein_set>max_bond_number)
+	writein_set=writein_set-max_bond_number-1;
+      if(writein_set==current_set){
 	writein_set++;
 	if(writein_set>max_bond_number)
 	  writein_set=writein_set-max_bond_number-1;
-	if(writein_set==current_set){
-	  writein_set++;
-	  if(writein_set>max_bond_number)
-	    writein_set=writein_set-max_bond_number-1;
-	}
-	break;
       }
-      else
-	found=1;
+      break;
+    }
+    else{
+      found=1;
+      break;
+      
     }
   }
+  return writein_set;
 }
