@@ -56,6 +56,7 @@ const char *som_args_detailed_help[] = {
   "      --autotuner-restart-period=period\n                                Period in which the autotuner is restarted.\n                                  (default=`10000')",
   "      --user=user-args          Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
   "      --set-generation-algorithm=SET-ALG\n                                Option to select the algorithm to generate the\n                                  indepent sets.  (possible values=\"SIMPLE\",\n                                  \"FIXED-N-SETS\" default=`SIMPLE')",
+  "  -m, --bond-minimum-image-convention\n                                Specify the bond length used to calculate the\n                                  energy. This decides, whether the bond length\n                                  between two particle is calculated as the\n                                  absolute distance or the minimum image\n                                  distance.  (default=off)",
     0
 };
 
@@ -83,11 +84,12 @@ init_help_array(void)
   som_args_help[18] = som_args_detailed_help[19];
   som_args_help[19] = som_args_detailed_help[20];
   som_args_help[20] = som_args_detailed_help[21];
-  som_args_help[21] = 0; 
+  som_args_help[21] = som_args_detailed_help[22];
+  som_args_help[22] = 0; 
   
 }
 
-const char *som_args_help[22];
+const char *som_args_help[23];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -141,6 +143,7 @@ void clear_given (struct som_args *args_info)
   args_info->autotuner_restart_period_given = 0 ;
   args_info->user_given = 0 ;
   args_info->set_generation_algorithm_given = 0 ;
+  args_info->bond_minimum_image_convention_given = 0 ;
 }
 
 static
@@ -179,6 +182,7 @@ void clear_args (struct som_args *args_info)
   args_info->user_orig = NULL;
   args_info->set_generation_algorithm_arg = set_generation_algorithm_arg_SIMPLE;
   args_info->set_generation_algorithm_orig = NULL;
+  args_info->bond_minimum_image_convention_flag = 0;
   
 }
 
@@ -208,6 +212,7 @@ void init_args_info(struct som_args *args_info)
   args_info->autotuner_restart_period_help = som_args_detailed_help[19] ;
   args_info->user_help = som_args_detailed_help[20] ;
   args_info->set_generation_algorithm_help = som_args_detailed_help[21] ;
+  args_info->bond_minimum_image_convention_help = som_args_detailed_help[22] ;
   
 }
 
@@ -432,6 +437,8 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "user", args_info->user_orig, 0);
   if (args_info->set_generation_algorithm_given)
     write_into_file(outfile, "set-generation-algorithm", args_info->set_generation_algorithm_orig, cmdline_parser_set_generation_algorithm_values);
+  if (args_info->bond_minimum_image_convention_given)
+    write_into_file(outfile, "bond-minimum-image-convention", 0, 0 );
   
 
   i =  1 ;
@@ -759,10 +766,11 @@ cmdline_parser_internal (
         { "autotuner-restart-period",	1, NULL, 0 },
         { "user",	1, NULL, 0 },
         { "set-generation-algorithm",	1, NULL, 0 },
+        { "bond-minimum-image-convention",	0, NULL, 'm' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:m", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -894,6 +902,16 @@ cmdline_parser_internal (
               &(local_args_info.load_balance_given), optarg, 0, "500", ARG_INT,
               check_ambiguity, override, 0, 0,
               "load-balance", 'l',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'm':	/* Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance..  */
+        
+        
+          if (update_arg((void *)&(args_info->bond_minimum_image_convention_flag), 0, &(args_info->bond_minimum_image_convention_given),
+              &(local_args_info.bond_minimum_image_convention_given), optarg, 0, 0, ARG_FLAG,
+              check_ambiguity, override, 1, 0, "bond-minimum-image-convention", 'm',
               additional_error))
             goto failure;
         

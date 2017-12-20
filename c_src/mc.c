@@ -141,20 +141,17 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * const p,const Monomer*const
 		//Empty statement, because a statement after a label
 		//has to come before any declaration
 		;
-		const soma_scalar_t old_rx =
-		    monomer->x - p->polymers[ipoly].beads[jbead].x;
+		const soma_scalar_t old_rx = calc_bond_length(monomer->x,p->polymers[ipoly].beads[jbead].x,p->Lx,p->args.bond_minimum_image_convention_flag);
 		const soma_scalar_t new_rx = old_rx + dx;
-		const soma_scalar_t old_ry =
-		    monomer->y - p->polymers[ipoly].beads[jbead].y;
+		const soma_scalar_t old_ry = calc_bond_length(monomer->y,p->polymers[ipoly].beads[jbead].y,p->Ly,p->args.bond_minimum_image_convention_flag);
 		const soma_scalar_t new_ry = old_ry + dy;
-		const soma_scalar_t old_rz =
-		    monomer->z - p->polymers[ipoly].beads[jbead].z;
+		const soma_scalar_t old_rz = calc_bond_length(monomer->z,p->polymers[ipoly].beads[jbead].z,p->Lz,p->args.bond_minimum_image_convention_flag);
 		const soma_scalar_t new_rz = old_rz + dz;
 
 		const soma_scalar_t old_r2 =
-		    old_rx * old_rx + old_ry * old_ry + old_rz * old_rz;
+		  old_rx * old_rx + old_ry * old_ry + old_rz * old_rz;
 		const soma_scalar_t new_r2 =
-		    new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
+		  new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
 		delta_energy += p->harmonic_normb * (new_r2 - old_r2) *scale;
 		break;
 
@@ -630,10 +627,14 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 		    //Empty statement, because a statement after a label
 		    //has to come before any declaration
 		    ;
-		    v1x += (p->polymers[ipoly].beads[jbead].x - x)*2.0*p->harmonic_normb *scale;
-		    v1y += (p->polymers[ipoly].beads[jbead].y - y)*2.0*p->harmonic_normb *scale;
-		    v1z += (p->polymers[ipoly].beads[jbead].z - z)*2.0*p->harmonic_normb *scale;
+		    soma_scalar_t v1x_tmp = calc_bond_length(p->polymers[ipoly].beads[jbead].x,x,p->Lx,p->args.bond_minimum_image_convention_flag);
+		    soma_scalar_t v1y_tmp = calc_bond_length(p->polymers[ipoly].beads[jbead].y,y,p->Ly,p->args.bond_minimum_image_convention_flag);
+		    soma_scalar_t v1z_tmp = calc_bond_length(p->polymers[ipoly].beads[jbead].z,z,p->Lz,p->args.bond_minimum_image_convention_flag);
+		    v1x += v1x_tmp*2.0*p->harmonic_normb *scale;
+		    v1y += v1y_tmp*2.0*p->harmonic_normb *scale;
+		    v1z += v1z_tmp*2.0*p->harmonic_normb *scale;
 		    break;
+		    
 		case STIFF:
 #ifndef _OPENACC
 		    fprintf(stderr,

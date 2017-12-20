@@ -108,6 +108,8 @@ else()
   set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} DOUBLE")
 endif()
 
+option(ENABLE_MIC "Activate compilation with minimum image convention for bond distances" OFF)
+
 if( ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
   message(SEND_ERROR "SOMA can be compiled with either OpenACC or OpenMP, not both.")
 endif(ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
@@ -121,7 +123,7 @@ if(ENABLE_NVIDIA_GPU)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ta=nvidia:cuda9,host")
    else(CUDA_VERSION_MAJOR VERSION_EQUAL 9)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ta=nvidia,host")
-    endif(CUDA_VERSION_MAJOR VERSION_EQUAL 9)	
+    endif(CUDA_VERSION_MAJOR VERSION_EQUAL 9)
   endif(CUDA_VERSION_MAJOR VERSION_EQUAL 8)
 
 
