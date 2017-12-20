@@ -498,7 +498,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 	for(int bond_i=0;bond_i<bond_number_total[current_monomer];bond_i++){
 	  if(monomer_checked[bonds_total[current_monomer][bond_i]]==-1)
 	    continue;
-	  check_bond_members_of_set(bonds_total,bond_number_total,max_bond_number,writein_set,current_set,offset_set,end_set,independent_sets,bond_i,current_monomer);
+	  writein_set=check_bond_members_of_set(bonds_total,bond_number_total,max_bond_number,writein_set,current_set,offset_set,end_set,independent_sets,bond_i,current_monomer);
 	  independent_sets[writein_set][end_set[writein_set]]=bonds_total[current_monomer][bond_i];
 	  monomer_checked[bonds_total[current_monomer][bond_i]]=-1;
 	  total_assigned_monomer++;
