@@ -75,8 +75,8 @@ int allo_init_memory_for_Polystates(struct Phase* const p);
 //! \param independent_sets Two-D-Array that stores the independent sets
 //! \param bond_i The current bond of the current monomer
 //! \param current_monomer The monomer that is being studied
-//! \return Errorcode
-void check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total,unsigned int max_bond_number,unsigned int writein_set,unsigned int current_set,unsigned int * offset_set,unsigned int * end_set,unsigned int **independent_sets,int bond_i,unsigned int current_monomer);
+//! \return Set to put new monomer
+unsigned int check_bond_members_of_set(unsigned int **bonds_total,int* bond_number_total,unsigned int max_bond_number,unsigned int writein_set,unsigned int current_set,unsigned int * offset_set,unsigned int * end_set,unsigned int **independent_sets,int bond_i,unsigned int current_monomer);
 
 
 //! Private funtion, to be used in combination with independent_set_fixed().
