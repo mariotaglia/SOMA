@@ -37,9 +37,9 @@ int main(int argc, char *argv[])
     printf("Component of SOMA Copyright (C) 2016-2017 Ludwig Schneider, Ulrich\n"
            "Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco, Yongzhi\n"
 	   "Ren, De-Wen Sun. This program comes with ABSOLUTELY NO WARRANTY; see\n"
-	   "GNU Lesser General Public Licence v3 for details. This is free\n"
+	   "GNU Lesser General Public License v3 for details. This is free\n"
 	   "software, and you are welcome to redistribute it under certain\n"
-	   "conditions; see GNU Lesser General Public Licence v3 for details. \n\n"
+	   "conditions; see GNU Lesser General Public License v3 for details. \n\n"
 	   "You are using SOMA please cite: \n * Daoulas, Kostas Ch. and Müller, "
 	   "Marcus , J. Chem.Phys.2006, 125,18\n");
 
