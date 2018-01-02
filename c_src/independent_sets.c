@@ -440,7 +440,6 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
   unsigned int total_assigned_monomer=0;
   //loop over all monomer of a poly_type (if the chain consists several molecules)
   for(unsigned int mono_i=0;mono_i<sequence;mono_i++){
-    unsigned int mono_i=0;
     if(total_assigned_monomer==sequence)
       break;
     if(monomer_checked[mono_i]==-1)
