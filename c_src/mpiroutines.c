@@ -569,6 +569,7 @@ int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list
 
     if( chains_missed != 0)
 	printf("ERROR: %s:%d: World rank %d has to send %d chains to a non neighbor rank. Restart simulation with higher rcm update rate.\n",__FILE__,__LINE__,p->info_MPI.world_rank,chains_missed);
+    free(buffer_offsets);
     return chains_missed;
     }
 
@@ -689,11 +690,11 @@ int send_domain_chains(struct Phase*const p,const bool init)
 
 unsigned int get_domain_id(const struct Phase*const p,const Monomer*const rcm)
     {
-    const int fold = rint( rcm->z / p->Lz );
-    soma_scalar_t z = rcm->z - fold*p->Lz;
-    if( z < 0)
-	z += p->Lz;
-    const unsigned int target_domain = z / p->Lz * p->args.N_domains_arg;
+    const int fold = rint( rcm->x / p->Lx );
+    soma_scalar_t x = rcm->x - fold*p->Lx;
+    if( x < 0)
+	x += p->Lx;
+    const unsigned int target_domain = x / p->Lx * p->args.N_domains_arg;
 
     assert( (int) target_domain < p->args.N_domains_arg);
     return target_domain;

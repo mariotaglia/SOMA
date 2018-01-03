@@ -231,16 +231,16 @@ int test_chains_in_domain(struct Phase*const p)
     unsigned int violations = 0;
     for(unsigned int i=0; i < p->n_polymers; i++)
 	{
-	const int fold = rint( p->polymers[i].rcm.z / p->Lz );
-	soma_scalar_t z = p->polymers[i].rcm.z - fold*p->Lz;
-	if( z < 0)
-	    z += p->Lz;
-	const unsigned int target_domain = z / p->Lz * p->args.N_domains_arg;
+	const int fold = rint( p->polymers[i].rcm.x / p->Lx );
+	soma_scalar_t x = p->polymers[i].rcm.x - fold*p->Lx;
+	if( x < 0)
+	    x += p->Lx;
+	const unsigned int target_domain = x / p->Lx * p->args.N_domains_arg;
 	if( target_domain != my_domain)
 	    {
 	    violations += 1;
 	    printf("ERROR: world rank %d owns a chain outside of its domain %f \n",
-		   p->info_MPI.world_rank, p->polymers[i].rcm.z);
+		   p->info_MPI.world_rank, p->polymers[i].rcm.x);
 	    }
 	}
     MPI_Allreduce(MPI_IN_PLACE,&violations,1,MPI_UNSIGNED,MPI_SUM,p->info_MPI.SOMA_comm_sim);
