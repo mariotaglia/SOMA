@@ -304,6 +304,7 @@ int independent_set_fixed(struct Phase* const p){
 	return ret;
       }
   }
+
   p->sets=set_tmp;
   ret=allo_init_memory_for_Polystates(p);
   return ret;
@@ -487,7 +488,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
       }
       unsigned int writein_set=current_set-1; //which set to put the new element into (the left one)
       if(current_set==0)
-        writein_set=max_bond_number;      
+        writein_set=max_bond_number;
 
       //loop over all monomers in the current_set, whose neighbours are not studied yet
       for(unsigned int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){
