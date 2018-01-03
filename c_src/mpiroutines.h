@@ -99,8 +99,10 @@ int check_status_on_mpi(const struct Phase*const p,int my_status);
 double mpi_divergence(struct Phase*const p);
 
 //! \brief wrapper for MPI_Finalize
+//! \param mpi Input of initialized MPI data.
+//! \post the communicators are freed
 //! \return Errorcode
-int finalize_MPI(void);
+int finalize_MPI(struct Info_MPI*mpi);
 
 //! Update global properties, which can be combined from local statistics.
 //!

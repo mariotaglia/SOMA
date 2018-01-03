@@ -71,14 +71,14 @@ int main(int argc, char *argv[])
 	if (p->info_MPI.world_rank == 0)
 	    fprintf(stderr, "Usage: %s filename-to-convert-to-hdf5 <geometry-file>\n",
 		    argv[0]);
-	finalize_MPI();
+	finalize_MPI(&(p->info_MPI));
 	return 0;		//mpi restrictions -- no errorcode
 	}
     if (p->info_MPI.world_size != 1) {
 	if (p->info_MPI.world_rank == 0)
 	    fprintf(stderr, "Use the convert tool only with 1 core.%d \n",
 		    p->info_MPI.world_size);
-	finalize_MPI();
+	finalize_MPI(&(p->info_MPI));
 	return 0;		//mpi restrictions -- no errorcode
 	}
 
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
     filename = (char *) malloc(new_len * sizeof(char));
     if (filename == NULL) {
 	printf("Malloc error\n");
-	finalize_MPI();
+	finalize_MPI(&(p->info_MPI));
 	return 0;
 	}
     memset(filename, '\0', new_len * sizeof(char));
@@ -140,5 +140,5 @@ int main(int argc, char *argv[])
     /* deallocate all memory */
     free_phase(p);
 
-    finalize_MPI();
+    finalize_MPI(&(p->info_MPI));
     }

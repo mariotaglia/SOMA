@@ -120,7 +120,7 @@ int reseed(struct Phase*const p,const unsigned int seed);
 
 //! Macro to abort MPI and print a message with you
 //! specified if status != 0. \warning This macro includes finalize_MPI() and exit();
-#define MPI_ERROR_CHECK(status,msg) if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); finalize_MPI();exit(status);}
+#define MPI_ERROR_CHECK(status,msg) if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); ;exit(status);}
 
 //! Macro to check and return error code if malloc failed.
 #define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %d\n", __FILE__, __LINE__, (int) (size)); return -1;}

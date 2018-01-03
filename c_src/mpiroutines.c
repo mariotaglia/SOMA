@@ -137,10 +137,21 @@ int init_MPI(struct Phase * p)
     return 0;
 }
 
-int finalize_MPI(void)
-{
+int finalize_MPI(struct Info_MPI*mpi)
+    {
+    if( mpi->right_neigh_edge != MPI_COMM_NULL )
+        MPI_Comm_free( &(mpi->right_neigh_edge) );
+    if( mpi->left_neigh_edge != MPI_COMM_NULL )
+        MPI_Comm_free( &(mpi->left_neigh_edge) );
+    if( mpi->SOMA_comm_domain != MPI_COMM_NULL )
+        MPI_Comm_free( &(mpi->SOMA_comm_domain) );
+    if( mpi->SOMA_comm_sim != MPI_COMM_NULL )
+        MPI_Comm_free( &(mpi->SOMA_comm_sim) );
+    if( mpi->SOMA_comm_world != MPI_COMM_NULL )
+        MPI_Comm_free( &(mpi->SOMA_comm_world) );
+
     return MPI_Finalize();
-}
+    }
 
 int check_status_on_mpi(const struct Phase*const p,int my_status)
     {

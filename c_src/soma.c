@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     const int mpi_args = check_status_on_mpi(p,args_success);
     if( mpi_args != 0 )
 	{
-	finalize_MPI();
+	finalize_MPI(&(p->info_MPI));
 	return 0;
 	}
 
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     if( check_status_on_mpi(p,open_acc) != 0){
 	if(p->info_MPI.sim_rank == 0)
 	    fprintf(stderr,"ERROR: cannot set openacc devices.\n");
-	finalize_MPI();
+	finalize_MPI(&(p->info_MPI));
 	return 1;
 	}
 
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 
     printf("Rank: %d \t polymers %ld\n",p->info_MPI.world_rank, p->n_polymers);
 
-    finalize_MPI();
+    finalize_MPI(&(p->info_MPI));
     if(p->info_MPI.world_rank == 0)
 	printf("SOMA finished execution without errors.\n");
     return 0;
