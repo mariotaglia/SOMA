@@ -45,12 +45,10 @@ inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t
 
   soma_scalar_t px, py, pz;
 
-  //\todo Optimization: store inverse box length for instruction optimization
-
   // Fold coordinate back into the box
-  px = rx - p->Lx * (int) (rx / p->Lx);
-  py = ry - p->Ly * (int) (ry / p->Ly);
-  pz = rz - p->Lz * (int) (rz / p->Lz);
+  px = rx - p->Lx * (int) (rx * p->iLx);
+  py = ry - p->Ly * (int) (ry * p->iLy);
+  pz = rz - p->Lz * (int) (rz * p->iLz);
 
   // Assure correct symmetry at coordinate = 0
   if (px < 0 ) px = p->Lx +px;
@@ -58,9 +56,9 @@ inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t
   if (pz < 0 ) pz = p->Lz +pz;
 
   // Calculate index
-  *x = (int)( px / p->Lx * p->nx);
-  *y = (int)( py / p->Ly * p->ny);
-  *z = (int)( pz / p->Lz * p->nz);
+  *x = (int)( px * p->iLx * p->nx);
+  *y = (int)( py * p->iLy * p->ny);
+  *z = (int)( pz * p->iLz * p->nz);
 
 }
 

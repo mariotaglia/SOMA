@@ -70,13 +70,13 @@ int init_phase(struct Phase * const p)
     p->harmonic_normb =
 	1.0 / (2.0 * harmonic_spring_Cste * harmonic_spring_Cste);
 
-
-    p->n_cells = p->nx * p->ny * p->nz;
     uint64_t n_polymers_global_sum;
     MPI_Allreduce(&(p->n_polymers), &n_polymers_global_sum, 1,
 		  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     assert(p->n_polymers_global == n_polymers_global_sum);
+
     //Allocate Fields
+    p->n_cells = p->nx * p->ny * p->nz;
     p->fields_unified =     (uint16_t *) malloc(p->n_cells*p->n_types*sizeof(uint16_t));
 	if (p->fields_unified == NULL) {
 	    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -93,7 +93,7 @@ int init_phase(struct Phase * const p)
 	    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
 	    return -1;
 	}
-    p->omega_field_unified = malloc(p->n_cells * p->n_types * sizeof(soma_scalar_t));
+    p->omega_field_unified = (soma_scalar_t*)malloc(p->n_cells * p->n_types * sizeof(soma_scalar_t));
     if (p->omega_field_unified == NULL) {
 	    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
 	    return -1;

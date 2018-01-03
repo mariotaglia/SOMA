@@ -124,6 +124,8 @@ int generate_new_beads(struct Phase*const p)
 	{
 	fprintf(stderr,"WARNING: p->harmonic_normb_variable_scale < 1e-5, this may result in unreasonable generated position or even causes divisions by 0.\n");
 	}
+    const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
+    const soma_scalar_t domain_offset = my_domain*(p->Lz / p->args.N_domains_arg);
     for( uint64_t i= 0; i < p->n_polymers; i++)
 	{
 	Polymer *const poly = &(p->polymers[i]);
@@ -141,10 +143,22 @@ int generate_new_beads(struct Phase*const p)
 	    {
 	    //Set a free monomer
 	    soma_scalar_t x,y,z;
+            unsigned int domain_counter = 0;
 	    do{
-		x = soma_rng_soma_scalar(&(poly->poly_state),p->args.pseudo_random_number_generator_arg)*p->Lx;
-		y = soma_rng_soma_scalar(&(poly->poly_state),p->args.pseudo_random_number_generator_arg)*p->Ly;
-		z = soma_rng_soma_scalar(&(poly->poly_state),p->args.pseudo_random_number_generator_arg)*p->Lz;
+                soma_scalar_t r = soma_rng_soma_scalar(&(poly->poly_state),p->args.pseudo_random_number_generator_arg);
+                x = r*p->Lx;
+                r = soma_rng_soma_scalar(&(poly->poly_state),p->args.pseudo_random_number_generator_arg);
+                y = r*p->Ly;
+                r = soma_rng_soma_scalar(&(poly->poly_state),p->args.pseudo_random_number_generator_arg);
+                // 128 Tries to place the free bead in the local domain.
+                // If that fails (for example, because the local domain is only area51),
+                // place the bead anywhere. It will be sent later to the correct domain.
+                // This is slower, but still correct + not infinite.
+                if( domain_counter < 128)
+                    z = domain_offset + r* (p->Lz/p->args.N_domains_arg);
+                else
+                    z = r* p->Lz;
+                domain_counter += 1;
 		}while( p->area51 != NULL &&
 			p->area51[coord_to_index(p, x, y, z)] == 1);
 
