@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#   Copyright (C) 2016-2017 Ludwig Schneider
+#   Copyright (C) 2016-2018 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -30,7 +30,7 @@ else
 fi
 
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1 
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1
 
 value=$?
 

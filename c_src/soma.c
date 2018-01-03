@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Ludwig Schneider
+/* Copyright (C) 2016-2018 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -51,7 +51,7 @@
 //! \return Errorcode
 int main(int argc, char *argv[])
 {
-  
+
     if (MPI_Init(NULL, NULL) != MPI_SUCCESS) {
       fprintf(stderr, "MPI_ERROR (start)\n");
       return -1;

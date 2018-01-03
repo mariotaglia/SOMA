@@ -1,4 +1,4 @@
-#   Copyright (C) 2017 Ludwig Schneider
+#   Copyright (C) 2017-2018 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -52,7 +52,7 @@ if(HDF5_DIFF_EXECUTABLE)
 
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/RestartExact.sh.in ${CMAKE_CURRENT_BINARY_DIR}/RestartExact.sh)
   add_test(NAME Restart WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./RestartExact.sh)
-  
+
   if(ENABLE_NVIDIA_GPU)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/GPUexact.sh.in ${CMAKE_CURRENT_BINARY_DIR}/GPUexact.sh)
     add_test(NAME GPUexact WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./GPUexact.sh)
