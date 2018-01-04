@@ -74,11 +74,19 @@ inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t
 */
 static inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z);
 #pragma acc routine(cell_coordinate_to_index) seq
-inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z){
+inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z)
+    {
+    if( p->args.N_domains_arg > 1)
+        {
+        if( x >= p->local_nx_high ) //Wrap back if necessary
+            x -= p->nx;
+        if( x < p->local_nx_low || x >= p->local_nx_high )
+            return UINT64_MAX; //Error, requested index out of local bounds
+        x -= p->local_nx_low;
+        }
     //Unified data layout [type][x][y][z]
-  return x*p->ny*p->nz + y*p->nz + z ;
-}
-
+    return x*p->ny*p->nz + y*p->nz + z ;
+    }
 
 /*! \brief Calculate an index for any given position and any density field of p.
   This function should ALWAYS be called to get an index of a field.
@@ -95,7 +103,14 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
  \return Index for the field index referencing.
 */
 #pragma acc routine(coord_to_index) seq
-uint64_t coord_to_index(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz);
+static inline uint64_t coord_to_index(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz);
+inline uint64_t coord_to_index(const struct Phase * p, const soma_scalar_t rx,
+                            const soma_scalar_t ry, const soma_scalar_t rz)
+    {
+    int x, y, z;
+    coord_to_cell_coordinate(p, rx, ry, rz, &x, &y, &z);
+    return cell_coordinate_to_index(p, x, y, z);
+    }
 
 /*! \brief Calculate an index for any given position and type and the density field / external field of p.
   This function should ALWAYS be called to get an index of a field.
@@ -113,7 +128,16 @@ uint64_t coord_to_index(const struct Phase * const p, const soma_scalar_t rx, co
  \return Index for the field index referencing.
 */
 #pragma acc routine(coord_to_index_unified) seq
-uint64_t coord_to_index_unified(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz, unsigned int rtype);
+static inline uint64_t coord_to_index_unified(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz, unsigned int rtype);
+inline uint64_t coord_to_index_unified(const struct Phase * p, const soma_scalar_t rx,
+                                    const soma_scalar_t ry, const soma_scalar_t rz, const unsigned int rtype)
+    {
+    int x, y, z;
+
+    coord_to_cell_coordinate(p, rx, ry, rz, &x, &y, &z);
+    const uint64_t cell =cell_coordinate_to_index(p, x, y, z);
+    return cell_to_index_unified(p,cell,rtype);
+    }
 
 //! Get the unified index from the cell_index and the type
 //!
@@ -123,7 +147,14 @@ uint64_t coord_to_index_unified(const struct Phase * const p, const soma_scalar_
 //! \param rtype type you request.
 //! \return Calculated unified index.
 #pragma acc routine(cell_to_index_unified) seq
-uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype);
+static inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype);
+inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype)
+    {
+    if( cell == UINT64_MAX ) //Error cell out of bounds
+        return UINT64_MAX;
+    //Unified data layout [type][x][y][z]
+    return cell + rtype * p->n_cells_local;
+    }
 
 /*! Update the density fields \f$ \rho \f$ of the system.
  The field update fist sets all entries to zero. Then performs a loop over all polymers eg. monomers.

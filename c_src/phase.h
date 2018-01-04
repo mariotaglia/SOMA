@@ -66,8 +66,8 @@ typedef struct Phase{
 
 
     //uint16_t **fields; /*!< \brief n_types fields in 3D, mimics the DENSITY NOT normalized to 1, this has to be done in the omega_field calculation*/
-    uint16_t * fields_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells of fields */
-    uint16_t * old_fields_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells of old fields for density variance calculations*/
+    uint16_t * fields_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of fields */
+    uint16_t * old_fields_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of old fields for density variance calculations*/
     uint32_t *fields_32; //!< \brief linear 32 bit version of the fields. This is required for GPU-simulation, because no 16-bit atomic operations are available.
 
 /*! \brief array of shape of field, containing the information if
@@ -83,8 +83,8 @@ typedef struct Phase{
     //soma_scalar_t ** omega_field; /*!< \brief calculates the omega fields according to the Hamiltonian*/
     soma_scalar_t * omega_field_unified;  /*!< \brief calculates the omega fields according to the Hamiltonian, unified access*/
     //soma_scalar_t ** external_field; /*!< \brief external fields that act on the polymers, one field per type */
-    soma_scalar_t * external_field_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells of external_fields */
-    soma_scalar_t * umbrella_field; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells of umbrella_field */
+    soma_scalar_t * external_field_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
+    soma_scalar_t * umbrella_field; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
     soma_scalar_t * tempfield; /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
     uint64_t *num_bead_type; /*!< \brief stores the number of beads of a specific type*/
     uint64_t *num_bead_type_local; /*!< \brief stores the number of beads of a specific type locally (for this mpi-core)*/
@@ -117,6 +117,10 @@ typedef struct Phase{
     soma_scalar_t iLx; /*!< \brief inverse x-spatial dimensions in units of \f$ Re_0 \f$ */
     soma_scalar_t iLy; /*!< \brief inverse y-spatial dimensions in units of \f$ Re_0 \f$ */
     soma_scalar_t iLz; /*!< \brief inverse z-spatial dimensions in units of \f$ Re_0 \f$ */
+
+    int local_nx_low; //!< Lowest Nx available on local domain
+    int local_nx_high; //!< Highest Nx available on local domain
+    uint64_t n_cells_local; //!< Number of locally available cells
 
     // Variables for statistics/ analytics
     unsigned long int n_moves; /*!< \brief total number of moves */

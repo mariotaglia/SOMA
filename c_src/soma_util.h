@@ -91,9 +91,9 @@ uint32_t get_info_bl(const unsigned int offset_bl,const unsigned int type);
 //! \brief after argument parsing of SOMA, this function interpret contradictions and warnings for the user.
 //!
 //! \param args Argument struct to interpret.
-//! \param mpi_info Information about MPI configuration
-//! \return corrected struct copy. (The original is modified as well.)
-struct som_args post_process_args(struct som_args*args,const unsigned int world_rank);
+//! \param mpi_info Information about MPI configuration. This parameter is input and ouput.
+//! \return Error code
+int post_process_args(struct som_args*args,const unsigned int world_rank);
 
 //! \brief Returns the number of bonds of specific type in the poly_arch structure.
 //! \param p Phase of the system.

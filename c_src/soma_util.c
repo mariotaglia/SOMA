@@ -82,111 +82,122 @@ uint32_t get_info_bl(const unsigned int offset_bl,const unsigned int type)
 struct som_args post_process_args(struct som_args*args,const unsigned int world_rank)
     {
     if( world_rank == 0)
-	{
-	cmdline_parser_print_version();
-	printf("\n");
-	}
+        {
+        cmdline_parser_print_version();
+        printf("\n");
+        }
 
     if( args->timesteps_arg < 0)
-	{
-	if(world_rank == 0)
-	    fprintf(stderr,"WARNING: negative number of timesteps given. Is set to 0.\n");
-	args->timesteps_arg = 0;
-	}
+        {
+        if(world_rank == 0)
+            fprintf(stderr,"WARNING: negative number of timesteps given. Is set to 0.\n");
+        args->timesteps_arg = 0;
+        }
 
     if( ! args->ana_file_given )
-	{
-	if(world_rank == 0)
-	    fprintf(stderr,"WARNING: No ana-file specified.\n"
-		    "WARNING: This causes that NO observables are going to be analysed during the whole run.\n"
-		    "WARNING: This might be useful for timing runs or pure equilibration,\n"
-		    "WARNING: but in the latter case we nonetheless highly recommend to specify an analyse file.\n");
-	}
+        {
+        if(world_rank == 0)
+            fprintf(stderr,"WARNING: No ana-file specified.\n"
+                    "WARNING: This causes that NO observables are going to be analysed during the whole run.\n"
+                    "WARNING: This might be useful for timing runs or pure equilibration,\n"
+                    "WARNING: but in the latter case we nonetheless highly recommend to specify an analyse file.\n");
+        }
 #ifdef OPENACC
     if( (!args->gpus_given && !args->only_gpu_given) || (args->gpus_given && args->gpus_arg <= 0) )
-	{
-	if(world_rank == 0)
-	    fprintf(stderr,"WARNING: No GPU usage specified, but this version has been compiled with OpenACC support.\n"
-		    "WARNING: Are you sure, that you do not want to set a GPU? If not, try the options --gpus or --only-gpu.\n");
-	}
+        {
+        if(world_rank == 0)
+            fprintf(stderr,"WARNING: No GPU usage specified, but this version has been compiled with OpenACC support.\n"
+                    "WARNING: Are you sure, that you do not want to set a GPU? If not, try the options --gpus or --only-gpu.\n");
+        }
     if( args->gpus_given && args->gpus_arg < 0 )
-	{
-	if(world_rank == 0)
-	    fprintf(stderr,"WARNING: Negative number of gpus specified. Option will be ignored.\n");
-	args->gpus_given = false;
-	}
+        {
+        if(world_rank == 0)
+            fprintf(stderr,"WARNING: Negative number of gpus specified. Option will be ignored.\n");
+        args->gpus_given = false;
+        }
 #endif
     if( args->screen_output_interval_arg < 0)
-	{
-	if(world_rank == 0)
-	    fprintf(stderr,"WARNING: Negative number of seconds for screen ouput given. Screen ouput is switched off.\n");
-	args->screen_output_interval_arg = 0;
-	}
+        {
+        if(world_rank == 0)
+            fprintf(stderr,"WARNING: Negative number of seconds for screen ouput given. Screen ouput is switched off.\n");
+        args->screen_output_interval_arg = 0;
+        }
 
     if(args->autotuner_restart_period_arg < 0)
-	{
-	if( world_rank == 0)
-	    fprintf(stderr,"WARNING: Negative number for autotuner restart given, is switched off.\n");
-	args->autotuner_restart_period_arg = 0;
-	}
+        {
+        if( world_rank == 0)
+            fprintf(stderr,"WARNING: Negative number for autotuner restart given, is switched off.\n");
+        args->autotuner_restart_period_arg = 0;
+        }
 
     if(args->load_balance_arg < 0)
-	{
-	if( world_rank == 0)
-	    fprintf(stderr,"WARNING: Negative number for load-balance freq given, is switched off.\n");
-	args->load_balance_arg = 0;
-	}
+        {
+        if( world_rank == 0)
+            fprintf(stderr,"WARNING: Negative number for load-balance freq given, is switched off.\n");
+        args->load_balance_arg = 0;
+        }
 
     if(args->N_domains_arg < 1)
-	{
-	if( world_rank == 0)
-	    fprintf(stderr,"WARNING: Non positive number for domain decompostion given. Using 1 domain.\n");
-	args->N_domains_arg = 1;
-	}
+        {
+        if( world_rank == 0)
+            fprintf(stderr,"WARNING: Non positive number for domain decompostion given. Using 1 domain.\n");
+        args->N_domains_arg = 1;
+        }
+    //Set to no domain decompostion defaults
+    if( args->N_domains_arg == 1)
+        {
+        args->domain_buffer_arg = 0;
+        args->rcm_update_arg = 0;
+        }
+    else if(args->N_domains_arg % 2 != 0)
+        {
+        fprintf(stderr,"ERROR: Please use an even number for the number of domains. %s:%d\n",__FILE__,__LINE__);
+        return -2;
+        }
 
     if(args->domain_buffer_arg < 0)
-	{
-	if( world_rank == 0)
-	    fprintf(stderr,"WARNING: Negative number for domain buffer given. Using 0 buffer cells.");
-	args->domain_buffer_arg = 0;
-	}
+        {
+        if( world_rank == 0)
+            fprintf(stderr,"WARNING: Negative number for domain buffer given. Using 0 buffer cells.");
+        args->domain_buffer_arg = 0;
+        }
 
-    if(args->rcm_update_arg < 1)
-	{
-	if( world_rank == 0)
-	    fprintf(stderr,"WARNING: Non positive number for update of molecule center of mass given. Using frequency of 1.\n");
-	args->rcm_update_arg = 1;
-	}
+    if(args->N_domains_arg > 1 && args->rcm_update_arg < 1)
+        {
+        if( world_rank == 0)
+            fprintf(stderr,"WARNING: Non positive number for update of molecule center of mass given. Using frequency of 1.\n");
+        args->rcm_update_arg = 1;
+        }
 
     if(world_rank == 0)
-	cmdline_parser_dump(stdout, args);
-    return *args;
+        cmdline_parser_dump(stdout, args);
+    return 0;
     }
 
 unsigned int get_number_bond_type(const struct Phase*const p,const enum Bondtype btype)
     {
     unsigned int counter = 0;
     for(unsigned int p_type=0; p_type < p->n_poly_type; p_type++)
-	{
-	const unsigned int N = p->poly_arch[ p->poly_type_offset[ p_type ] ];
-	for(unsigned int mono = 0 ; mono < N; mono++)
-	    {
-	    const int start = get_bondlist_offset(
-		p->poly_arch[ p->poly_type_offset[ p_type] + 1 + mono ]);
-	    if( start > 0)
-		{
-		int i=start;
-		unsigned int end;
-		do{
-		    const uint32_t info = p->poly_arch[i++];
-		    end = get_end(info);
-		    const unsigned int bond_type = get_bond_type(info);
-		    if( bond_type == btype )
-			counter++;
-		    }while(end==0);
-		}
-	    }
-	}
+        {
+        const unsigned int N = p->poly_arch[ p->poly_type_offset[ p_type ] ];
+        for(unsigned int mono = 0 ; mono < N; mono++)
+            {
+            const int start = get_bondlist_offset(
+                p->poly_arch[ p->poly_type_offset[ p_type] + 1 + mono ]);
+            if( start > 0)
+                {
+                int i=start;
+                unsigned int end;
+                do{
+                    const uint32_t info = p->poly_arch[i++];
+                    end = get_end(info);
+                    const unsigned int bond_type = get_bond_type(info);
+                    if( bond_type == btype )
+                        counter++;
+                    }while(end==0);
+                }
+            }
+        }
     return counter;
     }
 
@@ -198,10 +209,10 @@ int reseed(struct Phase*const p,const unsigned int seed)
 
     //Reset PRNG to initial state
     for(uint64_t i=0; i < p->n_polymers;i++)
-	{
-	seed_rng_state(&(p->polymers[i].poly_state), seed,
-		       i+n_polymer_offset, p->args.pseudo_random_number_generator_arg);
-	update_device_rng_state(&(p->polymers[i].poly_state), p->args.pseudo_random_number_generator_arg);
-	}
+        {
+        seed_rng_state(&(p->polymers[i].poly_state), seed,
+                       i+n_polymer_offset, p->args.pseudo_random_number_generator_arg);
+        update_device_rng_state(&(p->polymers[i].poly_state), p->args.pseudo_random_number_generator_arg);
+        }
     return 0;
     }

@@ -78,13 +78,29 @@ void calc_Re(const struct Phase * p, soma_scalar_t *const result)
 
 void calc_dvar(const struct Phase * p, soma_scalar_t *dvar)
     {
-    soma_scalar_t var = 0.0;
-    for (uint64_t index=0; index < p->n_cells*p->n_types; index++) {
-    var += (p->fields_unified[index] - p->old_fields_unified[index])*(p->fields_unified[index] - p->old_fields_unified[index]);
-    }
-    memcpy(p->old_fields_unified, p->fields_unified, p->n_cells*p->n_types*sizeof(uint16_t));
-    var = var/(p->n_cells*p->n_types);
-    *dvar = var;
+    uint64_t var = 0.0;
+    if( p->info_MPI.domain_rank == 0 ) // Only the root domain rank needs to calculate the value
+        {
+        const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
+        for(unsigned int type=0; type < p->n_types; type++)
+            for(unsigned int x= my_domain*(p->nx/p->args.N_domains_arg); x < (my_domain+1)*(p->nx/p->args.N_domains_arg); x++)
+                for(unsigned int y=0 ; y < p->ny; y++)
+                    for(unsigned int z=0; z < p->nz; z++)
+                        {
+                        const uint64_t index = cell_coordinate_to_index(p, x, y, z) + type*p->n_cells_local;
+                        const uint64_t value = p->fields_unified[index] - p->old_fields_unified[index];
+                        var += value*value;
+                        }
+        }
+    memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local*p->n_types*sizeof(uint16_t));
+    *dvar = var; //Cast to float
+    *dvar /= p->n_cells_local*p->n_types;
+    if( p->info_MPI.sim_rank == 0)
+        MPI_Reduce( MPI_IN_PLACE, dvar, 1, MPI_SOMA_SCALAR, MPI_SUM, 0 , p->info_MPI.SOMA_comm_sim );
+    else
+        MPI_Reduce( dvar, NULL, 1, MPI_SOMA_SCALAR, MPI_SUM, 0 , p->info_MPI.SOMA_comm_sim );
+
+    *dvar /= p->args.N_domains_arg;
     }
 
 void calc_Rg(const struct Phase *p, soma_scalar_t *const result)
@@ -306,15 +322,26 @@ void calc_non_bonded_energy(const struct Phase*const p, soma_scalar_t*const non_
     {
     memset(non_bonded_energy,0,p->n_types*sizeof(soma_scalar_t));
 
-    for(unsigned int type=0; type < p->n_types; type++)
-	{
-	for(uint64_t cell=0; cell < p->n_cells; cell++)
-	    {
-	    non_bonded_energy[type] +=
-		p->omega_field_unified[cell + type*p->n_cells]
-		* p->fields_unified[cell + type*p->n_cells ];
-	    }
-	}
+    if( p->info_MPI.domain_rank == 0) //Only the root domain rank needs to calculate the values.
+        {
+        const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
+        for(unsigned int type=0; type < p->n_types; type++)
+            {
+            for(unsigned int x=my_domain*(p->nx/p->args.N_domains_arg); x < (my_domain+1)*(p->nx/p->args.N_domains_arg); x++)
+                for(unsigned int y=0; y < p->ny; y++)
+                    for(unsigned int z=0; z < p->nz; z++)
+                        {
+                        const uint64_t cell = cell_coordinate_to_index(p,x,y,z);
+                        non_bonded_energy[type] +=
+                            p->omega_field_unified[cell + type*p->n_cells_local]
+                            * p->fields_unified[cell + type*p->n_cells_local ];
+                        }
+            }
+        }
+    if( p->info_MPI.sim_rank == 0)
+        MPI_Reduce( MPI_IN_PLACE, non_bonded_energy, p->n_types, MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
+    else
+        MPI_Reduce( non_bonded_energy, NULL, p->n_types, MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     }
 
 void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_energy)

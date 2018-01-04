@@ -61,7 +61,7 @@ int mc_polymer_iteration(struct Phase*const p, const unsigned int nsteps,const u
 #pragma acc routine(trial_move_cm) seq
 void trial_move_cm(const struct Phase * p, const uint64_t poly_type,soma_scalar_t *const dx,
                    soma_scalar_t *const dy, soma_scalar_t *const dz,
-		   const enum enum_pseudo_random_number_generator arg_rng_type,RNG_STATE*const rng_state);
+                   const enum enum_pseudo_random_number_generator arg_rng_type,RNG_STATE*const rng_state);
 
 //! Calculate the nonbonded energy of a given particle compared to a proposed move.
 //!
@@ -71,10 +71,10 @@ void trial_move_cm(const struct Phase * p, const uint64_t poly_type,soma_scalar_
 //! \param dy Proposed move in Y direction.
 //! \param dz Proposed move in Z direction.
 //! \param iwtype Type of the particle to move.
-//! \return Calculated nonbonded energy difference.
+//! \return Calculated nonbonded energy difference. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_nonbonded_energy) seq
 soma_scalar_t calc_delta_nonbonded_energy(const struct Phase * p,const Monomer*const monomer,
-					  const soma_scalar_t dx, const soma_scalar_t dy,
+                                          const soma_scalar_t dx, const soma_scalar_t dy,
                                           const soma_scalar_t dz, const unsigned int iwtype);
 
 
@@ -121,11 +121,11 @@ void trial_move(const struct Phase * p,const uint64_t ipoly, const int ibead, so
 //! \param dy proposed y move
 //! \param dz proposed z move
 //! \param iwtype Type of the monomer.
-//! \return energy difference of proposed move
+//! \return energy difference of proposed move. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_energy) seq
 soma_scalar_t calc_delta_energy(const struct Phase * p, const uint64_t ipoly,const Monomer*const monomer,
-				const unsigned int ibead,const soma_scalar_t dx,const soma_scalar_t dy,
-				const soma_scalar_t dz,const unsigned int iwtype);
+                                const unsigned int ibead,const soma_scalar_t dx,const soma_scalar_t dy,
+                                const soma_scalar_t dz,const unsigned int iwtype);
 
 //! Calculate the bonded energy difference using the NEW2 bond
 //! structure for a moved bead.
@@ -140,8 +140,8 @@ soma_scalar_t calc_delta_energy(const struct Phase * p, const uint64_t ipoly,con
 //! \return bonded energy difference of proposed move
 #pragma acc routine(calc_delta_bonded_energy) seq
 soma_scalar_t calc_delta_bonded_energy(const struct Phase * const p,const Monomer*const monomer,
-				       const uint64_t ipoly,const unsigned int ibead,
-				       const soma_scalar_t dx,const soma_scalar_t dy, const soma_scalar_t dz);
+                                       const uint64_t ipoly,const unsigned int ibead,
+                                       const soma_scalar_t dx,const soma_scalar_t dy, const soma_scalar_t dz);
 
 /*! \brief Calculation of the Metropolis acceptance criteria.
   Random number from rng.h -
