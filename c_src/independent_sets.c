@@ -445,14 +445,17 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
     if(monomer_checked[mono_i]==-1)
       continue;
     monomer_checked[mono_i]=-1;
-    current_monomer=mono_i;
-
+    if(mono_i!=0)
+      current_monomer=mono_i;
+    else
+      current_monomer=max_bond;
     //find the set with least member //only help for if the chain is not separated into single chains
     int start_set=0;
     for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
       if(end_set[set_i]<end_set[start_set])
 	start_set=set_i;
     }
+
     independent_sets[start_set][end_set[start_set]]=current_monomer;//write the central monomer into start_set
     end_set[start_set]++;
     total_assigned_monomer++;
