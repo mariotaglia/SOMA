@@ -598,7 +598,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
         return error_flags[0];
         }
 
-    ret = error_flag[1];
+    ret = error_flags[1];
     return ret;
     }
 

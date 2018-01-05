@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
         return -2;
         }
     const int post_args= post_process_args( &(p->args), p->info_MPI.world_rank);
-    if( post_process_args < 0)
+    if( post_args < 0)
         {
         fprintf(stderr,"Post processing the arguments on rank %d failed. Exiting.\n",p->info_MPI.world_rank);
         return -3;

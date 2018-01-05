@@ -76,16 +76,17 @@ static inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int
 #pragma acc routine(cell_coordinate_to_index) seq
 inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z)
     {
+    int xt = x;
     if( p->args.N_domains_arg > 1)
         {
-        if( x >= p->local_nx_high ) //Wrap back if necessary
-            x -= p->nx;
-        if( x < p->local_nx_low || x >= p->local_nx_high )
-            return UINT64_MAX; //Error, requested index out of local bounds
-        x -= p->local_nx_low;
+        if( xt >= p->local_nx_high ) //Wrap back if necessary
+            xt -= p->nx;
+        if( xt < p->local_nx_low || xt >= p->local_nx_high )
+            return UINT64_MAX; //Error, requested indext out of local bounds
+        xt -= p->local_nx_low;
         }
     //Unified data layout [type][x][y][z]
-    return x*p->ny*p->nz + y*p->nz + z ;
+    return xt*p->ny*p->nz + y*p->nz + z ;
     }
 
 /*! \brief Calculate an index for any given position and any density field of p.
@@ -110,6 +111,23 @@ inline uint64_t coord_to_index(const struct Phase * p, const soma_scalar_t rx,
     int x, y, z;
     coord_to_cell_coordinate(p, rx, ry, rz, &x, &y, &z);
     return cell_coordinate_to_index(p, x, y, z);
+    }
+
+//! Get the unified index from the cell_index and the type
+//!
+//! Unified data layout [type][x][y][z]
+//! \param p Phase of system (p->n_cells needed)
+//! \param cell cell index
+//! \param rtype type you request.
+//! \return Calculated unified index.
+#pragma acc routine(cell_to_index_unified) seq
+static inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype);
+inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype)
+    {
+    if( cell == UINT64_MAX ) //Error cell out of bounds
+        return UINT64_MAX;
+    //Unified data layout [type][x][y][z]
+    return cell + rtype * p->n_cells_local;
     }
 
 /*! \brief Calculate an index for any given position and type and the density field / external field of p.
@@ -139,31 +157,16 @@ inline uint64_t coord_to_index_unified(const struct Phase * p, const soma_scalar
     return cell_to_index_unified(p,cell,rtype);
     }
 
-//! Get the unified index from the cell_index and the type
-//!
-//! Unified data layout [type][x][y][z]
-//! \param p Phase of system (p->n_cells needed)
-//! \param cell cell index
-//! \param rtype type you request.
-//! \return Calculated unified index.
-#pragma acc routine(cell_to_index_unified) seq
-static inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype);
-inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype)
-    {
-    if( cell == UINT64_MAX ) //Error cell out of bounds
-        return UINT64_MAX;
-    //Unified data layout [type][x][y][z]
-    return cell + rtype * p->n_cells_local;
-    }
 
 /*! Update the density fields \f$ \rho \f$ of the system.
  The field update fist sets all entries to zero. Then performs a loop over all polymers eg. monomers.
  The field itself is chosen according to the monomer type. Be shure that there is no additional type set otherwise
  the adressing fails.
  \param p Phase configuration to update the  densityfields.
+ \return Errorcode
  \note this call requires MPI collectives so call it on every MPI-core.
  */
-void update_density_fields(const struct Phase*const p);
+int update_density_fields(const struct Phase*const p);
 
 /*! Update the omega \f$ \omega\f$-fields of the system.
 

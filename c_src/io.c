@@ -34,6 +34,7 @@
 #include <omp.h>
 #endif//_OPENMP
 #include "mesh.h"
+#include "cmdline.h"
 
 int read_old_config(struct Phase * p, char *const filename)
     {
@@ -370,14 +371,13 @@ int write_hdf5(const hsize_t ndims,const hsize_t*const dims,const hid_t file_id,
     return status;
     }
 
-
 int write_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t plist_id)
     {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
-    const unsigned int ghost_buffer_size = p->args.buffer_size*p->ny*p->nz;
+    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg*p->ny*p->nz;
 
     const hsize_t hsize_dataspace[3] = {p->nx, p->ny, p->nz};
-    hid_t dataspace = H5Screate_simple(3, &(hsize_dataspace), NULL);
+    hid_t dataspace = H5Screate_simple(3, hsize_dataspace, NULL);
     const hsize_t hsize_memspace[3] = {p->nx/p->args.N_domains_arg,p->ny, p->nz};
     hid_t memspace = H5Screate_simple(3, hsize_memspace, NULL);
 
@@ -387,6 +387,7 @@ int write_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_
     const hsize_t offset[3] = { my_domain*(p->nx/p->args.N_domains_arg), 0 , 0};
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
+    int status;
     if ((status =
          H5Dwrite(dataset, H5T_NATIVE_UINT8, memspace,dataspace, plist_id, p->area51 + ghost_buffer_size)) < 0) {
         fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
@@ -419,23 +420,23 @@ int write_field_hdf5(const struct Phase*const p, const hid_t file_id,
                      const hid_t plist_id,const soma_scalar_t*const field,const char*name)
     {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
-    const unsigned int ghost_buffer_size = p->args.buffer_size*p->ny*p->nz;
+    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg*p->ny*p->nz;
 
     const hsize_t hsize_dataspace[4] = {p->n_types,p->nx,p->ny,p->nz};
-    hid_t n_cells_dataspace = H5Screate_simple(4, &(hsize_ncells), NULL);
+    hid_t dataspace = H5Screate_simple(4, hsize_dataspace, NULL);
     const hsize_t hsize_memspace[4] = {1,p->nx/p->args.N_domains_arg,p->ny,p->nz};
     hid_t memspace = H5Screate_simple(4, hsize_memspace, NULL);
 
     hid_t dataset = H5Dcreate2(file_id, name, H5T_SOMA_FILE_SCALAR, dataspace,
                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
+    int status;
     for(unsigned int type=0; type < p->n_types ; type++)
         {
         dataspace = H5Dget_space(dataset);
-        const hsize_t offset[3] = {type, my_domain*(p->nx/p->args.N_domains_arg), p->ny, p->nz};
+        const hsize_t offset[4] = {type, my_domain*(p->nx/p->args.N_domains_arg), p->ny, p->nz};
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
-        soma_scalar_t*const ptr = field + ghost_buffer_size + type*p->n_cells_local;
+        const soma_scalar_t*const ptr = field + ghost_buffer_size + type*p->n_cells_local;
         if ((status = H5Dwrite(dataset, H5T_SOMA_NATIVE_SCALAR,memspace,dataspace, plist_id, ptr)) < 0)
             {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
@@ -464,6 +465,8 @@ int write_field_hdf5(const struct Phase*const p, const hid_t file_id,
                 p->info_MPI.world_rank, __FILE__, __LINE__, status);
         return status;
         }
+
+    return 0;
     }
 
 int write_config_hdf5(const struct Phase * const p, const char *filename)
@@ -800,14 +803,14 @@ int read_hdf5(const hid_t file_id,const char*const name,const hid_t mem_type,con
     return status;
     }
 
-int read_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t plist_id)
+int read_area51_hdf5(struct Phase*const p, const hid_t file_id,const hid_t plist_id)
     {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
-    const unsigned int ghost_buffer_size = p->args.buffer_size*p->ny*p->nz;
+    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg*p->ny*p->nz;
 
     const hsize_t hsize_memspace[3] = {p->nx/p->args.N_domains_arg,p->ny,p->nz};
     hid_t memspace = H5Screate_simple(3, hsize_memspace, NULL);
-    hid_t dataset = H5Dopen2(file_id, "/area51", NULL);
+    hid_t dataset = H5Dopen2(file_id, "/area51", H5P_DEFAULT);
     p->area51 = (uint8_t *) malloc( (p->nx/p->args.N_domains_arg + 2*p->args.domain_buffer_arg)*p->ny*p->nz * sizeof(uint8_t ));
     if (p->area51 == NULL)
         {
@@ -817,10 +820,10 @@ int read_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t
 
 
     hid_t dataspace = H5Dget_space(dataset);
-    const hsize_t offset[3] = { my_domain*(p->nx/p->N_domains_arg) , 0, 0};
+    const hsize_t offset[3] = { my_domain*(p->nx/p->args.N_domains_arg) , 0, 0};
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
-    hid_t status;
+    int status;
     if( (status = H5Dread(dataset, H5T_STD_U8LE, memspace, dataspace, plist_id, p->area51 + ghost_buffer_size)) < 0)
         {
         fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
@@ -832,7 +835,7 @@ int read_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t
     const int right_neigh_rank = ( ((my_domain+1) + p->args.N_domains_arg ) % p->args.N_domains_arg) * p->info_MPI.domain_size + p->info_MPI.domain_rank;
 
     MPI_Request req[4];
-    MPI_Status status[4];
+    MPI_Status stat[4];
 
     uint8_t* ptr = p->area51 + ghost_buffer_size;
     MPI_Isend( ptr, ghost_buffer_size, MPI_UINT8_T, left_neigh_rank, 0, p->info_MPI.SOMA_comm_sim, req +0);
@@ -842,9 +845,9 @@ int read_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t
     ptr = p->area51;
     MPI_Irecv( ptr, ghost_buffer_size, MPI_UINT8_T, left_neigh_rank, 1, p->info_MPI.SOMA_comm_sim, req +2);
     ptr = p->area51 + ((p->nx/p->args.N_domains_arg)*p->ny*p->nz) + ghost_buffer_size;
-    MPI_Irecv( ptr, right_neigh_rank, 0, p->info_MPI.SOMA_comm_sim, req + 3);
+    MPI_Irecv( ptr, ghost_buffer_size, MPI_UINT8_T, right_neigh_rank, 0, p->info_MPI.SOMA_comm_sim, req + 3);
 
-    MPI_Waitall(4,req,status);
+    MPI_Waitall(4,req,stat);
     MPI_Barrier(p->info_MPI.SOMA_comm_sim);
 
     if ((status = H5Sclose(dataspace)) < 0)
@@ -874,11 +877,11 @@ int read_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t
 int read_field_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t plist_id,soma_scalar_t**field, const char*name)
     {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
-    const unsigned int ghost_buffer_size = p->args.buffer_size*p->ny*p->nz;
+    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg*p->ny*p->nz;
 
     const hsize_t hsize_memspace[4] = {1,p->nx/p->args.N_domains_arg,p->ny,p->nz};
     hid_t memspace = H5Screate_simple(4, hsize_memspace, NULL);
-    hid_t dataset = H5Dopen2(file_id, name, NULL);
+    hid_t dataset = H5Dopen2(file_id, name, H5P_DEFAULT);
     const uint64_t n_cells_local =(p->nx/p->args.N_domains_arg + 2*p->args.domain_buffer_arg)*p->ny*p->nz;
     *field = (soma_scalar_t *) malloc( n_cells_local*p->n_types * sizeof(soma_scalar_t));
     if (*field == NULL)
@@ -890,14 +893,14 @@ int read_field_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t 
     const int left_neigh_rank = ( ((my_domain-1) + p->args.N_domains_arg ) % p->args.N_domains_arg) * p->info_MPI.domain_size + p->info_MPI.domain_rank;
     const int right_neigh_rank = ( ((my_domain+1) + p->args.N_domains_arg ) % p->args.N_domains_arg) * p->info_MPI.domain_size + p->info_MPI.domain_rank;
 
-    for(unsigned int type=0; type < p->n_types, type++)
+    int status;
+    for(unsigned int type=0; type < p->n_types; type++)
         {
         hid_t dataspace = H5Dget_space(dataset);
-        const hsize_t offset[4] = {type, my_domain*(p->nx/p->N_domains_arg) , 0, 0};
+        const hsize_t offset[4] = {type, my_domain*(p->nx/p->args.N_domains_arg) , 0, 0};
         H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
         soma_scalar_t* ptr = *field + ghost_buffer_size + (type * n_cells_local );
-        hid_t status;
         if( (status = H5Dread(dataset,H5T_SOMA_NATIVE_SCALAR , memspace, dataspace, plist_id, ptr)) < 0)
             {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
@@ -907,27 +910,27 @@ int read_field_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t 
 
 
         MPI_Request req[4];
-        MPI_Status status[4];
+        MPI_Status stat[4];
 
         ptr = *field + ghost_buffer_size + type*n_cells_local;
-        MPI_Isend( ptr, ghost_buffer_size, MPI_UINT8_T, left_neigh_rank, 0+2*type, p->info_MPI.SOMA_comm_sim, req +0);
+        MPI_Isend( ptr, ghost_buffer_size, MPI_SOMA_SCALAR, left_neigh_rank, 0+2*type, p->info_MPI.SOMA_comm_sim, req +0);
         ptr = *field + ((p->nx/p->args.N_domains_arg)*p->ny*p->nz) + type*n_cells_local;
-        MPI_Isend( ptr, ghost_buffer_size, MPI_UINT8_T, right_neigh_rank, 1+2*type, p->info_MPI.SOMA_comm_sim, req+1);
+        MPI_Isend( ptr, ghost_buffer_size, MPI_SOMA_SCALAR, right_neigh_rank, 1+2*type, p->info_MPI.SOMA_comm_sim, req+1);
 
         ptr = *field + type*n_cells_local;
-        MPI_Irecv( ptr, ghost_buffer_size, MPI_UINT8_T, left_neigh_rank, 1+2*type, p->info_MPI.SOMA_comm_sim, req +2);
+        MPI_Irecv( ptr, ghost_buffer_size, MPI_SOMA_SCALAR, left_neigh_rank, 1+2*type, p->info_MPI.SOMA_comm_sim, req +2);
         ptr = *field + ((p->nx/p->args.N_domains_arg)*p->ny*p->nz) + ghost_buffer_size + type*n_cells_local;
-        MPI_Irecv( ptr , right_neigh_rank, 0+2*type, p->info_MPI.SOMA_comm_sim, req + 3);
+        MPI_Irecv( ptr ,ghost_buffer_size, MPI_SOMA_SCALAR, right_neigh_rank, 0+2*type, p->info_MPI.SOMA_comm_sim, req + 3);
 
-        MPI_Waitall(4,req,status);
+        MPI_Waitall(4,req,stat);
         MPI_Barrier(p->info_MPI.SOMA_comm_sim);
-        }
 
-    if ((status = H5Sclose(dataspace)) < 0)
-        {
-        fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                p->info_MPI.world_rank, __FILE__, __LINE__, status);
-        return status;
+        if ((status = H5Sclose(dataspace)) < 0)
+            {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return status;
+            }
         }
 
     if ((status = H5Sclose(memspace)) < 0)
@@ -946,7 +949,6 @@ int read_field_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t 
 
     return 0;
     }
-
 
 int read_config_hdf5(struct Phase * const p, const char *filename)
     {

@@ -82,7 +82,7 @@ int init_phase(struct Phase * const p)
     p->n_cells_local = (p->local_nx_high - p->local_nx_low) * p->ny * p->nz;
 
     //Check if it is a valid domain decomposition
-    if( p->args.N_domains_arg*2*p->args.domain_buffer_arg > p->nx)
+    if( p->args.N_domains_arg*2*p->args.domain_buffer_arg > (int)p->nx)
         {
         fprintf(stderr,"ERROR: invalid domain decomposition. %s:%d\n",__FILE__,__LINE__);
         fprintf(stderr,"\t N(N_domains)= %d\tb(domain_buffer)= %d\t nx= %d\n",p->args.N_domains_arg,p->args.domain_buffer_arg,p->nx);

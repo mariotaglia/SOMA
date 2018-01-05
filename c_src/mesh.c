@@ -62,14 +62,14 @@ void communicate_density_fields(const struct Phase*const p)
         else //Communication for domain decomposition
             {
             if( p->args.N_domains_arg % 2 != 0)
-                fprintf(stderr,"ERROR: uneven number of domains. Communication error! %s:%d world rank %d\n",__FILE__,__LINE__,p->info_MPI.args.world_rank);
+                fprintf(stderr,"ERROR: uneven number of domains. Communication error! %s:%d world rank %d\n",__FILE__,__LINE__,p->info_MPI.world_rank);
 
 
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 
             //Sum up all values of a single domain to the root domain
             if( p->info_MPI.domain_rank == 0 )
-                MPI_Reduce( MPI_IN_PLACE, p->fields_unified, p->n_cells_local*p->n_types, MPI_UINT16_T,MPI_SUMM, 0 , p->info_MPI.SOMA_comm_domain);
+                MPI_Reduce( MPI_IN_PLACE, p->fields_unified, p->n_cells_local*p->n_types, MPI_UINT16_T,MPI_SUM, 0 , p->info_MPI.SOMA_comm_domain);
             else
                 MPI_Reduce( p->fields_unified, NULL, p->n_cells_local*p->n_types, MPI_UINT16_T, MPI_SUM, 0 , p->info_MPI.SOMA_comm_domain);
 
@@ -77,7 +77,7 @@ void communicate_density_fields(const struct Phase*const p)
             if( p->info_MPI.domain_rank == 0)
                 {
                 const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
-                const unsigned int ghost_buffer_size = p->args.buffer_size*p->ny*p->nz;
+                const unsigned int ghost_buffer_size = p->args.domain_buffer_arg*p->ny*p->nz;
                 //Loop over type, because of the memory layout [type][x][y][z] -> x is not slowest moving dimension
                 for(unsigned int type=0; type < p->n_types; type++)
                     {
@@ -111,13 +111,13 @@ void communicate_density_fields(const struct Phase*const p)
         }
     }
 
-void update_density_fields(const struct Phase *const p)
+int update_density_fields(const struct Phase *const p)
     {
     static unsigned int last_time_call = 0;
     if (last_time_call == 0 || p->time > last_time_call)
         last_time_call = p->time;
     else                        //Quick exit, because the property has already been calculated for the time step.
-        return;
+        return 0;
 
     int error_flags[1] = {0}; //error_flag[0] indicates domain errors
 #pragma acc enter data copyin(error_flags[0:1])
@@ -202,6 +202,7 @@ void update_density_fields(const struct Phase *const p)
                     /*!\todo p->ncells as a temporary variable */
                     }
 //#pragma acc update self(p->tempfield[0:p->n_cells_local])
+    return 0;
     }
 
 void update_omega_fields(const struct Phase *const p)

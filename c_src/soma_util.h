@@ -22,6 +22,7 @@
 struct Phase;
 struct Info_MPI;
 #include <stdint.h>
+#include "cmdline.h"
 #include "bond.h"
 
 

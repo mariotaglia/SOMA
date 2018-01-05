@@ -79,7 +79,7 @@ uint32_t get_info_bl(const unsigned int offset_bl,const unsigned int type)
     return ret;
     }
 
-struct som_args post_process_args(struct som_args*args,const unsigned int world_rank)
+int post_process_args(struct som_args*args,const unsigned int world_rank)
     {
     if( world_rank == 0)
         {
