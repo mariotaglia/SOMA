@@ -67,8 +67,13 @@ void communicate_density_fields(const struct Phase*const p)
 
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 
-            //Sum up all values of a single domain
-            MPI_Allreduce( MPI_IN_PLACE, p->fields_unified, p->n_cells_local*p->n_types, MPI_UINT16_T, p->info_MPI.SOMA_comm_domain);
+            //Sum up all values of a single domain to the root domain
+            if( p->info_MPI.domain_rank == 0 )
+                MPI_Reduce( MPI_IN_PLACE, p->fields_unified, p->n_cells_local*p->n_types, MPI_UINT16_T,MPI_SUMM, 0 , p->info_MPI.SOMA_comm_domain);
+            else
+                MPI_Reduce( p->fields_unified, NULL, p->n_cells_local*p->n_types, MPI_UINT16_T, MPI_SUM, 0 , p->info_MPI.SOMA_comm_domain);
+
+
             if( p->info_MPI.domain_rank == 0)
                 {
                 const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;

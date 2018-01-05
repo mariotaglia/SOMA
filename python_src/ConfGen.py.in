@@ -1210,15 +1210,15 @@ class Configuration(SomaXML):
             del f["/area51"]
 
         if type(self.area51) is numpy.ndarray:
-            f.create_dataset("/area51",data=self.area51.reshape( (self.nxyz[0]*self.nxyz[1]*self.nxyz[2],) ))
+            f.create_dataset("/area51",data=self.area51)
         if "/external_field" in f:
             del f["/external_field"]
         if type(self.external_field) is numpy.ndarray:
-            f.create_dataset("/external_field",data=self.external_field.reshape( (self.nxyz[0]*self.nxyz[1]*self.nxyz[2]*self.n_types[0],) ))
+            f.create_dataset("/external_field",data=self.external_field)
         if "/umbrella_field" in f:
             del f["/umbrella_field"]
         if type(self.umbrella_field) is numpy.ndarray:
-            f.create_dataset("/umbrella_field",data=self.umbrella_field.reshape( (self.nxyz[0]*self.nxyz[1]*self.nxyz[2]*self.n_types[0],) ))
+            f.create_dataset("/umbrella_field",data=self.umbrella_field)
         f.close()
 
     ## Update an existing hdf5-file with the read parameter if possible.
@@ -1356,7 +1356,7 @@ class Configuration(SomaXML):
 
         array = numpy.zeros( (self.n_poly_type[0],),dtype=soma_type.get_soma_scalar_type())
 
-	string = ""
+        string = ""
         for element in self.root.iter('cm_a'):
             string += element.text
         l = string.strip().split()
