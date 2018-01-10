@@ -73,34 +73,20 @@ void communicate_density_fields(const struct Phase*const p)
             else
                 MPI_Reduce( p->fields_unified, NULL, p->n_cells_local*p->n_types, MPI_UINT16_T, MPI_SUM, 0 , p->info_MPI.SOMA_comm_domain);
 
-
             if( p->info_MPI.domain_rank == 0)
                 {
-                const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
                 const unsigned int ghost_buffer_size = p->args.domain_buffer_arg*p->ny*p->nz;
                 //Loop over type, because of the memory layout [type][x][y][z] -> x is not slowest moving dimension
                 for(unsigned int type=0; type < p->n_types; type++)
                     {
                     uint16_t*ptr;
-                    //Number of domains is even -> even ranks go left -> right, uneven ranks right -> left
-                    if( my_domain % 2 == 0)
-                        {
-                        //Left side
-                        ptr = p->fields_unified + type * p->n_cells_local;
-                        MPI_Allreduce(MPI_IN_PLACE, ptr, 2*ghost_buffer_size, MPI_UINT16_T, MPI_SUM, p->info_MPI.left_neigh_edge);
-                        //Right side
-                        ptr = p->fields_unified + (p->n_cells_local - 2*ghost_buffer_size) + type*p->n_cells_local;
-                        MPI_Allreduce(MPI_IN_PLACE, ptr, 2*ghost_buffer_size, MPI_UINT16_T, MPI_SUM, p->info_MPI.right_neigh_edge);
-                        }
-                    else
-                        {
-                        //Right side
-                        ptr = p->fields_unified + (p->n_cells_local - 2*ghost_buffer_size) + type*p->n_cells_local;
-                        MPI_Allreduce(MPI_IN_PLACE, ptr, 2*ghost_buffer_size, MPI_UINT16_T, MPI_SUM, p->info_MPI.right_neigh_edge);
-                        //Left side
-                        ptr = p->fields_unified + type * p->n_cells_local;
-                        MPI_Allreduce(MPI_IN_PLACE, ptr, 2*ghost_buffer_size, MPI_UINT16_T, MPI_SUM, p->info_MPI.left_neigh_edge);
-                        }
+                    //Perspective of left and right is from even ranks!
+                    //Left side
+                    ptr = p->fields_unified + type * p->n_cells_local;
+                    MPI_Allreduce(MPI_IN_PLACE, ptr, 2*ghost_buffer_size, MPI_UINT16_T, MPI_SUM, p->info_MPI.left_neigh_edge);
+                    //Right side
+                    ptr = p->fields_unified + (p->n_cells_local - 2*ghost_buffer_size) + type*p->n_cells_local;
+                    MPI_Allreduce(MPI_IN_PLACE, ptr, 2*ghost_buffer_size, MPI_UINT16_T, MPI_SUM, p->info_MPI.right_neigh_edge);
                     }
                 }
 

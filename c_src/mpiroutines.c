@@ -43,54 +43,54 @@ int init_MPI(struct Phase * p)
     {
     int test;
     if( MPI_Comm_rank( p->info_MPI.SOMA_comm_world, &(test)) != MPI_SUCCESS)
-	{
-	fprintf(stderr, "MPI_ERROR (5) %d \n", p->info_MPI.world_rank);
-	return -5;
-	}
+        {
+        fprintf(stderr, "MPI_ERROR (5) %d \n", p->info_MPI.world_rank);
+        return -5;
+        }
     p->info_MPI.world_rank = test;
     if( MPI_Comm_size( p->info_MPI.SOMA_comm_world, &(test)) != MPI_SUCCESS)
-	{
-	fprintf(stderr, "MPI_ERROR (6) %d \n", p->info_MPI.world_size);
-	return -6;
-	}
+        {
+        fprintf(stderr, "MPI_ERROR (6) %d \n", p->info_MPI.world_size);
+        return -6;
+        }
     p->info_MPI.world_size = test;
 
     if (MPI_Comm_size(p->info_MPI.SOMA_comm_sim, &(test)) != MPI_SUCCESS) {
-	fprintf(stderr, "MPI_ERROR: %d (2)\n", test);
-	return -2;
+        fprintf(stderr, "MPI_ERROR: %d (2)\n", test);
+        return -2;
     }
     p->info_MPI.sim_size = test;
 
     if (MPI_Comm_rank(p->info_MPI.SOMA_comm_sim, &(test)) != MPI_SUCCESS) {
-	fprintf(stderr, "MPI_ERROR (3) %d \n", test);
-	return -3;
+        fprintf(stderr, "MPI_ERROR (3) %d \n", test);
+        return -3;
     }
     p->info_MPI.sim_rank = test;
 
     if( p->info_MPI.sim_size % p->args.N_domains_arg != 0)
-	{
-	fprintf(stderr,"ERROR: %s:%d invalid number of domains. #ranks mod Ndomains != 0.\n",__FILE__,__LINE__);
-	return -7;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d invalid number of domains. #ranks mod Ndomains != 0.\n",__FILE__,__LINE__);
+        return -7;
+        }
 
     const unsigned int domain_size = p->info_MPI.sim_size / p->args.N_domains_arg;
     const int domain_color = p->info_MPI.sim_rank / domain_size;
     if( MPI_Comm_split( p->info_MPI.SOMA_comm_sim, domain_color,
-			0,&(p->info_MPI.SOMA_comm_domain) ) != MPI_SUCCESS)
-	{
-	fprintf(stderr," MPI_ERROR: %s:%d ",__FILE__,__LINE__);
-	return -8;
-	}
+                        0,&(p->info_MPI.SOMA_comm_domain) ) != MPI_SUCCESS)
+        {
+        fprintf(stderr," MPI_ERROR: %s:%d ",__FILE__,__LINE__);
+        return -8;
+        }
     if (MPI_Comm_size(p->info_MPI.SOMA_comm_domain, &(test)) != MPI_SUCCESS) {
-	fprintf(stderr, "MPI_ERROR: %d (2)\n", test);
-	return -2;
-	}
+        fprintf(stderr, "MPI_ERROR: %d (2)\n", test);
+        return -2;
+        }
     p->info_MPI.domain_size = test;
     assert( (int)domain_size == p->info_MPI.domain_size );
 
     if (MPI_Comm_rank(p->info_MPI.SOMA_comm_domain, &(test)) != MPI_SUCCESS) {
-	fprintf(stderr, "MPI_ERROR (3) %d \n", test);
-	return -3;
+        fprintf(stderr, "MPI_ERROR (3) %d \n", test);
+        return -3;
     }
     p->info_MPI.domain_rank = test;
 
@@ -98,37 +98,37 @@ int init_MPI(struct Phase * p)
     p->info_MPI.left_neigh_edge = MPI_COMM_NULL;
     p->info_MPI.right_neigh_edge = MPI_COMM_NULL;
     if( p->args.N_domains_arg > 1 )
-	{
-	int right_color = MPI_UNDEFINED;
-	if( p->info_MPI.domain_rank == 0)
-	    right_color = (( p->info_MPI.sim_rank/p->info_MPI.domain_size )/2) % (p->args.N_domains_arg/2);
-	if( MPI_Comm_split(p->info_MPI.SOMA_comm_sim, right_color, 0,
-			   &(p->info_MPI.right_neigh_edge) ) != MPI_SUCCESS)
-	    {
-	    fprintf(stderr,"ERROR: MPI Communicator splitting %s:%d\n",__FILE__,__LINE__);
-	    return -9;
-	    }
-	int left_color = MPI_UNDEFINED;
-	if( p->info_MPI.domain_rank == 0)
-	    left_color = (( p->info_MPI.sim_rank/p->info_MPI.domain_size +1)/2) % (p->args.N_domains_arg/2);
+        {
+        int right_color = MPI_UNDEFINED;
+        if( p->info_MPI.domain_rank == 0)
+            right_color = (( p->info_MPI.sim_rank/p->info_MPI.domain_size )/2) % (p->args.N_domains_arg/2);
+        if( MPI_Comm_split(p->info_MPI.SOMA_comm_sim, right_color, 0,
+                           &(p->info_MPI.right_neigh_edge) ) != MPI_SUCCESS)
+            {
+            fprintf(stderr,"ERROR: MPI Communicator splitting %s:%d\n",__FILE__,__LINE__);
+            return -9;
+            }
+        int left_color = MPI_UNDEFINED;
+        if( p->info_MPI.domain_rank == 0)
+            left_color = (( p->info_MPI.sim_rank/p->info_MPI.domain_size +1)/2) % (p->args.N_domains_arg/2);
 
-	if( MPI_Comm_split(p->info_MPI.SOMA_comm_sim, left_color, 0,
-			   &(p->info_MPI.left_neigh_edge) ) != MPI_SUCCESS)
-	    {
-	    fprintf(stderr,"ERROR: MPI Communicator splitting %s:%d\n",__FILE__,__LINE__);
-	    return -10;
-	    }
-	}
+        if( MPI_Comm_split(p->info_MPI.SOMA_comm_sim, left_color, 0,
+                           &(p->info_MPI.left_neigh_edge) ) != MPI_SUCCESS)
+            {
+            fprintf(stderr,"ERROR: MPI Communicator splitting %s:%d\n",__FILE__,__LINE__);
+            return -10;
+            }
+        }
 
     uint32_t fixed_seed;
     if( ! p->args.rng_seed_given || p->args.rng_seed_arg < 0)
-	fixed_seed = time(NULL);
+        fixed_seed = time(NULL);
     else
-	fixed_seed = p->args.rng_seed_arg;
+        fixed_seed = p->args.rng_seed_arg;
     MPI_Bcast(&fixed_seed,1,MPI_UINT32_T,0,p->info_MPI.SOMA_comm_sim);
     p->args.rng_seed_arg = fixed_seed;
     if(p->info_MPI.sim_rank == 0)
-	printf("All %d ranks use fixed seed %u.\n",p->info_MPI.sim_size,p->args.rng_seed_arg);
+        printf("All %d ranks use fixed seed %u.\n",p->info_MPI.sim_size,p->args.rng_seed_arg);
 
 
     p->info_MPI.domain_divergence_sec = 0.;
@@ -158,11 +158,11 @@ int check_status_on_mpi(const struct Phase*const p,int my_status)
     int*const status_array =(int*const)malloc(p->info_MPI.sim_size*sizeof(int));
     if(status_array == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -1;}
     MPI_Allgather(&my_status,1,MPI_INT,
-		  status_array,1,
-		  MPI_INT,p->info_MPI.SOMA_comm_sim);
+                  status_array,1,
+                  MPI_INT,p->info_MPI.SOMA_comm_sim);
     for(int i=0; i < p->info_MPI.sim_size; i++)
-	if( status_array[i] != 0)
-	    return status_array[i];
+        if( status_array[i] != 0)
+            return status_array[i];
     free(status_array);
     return 0;
     }
@@ -170,7 +170,7 @@ int check_status_on_mpi(const struct Phase*const p,int my_status)
 double mpi_divergence(struct Phase*const p)
     {
     if(p->args.load_balance_arg == 0)
-	return 0;
+        return 0;
     const double start = MPI_Wtime();
     MPI_Barrier(p->info_MPI.SOMA_comm_domain);
     const double end = MPI_Wtime();
@@ -183,16 +183,16 @@ int collective_global_update(struct Phase*const p)
     {
     // Global number of polymers
     MPI_Allreduce(&(p->n_polymers), &(p->n_polymers_global), 1,
-		  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+                  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->n_polymers_global)
     // Total number of beads
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1,
-		  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+                  MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->num_all_beads)
 
     //Beads per type
     MPI_Allreduce(p->num_bead_type_local , p->num_bead_type ,
-		  p->n_types, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+                  p->n_types, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->num_bead_type[0:p->n_types])
 
     update_density_fields(p);
@@ -200,28 +200,28 @@ int collective_global_update(struct Phase*const p)
     }
 
 int send_polymer_chain(struct Phase*const p, const uint64_t poly_id,
-		       const int destination, const MPI_Comm comm)
+                       const int destination, const MPI_Comm comm)
     {
     assert(p);
     if( destination >= p->info_MPI.world_size)
-	{
-	fprintf(stderr,"ERROR: %s:%d World rank %d requested to send a polymer"
-		" to world rank %d, but only world %d ranks are known.\n",
-		__FILE__,__LINE__, p->info_MPI.world_rank, destination, p->info_MPI.world_rank);
-	return -2;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d World rank %d requested to send a polymer"
+                " to world rank %d, but only world %d ranks are known.\n",
+                __FILE__,__LINE__, p->info_MPI.world_rank, destination, p->info_MPI.world_rank);
+        return -2;
+        }
     if( p->n_polymers == 0)
-	{//Send an empty buffer, to signal that no polymer is going to be send.
-	unsigned int zero = 0;
-	MPI_Send(&zero, 1 , MPI_UNSIGNED, destination, 0 , comm);
-	return 1;
-	}
+        {//Send an empty buffer, to signal that no polymer is going to be send.
+        unsigned int zero = 0;
+        MPI_Send(&zero, 1 , MPI_UNSIGNED, destination, 0 , comm);
+        return 1;
+        }
     if( poly_id >= p->n_polymers )
-	{
-	fprintf(stderr,"ERROR: %s:%d World rank %d: Try to send poly_id %ld, but only %ld polymer local.\n",
-		__FILE__,__LINE__, p->info_MPI.world_rank,poly_id,p->n_polymers);
-	return -3;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d World rank %d: Try to send poly_id %ld, but only %ld polymer local.\n",
+                __FILE__,__LINE__, p->info_MPI.world_rank,poly_id,p->n_polymers);
+        return -3;
+        }
 
     Polymer poly; //Memory to store a polymer.
 
@@ -236,11 +236,11 @@ int send_polymer_chain(struct Phase*const p, const uint64_t poly_id,
 
     const unsigned int bytes_written = serialize_polymer(p, &poly, buffer);
     if(bytes_written != buffer_length)
-	{
-	fprintf(stderr,"ERROR: %s:%d world Rank %d: failed to serialize polymer %d %d\n",
-		__FILE__,__LINE__,p->info_MPI.world_rank, bytes_written, buffer_length);
-	return -3;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d world Rank %d: failed to serialize polymer %d %d\n",
+                __FILE__,__LINE__,p->info_MPI.world_rank, bytes_written, buffer_length);
+        return -3;
+        }
 
     //After serialization the polymer deep memory can be freed.
     free_polymer(p, &poly);
@@ -257,102 +257,102 @@ int recv_polymer_chain(struct Phase*const p, const int source,const MPI_Comm com
     {
     assert(p);
     if( source >= p->info_MPI.world_rank)
-	{
-	fprintf(stderr,"ERROR: %s:%d World rank %d requested to recv a polymer"
-		" from w. rank %d, but only %d w. ranks are known.\n",
-		__FILE__,__LINE__, p->info_MPI.world_rank, source, p->info_MPI.world_size);
-	return -2;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d World rank %d requested to recv a polymer"
+                " from w. rank %d, but only %d w. ranks are known.\n",
+                __FILE__,__LINE__, p->info_MPI.world_rank, source, p->info_MPI.world_size);
+        return -2;
+        }
 
     unsigned int buffer_length;
     //Get buffer length from sending rank.
     MPI_Recv(&buffer_length, 1 , MPI_UNSIGNED , source , 0,
-	     comm,MPI_STATUS_IGNORE);
+             comm,MPI_STATUS_IGNORE);
 
     if( buffer_length > 0) //The sending process can signal "no polymer to send."
-	{
-	//Allocate the memory to recv
-	unsigned char*const buffer = (unsigned char*)malloc( buffer_length * sizeof(unsigned char));
-	MALLOC_ERROR_CHECK(buffer, buffer_length*sizeof(unsigned char));
+        {
+        //Allocate the memory to recv
+        unsigned char*const buffer = (unsigned char*)malloc( buffer_length * sizeof(unsigned char));
+        MALLOC_ERROR_CHECK(buffer, buffer_length*sizeof(unsigned char));
 
-	//Recv the polymer buffer.
-	MPI_Recv( buffer, buffer_length, MPI_UNSIGNED_CHAR, source, 0,
-		  comm,MPI_STATUS_IGNORE);
+        //Recv the polymer buffer.
+        MPI_Recv( buffer, buffer_length, MPI_UNSIGNED_CHAR, source, 0,
+                  comm,MPI_STATUS_IGNORE);
 
-	//Deserialize and allocate Memory for recved polymer.
-	Polymer poly;
-	deserialize_polymer(p, &poly, buffer);
+        //Deserialize and allocate Memory for recved polymer.
+        Polymer poly;
+        deserialize_polymer(p, &poly, buffer);
 
-	free(buffer);
+        free(buffer);
 
-	//Push the polymer to the system.
-	push_polymer(p, &poly);
+        //Push the polymer to the system.
+        push_polymer(p, &poly);
 
-	//poly is no longer owner of polymer, so no deacllocation needed.
+        //poly is no longer owner of polymer, so no deacllocation needed.
 
-	return 0;
-	}
+        return 0;
+        }
     return 1;
     }
 
 int send_mult_polymers(struct Phase*const p,const int destination,
-		       unsigned int Nsends,const MPI_Comm comm)
+                       unsigned int Nsends,const MPI_Comm comm)
     {
     assert(p);
     if( destination >= p->info_MPI.world_size)
-	{
-	fprintf(stderr,"ERROR: %s:%d World rank %d requested to send a polymer"
-		" to w. rank %d, but only %d w. ranks are known.\n",
-		__FILE__,__LINE__, p->info_MPI.world_rank, destination, p->info_MPI.world_size);
-	return -2;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d World rank %d requested to send a polymer"
+                " to w. rank %d, but only %d w. ranks are known.\n",
+                __FILE__,__LINE__, p->info_MPI.world_rank, destination, p->info_MPI.world_size);
+        return -2;
+        }
     Nsends = Nsends > p->n_polymers ? p->n_polymers : Nsends;
     MPI_Send(&Nsends,1,MPI_UNSIGNED, destination, 0 , comm);
 
     unsigned int buffer_length = 0;
     for(unsigned int i=0; i < Nsends; i++)
-	buffer_length += poly_serial_length(p, p->polymers + p->n_polymers - 1 - i);
+        buffer_length += poly_serial_length(p, p->polymers + p->n_polymers - 1 - i);
 
     //Communicate this buffer length with the recieving rank.
     MPI_Send(&buffer_length, 1 , MPI_UNSIGNED, destination, 0 , comm);
 
     if(buffer_length > 0)
-	{
-	unsigned char*const buffer = (unsigned char*)malloc( buffer_length*sizeof(unsigned char));
-	MALLOC_ERROR_CHECK(buffer, buffer_length*sizeof(unsigned char));
+        {
+        unsigned char*const buffer = (unsigned char*)malloc( buffer_length*sizeof(unsigned char));
+        MALLOC_ERROR_CHECK(buffer, buffer_length*sizeof(unsigned char));
 
-	unsigned int bytes_written = 0;
+        unsigned int bytes_written = 0;
 
-	Polymer poly; //Memory to store a polymer.
-	for(unsigned int i=0; i < Nsends; i++)
-	    {
-	    pop_polymer(p, p->n_polymers - 1, &poly);
-	    const unsigned int poly_bytes = serialize_polymer(p, &poly, buffer+bytes_written);
-	    //After serialization the polymer deep memory can be freed.
-	    free_polymer(p, &poly);
-	    bytes_written += poly_bytes;
-	    }
+        Polymer poly; //Memory to store a polymer.
+        for(unsigned int i=0; i < Nsends; i++)
+            {
+            pop_polymer(p, p->n_polymers - 1, &poly);
+            const unsigned int poly_bytes = serialize_polymer(p, &poly, buffer+bytes_written);
+            //After serialization the polymer deep memory can be freed.
+            free_polymer(p, &poly);
+            bytes_written += poly_bytes;
+            }
 
-	if(bytes_written != buffer_length)
-	    {
-	    fprintf(stderr,"ERROR: %s:%d World rank %d: failed to serialize polymer %d %d\n",
-		    __FILE__,__LINE__,p->info_MPI.world_rank, bytes_written, buffer_length);
-	    return -3;
-	    }
+        if(bytes_written != buffer_length)
+            {
+            fprintf(stderr,"ERROR: %s:%d World rank %d: failed to serialize polymer %d %d\n",
+                    __FILE__,__LINE__,p->info_MPI.world_rank, bytes_written, buffer_length);
+            return -3;
+            }
 
-	//Send the buffer to destination.
-	MPI_Send( buffer, buffer_length, MPI_UNSIGNED_CHAR, destination, 0,comm);
+        //Send the buffer to destination.
+        MPI_Send( buffer, buffer_length, MPI_UNSIGNED_CHAR, destination, 0,comm);
 
-	free(buffer);
-	return Nsends;
-	}
+        free(buffer);
+        return Nsends;
+        }
 
     return 0;
     }
 
 //!\private
 unsigned char* recv_mult_polymers_core(const int source, const MPI_Comm comm,
-				       unsigned int*const Nsends,unsigned int*const buffer_length)
+                                       unsigned int*const Nsends,unsigned int*const buffer_length)
     {
     MPI_Recv(Nsends, 1 , MPI_UNSIGNED , source , 0,comm,MPI_STATUS_IGNORE);
 
@@ -360,48 +360,48 @@ unsigned char* recv_mult_polymers_core(const int source, const MPI_Comm comm,
     MPI_Recv(buffer_length, 1 , MPI_UNSIGNED , source , 0,comm,MPI_STATUS_IGNORE);
 
     if( *buffer_length > 0) //The sending process can signal "no polymer to send."
-	{
-	//Allocate the memory to recv
-	unsigned char*const buffer = (unsigned char*)malloc( *buffer_length * sizeof(unsigned char));
-	if( buffer == NULL)
-	    {
-	    fprintf(stderr,"MALLOC-ERROR: %s:%d size = %ld\n", __FILE__, __LINE__, *buffer_length*sizeof(unsigned char));
-	    return NULL;
-	    }
+        {
+        //Allocate the memory to recv
+        unsigned char*const buffer = (unsigned char*)malloc( *buffer_length * sizeof(unsigned char));
+        if( buffer == NULL)
+            {
+            fprintf(stderr,"MALLOC-ERROR: %s:%d size = %ld\n", __FILE__, __LINE__, *buffer_length*sizeof(unsigned char));
+            return NULL;
+            }
 
-	//Recv the polymer buffer.
-	MPI_Recv( buffer, *buffer_length, MPI_UNSIGNED_CHAR, source, 0,comm,MPI_STATUS_IGNORE);
-	return buffer;
-	}
+        //Recv the polymer buffer.
+        MPI_Recv( buffer, *buffer_length, MPI_UNSIGNED_CHAR, source, 0,comm,MPI_STATUS_IGNORE);
+        return buffer;
+        }
     return NULL;
     }
 
 //!\private
 int deserialize_mult_polymers(struct Phase*const p,const unsigned int Nsends,
-			      const unsigned int buffer_length,const unsigned char*const buffer)
+                              const unsigned int buffer_length,const unsigned char*const buffer)
     {
     //Deserialize and allocate Memory for recved polymer.
     Polymer poly;
     unsigned int bytes_read = 0;
     if( p->n_polymers + Nsends > p->n_polymers_storage )
-	{
-    	reallocate_polymer_mem(p, p->n_polymers + Nsends);
-	}
+        {
+        reallocate_polymer_mem(p, p->n_polymers + Nsends);
+        }
 
     for(unsigned int i=0 ; i < Nsends; i++)
-	{
-	assert(bytes_read < buffer_length);
-	const unsigned int poly_bytes = deserialize_polymer(p, &poly, buffer+bytes_read);
-	bytes_read += poly_bytes;
-	//Push the polymer to the system.
-	push_polymer(p, &poly);
-	}
+        {
+        assert(bytes_read < buffer_length);
+        const unsigned int poly_bytes = deserialize_polymer(p, &poly, buffer+bytes_read);
+        bytes_read += poly_bytes;
+        //Push the polymer to the system.
+        push_polymer(p, &poly);
+        }
 
     if( bytes_read != buffer_length)
-	{
-	fprintf(stderr,"ERROR: %s:%d invalid buffer length\n",__FILE__,__LINE__);
-	return -1;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d invalid buffer length\n",__FILE__,__LINE__);
+        return -1;
+        }
     assert(bytes_read == buffer_length);
     return 0;
     }
@@ -410,21 +410,21 @@ int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm com
     {
     assert(p);
     if( source >= p->info_MPI.world_size)
-	{
-	fprintf(stderr,"ERROR: %s:%d World rank %d requested to recv a polymer"
-		" from world rank %d, but only %d w. ranks are known.\n",
-		__FILE__,__LINE__, p->info_MPI.world_rank, source, p->info_MPI.world_size);
-	return -2;
-	}
+        {
+        fprintf(stderr,"ERROR: %s:%d World rank %d requested to recv a polymer"
+                " from world rank %d, but only %d w. ranks are known.\n",
+                __FILE__,__LINE__, p->info_MPI.world_rank, source, p->info_MPI.world_size);
+        return -2;
+        }
     unsigned int Nsends;
     unsigned int buffer_length;
     unsigned char*const buffer = recv_mult_polymers_core(source, comm, &Nsends, &buffer_length);
     if(buffer != NULL)
-	{
-	deserialize_mult_polymers(p, Nsends, buffer_length, buffer);
-	free(buffer);
-	return Nsends;
-	}
+        {
+        deserialize_mult_polymers(p, Nsends, buffer_length, buffer);
+        free(buffer);
+        return Nsends;
+        }
     return 0;
     }
 
@@ -432,25 +432,25 @@ int load_balance_mpi_ranks(struct Phase*const p)
     {
 
     if( p->info_MPI.domain_size <= 1)
-	return 0;
+        return 0;
     double*const waiting_time = (double*const)malloc(p->info_MPI.domain_size*sizeof(double));
     if(waiting_time == NULL){fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__); return -1;}
     double div = p->info_MPI.domain_divergence_sec/p->info_MPI.domain_divergence_counter;
 
     MPI_Allgather( &(div), 1 , MPI_DOUBLE, waiting_time, 1 , MPI_DOUBLE,
-		   p->info_MPI.SOMA_comm_domain);
+                   p->info_MPI.SOMA_comm_domain);
     //Reset counters.
     p->info_MPI.domain_divergence_sec = 0;
     p->info_MPI.domain_divergence_counter = 0;
 
     int arg_max=0,arg_min=0;
     for(int i=0; i < p->info_MPI.domain_size; i++)
-	{
-	if( waiting_time[i] > waiting_time[arg_max] )
-	    arg_max = i;
-	if( waiting_time[i] < waiting_time[arg_min] )
-	    arg_min = i;
-	}
+        {
+        if( waiting_time[i] > waiting_time[arg_max] )
+            arg_max = i;
+        if( waiting_time[i] < waiting_time[arg_min] )
+            arg_min = i;
+        }
 
     //Quick exit, if no balance required.
     const double divergences = waiting_time[arg_max]-waiting_time[arg_min];
@@ -465,38 +465,38 @@ int load_balance_mpi_ranks(struct Phase*const p)
     const double max_p_waiting = passed_acc >=0 && passed_acc<= 1 ? passed_acc : 0.08;
     char quick_exit = p_waiting < max_p_waiting;
     if( quick_exit )
-	return 0;
+        return 0;
 
     unsigned int Nchains = p_waiting*p->n_polymers*0.05 + 1;
     //Limit transferred chains to 5%
     if( Nchains > 0.05 * p->n_polymers )
-	Nchains = 0.05 * p->n_polymers +1;
+        Nchains = 0.05 * p->n_polymers +1;
 
     unsigned int Nsend = UINT_MAX;
     //! \todo Optimize chain to send. (Poly-Type based?)
     if( p->info_MPI.domain_rank == arg_min )
-	Nsend = send_mult_polymers(p, arg_max, Nchains,p->info_MPI.SOMA_comm_domain);
+        Nsend = send_mult_polymers(p, arg_max, Nchains,p->info_MPI.SOMA_comm_domain);
 
     if( p->info_MPI.domain_rank == arg_max )
-	Nsend = recv_mult_polymers(p, arg_min,p->info_MPI.SOMA_comm_domain);
+        Nsend = recv_mult_polymers(p, arg_min,p->info_MPI.SOMA_comm_domain);
 
     if( arg_min != 0)
-	{
-	if(p->info_MPI.domain_rank == arg_min)
-	    {
-	    MPI_Send(&Nsend, 1 , MPI_UNSIGNED, 0, 0 , p->info_MPI.SOMA_comm_domain);
-	    }
-	if(p->info_MPI.domain_rank == 0)
-	    {
-	    MPI_Recv(&Nsend, 1 , MPI_UNSIGNED , arg_min , 0,
-		     p->info_MPI.SOMA_comm_domain,MPI_STATUS_IGNORE);
-	    }
-	}
+        {
+        if(p->info_MPI.domain_rank == arg_min)
+            {
+            MPI_Send(&Nsend, 1 , MPI_UNSIGNED, 0, 0 , p->info_MPI.SOMA_comm_domain);
+            }
+        if(p->info_MPI.domain_rank == 0)
+            {
+            MPI_Recv(&Nsend, 1 , MPI_UNSIGNED , arg_min , 0,
+                     p->info_MPI.SOMA_comm_domain,MPI_STATUS_IGNORE);
+            }
+        }
 
     if( p->info_MPI.domain_rank == 0)
-	printf("INFO world rank %d: Load balance @t=%d, sending %d chains from domain rank"
-	       " %d to domain rank %d, because of %f percent waiting.\n",
-	       p->info_MPI.world_rank,p->time,Nsend,arg_min,arg_max,p_waiting*100.);
+        printf("INFO world rank %d: Load balance @t=%d, sending %d chains from domain rank"
+               " %d to domain rank %d, because of %f percent waiting.\n",
+               p->info_MPI.world_rank,p->time,Nsend,arg_min,arg_max,p_waiting*100.);
 
     //Synchronize rank, because otherwise a false unbalance would be
     //detected.
@@ -505,7 +505,7 @@ int load_balance_mpi_ranks(struct Phase*const p)
     }
 
 int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list, const unsigned int len_domain_list,
-			    unsigned int*const n_sends,unsigned int*const buffer_len, unsigned char**const buffer,const unsigned int my_domain)
+                            unsigned int*const n_sends,unsigned int*const buffer_len, unsigned char**const buffer,const unsigned int my_domain)
     {
 
     memset( n_sends, 0, len_domain_list*sizeof(unsigned int) );
@@ -513,62 +513,62 @@ int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list
 
     unsigned int chains_missed=0;
     for(unsigned int i=0; i< p->n_polymers; i++)
-	{
-	update_self_polymer(p, p->polymers+i);
-	const unsigned int target_domain = get_domain_id(p, &(p->polymers[i].rcm) );
-	if( target_domain != my_domain)
-	    {
-	    const int domain_index = domain_lookup_list[target_domain];
-	    if( domain_index >= 0)
-		{
-		assert( (unsigned int)domain_index < len_domain_list);
-		n_sends[domain_index] += 1;
-		buffer_len[domain_index] += poly_serial_length(p, p->polymers+i);
-		}
-	    else
-		chains_missed += 1;
-	    }
-	}
+        {
+        update_self_polymer(p, p->polymers+i);
+        const unsigned int target_domain = get_domain_id(p, &(p->polymers[i].rcm) );
+        if( target_domain != my_domain)
+            {
+            const int domain_index = domain_lookup_list[target_domain];
+            if( domain_index >= 0)
+                {
+                assert( (unsigned int)domain_index < len_domain_list);
+                n_sends[domain_index] += 1;
+                buffer_len[domain_index] += poly_serial_length(p, p->polymers+i);
+                }
+            else
+                chains_missed += 1;
+            }
+        }
 
     unsigned int*const buffer_offsets = (unsigned int*const) malloc( len_domain_list*sizeof(unsigned int));
     MALLOC_ERROR_CHECK(buffer_offsets, len_domain_list*sizeof(unsigned int));
 
     //Allocate buffers
     for(unsigned int i=0; i < len_domain_list ; i++)
-	{
-	buffer_offsets[i] = 0;
-	buffer[i] = (unsigned char*const) malloc( buffer_len[i] * sizeof(unsigned char));
-	MALLOC_ERROR_CHECK(buffer[i], buffer_len[i] * sizeof(unsigned char));
-	}
+        {
+        buffer_offsets[i] = 0;
+        buffer[i] = (unsigned char*const) malloc( buffer_len[i] * sizeof(unsigned char));
+        MALLOC_ERROR_CHECK(buffer[i], buffer_len[i] * sizeof(unsigned char));
+        }
 
     Polymer poly;
     for(unsigned int i=0; i< p->n_polymers; i++)
-	{
-	assert( i < p->n_polymers);
-	const unsigned int target_domain = get_domain_id(p, &(p->polymers[i].rcm));
-	if( my_domain != target_domain )
-	    {
-	    const int domain_index = domain_lookup_list[target_domain];
-	    if( domain_index >=0 )
-		{
-		assert((unsigned int)domain_index < len_domain_list);
-		pop_polymer(p, i, &poly);
-		i -= 1;
-		const unsigned int poly_bytes = serialize_polymer(p, &poly, buffer[domain_index] + buffer_offsets[domain_index] );
-		//After serialization the polymer deep memory can be freed.
-		free_polymer(p, &poly);
-		buffer_offsets[ domain_index ] += poly_bytes;
-		}
-	    }
-	}
+        {
+        assert( i < p->n_polymers);
+        const unsigned int target_domain = get_domain_id(p, &(p->polymers[i].rcm));
+        if( my_domain != target_domain )
+            {
+            const int domain_index = domain_lookup_list[target_domain];
+            if( domain_index >=0 )
+                {
+                assert((unsigned int)domain_index < len_domain_list);
+                pop_polymer(p, i, &poly);
+                i -= 1;
+                const unsigned int poly_bytes = serialize_polymer(p, &poly, buffer[domain_index] + buffer_offsets[domain_index] );
+                //After serialization the polymer deep memory can be freed.
+                free_polymer(p, &poly);
+                buffer_offsets[ domain_index ] += poly_bytes;
+                }
+            }
+        }
 
     //Check buffer for consistency
     for(unsigned int i=0; i < len_domain_list; i++)
-	{ assert( buffer_offsets[i] == buffer_len[i] );}
+        { assert( buffer_offsets[i] == buffer_len[i] );}
 
 
     if( chains_missed != 0)
-	printf("ERROR: %s:%d: World rank %d has to send %d chains to a non neighbor rank. Restart simulation with higher rcm update rate.\n",__FILE__,__LINE__,p->info_MPI.world_rank,chains_missed);
+        printf("ERROR: %s:%d: World rank %d has to send %d chains to a non neighbor rank. Restart simulation with higher rcm update rate.\n",__FILE__,__LINE__,p->info_MPI.world_rank,chains_missed);
     free(buffer_offsets);
     return chains_missed;
     }
@@ -576,7 +576,7 @@ int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list
 int send_domain_chains(struct Phase*const p,const bool init)
     {
     if(p->args.N_domains_arg < 2)
-	return 0;
+        return 0;
     update_polymer_rcm(p);
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
@@ -600,25 +600,25 @@ int send_domain_chains(struct Phase*const p,const bool init)
     MALLOC_ERROR_CHECK(recv_buffer, len_domain_list*sizeof(unsigned int));
 
     if(init)
-	{
-	for(unsigned int i=0; i< (unsigned int)p->args.N_domains_arg; i++)
-	    {
-	    if( i < my_domain )
-		domain_list[i] = i;
-	    else if( i > my_domain )
-		domain_list[i-1] = i;
-	    }
-	}
+        {
+        for(unsigned int i=0; i< (unsigned int)p->args.N_domains_arg; i++)
+            {
+            if( i < my_domain )
+                domain_list[i] = i;
+            else if( i > my_domain )
+                domain_list[i-1] = i;
+            }
+        }
     else
-	{
-	domain_list[0] = my_domain == 0 ? (unsigned int)p->args.N_domains_arg -1 : my_domain -1;
-	domain_list[1] = (int)my_domain == p->args.N_domains_arg -1 ? 0 : my_domain +1;
-	}
+        {
+        domain_list[0] = my_domain == 0 ? (unsigned int)p->args.N_domains_arg -1 : my_domain -1;
+        domain_list[1] = (int)my_domain == p->args.N_domains_arg -1 ? 0 : my_domain +1;
+        }
 
     for(unsigned int i=0; i< (unsigned int)p->args.N_domains_arg; i++)
-	domain_lookup_list[i] = -1; //Default
+        domain_lookup_list[i] = -1; //Default
     for(unsigned int i=0; i < len_domain_list; i++)
-	domain_lookup_list[ domain_list[i] ] = i;
+        domain_lookup_list[ domain_list[i] ] = i;
 
     const int missed_chains = extract_chains_per_domain(p, domain_lookup_list, len_domain_list, n_sends, send_len, send_buffer, my_domain);
 
@@ -629,51 +629,51 @@ int send_domain_chains(struct Phase*const p,const bool init)
 
     //Send out all the Nsends and buffer lengths
     for(unsigned int i=0; i< len_domain_list; i++)
-	{
-	const unsigned int comm_domain = domain_list[i];
-	const unsigned int comm_to = comm_domain*p->info_MPI.domain_size + p->info_MPI.domain_rank;
-	MPI_Isend(n_sends + i, 1, MPI_UNSIGNED, comm_to, 0,p->info_MPI.SOMA_comm_sim,req+ (0*len_domain_list + i));
-	MPI_Isend(send_len + i, 1, MPI_UNSIGNED, comm_to, 1,p->info_MPI.SOMA_comm_sim,req+(1*len_domain_list + i));
+        {
+        const unsigned int comm_domain = domain_list[i];
+        const unsigned int comm_to = comm_domain*p->info_MPI.domain_size + p->info_MPI.domain_rank;
+        MPI_Isend(n_sends + i, 1, MPI_UNSIGNED, comm_to, 0,p->info_MPI.SOMA_comm_sim,req+ (0*len_domain_list + i));
+        MPI_Isend(send_len + i, 1, MPI_UNSIGNED, comm_to, 1,p->info_MPI.SOMA_comm_sim,req+(1*len_domain_list + i));
 
-	MPI_Irecv(n_recv + i, 1, MPI_UNSIGNED, comm_to, 0, p->info_MPI.SOMA_comm_sim, req+(2*len_domain_list + i));
-	MPI_Irecv(recv_len + i, 1, MPI_UNSIGNED, comm_to, 1, p->info_MPI.SOMA_comm_sim, req+(3*len_domain_list + i));
-	}
+        MPI_Irecv(n_recv + i, 1, MPI_UNSIGNED, comm_to, 0, p->info_MPI.SOMA_comm_sim, req+(2*len_domain_list + i));
+        MPI_Irecv(recv_len + i, 1, MPI_UNSIGNED, comm_to, 1, p->info_MPI.SOMA_comm_sim, req+(3*len_domain_list + i));
+        }
     //Finish the communication
     MPI_Waitall(4*len_domain_list,req,status);
     MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why, but it doesn't hurt
 
     //Allocate space for recieving the polymers
     for(unsigned int i=0; i< len_domain_list; i++)
-	{
-	recv_buffer[i] = (unsigned char*) malloc( recv_len[i] * sizeof(unsigned char) );
-	MALLOC_ERROR_CHECK(recv_buffer[i], recv_len[i]*sizeof(unsigned char));
-	}
+        {
+        recv_buffer[i] = (unsigned char*) malloc( recv_len[i] * sizeof(unsigned char) );
+        MALLOC_ERROR_CHECK(recv_buffer[i], recv_len[i]*sizeof(unsigned char));
+        }
     //Send and recv all the buffers
     unsigned int total_chains_recv = 0;
     for(unsigned int i=0; i < len_domain_list; i++)
-	{
-	const unsigned int comm_domain = domain_list[i];
-	const unsigned int comm_to = comm_domain*p->info_MPI.domain_size + p->info_MPI.domain_rank;
-	MPI_Isend( send_buffer[i], send_len[i], MPI_UNSIGNED_CHAR, comm_to, 2, p->info_MPI.SOMA_comm_sim, req +(0*len_domain_list+i));
+        {
+        const unsigned int comm_domain = domain_list[i];
+        const unsigned int comm_to = comm_domain*p->info_MPI.domain_size + p->info_MPI.domain_rank;
+        MPI_Isend( send_buffer[i], send_len[i], MPI_UNSIGNED_CHAR, comm_to, 2, p->info_MPI.SOMA_comm_sim, req +(0*len_domain_list+i));
 
-	MPI_Irecv( recv_buffer[i], recv_len[i], MPI_UNSIGNED_CHAR, comm_to, 2, p->info_MPI.SOMA_comm_sim, req +(1+len_domain_list+i));
-	total_chains_recv += n_recv[i];
-	}
+        MPI_Irecv( recv_buffer[i], recv_len[i], MPI_UNSIGNED_CHAR, comm_to, 2, p->info_MPI.SOMA_comm_sim, req +(1+len_domain_list+i));
+        total_chains_recv += n_recv[i];
+        }
     MPI_Waitall(2*len_domain_list,req,status);
     MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why,but it doesn't hurt
 
     //Deserialize
     if( p->n_polymers + total_chains_recv > p->n_polymers_storage)
-	reallocate_polymer_mem(p, p->n_polymers + total_chains_recv);
+        reallocate_polymer_mem(p, p->n_polymers + total_chains_recv);
     for(unsigned int i=0; i < len_domain_list; i++)
-	{
-	if(recv_buffer[i] != NULL)
-	    {
-	    deserialize_mult_polymers(p, n_recv[i], recv_len[i], recv_buffer[i]);
-	    free(recv_buffer[i]);
-	    free(send_buffer[i]);
-	    }
-	}
+        {
+        if(recv_buffer[i] != NULL)
+            {
+            deserialize_mult_polymers(p, n_recv[i], recv_len[i], recv_buffer[i]);
+            free(recv_buffer[i]);
+            free(send_buffer[i]);
+            }
+        }
     free(domain_list);
     free(domain_lookup_list);
     free(req);
@@ -693,7 +693,7 @@ unsigned int get_domain_id(const struct Phase*const p,const Monomer*const rcm)
     const int fold = rint( rcm->x / p->Lx );
     soma_scalar_t x = rcm->x - fold*p->Lx;
     if( x < 0)
-	x += p->Lx;
+        x += p->Lx;
     const unsigned int target_domain = x / p->Lx * p->args.N_domains_arg;
 
     assert( (int) target_domain < p->args.N_domains_arg);

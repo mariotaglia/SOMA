@@ -118,10 +118,14 @@ int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,con
 //! \param p Pointer to the state of the system.
 //! \param field_pointer Pointer to the field that should be outputted
 //! \param field_name Name of the field, eg. "\density_field"
-//! \param type The H5-Datatype for the output of the field
+//! \param hdf5_type The H5-Datatype for the output of the field
+//! \param mpi_type The MPI_Datatype of the field
+//! \param data_size sizeof( datatype ) to get the number of bytes
 //! \return Errorcode.
 //! \todo The ouput is not yet parallel.
-int extent_density_field(const struct Phase*const p,void * field_pointer,char * field_name,hid_t type);
+int extent_density_field(const struct Phase*const p,const void *const field_pointer,
+                         const char *const field_name, hid_t hdf5_type,
+                         const MPI_Datatype mpi_type,const size_t data_size);
 
 
 #endif//SOMA_ANA_H
