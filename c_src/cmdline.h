@@ -92,9 +92,9 @@ struct som_args
   int autotuner_restart_period_arg;	/**< @brief Period in which the autotuner is restarted. (default='10000').  */
   char * autotuner_restart_period_orig;	/**< @brief Period in which the autotuner is restarted. original value given at command line.  */
   const char *autotuner_restart_period_help; /**< @brief Period in which the autotuner is restarted. help description.  */
-  int N_domains_arg;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes) (default='1').  */
-  char * N_domains_orig;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes) original value given at command line.  */
-  const char *N_domains_help; /**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the Z-Axes) help description.  */
+  int N_domains_arg;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes) (default='1').  */
+  char * N_domains_orig;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes) original value given at command line.  */
+  const char *N_domains_help; /**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes) help description.  */
   int domain_buffer_arg;	/**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. (default='10').  */
   char * domain_buffer_orig;	/**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. original value given at command line.  */
   const char *domain_buffer_help; /**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. help description.  */
