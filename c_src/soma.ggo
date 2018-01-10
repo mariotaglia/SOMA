@@ -1,4 +1,4 @@
-#   Copyright (C) 2016-2017 Ludwig Schneider
+#   Copyright (C) 2016-2018 Ludwig Schneider
 #   Copyright (C) 2016-2017 Marcel Langenberg
 #
 # This file is part of SOMA.
@@ -19,7 +19,7 @@
 
 package "SOMA"
 version "replace-version"
-versiontext "SOMA  Copyright (C) 2016-2017 Ludwig Schneider, Ulrich Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco and more. This program comes with ABSOLUTELY NO WARRANTY; see GNU Lesser General Public Licence v3 for details. This is free software, and you are welcome to redistribute it under certain conditions; see GNU Lesser General Public Licence v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to Computer Physics Communications. \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18"
+versiontext "SOMA  Copyright (C) 2016-2018 Ludwig Schneider, Ulrich Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco and more. This program comes with ABSOLUTELY NO WARRANTY; see GNU Lesser General Public License v3 for details. This is free software, and you are welcome to redistribute it under certain conditions; see GNU Lesser General Public License v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to Computer Physics Communications. \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18"
 purpose "Running SCMF simulations and timings."
 usage "./SOMA options"
 
@@ -45,3 +45,4 @@ option "domain-buffer" - "Number of buffer cells which can contain ghost particl
 option "rcm-update" - "Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation" int typestr="f" optional default="10"
 option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="user-args" optional
 option "set-generation-algorithm" - "Option to select the algorithm to generate the indepent sets." enum typestr="SET-ALG" values="SIMPLE","FIXED-N-SETS" default="SIMPLE" optional
+

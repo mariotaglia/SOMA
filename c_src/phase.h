@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2017 Ludwig Schneider
+/* Copyright (C) 2016-2018 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
