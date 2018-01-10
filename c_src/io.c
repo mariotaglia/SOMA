@@ -387,6 +387,7 @@ int write_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_
     const hsize_t offset[3] = { my_domain*(p->nx/p->args.N_domains_arg), 0 , 0};
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
+    MPI_Barrier( p->info_MPI.SOMA_comm_world);
     int status;
     if ((status =
          H5Dwrite(dataset, H5T_NATIVE_UINT8, memspace,dataspace, plist_id, p->area51 + ghost_buffer_size)) < 0) {
@@ -409,7 +410,7 @@ int write_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_
 
     if ((status = H5Dclose(dataset)) < 0) {
         fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                 p->info_MPI.world_rank, __FILE__, __LINE__, status);
         return status;
         }
 
@@ -432,10 +433,19 @@ int write_field_hdf5(const struct Phase*const p, const hid_t file_id,
     int status;
     for(unsigned int type=0; type < p->n_types ; type++)
         {
-        dataspace = H5Dget_space(dataset);
-        const hsize_t offset[4] = {type, my_domain*(p->nx/p->args.N_domains_arg), p->ny, p->nz};
-        H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
+        if ((status = H5Sclose(dataspace)) < 0)
+            {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return status;
+            }
 
+        dataspace = H5Dget_space(dataset);
+        hsize_t tmp[4];
+        H5Sget_simple_extent_dims(dataspace,tmp,NULL);
+        const hsize_t offset[4] = {type, my_domain*(p->nx/p->args.N_domains_arg), 0, 0};
+
+        H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
         const soma_scalar_t*const ptr = field + ghost_buffer_size + type*p->n_cells_local;
         if ((status = H5Dwrite(dataset, H5T_SOMA_NATIVE_SCALAR,memspace,dataspace, plist_id, ptr)) < 0)
             {
@@ -444,21 +454,18 @@ int write_field_hdf5(const struct Phase*const p, const hid_t file_id,
             return status;
             }
         }
-
     if ((status = H5Sclose(dataspace)) < 0)
         {
         fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
                 p->info_MPI.world_rank, __FILE__, __LINE__, status);
         return status;
         }
-
     if ((status = H5Sclose(memspace)) < 0)
         {
         fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
                 p->info_MPI.world_rank, __FILE__, __LINE__, status);
         return status;
         }
-
     if ((status = H5Dclose(dataset)) < 0)
         {
         fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
@@ -1065,6 +1072,14 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
     p->nx = nxyz[0];
     p->ny = nxyz[1];
     p->nz = nxyz[2];
+
+    if( p->nx % p->args.N_domains_arg != 0)
+        {
+        fprintf(stderr, "ERROR: %s:%d\n\t"
+                "The nx %d number is not divible by the number of domains %d\n",
+                __FILE__,__LINE__,p->nx,p->args.N_domains_arg);
+        return -3;
+        }
 
     // read lx ly lz
     soma_scalar_t lxyz[3];

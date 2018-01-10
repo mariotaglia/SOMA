@@ -78,7 +78,7 @@ int init_phase(struct Phase * const p)
     p->n_cells = p->nx * p->ny * p->nz;
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
     p->local_nx_low = (p->nx/p->args.N_domains_arg * my_domain) - p->args.domain_buffer_arg;
-    p->local_nx_high = (p->nx/p->args.N_domains_arg * my_domain) + p->args.domain_buffer_arg;
+    p->local_nx_high = p->local_nx_low + p->nx/p->args.N_domains_arg + 2* p->args.domain_buffer_arg;
     p->n_cells_local = (p->local_nx_high - p->local_nx_low) * p->ny * p->nz;
 
     //Check if it is a valid domain decomposition

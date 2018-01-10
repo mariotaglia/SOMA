@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
         fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
         return -1;
         }
+        {int tmp; MPI_Comm_rank( p->info_MPI.SOMA_comm_world, &tmp); p->info_MPI.world_rank=tmp;}
     const int error2 = MPI_Comm_dup( p->info_MPI.SOMA_comm_world, &(p->info_MPI.SOMA_comm_sim) );
     if( error2 != MPI_SUCCESS)
         {
@@ -195,7 +196,6 @@ int main(int argc, char *argv[])
 
     const int write = write_config_hdf5(p, filename);
     MPI_ERROR_CHECK(write, "Cannot write final configuration.");
-
     if( !stop_iteration && ! p->args.skip_tests_flag)
         {
         const int test51 = test_area51_violation(p);
