@@ -59,7 +59,6 @@ inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t
   *x = (int)( px * p->iLx * p->nx);
   *y = (int)( py * p->iLy * p->ny);
   *z = (int)( pz * p->iLz * p->nz);
-
 }
 
 
@@ -82,7 +81,9 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
         if( xt >= p->local_nx_high ) //Wrap back if necessary
             xt -= p->nx;
         if( xt < p->local_nx_low || xt >= p->local_nx_high )
+            {
             return UINT64_MAX; //Error, requested indext out of local bounds
+            }
         xt -= p->local_nx_low;
         }
     //Unified data layout [type][x][y][z]

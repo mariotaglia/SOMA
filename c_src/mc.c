@@ -84,7 +84,7 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p,const Monomer*const mo
     const soma_scalar_t zold = monomer->z;
     const uint64_t cellindex_old = coord_to_index_unified(p, xold, yold, zold, iwtype);
     const uint64_t cellindex_new = coord_to_index_unified(p, xold+dx, yold+dy, zold+dz, iwtype);
-    if( cellindex_old > p->n_cells_local || cellindex_new > p->n_cells_local)
+    if( cellindex_old > p->n_cells_local*p->n_types || cellindex_new > p->n_cells_local*p->n_types)
         {
 #ifdef NAN
         return NAN;
@@ -118,11 +118,7 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * const p,const Monomer*const
     {
     soma_scalar_t delta_energy = 0;
     // loop over bonds of this bead
-    //printf("== %d \n",ibead) ;
-    //printf("   poly type = %d \n",p->polymers[ipoly].type) ;
     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[p->polymers[ipoly].type] + ibead + 1]);
-
-    //printf("   start = %d \n",start) ;
 
     if(start > 0){
         int i = start;
@@ -136,8 +132,6 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * const p,const Monomer*const
 
             const int neighbour_id = ibead + offset;
             const unsigned int jbead = neighbour_id;
-            //printf("    offset=%d jbead=%u  end=%u type=%u\n",neigh->offset,jbead,end,neigh->bond_type);
-
             soma_scalar_t scale = 1.;
             switch (bond_type) {
             case HARMONICVARIABLESCALE:
@@ -395,7 +389,9 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
                 const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx,dy,dz,p->args.nonexact_area51_flag);
                 delta_energy = calc_delta_energy(p, npoly,&mybead, ibead, dx, dy, dz,iwtype);
                 if( isnan(delta_energy) )
+                    {
                     error_flags[0] = npoly + 1;
+                    }
                 if ( move_allowed  )
                     {
                     delta_energy+=smc_deltaE;
