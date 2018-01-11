@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#   Copyright (C) 2016-2018 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+
+DELTA=0
+
+@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i domain.xml --no-ana-output
+
+if [ ! $? -eq 0 ]; then
+    exit -1
+fi
+
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain.h5 -r 11 -t 0 -d 4 @ACC_FLAG@
+mv end.h5 domain0.h5
+
+if [ ! $? -eq 0 ]; then
+    exit -5
+fi
+
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 -d 1 @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -2
+fi
+mv end.h5 domain1.h5
+
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 -d 2 @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -3
+fi
+mv end.h5 domain2.h5
+
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 -d 4 @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -4
+fi
+mv end.h5 domain4.h5
+
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -5
+fi
+mv end.h5 domainN.h5
+
+
+
+python compare_mixed_bead_data.py domain1.h5 domain2.h5
+if [ ! $? -eq 0 ]; then
+    exit -7
+fi
+python compare_mixed_bead_data.py domain1.h5 domain4.h5
+if [ ! $? -eq 0 ]; then
+    exit -8
+fi
+python compare_mixed_bead_data.py domain1.h5 domainN.h5
+if [ ! $? -eq 0 ]; then
+    exit -9
+fi
