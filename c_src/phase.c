@@ -181,8 +181,9 @@ int init_phase(struct Phase * const p)
             for (uint64_t i = 0; i < p->n_cells; i++)
                 if ( p->area51[i] > 0 ) ncells--;
             }
-        ncells = 0;
         }
+    else
+        ncells=0;//Not domain rank == 0, count only once per domain
     MPI_Allreduce( MPI_IN_PLACE, &ncells, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 
     // Loop to calculate scaling parameter

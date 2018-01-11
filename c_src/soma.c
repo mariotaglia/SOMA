@@ -42,7 +42,6 @@
 #include "rng.h"
 #include "generate_positions.h"
 
-
 //! Main Function of the Executable SOMA
 //! \private
 //!
@@ -97,7 +96,6 @@ int main(int argc, char *argv[])
         finalize_MPI(&(p->info_MPI));
         return 0;
         }
-
     if(p->args.move_type_arg == move_type_arg_TRIAL)
         {MPI_ERROR_CHECK(1,"ERROR: Trial move type is currently not working.");}
 
@@ -123,6 +121,7 @@ int main(int argc, char *argv[])
 
     if( !p->bead_data_read )
         {
+
         if(p->info_MPI.sim_rank == 0)
             printf("INFO: Generating new bead initial data. "
                    "If your configuration contains rings "
