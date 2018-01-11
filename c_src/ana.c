@@ -554,8 +554,6 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
             filespace = H5Dget_space(dset);
             HDF5_ERROR_CHECK(filespace);
 
-            dims_offset[1] += p->nx/p->args.N_domains_arg;
-
             status = H5Sselect_hyperslab(filespace,H5S_SELECT_SET,dims_offset,NULL,dims_memspace,NULL);
             HDF5_ERROR_CHECK(status);
             status = H5Dwrite(dset,hdf5_type,memspace,filespace,plist_id,ptr);
@@ -566,6 +564,7 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
                 {
                 const unsigned int rank = (i+1)*p->args.N_domains_arg;
                 MPI_Recv( ptr, buffer_size, mpi_type, rank, i, p->info_MPI.SOMA_comm_sim,MPI_STATUS_IGNORE);
+                dims_offset[1] += p->nx/p->args.N_domains_arg;
                 }
             }
 
