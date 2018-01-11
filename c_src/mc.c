@@ -87,7 +87,11 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p,const Monomer*const mo
     if( cellindex_old > p->n_cells_local*p->n_types || cellindex_new > p->n_cells_local*p->n_types)
         {
 #ifdef NAN
+#ifdef _OPENACC
+        return 0/0;
+#else //_OPENACC
         return NAN;
+#endif//_OPENACC
 #else
         return nan("");
 #endif//NAN
@@ -275,7 +279,7 @@ int mc_center_mass(Phase*const p, const unsigned int nsteps,const unsigned int t
                         delta_energy += calc_delta_energy(p, npoly,&mybead, ibead, dx, dy, dz,iwtype);
                         }
                     }
-                if( isnan(delta_energy) )
+                if( delta_energy != delta_energy) // isnan(delta_energy) ) not working with PGI OpanACC
                     {
                     error_flags[0] = npoly+1;
                     move_allowed = 0;
@@ -324,7 +328,7 @@ int mc_center_mass(Phase*const p, const unsigned int nsteps,const unsigned int t
 }
 
 int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter)
-{
+    {
     //Shutup compiler warning
     unsigned int step=tuning_parameter;step=0;
 
@@ -388,7 +392,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
                 soma_scalar_t newz = mybead.z+dz;
                 const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx,dy,dz,p->args.nonexact_area51_flag);
                 delta_energy = calc_delta_energy(p, npoly,&mybead, ibead, dx, dy, dz,iwtype);
-                if( isnan(delta_energy) )
+                if( delta_energy != delta_energy) // isnan(delta_energy) ) not working with PGI OpenACC
                     {
                     error_flags[0] = npoly + 1;
                     }
@@ -438,7 +442,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
     //#define CHECK_PGI_BUG
 
     int error_flags[2]={0}; // [0] domain error, [1] pgi_bug
-#pragma acc enter data copyin(error_flag[0:2])
+#pragma acc enter data copyin(error_flags[0:2])
 
     const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
     const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
@@ -543,7 +547,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
                                 // calculate energy change
                                 const soma_scalar_t delta_energy =
                                     calc_delta_energy(p, npoly,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
-                                if( isnan(delta_energy) )
+                                if( delta_energy != delta_energy ) //isnan(delta_energy) ) not working with PGI OpenACC
                                     error_flags[0] = npoly + 1;
 
                                 if ( move_allowed  )
@@ -584,7 +588,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
         }
     int ret = 0;
 
-#pragma acc exit data copyout(error_flag[0:2])
+#pragma acc exit data copyout(error_flags[0:2])
     if(error_flags[0] != 0)
         {
         fprintf(stderr,"ERROR: Domain error. %d"
