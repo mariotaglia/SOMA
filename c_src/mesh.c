@@ -135,7 +135,7 @@ int update_density_fields(const struct Phase *const p)
                     const unsigned int index = coord_to_index_unified(p, p->polymers[i].beads[j].x,
                                                                       p->polymers[i].beads[j].y,
                                                                       p->polymers[i].beads[j].z, monotype);
-                    if( index < p->n_cells_local)
+                    if( index < p->n_cells_local*p->n_types)
                         {
 #pragma acc atomic update
 #pragma omp atomic
@@ -143,7 +143,7 @@ int update_density_fields(const struct Phase *const p)
                         }
                     else
                         {
-                        error_flags[0] = i;
+                        error_flags[0] = i+1;
                         }
                     }
                 }
@@ -151,10 +151,10 @@ int update_density_fields(const struct Phase *const p)
 #pragma acc exit data copyout(error_flags[0:1])
     if(error_flags[0] != 0)
         {
-        fprintf(stderr,"ERROR: Domain error. %d"
+        fprintf(stderr,"ERROR: Domain error. %d world-rank %d"
                 " A particle has left the buffer domain."
                 " Restart your simulation with larger buffers. %s:%d\n"
-                ,error_flags[0],__FILE__,__LINE__);
+                ,error_flags[0],p->info_MPI.world_rank,__FILE__,__LINE__);
         return error_flags[0];
         }
 

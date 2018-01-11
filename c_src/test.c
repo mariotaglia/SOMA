@@ -119,6 +119,9 @@ int test_area51_violation(const struct Phase * const p)
                 if( index >= p->n_cells_local )
                     {
                     fprintf(stderr,"ERROR: domain Error %d %d. Particle out of domain %s:%d\n",(int)i,j,__FILE__,__LINE__);
+                    int x,y,z;
+                    coord_to_cell_coordinate(p, p->polymers[i].beads[j].x, p->polymers[i].beads[j].y, p->polymers[i].beads[j].z, &x, &y, &z);
+                    fprintf(stderr, "\t %d %f %f %f\t %d %d %d\t %d %d\t %f %f %f\n", p->info_MPI.world_rank,p->polymers[i].beads[j].x,p->polymers[i].beads[j].y,p->polymers[i].beads[j].z,x,y,z,p->local_nx_low,p->local_nx_high,p->polymers[i].rcm.x,p->polymers[i].rcm.y,p->polymers[i].rcm.z);
                     return index;
                     }
                 if(p->area51[index] == 1){

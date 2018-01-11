@@ -80,8 +80,11 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
         {
         if( xt >= p->local_nx_high ) //Wrap back if necessary
             xt -= p->nx;
+        if( xt < p->local_nx_low )
+            xt += p->nx;
         if( xt < p->local_nx_low || xt >= p->local_nx_high )
             {
+            //printf("%d\t%d(%d) %d %d\t %d %d \t %d\n",p->info_MPI.world_rank, x,x-p->local_nx_low,y,z,p->local_nx_low,p->local_nx_high,xt);
             return UINT64_MAX; //Error, requested indext out of local bounds
             }
         xt -= p->local_nx_low;

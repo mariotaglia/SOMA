@@ -162,7 +162,7 @@ int generate_new_beads(struct Phase*const p)
 
                 domain_counter += 1;
                 idx = coord_to_index(p,x,y,z); // > p->n_cells_local if position is out of the domain
-                }while( p->area51 != NULL && (idx > p->n_cells_local ||  p->area51[idx] == 1) );
+                }while( p->area51 != NULL && (idx >= p->n_cells_local ||  p->area51[idx] == 1) );
 
             poly->beads[free_index].x = x; poly->beads[free_index].y = y;
             poly->beads[free_index].z = z; already_set[free_index] = true;

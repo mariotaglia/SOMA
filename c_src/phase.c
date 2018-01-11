@@ -218,6 +218,9 @@ int init_phase(struct Phase * const p)
 
     if(p->bead_data_read)
         {
+        const int init_domain_chains_status = send_domain_chains(p,true);
+        if( init_domain_chains_status != 0)
+            return init_domain_chains_status;
         update_density_fields(p);
         memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local*p->n_types*sizeof(uint16_t));
         }
