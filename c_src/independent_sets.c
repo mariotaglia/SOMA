@@ -379,7 +379,6 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 	bond_number++;
 	start_offset_bond++;
       }while(end!=1);
-
       bond_number_total[monomer_i-p->poly_type_offset[n_poly]-1]=bond_number;
       bonds_total[monomer_i-p->poly_type_offset[n_poly]-1]=(unsigned int *)malloc(bond_number*sizeof(unsigned int));
       if(bonds_total[monomer_i-p->poly_type_offset[n_poly]-1] == NULL)
@@ -444,11 +443,11 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
       break;
     if(monomer_checked[mono_i]==-1)
       continue;
-    monomer_checked[mono_i]=-1;
     if(mono_i!=0)
       current_monomer=mono_i;
     else
       current_monomer=max_bond;
+    monomer_checked[current_monomer]=-1;
     //find the set with least member //only help for if the chain is not separated into single chains
     int start_set=0;
     for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
@@ -475,6 +474,8 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 
     offset_set[start_set]++;//neighbour of central monomer are all found now
     unsigned int current_set=start_set+1; //the current set we are studying
+    if(current_set>max_bond_number)
+      current_set=current_set-max_bond_number-1;
     int chain_finished=0;
     for(unsigned int set_i=0;set_i<max_bond_number+1;set_i++){
       if(offset_set[set_i]!=end_set[set_i]){
@@ -492,7 +493,6 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
       unsigned int writein_set=current_set-1; //which set to put the new element into (the left one)
       if(current_set==0)
         writein_set=max_bond_number;
-
       //loop over all monomers in the current_set, whose neighbours are not studied yet
       for(unsigned int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){
 	current_monomer=independent_sets[current_set][member_set];
