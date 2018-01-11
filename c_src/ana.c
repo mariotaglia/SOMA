@@ -529,7 +529,7 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
 
         hsize_t dims_memspace[5];//ndims
         dims_memspace[0] = dims_new[0] - dims[0];
-        dims_memspace[1] = p->n_types;
+        dims_memspace[1] = 1;
         dims_memspace[2] = p->nx/p->args.N_domains_arg;
         dims_memspace[3] = p->ny;
         dims_memspace[4] = p->nz;
@@ -547,27 +547,31 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
             return -2;
             }
 
-        //memcpy for the root data
-        memcpy(ptr, field_pointer + ghost_buffer_size*data_size, buffer_size*data_size);
-        for(int i=0; i < p->args.N_domains_arg; i++)
+        for(unsigned int type=0; type < p->n_types; type++)
             {
-            filespace = H5Dget_space(dset);
-            HDF5_ERROR_CHECK(filespace);
-
-            status = H5Sselect_hyperslab(filespace,H5S_SELECT_SET,dims_offset,NULL,dims_memspace,NULL);
-            HDF5_ERROR_CHECK(status);
-            status = H5Dwrite(dset,hdf5_type,memspace,filespace,plist_id,ptr);
-            HDF5_ERROR_CHECK(status);
-
-            //Recv data from the next rank
-            if( i+1 < p->args.N_domains_arg )
+            dims_offset[1] = type;
+            //memcpy for the root data
+            memcpy(ptr, field_pointer + ghost_buffer_size*data_size + p->n_cells_local*type*data_size, buffer_size*data_size);
+            for(int i=0; i < p->args.N_domains_arg; i++)
                 {
-                const unsigned int rank = (i+1)*p->args.N_domains_arg;
-                MPI_Recv( ptr, buffer_size, mpi_type, rank, i, p->info_MPI.SOMA_comm_sim,MPI_STATUS_IGNORE);
-                dims_offset[1] += p->nx/p->args.N_domains_arg;
-                }
-            }
+                filespace = H5Dget_space(dset);
+                HDF5_ERROR_CHECK(filespace);
 
+                status = H5Sselect_hyperslab(filespace,H5S_SELECT_SET,dims_offset,NULL,dims_memspace,NULL);
+                HDF5_ERROR_CHECK(status);
+                status = H5Dwrite(dset,hdf5_type,memspace,filespace,plist_id,ptr);
+                HDF5_ERROR_CHECK(status);
+
+                //Recv data from the next rank
+                if( i+1 < p->args.N_domains_arg )
+                    {
+                    const unsigned int rank = (i+1)*p->info_MPI.domain_size;
+                    MPI_Recv( ptr, buffer_size, mpi_type, rank, (i+1) + type*p->args.N_domains_arg, p->info_MPI.SOMA_comm_sim,MPI_STATUS_IGNORE);
+                    dims_offset[2] += p->nx/p->args.N_domains_arg;
+                    }
+                }
+            dims_offset[2] = 0;
+            }
         free(ptr);
         status = H5Sclose(memspace);
         HDF5_ERROR_CHECK(status);
@@ -579,8 +583,11 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
         }
     else if( p->info_MPI.domain_rank == 0)
         {//Send data to sim rank to write the data
-        MPI_Send( field_pointer + ghost_buffer_size*data_size,
-                  buffer_size, mpi_type, 0, my_domain, p->info_MPI.SOMA_comm_sim);
+        for(unsigned int type=0; type < p->n_types; type++)
+            {
+            MPI_Send( field_pointer + ghost_buffer_size*data_size + type*p->n_cells_local*data_size,
+                      buffer_size, mpi_type, 0, my_domain + type*p->args.N_domains_arg, p->info_MPI.SOMA_comm_sim);
+            }
         }
 
     return 0;
