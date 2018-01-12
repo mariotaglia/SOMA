@@ -121,6 +121,8 @@ typedef struct Phase{
     int local_nx_low; //!< Lowest Nx available on local domain
     int local_nx_high; //!< Highest Nx available on local domain
     uint64_t n_cells_local; //!< Number of locally available cells
+    uint16_t* left_tmp_buffer; //!< If not NULL: Temporary memory of size domain_buffer*ny*nz for MPI communication
+    uint16_t* right_tmp_buffer; //!< If not NULL: Temporary memory of size domain_buffer*ny*nz for MPI communication
 
     // Variables for statistics/ analytics
     unsigned long int n_moves; /*!< \brief total number of moves */

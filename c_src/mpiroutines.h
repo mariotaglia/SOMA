@@ -60,8 +60,6 @@ typedef struct Info_MPI{
     MPI_Comm    SOMA_comm_world; //!< Global communicator for 1 simulation
     MPI_Comm    SOMA_comm_sim;  /*!< \brief communicator within one conf, SCMF parallelization */
     MPI_Comm    SOMA_comm_domain;       /*!< \brief communicator within one domain of a SCMF simulation parallelization */
-    MPI_Comm left_neigh_edge; //!< Communicator of the left domain neighbor (for ghost all_reduce). The perspective what is left and what is right is only true from even ranks!
-    MPI_Comm right_neigh_edge; //!< Communicator of the right domain neighbor (for ghost all_reduce) The perspective what is left and what is right is only true from even ranks!
     MPI_Status          mpi_status; //!< Status of the mpi init.
     //! Store MPI divergence in between domain ranks.
     double domain_divergence_sec;

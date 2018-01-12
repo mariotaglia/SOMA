@@ -85,7 +85,12 @@ int main(int argc, char *argv[])
         return -3;
         }
 
-    init_MPI(p);
+    const int mpi_init = init_MPI(p);
+    if( mpi_init != 0)
+        {
+        fprintf(stderr,"ERROR: Unable to setup MPI %s:%d\n",__FILE__,__LINE__);
+        exit(mpi_init);
+        }
 
     const int signal_success = init_soma_signal();
     MPI_ERROR_CHECK(signal_success, "Signal init");

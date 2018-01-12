@@ -91,6 +91,24 @@ int init_phase(struct Phase * const p)
         }
 
     //Allocate Fields
+    p->left_tmp_buffer =NULL;
+    p->right_tmp_buffer=NULL;
+
+    if( p->args.N_domains_arg > 1 && p->info_MPI.domain_rank == 0)
+        {
+        p->left_tmp_buffer = (uint16_t*) malloc( p->args.domain_buffer_arg*p->ny*p->nz);
+        if (p->left_tmp_buffer == NULL)
+            {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+            }
+        p->right_tmp_buffer = (uint16_t*) malloc( p->args.domain_buffer_arg*p->ny*p->nz);
+        if (p->right_tmp_buffer == NULL)
+            {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+            }
+        }
 
     p->fields_unified =     (uint16_t *) malloc(p->n_cells_local*p->n_types*sizeof(uint16_t));
     if (p->fields_unified == NULL) {
@@ -347,6 +365,8 @@ int free_phase(struct Phase * const p)
     copyout_phase(p);
 
     /* de-allocate fields */
+    free(p->left_tmp_buffer);
+    free(p->right_tmp_buffer);
     free(p->omega_field_unified);
     free(p->tempfield);
     free(p->fields_unified);

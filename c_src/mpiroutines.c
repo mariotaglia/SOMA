@@ -67,12 +67,16 @@ int init_MPI(struct Phase * p)
     }
     p->info_MPI.sim_rank = test;
 
+    if( p->info_MPI.sim_size < p->args.N_domains_arg)
+        {
+        fprintf(stderr,"ERROR: Requested more domains %d than ranks are available %d. %s:%d\n",p->args.N_domains_arg, p->info_MPI.sim_size,__FILE__,__LINE__);
+        return -9;
+        }
     if( p->info_MPI.sim_size % p->args.N_domains_arg != 0)
         {
         fprintf(stderr,"ERROR: %s:%d invalid number of domains. #ranks mod Ndomains != 0.\n",__FILE__,__LINE__);
         return -7;
         }
-
     const unsigned int domain_size = p->info_MPI.sim_size / p->args.N_domains_arg;
     const int domain_color = p->info_MPI.sim_rank / domain_size;
     if( MPI_Comm_split( p->info_MPI.SOMA_comm_sim, domain_color,
@@ -94,32 +98,6 @@ int init_MPI(struct Phase * p)
     }
     p->info_MPI.domain_rank = test;
 
-
-    p->info_MPI.left_neigh_edge = MPI_COMM_NULL;
-    p->info_MPI.right_neigh_edge = MPI_COMM_NULL;
-    if( p->args.N_domains_arg > 1 )
-        {
-        int right_color = MPI_UNDEFINED;
-        if( p->info_MPI.domain_rank == 0)
-            right_color = (( p->info_MPI.sim_rank/p->info_MPI.domain_size )/2) % (p->args.N_domains_arg/2);
-        if( MPI_Comm_split(p->info_MPI.SOMA_comm_sim, right_color, 0,
-                           &(p->info_MPI.right_neigh_edge) ) != MPI_SUCCESS)
-            {
-            fprintf(stderr,"ERROR: MPI Communicator splitting %s:%d\n",__FILE__,__LINE__);
-            return -9;
-            }
-        int left_color = MPI_UNDEFINED;
-        if( p->info_MPI.domain_rank == 0)
-            left_color = (( p->info_MPI.sim_rank/p->info_MPI.domain_size +1)/2) % (p->args.N_domains_arg/2);
-
-        if( MPI_Comm_split(p->info_MPI.SOMA_comm_sim, left_color, 0,
-                           &(p->info_MPI.left_neigh_edge) ) != MPI_SUCCESS)
-            {
-            fprintf(stderr,"ERROR: MPI Communicator splitting %s:%d\n",__FILE__,__LINE__);
-            return -10;
-            }
-        }
-
     uint32_t fixed_seed;
     if( ! p->args.rng_seed_given || p->args.rng_seed_arg < 0)
         fixed_seed = time(NULL);
@@ -139,10 +117,6 @@ int init_MPI(struct Phase * p)
 
 int finalize_MPI(struct Info_MPI*mpi)
     {
-    if( mpi->right_neigh_edge != MPI_COMM_NULL )
-        MPI_Comm_free( &(mpi->right_neigh_edge) );
-    if( mpi->left_neigh_edge != MPI_COMM_NULL )
-        MPI_Comm_free( &(mpi->left_neigh_edge) );
     if( mpi->SOMA_comm_domain != MPI_COMM_NULL )
         MPI_Comm_free( &(mpi->SOMA_comm_domain) );
     if( mpi->SOMA_comm_sim != MPI_COMM_NULL )
@@ -598,7 +572,6 @@ int send_domain_chains(struct Phase*const p,const bool init)
     MALLOC_ERROR_CHECK(recv_len, len_domain_list*sizeof(unsigned int));
     unsigned char**const recv_buffer = (unsigned char**const) malloc(len_domain_list*sizeof(unsigned int));
     MALLOC_ERROR_CHECK(recv_buffer, len_domain_list*sizeof(unsigned int));
-
     if(init)
         {
         for(unsigned int i=0; i< (unsigned int)p->args.N_domains_arg; i++)
@@ -615,6 +588,7 @@ int send_domain_chains(struct Phase*const p,const bool init)
         domain_list[1] = (int)my_domain == p->args.N_domains_arg -1 ? 0 : my_domain +1;
         }
 
+
     for(unsigned int i=0; i< (unsigned int)p->args.N_domains_arg; i++)
         domain_lookup_list[i] = -1; //Default
     for(unsigned int i=0; i < len_domain_list; i++)
@@ -626,7 +600,6 @@ int send_domain_chains(struct Phase*const p,const bool init)
     MALLOC_ERROR_CHECK(req, 4*len_domain_list*sizeof(MPI_Request));
     MPI_Status *const status = (MPI_Status*const) malloc(4* len_domain_list*sizeof(MPI_Status));
     MALLOC_ERROR_CHECK(status, 4*len_domain_list*sizeof(MPI_Status));
-
     //Send out all the Nsends and buffer lengths
     for(unsigned int i=0; i< len_domain_list; i++)
         {
@@ -638,6 +611,7 @@ int send_domain_chains(struct Phase*const p,const bool init)
         MPI_Irecv(n_recv + i, 1, MPI_UNSIGNED, comm_to, 0, p->info_MPI.SOMA_comm_sim, req+(2*len_domain_list + i));
         MPI_Irecv(recv_len + i, 1, MPI_UNSIGNED, comm_to, 1, p->info_MPI.SOMA_comm_sim, req+(3*len_domain_list + i));
         }
+
     //Finish the communication
     MPI_Waitall(4*len_domain_list,req,status);
     MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why, but it doesn't hurt
