@@ -607,7 +607,6 @@ int analytics(struct Phase *const p)
 	if(nb_energy == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
 	#pragma acc update self(p->omega_field_unified[0:p->n_cells*p->n_types])
         #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
-	//update_self_phase(p);
 	calc_non_bonded_energy(p, nb_energy);
 	if(p->info_MPI.current_core == 0)
 	    extent_ana_by_field(nb_energy, p->n_types, "/non_bonded_energy",p->ana_info.file_id);
