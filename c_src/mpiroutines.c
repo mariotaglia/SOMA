@@ -563,15 +563,15 @@ int send_domain_chains(struct Phase*const p,const bool init)
     MALLOC_ERROR_CHECK(n_sends, len_domain_list*sizeof(unsigned int));
     unsigned int*const send_len = (unsigned int*const) malloc( len_domain_list*sizeof(unsigned int));
     MALLOC_ERROR_CHECK(send_len, len_domain_list*sizeof(unsigned int));
-    unsigned char**const send_buffer = (unsigned char**const) malloc(len_domain_list*sizeof(unsigned int));
-    MALLOC_ERROR_CHECK(send_buffer, len_domain_list*sizeof(unsigned int));
+    unsigned char**const send_buffer = (unsigned char**const) malloc(len_domain_list*sizeof(unsigned char*));
+    MALLOC_ERROR_CHECK(send_buffer, len_domain_list*sizeof(unsigned char*));
 
     unsigned int*const n_recv = (unsigned int*const) malloc( len_domain_list*sizeof(unsigned int));
     MALLOC_ERROR_CHECK(n_recv, len_domain_list*sizeof(unsigned int));
     unsigned int*const recv_len = (unsigned int*const) malloc( len_domain_list*sizeof(unsigned int));
     MALLOC_ERROR_CHECK(recv_len, len_domain_list*sizeof(unsigned int));
-    unsigned char**const recv_buffer = (unsigned char**const) malloc(len_domain_list*sizeof(unsigned int));
-    MALLOC_ERROR_CHECK(recv_buffer, len_domain_list*sizeof(unsigned int));
+    unsigned char**const recv_buffer = (unsigned char**const) malloc(len_domain_list*sizeof(unsigned char*));
+    MALLOC_ERROR_CHECK(recv_buffer, len_domain_list*sizeof(unsigned char*));
     if(init)
         {
         for(unsigned int i=0; i< (unsigned int)p->args.N_domains_arg; i++)
