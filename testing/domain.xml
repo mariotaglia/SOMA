@@ -25,7 +25,7 @@
     64
   </reference_Nbeads>
   <poly_arch>
-    500 A{32}B{32}
+    1000 A{32}B{32}
   </poly_arch>
   <lxyz>
     17.3333 0.3333 0.3333

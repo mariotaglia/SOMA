@@ -1,0 +1,110 @@
+#!/usr/bin/env python
+
+#   Copyright (C) 2016-2018 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+import sys
+sys.path.append( @SOMA_PYTHON_DIR@ )
+import h5py
+import numpy as np
+import argparse
+import subprocess as sp
+
+SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
+CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+
+def convert_files():
+    ret = sp.call([CONFGEN,"-i","domain.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","domain_ana.h5","domain1_ana.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","domain_ana.h5","domain2_ana.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","domain_ana.h5","domain3_ana.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def equilibrating(additional_flags):
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","10000"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["cp","end.h5","domain.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+
+def run(additional_flags):
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain_ana.h5","-d","1"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain1_ana.h5","-d","2","--domain-buffer=20"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain2_ana.h5","-d","4","--domain-buffer=13"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain3_ana.h5"]+additional_flags)
+    if ret != 0: raise RuntimeError("Test failed")
+
+
+def ana():
+
+    #Comparing the results of all 3 runs. The averages should be pretty similar, since they are all doing the same.
+    obs_list = ["Re","Rg","bond_anisotropy","MSD","density_field","non_bonded_energy","bonded_energy"]
+
+    with h5py.File("domain_ana.h5","r") as f:
+        with h5py.File("domain1_ana.h5","r") as f1:
+            with h5py.File("domain2_ana.h5","r") as f2:
+                with h5py.File("domain3_ana.h5","r") as f3:
+                    for obs in obs_list:
+                        data = f[obs][:]
+                        data1 = f1[obs][:]
+                        data2 = f2[obs][:]
+                        data3 = f3[obs][:] #second run for comparison
+
+                        diff1 = np.mean((data - data1)**2)
+                        diff2 = np.mean((data - data2)**2)
+                        diff3 = np.mean((data - data3)**2)
+
+                        fail = False
+                        if diff1 > 3* diff3:
+                            print(obs,diff1,data.mean(),data1.mean())
+                            fail = True
+                        if diff2 > 3* diff3:
+                            print(obs,diff2,data.mean(),data2.mean())
+                            fail = True
+
+                        if fail:
+                            print("ERROR on obserable "+obs+" see previous output")
+                            raise RuntimeError("Test failed")
+                        else:
+                            print("Obserable "+obs+" passed domain statistics test")
+
+def main(argv):
+    parser = argparse.ArgumentParser(description = "Perform test to check the correct statistic results of SOMA.")
+    parser.add_argument('--additional-flags',metavar="add-flags",type=str,help="Additional flags you might want to pass to SOMA for all tests.",default="" )
+    arguments =  parser.parse_args()
+
+    additional_flags =[]
+    for element in arguments.additional_flags.split():
+        if len(element) > 0:
+            additional_flags.append(element.strip())
+
+    convert_files()
+    equilibrating(additional_flags)
+    run(additional_flags)
+    ana()
+
+    return 0
+
+
+if __name__ == "__main__":
+    ret = main(sys.argv)
+    exit(ret)

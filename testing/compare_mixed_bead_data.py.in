@@ -34,10 +34,12 @@ def get_bead_data(filename):
 
 def get_best_match_diff(poly,beads,epsilon):
     min_diff = numpy.mean((beads[0] - poly)**2)
+    min_id = 0
     for i in range(beads.shape[0]):
         diff = numpy.mean((beads[i] - poly)**2)
         if diff < min_diff:
             min_diff = diff
+            min_id = i
         if diff < epsilon:
             return diff
     return min_diff
@@ -59,6 +61,8 @@ def main(argv):
     diff /= data1.shape[0]
 
     print(diff)
+    if diff > 0:#1e-15:
+        return -1
 
 if __name__ == "__main__":
     ret = main(sys.argv)

@@ -194,10 +194,16 @@ int init_phase(struct Phase * const p)
     uint64_t ncells = (p->nx/p->args.N_domains_arg)*p->ny*p->nz;
     if( p->info_MPI.domain_rank == 0) //Only domain root calculats something else than 0
         {
-        if (p->area51 != NULL) {
+        if (p->area51 != NULL)
+            {
             // substract the number of non free cells for the correct density scaling
-            for (uint64_t i = 0; i < p->n_cells_local; i++)
-                if ( p->area51[i] > 0 ) ncells--;
+            for(int x= p->local_nx_low + p->args.domain_buffer_arg; x < p->local_nx_high-p->args.domain_buffer_arg; x++)
+                for(unsigned int y=0; y < p->ny; y++)
+                    for(unsigned int z=0; z < p->nz; z++)
+                        {
+                        uint64_t cell = cell_coordinate_to_index(p, x, y, z);
+                        if ( p->area51[cell] > 0 ) ncells--;
+                        }
             }
         }
     else

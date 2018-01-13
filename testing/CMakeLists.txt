@@ -80,3 +80,7 @@ add_test(NAME MT-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND pyt
 add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=--iteration-alg=SET${ACC_FLAG})
 #add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=--iteration-alg=SET--set-generation-algorithm=SIMPLE${ACC_FLAG}) #default
 add_test(NAME SET-FIXED-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py "--additional-flags=--iteration-alg=SET --set-generation-algorithm=FIXED${ACC_FLAG}") #default
+
+#domain stat test
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain_statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/domain_statistics.py)
+add_test(NAME domain-statistics-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python domain_statistics.py --additional-flags=${ACC_FLAG})

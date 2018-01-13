@@ -133,6 +133,8 @@ int main(int argc, char *argv[])
                    "equilibration might take long.\n");
         const int new_beads = generate_new_beads(p);
         MPI_ERROR_CHECK(new_beads, "Cannot genrate new bead data.");
+        //Reset the RNG to initial starting conditions.
+        reseed(p, p->args.rng_seed_arg);
         }
 
     const int init_domain_chains_status = send_domain_chains(p,true);
@@ -157,8 +159,6 @@ int main(int argc, char *argv[])
         MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
         }
 
-    //Reset the RNG to initial starting conditions.
-    reseed(p, p->args.rng_seed_arg);
     int stop_iteration = false;
     for (unsigned int i = 0; i < N_steps; i++) {
         const int mc_error = monte_carlo_propagation(p, 1);
@@ -189,6 +189,9 @@ int main(int argc, char *argv[])
             break;
             }
     }
+    const int missed_chains = send_domain_chains(p, false);
+    if( missed_chains != 0)
+        exit(missed_chains);
 
     const char *filename;
     const char normal[] = "end.h5";

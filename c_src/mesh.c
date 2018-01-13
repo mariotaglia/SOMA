@@ -43,20 +43,6 @@ void communicate_density_fields(const struct Phase*const p)
     //Const cast!
     mpi_divergence((struct Phase*const) p);
 
-    char filename[250];
-    sprintf(filename, "density%d.dat", p->info_MPI.world_rank);
-    FILE*f;
-    f = fopen(filename,"w");
-
-    for(int x=p->local_nx_low; x< p->local_nx_high; x++)
-        {
-        fprintf(f, "%d\t", x);
-        for(unsigned int type=0; type < p->n_types; type++)
-            fprintf(f,"%d ",p->fields_unified[ cell_to_index_unified(p, cell_coordinate_to_index(p, x, 0, 0), type)]);
-        fprintf(f,"\n");
-        }
-    fprintf(f,"\n\n\n\n");
-
     if (p->info_MPI.sim_size > 1)
         {
         if( p->args.N_domains_arg == 1)
@@ -131,21 +117,12 @@ void communicate_density_fields(const struct Phase*const p)
                     MPI_Waitall(4,req,stat);
                     }
                 }
+
             //Update all domain ranks with the results of the root domain rank
             MPI_Bcast( p->fields_unified, p->n_cells_local*p->n_types, MPI_UINT16_T, 0, p->info_MPI.SOMA_comm_domain);
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
             }
         }
-
-    for(int x=p->local_nx_low; x< p->local_nx_high; x++)
-        {
-        fprintf(f, "%d\t", x);
-        for(unsigned int type=0; type < p->n_types; type++)
-            fprintf(f,"%d ",p->fields_unified[ cell_to_index_unified(p, cell_coordinate_to_index(p, x, 0, 0), type)]);
-        fprintf(f,"\n");
-        }
-    fclose(f);
-
     }
 
 int update_density_fields(const struct Phase *const p)
@@ -258,7 +235,6 @@ void update_omega_fields(const struct Phase *const p)
         default:
             fprintf(stderr,"ERROR: %s:%d Unkown hamiltonian specified %d.\n",__FILE__,__LINE__,p->hamiltonian);
         }
-
     }
 
 //! Set the self interaction terms to the omega fields. This

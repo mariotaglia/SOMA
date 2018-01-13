@@ -373,11 +373,10 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
                 Monomer* mybead_ptr = &mypoly->beads[ibead];
 
                 // roll normal MC trial move or force biased MC move
-                soma_scalar_t smc_deltaE;
+                soma_scalar_t smc_deltaE=0.0;
                 switch(p->args.move_type_arg){
                 case move_type_arg_TRIAL:
                   trial_move(p, npoly, ibead, &dx, &dy, &dz,iwtype,arg_rng_type,myrngstate);    // normal MC move
-                    smc_deltaE=0.0;
                     break;
                 case move_type_arg_SMART:
                     trial_move_smc(p, npoly, ibead, &dx, &dy, &dz, &smc_deltaE, &mybead, myrngstate,arg_rng_type,iwtype);       // force biased move
@@ -392,6 +391,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
                 soma_scalar_t newz = mybead.z+dz;
                 const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx,dy,dz,p->args.nonexact_area51_flag);
                 delta_energy = calc_delta_energy(p, npoly,&mybead, ibead, dx, dy, dz,iwtype);
+
                 if( delta_energy != delta_energy) // isnan(delta_energy) ) not working with PGI OpenACC
                     {
                     error_flags[0] = npoly + 1;
