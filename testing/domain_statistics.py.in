@@ -44,13 +44,13 @@ def equilibrating(additional_flags):
 
 
 def run(additional_flags):
-    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain_ana.h5","-d","1"]+additional_flags)
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain_ana.h5","-r","42","-d","1"]+additional_flags)
     if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain1_ana.h5","-d","2","--domain-buffer=20"]+additional_flags)
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain1_ana.h5","-r","42","-d","2","--domain-buffer=20"]+additional_flags)
     if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain2_ana.h5","-d","4","--domain-buffer=13"]+additional_flags)
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain2_ana.h5","-r","42","-d","4","--domain-buffer=13"]+additional_flags)
     if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain3_ana.h5"]+additional_flags)
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","4",SOMA,"-c","domain.h5","-t","20000","-a","domain3_ana.h5","-r","42"]+additional_flags)
     if ret != 0: raise RuntimeError("Test failed")
 
 
@@ -74,18 +74,18 @@ def ana():
                         diff3 = np.mean((data - data3)**2)
 
                         fail = False
-                        if diff1 > 3* diff3:
+                        if np.abs(diff1 - diff3) > diff3 + 1e-3:
                             print(obs,diff1,data.mean(),data1.mean())
                             fail = True
-                        if diff2 > 3* diff3:
+                        if np.abs(diff2 - diff3) > diff3 + 1e-3:
                             print(obs,diff2,data.mean(),data2.mean())
                             fail = True
 
                         if fail:
-                            print("ERROR on obserable "+obs+" see previous output")
+                            print("ERROR on obserable "+obs+" see previous output. Results"+str((diff1,diff2,diff3)))
                             raise RuntimeError("Test failed")
                         else:
-                            print("Obserable "+obs+" passed domain statistics test")
+                            print("Obserable "+obs+" passed domain statistics test.")
 
 def main(argv):
     parser = argparse.ArgumentParser(description = "Perform test to check the correct statistic results of SOMA.")
