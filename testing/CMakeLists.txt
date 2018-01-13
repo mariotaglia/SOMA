@@ -25,6 +25,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/homo.xml ${CMAKE_CURRENT_BINARY_DIR}/
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diblock.xml ${CMAKE_CURRENT_BINARY_DIR}/diblock.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scmf1.xml ${CMAKE_CURRENT_BINARY_DIR}/scmf1.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain.xml ${CMAKE_CURRENT_BINARY_DIR}/domain.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.xml ${CMAKE_CURRENT_BINARY_DIR}/mic.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic_time.xml ${CMAKE_CURRENT_BINARY_DIR}/mic_time.xml COPYONLY)
 
 #quick
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/quick.sh.in ${CMAKE_CURRENT_BINARY_DIR}/quick.sh)
@@ -61,11 +63,19 @@ if(HDF5_DIFF_EXECUTABLE)
 
 endif(HDF5_DIFF_EXECUTABLE)
 
+<<<<<<< HEAD
 #domain decomposition tests
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/RestartDomain.sh.in ${CMAKE_CURRENT_BINARY_DIR}/RestartDomain.sh)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compare_mixed_bead_data.py.in ${CMAKE_CURRENT_BINARY_DIR}/compare_mixed_bead_data.py)
 add_test(NAME RestartDomain WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./RestartDomain.sh)
 
+=======
+if(ENABLE_MIC)
+  #mic
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.py.in ${CMAKE_CURRENT_BINARY_DIR}/mic.py)
+  add_test(NAME mic WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python mic.py)
+endif(ENABLE_MIC)
+>>>>>>> master
 
 #stat
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/statistics.py)
@@ -73,6 +83,9 @@ add_test(NAME default-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND
 add_test(NAME MPI-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --prefix=${MPI_PREFIX} --additional-flags=${ACC_FLAG})
 #add_test(NAME PCG32-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=-pPCG32${ACC_FLAG}) #default case
 add_test(NAME MT-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=-pMT${ACC_FLAG})
+if(ENABLE_MIC)
+  add_test(NAME MIC-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=--bond-minimum-image-convention${ACC_FLAG})
+endif(ENABLE_MIC)
 #add_test(NAME TT800-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=-pTT800${ACC_FLAG}) #not working prng
 #add_test(NAME SMART-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=--move-type=SMART${ACC_FLAG}) #default
 #add_test(NAME TRIAL-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=--move-type=TRIAL${ACC_FLAG}) #not working move type (possibly because of bad statistics)

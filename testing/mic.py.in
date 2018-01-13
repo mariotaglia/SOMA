@@ -1,0 +1,193 @@
+#!/usr/bin/env python
+
+#   Copyright (C) 2016-2017 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+import sys
+sys.path.append(@SOMA_PYTHON_DIR@)
+import h5py
+import argparse
+import subprocess as sp
+import numpy as np
+SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
+CONVERT = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/CONVERT"
+CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+HANDLEANAH5 = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/handleAnaH5.py"
+epsilon = 2.
+
+def bond_num():
+    h = h5py.File('mic_time.h5', 'r+')
+    polyarch=h['/parameter/poly_arch']
+    return float(polyarch[0]-1)
+
+def convert_files():
+    ret = sp.call([CONFGEN,"-i","mic.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call([CONFGEN,"-i","mic_time.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def equilibration(test):
+    ret = sp.call([SOMA,"-c","mic.h5","-t","1000",test])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["mv","end.h5","mic.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+    ret = sp.call([SOMA,"-c","mic_time.h5","-t","1000",test])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["mv","end.h5","mic_time.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+
+def run(test):
+    ret = sp.call([SOMA,"-c","mic.h5","-t","1","-a","mic_ana.h5",test])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["mv","end.h5","mic.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+    ret = sp.call([SOMA,"-c","mic_time.h5","-t","30000","-a","mic_time_ana.h5",test])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["mv","end.h5","mic_time.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+
+def check_value(value,std,ref_value,msg):
+    if abs(value - ref_value) < std*epsilon:
+        print("\t"+msg+" passed: "+str(((value-ref_value),std,epsilon)))
+        return 0
+    else:
+        raise RuntimeError("\t"+msg+" *FAILED*: "+str(((value-ref_value),std,epsilon)))
+        return -1
+def change_position():
+    f1 = h5py.File('mic.h5', 'r+')
+    h = h5py.File('mic_time.h5', 'r+')
+    boxsize = f1['/parameter/lxyz']
+    boxsize2 = h['/parameter/lxyz']
+    dt=np.dtype([("x",np.float),("y",np.float),("z",np.float)])
+    new_position = np.zeros((1,3),dtype=dt)
+    new_position[0][1]["x"]=boxsize[0]/3.
+    new_position[0][2]["x"]=boxsize[0]*2/3.
+    bond_number=bond_num()
+    new_position2 = np.zeros((1,int(bond_number+1)),dtype=dt)
+    for i in range(0,int(bond_number+1)):
+        new_position2[0][i]["x"]=1.*boxsize2[0]*i/bond_number
+    del f1['/beads']
+    dset = f1.create_dataset('/beads',(1,3), dtype=dt,data=new_position)
+    del h['/beads']
+    dset = h.create_dataset('/beads',(1,64), dtype=dt,data=new_position2)
+    f1.close()
+    h.close()
+
+def calculate_length(dis,box):
+    while dis>=box/2.:
+        dis=dis-box
+    while dis<-box/2.:
+        dis=dis+box
+    return dis
+
+def test_bond_energy(test):
+    f1 = h5py.File("mic_ana.h5", 'r')
+    h = h5py.File("mic.h5", 'r')
+    boxsize = h['/parameter/lxyz']
+    data = f1['/bonded_energy']
+    bead = h['/beads']
+    Nref=h['/parameter/reference_Nbeads'][0]
+
+    if test=="-m":
+        distancea=bead[0][1]["x"]-bead[0][0]["x"]
+        distanceb=bead[0][2]["x"]-bead[0][1]["x"]
+        distancea=calculate_length(distancea,boxsize[0])
+        distanceb=calculate_length(distanceb,boxsize[0])
+
+    else:
+        distancea=bead[0][1]["x"]-bead[0][0]["x"]
+        distanceb=bead[0][2]["x"]-bead[0][1]["x"]
+
+    if data[0][0].round(3)==(3*(Nref-1)*(distancea*distancea+distanceb*distanceb)/2).round(3):
+        return 0
+
+    else:
+        print("Bonded energy comparison: analytical: ",(3*(Nref-1)*(distancea*distancea+distanceb*distanceb)/2).round(3),"simulation: ",data[0][0].round(3))
+        return -1
+
+def calc_Rg_initial():
+    h = h5py.File('mic_time.h5', 'r+')
+    bond_number=bond_num()
+    boxsize2 = h['/parameter/lxyz']
+    Rg_ana=0
+    xcm=0
+    for i in range(0,int(bond_number+1)):
+        xcm+=boxsize2[0]*i/bond_number
+    xcm /= bond_number;
+    for i in range(0,int(bond_number+1)):
+        Rg_ana+=(1.*boxsize2[0]*i/bond_number-xcm)*(1.*boxsize2[0]*i/bond_number-xcm)
+    Rg_ana/=(2+bond_number)
+    return Rg_ana
+
+def test_Rg(case):
+    if case=="-m":
+        Rg_ana=calc_Rg_initial()
+        proc = sp.Popen([HANDLEANAH5,"-i","mic_time_ana.h5","-d","Rg","--av"],stdout=sp.PIPE)
+        line =proc.communicate()[0]
+        ret=proc.wait()
+        if ret != 0 : raise RuntimeError("Test failed")
+        line = line.strip().split("\t")
+        value = line[0].split("+-")
+        ret=check_value(float(value[0]),float(value[1]),Rg_ana,"Rg with mic")
+        return ret
+
+    else:
+        proc = sp.Popen([HANDLEANAH5,"-i","mic_time_ana.h5","-d","Rg","--av"],stdout=sp.PIPE)
+        line =proc.communicate()[0]
+        ret=proc.wait()
+        if ret != 0 : raise RuntimeError("Test failed")
+        line = line.strip().split("\t")
+        value = line[0].split("+-")
+        ret=check_value(float(value[0]),float(value[1]),1./12.,"Rg without mic ")
+        return ret
+
+
+def main_test():
+    convert_files()
+    equilibration("-m")
+    change_position()
+    run("-m")
+    ret=test_bond_energy("-m")
+    print ret
+    if ret != 0:
+        raise RuntimeError("Test failed")
+        return ret
+    ret=test_Rg("-m")
+    print ret
+    if ret != 0:
+        raise RuntimeError("Test failed")
+        return ret
+    convert_files()
+    equilibration("")
+    change_position()
+    run("")
+    ret=test_bond_energy("")
+    print ret
+    if ret != 0:
+        raise RuntimeError("Test failed")
+        return ret
+    ret=test_Rg("")
+    print ret
+    if ret != 0:
+        raise RuntimeError("Test failed")
+        return ret
+
+
+main_test()

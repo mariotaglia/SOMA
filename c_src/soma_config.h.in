@@ -25,6 +25,10 @@
 //! Automatically set by CMake
 #cmakedefine01 SINGLE_PRECISION
 
+//! Macro to activate MIC support
+//! Automatically set by CMake
+#cmakedefine01 ENABLE_MIC
+
 #if ( SINGLE_PRECISION == 1)
 
 //! Alias for float or double variables

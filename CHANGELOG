@@ -6,12 +6,21 @@ Please add your contributions.
 	* A second option for independent
 	  sets calculation FIXED-N-SETS
 	  (suitable for networks)       Gaoyuan Wang
+<<<<<<< HEAD
 	* Implemenation of an umbrella
 	  field for advanced sampling   Niklas Blagojevic
 	  techniques.                   Ludwig Schneider
 	* Domain decomposition as
 	  another parallel layer for
 	  large system sizes.           Ludwig Schneider
+=======
+	* The option to calculated the
+	  bond energy and bond force with
+	  minmum image convention is
+	  added                         Gaoyuan Wang
+	  (MIC needs to be compiled and
+	  runned with MIC flag)
+>>>>>>> master
 
 	v0.5.2 not-yet-released
 

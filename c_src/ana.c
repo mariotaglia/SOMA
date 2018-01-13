@@ -371,9 +371,10 @@ void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_e
                         {
                         const int mono_j = mono + offset;
 
-                        const soma_scalar_t dx = p->polymers[poly].beads[mono].x - p->polymers[poly].beads[mono_j].x;
-                        const soma_scalar_t dy = p->polymers[poly].beads[mono].y - p->polymers[poly].beads[mono_j].y;
-                        const soma_scalar_t dz = p->polymers[poly].beads[mono].z - p->polymers[poly].beads[mono_j].z;
+                        const soma_scalar_t dx=calc_bond_length(p->polymers[poly].beads[mono].x,p->polymers[poly].beads[mono_j].x,p->Lx,p->args.bond_minimum_image_convention_flag);
+                        const soma_scalar_t dy=calc_bond_length(p->polymers[poly].beads[mono].y,p->polymers[poly].beads[mono_j].y,p->Ly,p->args.bond_minimum_image_convention_flag);
+                        const soma_scalar_t dz=calc_bond_length(p->polymers[poly].beads[mono].z,p->polymers[poly].beads[mono_j].z,p->Lz,p->args.bond_minimum_image_convention_flag);
+
                         const soma_scalar_t r2 = dx*dx + dy*dy + dz*dz;
 
                         soma_scalar_t energy = 0;
@@ -403,7 +404,7 @@ void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_e
                 }
             }
         }
-    if( p->info_MPI.sim_rank == 0)
+    if( p->info_MPI.current_core == 0)
         MPI_Reduce(MPI_IN_PLACE,bonded_energy,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     else
         MPI_Reduce(bonded_energy, NULL ,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
@@ -670,7 +671,8 @@ int analytics(struct Phase *const p)
         {
         soma_scalar_t*const nb_energy = (soma_scalar_t*const)malloc(p->n_types*sizeof(soma_scalar_t));
         if(nb_energy == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
-        update_self_phase(p);
+#pragma acc update self(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
         calc_non_bonded_energy(p, nb_energy);
         if(p->info_MPI.sim_rank == 0)
             extent_ana_by_field(nb_energy, p->n_types, "/non_bonded_energy",p->ana_info.file_id);

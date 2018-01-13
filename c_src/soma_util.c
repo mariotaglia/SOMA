@@ -26,6 +26,7 @@
 #include "cmdline.h"
 #include "phase.h"
 #include "mpiroutines.h"
+#include <math.h>
 
 unsigned int get_bond_type(const uint32_t info)
     {
@@ -163,6 +164,14 @@ int post_process_args(struct som_args*args,const unsigned int world_rank)
             fprintf(stderr,"WARNING: Non positive number for update of molecule center of mass given. Using frequency of 1.\n");
         args->rcm_update_arg = 1;
         }
+
+#if (ENABLE_MIC != 1)
+    if(args->bond_minimum_image_convention_flag)
+        {
+        fprintf(stderr, "WARNING: %s:%d compilation without MIC support, but requested via CMDline. Request is ignored.\n", __FILE__, __LINE__);
+        }
+#endif//ENABLE_MIC
+
 
     if(world_rank == 0)
         cmdline_parser_dump(stdout, args);
