@@ -29,6 +29,10 @@
 //! Automatically set by CMake
 #cmakedefine01 ENABLE_MIC
 
+//! Macro to activate domain decomposition support
+//! Automatically set by CMake
+#cmakedefine01 ENABLE_DOMAIN_DECOMPOSITION
+
 #if ( SINGLE_PRECISION == 1)
 
 //! Alias for float or double variables

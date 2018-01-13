@@ -76,6 +76,8 @@ static inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int
 inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z)
     {
     int xt = x;
+#if ( ENABLE_DOMAIN_DECOMPOSITION == 1 )
+    //For performance reasons compile the domain decomposition only if necessary
     if( p->args.N_domains_arg > 1)
         {
         if( xt >= p->local_nx_high ) //Wrap back if necessary
@@ -84,11 +86,11 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
             xt += p->nx;
         if( xt < p->local_nx_low || xt >= p->local_nx_high )
             {
-            //printf("%d\t%d(%d) %d %d\t %d %d \t %d\n",p->info_MPI.world_rank, x,x-p->local_nx_low,y,z,p->local_nx_low,p->local_nx_high,xt);
-            return UINT64_MAX; //Error, requested indext out of local bounds
+            return UINT64_MAX; //Error, requested index out of local bounds
             }
         xt -= p->local_nx_low;
         }
+#endif//ENABLE_MIC
     //Unified data layout [type][x][y][z]
     return xt*p->ny*p->nz + y*p->nz + z ;
     }

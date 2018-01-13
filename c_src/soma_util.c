@@ -168,9 +168,19 @@ int post_process_args(struct som_args*args,const unsigned int world_rank)
 #if (ENABLE_MIC != 1)
     if(args->bond_minimum_image_convention_flag)
         {
-        fprintf(stderr, "WARNING: %s:%d compilation without MIC support, but requested via CMDline. Request is ignored.\n", __FILE__, __LINE__);
+        fprintf(stderr, "ERROR: %s:%d compilation without MIC support, but requested via CMDline. Request is ignored.\n", __FILE__, __LINE__);
+        return -2;
         }
 #endif//ENABLE_MIC
+#if ( ENABLE_DOMAIN_DECOMPOSITION != 1 )
+    if( args->N_domains_arg > 1 )
+        {
+        fprintf(stderr,"ERROR: Domain decomposition support requested via CMDline, but SOMA is compiled without the support. Recompile SOMA with the appropriate option for domain decomposition.\n");
+        return -5;
+        }
+#endif//ENABLE_DOMAIN_DECOMPOSITION
+
+
 
 
     if(world_rank == 0)
