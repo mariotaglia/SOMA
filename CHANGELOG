@@ -6,7 +6,12 @@ Please add your contributions.
 	* A second option for independent
 	  sets calculation FIXED-N-SETS
 	  (suitable for networks)       Gaoyuan Wang
-	*
+	* Implemenation of an umbrella
+	  field for advanced sampling   Niklas Blagojevic
+	  techniques.                   Ludwig Schneider
+	* Domain decomposition as
+	  another parallel layer for
+	  large system sizes.           Ludwig Schneider
 
 	v0.5.2 not-yet-released
 
