@@ -63,9 +63,6 @@ void communicate_density_fields(const struct Phase*const p)
         else //Communication for domain decomposition
             {
             const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
-            if( p->args.N_domains_arg % 2 != 0)
-                fprintf(stderr,"ERROR: uneven number of domains. Communication error! %s:%d world rank %d\n",__FILE__,__LINE__,p->info_MPI.world_rank);
-
 
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
             //Sum up all values of a single domain to the root domain

@@ -149,11 +149,6 @@ int post_process_args(struct som_args*args,const unsigned int world_rank)
         args->domain_buffer_arg = 0;
         args->rcm_update_arg = 0;
         }
-    else if(args->N_domains_arg % 2 != 0)
-        {
-        fprintf(stderr,"ERROR: Please use an even number for the number of domains. %s:%d\n",__FILE__,__LINE__);
-        return -2;
-        }
 
     if(args->domain_buffer_arg < 0)
         {
