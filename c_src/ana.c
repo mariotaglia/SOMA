@@ -404,7 +404,7 @@ void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_e
                 }
             }
         }
-    if( p->info_MPI.current_core == 0)
+    if( p->info_MPI.sim_rank == 0)
         MPI_Reduce(MPI_IN_PLACE,bonded_energy,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     else
         MPI_Reduce(bonded_energy, NULL ,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
