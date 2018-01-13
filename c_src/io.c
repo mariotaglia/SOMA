@@ -371,6 +371,13 @@ int write_hdf5(const hsize_t ndims,const hsize_t*const dims,const hid_t file_id,
     return status;
     }
 
+/*! Helper function to write area51 to the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
 int write_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t plist_id)
     {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -417,6 +424,15 @@ int write_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_
     return 0;
     }
 
+/*! Helper function to write scalar fields (external_field, umbrella_field) to the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \param field Pointer to the scalar field
+    \param name Name of the field.
+    \return Errorcode
+*/
 int write_field_hdf5(const struct Phase*const p, const hid_t file_id,
                      const hid_t plist_id,const soma_scalar_t*const field,const char*name)
     {
@@ -810,6 +826,13 @@ int read_hdf5(const hid_t file_id,const char*const name,const hid_t mem_type,con
     return status;
     }
 
+/*! Helper function to read area51 from the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
 int read_area51_hdf5(struct Phase*const p, const hid_t file_id,const hid_t plist_id)
     {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -881,6 +904,15 @@ int read_area51_hdf5(struct Phase*const p, const hid_t file_id,const hid_t plist
     return 0;
     }
 
+/*! Helper function to read scalar fields (external_field, umbrella_field) from the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \param field Pointer to the scalar field
+    \param name Name of the field.
+    \return Errorcode
+*/
 int read_field_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t plist_id,soma_scalar_t**field, const char*name)
     {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;

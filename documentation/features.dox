@@ -66,6 +66,7 @@
  - Online run estimation time output.
  - Center of mass simple Monte-Carlo algorithm for full molecule diffusion.
  - Doxygen API documentation.
+ - Domain decomposition as a third layer of parallelism.
 
  \subsection observables Available Observables
 

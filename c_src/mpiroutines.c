@@ -478,6 +478,19 @@ int load_balance_mpi_ranks(struct Phase*const p)
     return 1;
     }
 
+/*! Extract all polymer chains out of the current system, if their center of mass is in another domain.
+    \private
+    The serialized buffers of the chains are returned for later communication.
+    Depending on the input only neighboring domains or all domains are checked.
+    \param p Phase describing the system
+    \param domain_lookup_list List of domains, where chains can be send to.
+    \param len_domain_list Lenght of the domain list.
+    \param n_sends Array of len_domain_list, where the number of chains to be send to the corresponding domain is stored.
+    \param buffer_len Array to store the length of the buffers for each domain
+    \param buffer 2D Array where all buffers of the chains to be send are stored.
+    \param my_domain Domain of the calling rank
+    \return Number of chains, which should be transferred, but no valid domain was found. This is an Error if > 0.
+*/
 int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list, const unsigned int len_domain_list,
                             unsigned int*const n_sends,unsigned int*const buffer_len, unsigned char**const buffer,const unsigned int my_domain)
     {

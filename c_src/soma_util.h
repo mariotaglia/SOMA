@@ -94,7 +94,7 @@ uint32_t get_info_bl(const unsigned int offset_bl,const unsigned int type);
 //! \brief after argument parsing of SOMA, this function interpret contradictions and warnings for the user.
 //!
 //! \param args Argument struct to interpret.
-//! \param mpi_info Information about MPI configuration. This parameter is input and ouput.
+//! \param world_rank World rank of the calling rank.
 //! \return Error code
 int post_process_args(struct som_args*args,const unsigned int world_rank);
 

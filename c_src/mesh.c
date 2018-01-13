@@ -38,6 +38,11 @@
 /* #pragma acc atomic update */
 /*   *ptr32 += (1 << (x*16)) ; */
 /* } */
+
+/*! Function to communicate the density field accross all ranks.
+   If a domain decomposition is used, the communication pattern is accordingly adopted.
+   \param p Phase describing the system.
+*/
 void communicate_density_fields(const struct Phase*const p)
     {
     //Const cast!
