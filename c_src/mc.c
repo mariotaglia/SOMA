@@ -398,157 +398,112 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
 // But all occuring errors, if any, are reported to the users.
 //#define CHECK_PGI_BUG
 
-#ifdef CHECK_PGI_BUG
-    int error_flag[1]={0};
-#pragma acc enter data copyin(error_flag[0:1])
-#endif //CHECK_PGI_BUG
-
     const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
     const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
     for(unsigned int step = 0; step < nsteps; step++)
 	{
-	const uint64_t n_polymers = p->n_polymers ;
-	unsigned int n_accepts=0;
+	  const uint64_t n_polymers = p->n_polymers ;
+	  unsigned int n_accepts=0;
 
-//#pragma acc parallel for vector_length(tuning_parameter) reduction(+:n_accepts)
-#pragma acc parallel loop vector_length(tuning_parameter)
-#pragma omp parallel for reduction(+:n_accepts)
-	for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
+	  unsigned int accepted_moves_poly = 0;
+	  //Polymer *const mypoly = &p->polymers[0];
+	  const IndependetSets mySets= p->sets[(&p->polymers[0])->type];
+
+	  //Thanks to the PGI compiler, I have to local copy everything I need.
+	  const unsigned int n_sets = mySets.n_sets;
+	  const unsigned int*const set_length = mySets.set_length;
+	  const unsigned int* const sets = mySets.sets;
+	  const unsigned int max_member = mySets.max_member;
+	  RNG_STATE * const set_states = (&p->polymers[0])->set_states;
+	  unsigned int*const set_permutation = (&p->polymers[0])->set_permutation;
+
+	  //Generate random permutation of the sets
+	  //http://www.wikipedia.or.ke/index.php/Permutation
+
+	  for(unsigned int i=0; i < n_sets; i++)
 	    {
-            unsigned int accepted_moves_poly = 0;
-	    const uint32_t*const poly_arch = p->poly_arch;
-	    const int*const poly_type_offset = p->poly_type_offset;
+	      const unsigned int d = soma_rng_uint(&((&p->polymers[0])->poly_state),my_rng_type) % (i+1) ;
+	      set_permutation[i] = set_permutation[d];
+	      set_permutation[d] = i;
+	    }
 
-            Polymer *const mypoly = &p->polymers[npoly];
-	    const unsigned int poly_type = mypoly->type;
+	  for(unsigned int iSet=0; iSet < n_sets; iSet++)
+	    {
+	      unsigned int accepted_moves_set = 0;
+	      const unsigned int set_id = set_permutation[iSet];
+		    
+	      const unsigned int len = set_length[set_id];
 
-            const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
-	    accepted_moves_poly += 0*myN; // Shutup compiler warning
-	    const IndependetSets mySets= p->sets[mypoly->type];
+	      #pragma acc parallel loop vector_length(tuning_parameter)
+	      #pragma omp parallel for reduction(+:n_accepts)
+	      for(unsigned int iP=0; iP < len; iP++)
+		{			    
+	 	  const uint32_t*const poly_arch = p->poly_arch; 
+ 		  const int*const poly_type_offset = p->poly_type_offset; 
+		  Polymer *const mypoly = &p->polymers[0]; 
+ 		  const unsigned int poly_type = mypoly->type; 
+ 		  const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]]; 
+ 		  accepted_moves_poly += 0*myN; // Shutup compiler warning 
+		  
+		  const unsigned int ibead = sets[ set_id*max_member + iP];
+		  const unsigned int iwtype =get_particle_type(poly_arch[ poly_type_offset[poly_type]+1+ibead]);
 
-	    //Thanks to the PGI compiler, I have to local copy everything I need.
-	    const unsigned int n_sets = mySets.n_sets;
-	    const unsigned int*const set_length = mySets.set_length;
-	    const unsigned int* const sets = mySets.sets;
-	    const unsigned int max_member = mySets.max_member;
-	    RNG_STATE * const set_states = mypoly->set_states;
-	    unsigned int*const set_permutation = mypoly->set_permutation;
+ 		  RNG_STATE my_state = set_states[iP];
+ 		  Monomer  mybead = mypoly->beads[ibead];
 
-	    //Generate random permutation of the sets
-	    //http://www.wikipedia.or.ke/index.php/Permutation
-#pragma acc loop seq
-	    for(unsigned int i=0; i < n_sets; i++)
-		{
-		const unsigned int d = soma_rng_uint(&(mypoly->poly_state),my_rng_type) % (i+1) ;
-		set_permutation[i] = set_permutation[d];
-		set_permutation[d] = i;
-		}
-
-#pragma acc loop seq
-	    for(unsigned int iSet=0; iSet < n_sets; iSet++)
-		{
-		unsigned int accepted_moves_set = 0;
-		const unsigned int set_id = set_permutation[iSet];
-#ifdef CHECK_PGI_BUG
-		if(set_id >= n_sets)
+		  Monomer dx;
+		  dx.x=dx.y=dx.z=0;
+		  soma_scalar_t smc_deltaE=0;
+		  switch(p->args.move_type_arg){
+		  case move_type_arg_TRIAL:
+		    trial_move(p, 0, ibead, &dx.x, &dx.y, &dx.z,iwtype,my_rng_type,&my_state);	// normal MC move
+		    smc_deltaE=0.0;
+		    break;
+		  case move_type_arg_SMART:
+		    trial_move_smc(p, 0, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state,my_rng_type,iwtype);	// force biased move
+		    break;
+		  case move_type__NULL:
+		  default:
+		    smc_deltaE=0.0;
+		    break;
+		  }
+		  const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx.x,dx.y,dx.z,nonexact_area51);
+		  if ( move_allowed  )
 		    {
-		    error_flag[0] |= 2;
-		    }
-		else
-#endif//CHECK_PGI_BUG
-		    {
-		    const unsigned int len = set_length[set_id];
-
-//#pragma acc loop vector reduction(+:accepted_moves_set)
-#pragma acc loop vector
-		    for(unsigned int iP=0; iP < len; iP++)
+		      // calculate energy change
+		      const soma_scalar_t delta_energy =
+			calc_delta_energy(p, 0,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
+		      // MC roll to accept / reject
+		      if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
 			{
-#ifdef CHECK_PGI_BUG
-			if( iP >= len)
-			    {
-			    error_flag[0] |= 4;
-			    }
-			else
-#endif//CHECK_PGI_BUG
-			    {
-			    const unsigned int ibead = sets[ set_id*max_member + iP];
-#ifdef CHECK_PGI_BUG
-			    if(ibead >= myN){error_flag[0] |= 1;}
-			    else
-#endif//CHECK_PGI_BUG
-				{
-				const unsigned int iwtype =get_particle_type(
-				    poly_arch[ poly_type_offset[poly_type]+1+ibead]);
-				//local copy of rngstate. For fast updates of state in register.
-				//assert( iP < p->max_set_members );
-				RNG_STATE my_state = set_states[iP];
-				Monomer  mybead = mypoly->beads[ibead];
-
-				Monomer dx;
-				dx.x=dx.y=dx.z=0;
-				soma_scalar_t smc_deltaE=0;
-				switch(p->args.move_type_arg){
-				case move_type_arg_TRIAL:
-				  trial_move(p, npoly, ibead, &dx.x, &dx.y, &dx.z,iwtype,my_rng_type,&my_state);	// normal MC move
-				    smc_deltaE=0.0;
-				    break;
-				case move_type_arg_SMART:
-				    trial_move_smc(p, npoly, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state,my_rng_type,iwtype);	// force biased move
-				    break;
-				case move_type__NULL:
-				default:
-				    smc_deltaE=0.0;
-				    break;
-				    }
-
-				const int move_allowed = possible_move_area51(
-				    p, mybead.x,mybead.y,mybead.z, dx.x,dx.y,dx.z,nonexact_area51);
-
-				if ( move_allowed  )
-				    {
-				    // calculate energy change
-				    const soma_scalar_t delta_energy =
-					calc_delta_energy(p, npoly,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
-
-				    // MC roll to accept / reject
-				    if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
-					{
-					Monomer newx;
-					newx.x = mybead.x + dx.x;
-					newx.y = mybead.y + dx.y;
-					newx.z = mybead.z + dx.z;
-					mypoly->beads[ibead] = newx;
+			  Monomer newx;
+			  newx.x = mybead.x + dx.x;
+			  newx.y = mybead.y + dx.y;
+			  newx.z = mybead.z + dx.z;
+			  mypoly->beads[ibead] = newx;
 #ifndef _OPENACC
-					accepted_moves_set += 1;
+			  accepted_moves_set += 1;
 #endif//_OPENACC
-					}
-				    }
-				//Copy the RNGstate back to global memory
-				mypoly->set_states[iP] = my_state;
-				}
-			    }
 			}
 		    }
-#ifndef _OPENACC
-		accepted_moves_poly += accepted_moves_set;
-#endif//_OPENACC
+		  //Copy the RNGstate back to global memory
+		  		  mypoly->set_states[iP] = my_state;
 		}
+		    
 #ifndef _OPENACC
-	    n_accepts += accepted_moves_poly;
+	      accepted_moves_poly += accepted_moves_set;
 #endif//_OPENACC
 	    }
-	p->time += 1;
-	p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
-	p->n_accepts += n_accepts;
+	  n_accepts += accepted_moves_poly;
+#endif//_OPENACC	  
+	  p->time += 1;
+	  p->n_moves += p->num_all_beads_local;
+#ifndef _OPENACC
+	  p->n_accepts += n_accepts;
 #endif//_OPENACC
 	}
     int ret = 0;
-#ifdef CHECK_PGI_BUG
-#pragma acc exit data copyout(error_flag[0:1])
-    ret = error_flag[0];
-#endif//CHECK_PGI_BUG
-
     return ret;
     }
 

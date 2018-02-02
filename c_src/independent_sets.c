@@ -181,6 +181,7 @@ int generate_independet_sets(struct Phase*const p)
 
 int independent_sets_simple(struct Phase* const p)
 {
+ 
   int ret=0;
   struct IndependetSets*const sets = (struct IndependetSets*)malloc( p->n_poly_type * sizeof(IndependetSets) );
   if(sets == NULL)
@@ -344,7 +345,8 @@ int allo_init_memory_for_Polystates(struct Phase* const p){
 
 
 int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,unsigned int n_poly,struct Phase* const p){
-  //struct IndependetSets*const set_tmp=*set_tmp_pointer;
+   int wang=0;
+
   unsigned int sequence=p->poly_arch[p->poly_type_offset[n_poly]];
   unsigned int max_bond_number=0;//the maximal number of bonds of a monomer in the chain
   unsigned int max_bond=0;//the monomer which has the maximal number of bonds
@@ -395,7 +397,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
       bonds_total[monomer_i-p->poly_type_offset[n_poly]-1][bond_i]=get_offset(bonds_of_monomer)+monomer_i-p->poly_type_offset[n_poly]-1;
       start_offset_bond++;
     }
-
+ 
     if(bond_number>max_bond_number){    //count the number of sets needed
       max_bond_number=bond_number;
       max_bond=monomer_i-p->poly_type_offset[n_poly]-1;
@@ -468,7 +470,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
 	}
       independent_sets[loop_set][end_set[loop_set]]=bonds_total[current_monomer][set_i-1];
       total_assigned_monomer++;
-      monomer_checked[bonds_total[current_monomer][set_i-1]]=-1;
+      monomer_checked[bonds_total[current_monomer][set_i-1]]=-1;    
       end_set[loop_set]++;
     }
 
@@ -483,6 +485,7 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
       }
     }
     //start: while not all monomers are checked
+     
     while(chain_finished==1){
       chain_finished=0;
       if(end_set[current_set]==offset_set[current_set]){
@@ -495,11 +498,27 @@ int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,un
         writein_set=max_bond_number;
       //loop over all monomers in the current_set, whose neighbours are not studied yet
       for(unsigned int member_set=offset_set[current_set];member_set<end_set[current_set];member_set++){
+	/*if(monomer_checked[38634]==-1&&((wang<15)||(current_monomer==329236||current_monomer==38634))){
+	  wang++;
+	  printf("here %i %i %i %i\n",current_monomer,current_set,end_set[3],offset_set[3]);
+	  }*/
 	current_monomer=independent_sets[current_set][member_set];
+	/*if(current_monomer==38634||current_monomer==499301){
+	  printf("bond %i %i %i %i %i %i\n",bond_number_total[current_monomer],current_monomer,monomer_checked[38634],bonds_total[current_monomer][0],bonds_total[current_monomer][1],bonds_total[38634][3]);
+	  }*/
 	for(int bond_i=0;bond_i<bond_number_total[current_monomer];bond_i++){
+	  
 	  if(monomer_checked[bonds_total[current_monomer][bond_i]]==-1)
 	    continue;
+	  /*if(bonds_total[current_monomer][bond_i]==38634){
+	    printf("write in first %i\n",writein_set);
+	    }*/
 	  writein_set=check_bond_members_of_set(bonds_total,bond_number_total,max_bond_number,writein_set,current_set,offset_set,end_set,independent_sets,bond_i,current_monomer);
+	  /*if(bonds_total[current_monomer][bond_i]==38634){
+	    printf("write in second %i\n",writein_set);
+	    }*/
+	   /*if(bonds_total[current_monomer][bond_i]==329236)
+	     printf("where %i %i\n",end_set[writein_set],writein_set);*/
 	  independent_sets[writein_set][end_set[writein_set]]=bonds_total[current_monomer][bond_i];
 	  monomer_checked[bonds_total[current_monomer][bond_i]]=-1;
 	  total_assigned_monomer++;
@@ -575,19 +594,25 @@ unsigned int check_bond_members_of_set(unsigned int **bonds_total,int* bond_numb
   int found=0;
   int meet;
   while(found==0){
+    /*if(bonds_total[current_monomer][bond_i]==38634)
+      printf("here I am %i %i\n",end_set[writein_set],offset_set[writein_set]);*/
     meet=0;
     for(int neighbour_index=0;neighbour_index<bond_number_total[bonds_total[current_monomer][bond_i]];neighbour_index++){ //loop over all bonds
       unsigned int neighbour=bonds_total[bonds_total[current_monomer][bond_i]][neighbour_index];
       if(neighbour==current_monomer)
 	continue;  
       for(unsigned int member_i=offset_set[writein_set];member_i<end_set[writein_set];member_i++){
+	 
 	if(neighbour==independent_sets[writein_set][member_i]){
 	  meet=1;
 	}
       }
     }
+    /*if(bonds_total[current_monomer][bond_i]==38634)
+      printf("meet %i %i\n",meet,current_set);*/
     if(meet==1){
       writein_set++;
+      found=0;
       if(writein_set>max_bond_number)
 	writein_set=writein_set-max_bond_number-1;
       if(writein_set==current_set){
@@ -595,12 +620,13 @@ unsigned int check_bond_members_of_set(unsigned int **bonds_total,int* bond_numb
 	if(writein_set>max_bond_number)
 	  writein_set=writein_set-max_bond_number-1;
       }
-      break;
+      /*if(bonds_total[current_monomer][bond_i]==38634)
+	printf("found %i\n",found);*/
+      continue;
     }
     else{
       found=1;
-      break;
-      
+      break;      
     }
   }
   return writein_set;
