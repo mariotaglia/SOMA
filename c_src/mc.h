@@ -224,7 +224,8 @@ void add_bond_forces(const struct Phase * p, const uint64_t ipoly, unsigned cons
 int possible_move_area51(const struct Phase*p,const soma_scalar_t oldx,const soma_scalar_t oldy,const soma_scalar_t oldz,const soma_scalar_t dx,const soma_scalar_t dy,const soma_scalar_t dz,const int nonexact);
 
 
-void set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51);
+void set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const int chain_i);
 
+void set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain);
 
 #endif//SOMA_MC_H
