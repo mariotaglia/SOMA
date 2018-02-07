@@ -621,7 +621,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
   //reorder the polymers according to their length
-  /*unsigned int* poly_order = (unsigned int*)malloc( (int)p->n_polymers*sizeof(unsigned int));
+  unsigned int* poly_order = (unsigned int*)malloc( (int)p->n_polymers*sizeof(unsigned int));
   if(poly_order == NULL){
     fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
     return -1;
@@ -629,28 +629,32 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   memset(poly_order,0,p->n_polymers*sizeof(unsigned int));
   poly_order[0]=0;
   int num_long_chain=0;
-  for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){
-	  
-    Polymer *const this_poly = &p->polymers[poly_i];
-    const unsigned int poly_type = this_poly->type;
-    uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
-    if(length_poly_i>(double)p->num_all_beads/500.0)
-      num_long_chain++;
+  for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
+	  Polymer *const this_poly = &p->polymers[poly_i];
+	  const unsigned int poly_type = this_poly->type;
+	  uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
+	  if(length_poly_i>(double)p->num_all_beads/500.0)
+	    num_long_chain++;
 
-    int i=poly_i-1;    
-    while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
-      i--;
+	  int i=poly_i-1;    
+	  while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
+	    i--;
 	
-    i=poly_i-1-i;
-    if(i!=0)
-      memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
+	  i=poly_i-1-i;
+	  if(i!=0)
+	    memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
 	
-    poly_order[poly_i-i]=poly_i;  
-    }*/ 
-  //for(int index=0;index<3;index++){
-  set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,0);
-    //}
-    //set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,0);
+	  poly_order[poly_i-i]=poly_i;  
+	}
+  for(int index=0;index<num_long_chain;index++){
+	  Polymer tmp_poly = p->polymers[index];
+	  p->polymers[index]=p->polymers[poly_order[index]];
+	  p->polymers[poly_order[index]]=tmp_poly;
+	}
+  for(int index=0;index<8;index++){
+	  set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
+	}
+  set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,8);
 #pragma acc wait
   //free(poly_order);
   int ret = 0;
