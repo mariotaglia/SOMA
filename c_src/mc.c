@@ -394,9 +394,10 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
 void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain){
   for(unsigned int step = 0; step < nsteps; step++)
     {
+      // printf("multi!\n");
       const uint64_t n_polymers = p->n_polymers ;
       unsigned int n_accepts=0;
-#pragma acc parallel loop vector_length(tuning_parameter)
+#pragma acc parallel loop vector_length(tuning_parameter) async
 #pragma omp parallel for reduction(+:n_accepts)
       for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
 	{
@@ -496,17 +497,19 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
 #endif//_OPENACC
+      // printf("multi end!\n");
     }
+ 
 }
 
 void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const int chain_i){
   for(unsigned int step = 0; step < nsteps; step++)
     {
+      // printf("single!\n");
       //const uint64_t n_polymers = p->n_polymers ;
       unsigned int n_accepts=0;
 
       unsigned int accepted_moves_poly = 0;
-      //Polymer *const mypoly = &p->polymers[0];
       const IndependetSets mySets= p->sets[(&p->polymers[chain_i])->type];
 
       //Thanks to the PGI compiler, I have to local copy everything I need.
@@ -519,7 +522,7 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 
       //Generate random permutation of the sets
       //http://www.wikipedia.or.ke/index.php/Permutation
-
+     
       for(unsigned int i=0; i < n_sets; i++)
 	{
 	  const unsigned int d = soma_rng_uint(&((&p->polymers[chain_i])->poly_state),my_rng_type) % (i+1) ;
@@ -533,11 +536,11 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 	  const unsigned int set_id = set_permutation[iSet];
 		    
 	  const unsigned int len = set_length[set_id];
-
-#pragma acc parallel loop vector_length(tuning_parameter)
+	  
+#pragma acc parallel loop vector_length(tuning_parameter) async
 #pragma omp parallel for reduction(+:n_accepts)
 	  for(unsigned int iP=0; iP < len; iP++)
-	    {			    
+	    {	
 	      const uint32_t*const poly_arch = p->poly_arch; 
 	      const int*const poly_type_offset = p->poly_type_offset; 
 	      Polymer *const mypoly = &p->polymers[chain_i]; 
@@ -585,7 +588,7 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 		      accepted_moves_set += 1;
 #endif//_OPENACC
 		    }
-		}
+		}	      
 	      //Copy the RNGstate back to global memory
 	      mypoly->set_states[iP] = my_state;
 	    }
@@ -602,7 +605,9 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
 #endif//_OPENACC
+      //printf("single end!\n");
     }
+ 
 }
 	      
 
@@ -622,7 +627,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
     Polymer *const this_poly = &p->polymers[poly_i];
     const unsigned int poly_type = this_poly->type;
     uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
-    if(length_poly_i>(double)p->num_all_beads/10.0)
+    if(length_poly_i>(double)p->num_all_beads/500.0)
       num_long_chain++;
 
     int i=poly_i-1;    
@@ -635,10 +640,13 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
     }
     poly_order[poly_i-i]=poly_i;  
   }   
-
-  //set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,0);
-    
+  //printf("number long chain %i\n",num_long_chain);
+  num_long_chain=3;
+  for(int index=0;index<num_long_chain;index++){
+    set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
+  }
   set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
+#pragma acc wait
   int ret = 0;
   return ret;
 }
