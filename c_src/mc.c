@@ -647,16 +647,18 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
 	  poly_order[poly_i-i]=poly_i;  
 	}
   for(int index=0;index<num_long_chain;index++){
+	  
 	  Polymer tmp_poly = p->polymers[index];
 	  p->polymers[index]=p->polymers[poly_order[index]];
 	  p->polymers[poly_order[index]]=tmp_poly;
-	}
-  for(int index=0;index<8;index++){
+	  }
+  free(poly_order);
+  for(int index=0;index<num_long_chain;index++){
 	  set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
 	}
-  set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,8);
+  set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
 #pragma acc wait
-  //free(poly_order);
+
   int ret = 0;
   return ret;
 }
