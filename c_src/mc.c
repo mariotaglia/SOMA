@@ -426,6 +426,7 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
 	  for(unsigned int i=0; i < n_sets; i++)
 	    {
 	      const unsigned int d = soma_rng_uint(&(mypoly->poly_state),my_rng_type) % (i+1) ;
+	      // printf("d!!! %i %i \n",d,i);
 	      set_permutation[i] = set_permutation[d];
 	      set_permutation[d] = i;
 	    }
@@ -502,11 +503,9 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
  
 }
 
-void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const int chain_i){
+void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,uint64_t chain_i){
   for(unsigned int step = 0; step < nsteps; step++)
     {
-      // printf("single!\n");
-      //const uint64_t n_polymers = p->n_polymers ;
       unsigned int n_accepts=0;
 
       unsigned int accepted_moves_poly = 0;
@@ -514,10 +513,10 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 
       //Thanks to the PGI compiler, I have to local copy everything I need.
       const unsigned int n_sets = mySets.n_sets;
-      const unsigned int*const set_length = mySets.set_length;
-      const unsigned int* const sets = mySets.sets;
+      const unsigned int*const set_length_tmp = mySets.set_length;
+      const unsigned int* const sets_tmp = mySets.sets;
       const unsigned int max_member = mySets.max_member;
-      RNG_STATE * const set_states = (&p->polymers[chain_i])->set_states;
+      RNG_STATE * const set_states_tmp = (&p->polymers[chain_i])->set_states;
       unsigned int*const set_permutation = (&p->polymers[chain_i])->set_permutation;
 
       //Generate random permutation of the sets
@@ -533,27 +532,34 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
       for(unsigned int iSet=0; iSet < n_sets; iSet++)
 	{
 	  unsigned int accepted_moves_set = 0;
-	  const unsigned int set_id = set_permutation[iSet];
-		    
-	  const unsigned int len = set_length[set_id];
-	  
-#pragma acc parallel loop vector_length(tuning_parameter) async
-#pragma omp parallel for reduction(+:n_accepts)
+	  const unsigned int set_id = set_permutation[iSet];		    
+	  const unsigned int len = set_length_tmp[set_id];
+
+	  //#pragma acc parallel loop vector_length(tuning_parameter) async
+          #pragma acc parallel loop async				  
+	  #pragma omp parallel for reduction(+:n_accepts)
 	  for(unsigned int iP=0; iP < len; iP++)
 	    {	
-	      const uint32_t*const poly_arch = p->poly_arch; 
-	      const int*const poly_type_offset = p->poly_type_offset; 
-	      Polymer *const mypoly = &p->polymers[chain_i]; 
-	      const unsigned int poly_type = mypoly->type; 
+	   const uint32_t*const poly_arch = p->poly_arch; 
+	   const int*const poly_type_offset = p->poly_type_offset; 
+	   Polymer *const mypoly = &p->polymers[chain_i];
+	   const unsigned int poly_type = mypoly->type; 
+	   const IndependetSets mySets= p->sets[poly_type];
+	   const unsigned int*const set_length = mySets.set_length;
+	   const unsigned int* const sets = mySets.sets;
+	   RNG_STATE * const set_states = mypoly->set_states;
+
+	     
+	     
 	      const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]]; 
 	      accepted_moves_poly += 0*myN; // Shutup compiler warning 
-		  
+	      
 	      const unsigned int ibead = sets[ set_id*max_member + iP];
 	      const unsigned int iwtype =get_particle_type(poly_arch[ poly_type_offset[poly_type]+1+ibead]);
 
 	      RNG_STATE my_state = set_states[iP];
 	      Monomer  mybead = mypoly->beads[ibead];
-
+	      
 	      Monomer dx;
 	      dx.x=dx.y=dx.z=0;
 	      soma_scalar_t smc_deltaE=0;
@@ -605,25 +611,26 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
 #endif//_OPENACC
-      //printf("single end!\n");
-    }
- 
+    } 
 }
 	      
 
 int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter){
   // We need to check that, otherwise there is a problem in some iterations.
   // But all occuring errors, if any, are reported to the users.
-
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
-    
   //reorder the polymers according to their length
-  unsigned int* poly_order = (unsigned int*)malloc( (int)p->n_polymers*sizeof(unsigned int));
+  /*unsigned int* poly_order = (unsigned int*)malloc( (int)p->n_polymers*sizeof(unsigned int));
+  if(poly_order == NULL){
+    fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
+    return -1;
+  }
   memset(poly_order,0,p->n_polymers*sizeof(unsigned int));
   poly_order[0]=0;
   int num_long_chain=0;
   for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){
+	  
     Polymer *const this_poly = &p->polymers[poly_i];
     const unsigned int poly_type = this_poly->type;
     uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
@@ -631,22 +638,21 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
       num_long_chain++;
 
     int i=poly_i-1;    
-    while(length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]]&&i>=0){
+    while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
       i--;
-    }
+	
     i=poly_i-1-i;
-    if(i!=0){
-      memcpy(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
-    }
+    if(i!=0)
+      memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
+	
     poly_order[poly_i-i]=poly_i;  
-  }   
-  //printf("number long chain %i\n",num_long_chain);
-  num_long_chain=3;
-  for(int index=0;index<num_long_chain;index++){
-    set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
-  }
-  set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
+    }*/ 
+  //for(int index=0;index<3;index++){
+  set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,0);
+    //}
+    //set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,0);
 #pragma acc wait
+  //free(poly_order);
   int ret = 0;
   return ret;
 }
