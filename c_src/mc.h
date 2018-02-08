@@ -95,7 +95,7 @@ int mc_center_mass(struct Phase*const p, const unsigned int nsteps,const unsigne
 //! \param nsteps \#steps to perform with the system.
 //! \param tuning_parameter Parameter for ACC kernels. (vector_length)
 //! \return Error code. Returns not equal to zero of an error occured.
-int mc_set_iteration(struct Phase*const p, const unsigned int nsteps,const unsigned int tuning_parameter,const int num_long_chain);
+int mc_set_iteration(struct Phase*const p, const unsigned int nsteps,const unsigned int tuning_parameter);
 
 /*! \brief calculate a trial move for the specified bead
   \param p Phase configuration, in which the trial move is proposed

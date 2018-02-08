@@ -615,16 +615,19 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 }
 	      
 
-int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const int num_long_chain){
+int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter){
   // We need to check that, otherwise there is a problem in some iterations.
   // But all occuring errors, if any, are reported to the users.
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
-  //reorder the polymers according to their length
   
+  //reorder the polymers according to their length
+  int num_long_chain=p->num_long_chain;
+
   for(int index=0;index<num_long_chain;index++){
-	  set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
-	}
+    //printf("number %i\n",p->poly_arch[p->poly_type_offset[(&p->polymers[index])->type]]);
+    set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
+  }
   set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
 #pragma acc wait
 

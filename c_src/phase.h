@@ -242,6 +242,8 @@ typedef struct Phase{
     double tps_elapsed_time;
     //! Measured TPS counter
     unsigned int tps_elapsed_steps;
+    //! Measures the number of chains that runs on one separate kernal
+     unsigned int num_long_chain;
     }Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
@@ -276,5 +278,6 @@ int copyout_phase(struct Phase*const p);
 */
 int free_phase(struct Phase*const p);
 
+int mc_set_init(struct Phase*const p);
 
 #endif//PHASE_H

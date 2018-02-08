@@ -183,6 +183,9 @@ int init_phase(struct Phase * const p)
 
     p->sets = NULL; // Default init of the sets
     p->max_set_members = 0;
+    
+    p->num_long_chain=mc_set_init(p);
+
     if( p->args.iteration_alg_arg == iteration_alg_arg_SET)
       generate_independet_sets(p);
 
@@ -422,8 +425,7 @@ int mc_set_init(Phase * const p){
     fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
-  memset(poly_order,0,p->n_polymers*sizeof(unsigned int));
-  poly_order[0]=0;
+  memset(poly_order,0,(int)p->n_polymers*sizeof(unsigned int));
   int num_long_chain=0;
   for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
 	  Polymer *const this_poly = &p->polymers[poly_i];
@@ -443,11 +445,9 @@ int mc_set_init(Phase * const p){
 	  poly_order[poly_i-i]=poly_i;  
 	}
   for(int index=0;index<num_long_chain;index++){
-	  
-	  Polymer tmp_poly = p->polymers[index];
-	  p->polymers[index]=p->polymers[poly_order[index]];
-	  p->polymers[poly_order[index]]=tmp_poly;
-	  }
+    if(poly_order[index]!=index)
+      exchange_polymer(p,poly_order[index],index);
+  }
   free(poly_order);
   return num_long_chain;
 }
