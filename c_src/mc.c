@@ -535,9 +535,9 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 	  const unsigned int set_id = set_permutation[iSet];		    
 	  const unsigned int len = set_length_tmp[set_id];
 
-	  //#pragma acc parallel loop vector_length(tuning_parameter) async
-          #pragma acc parallel loop async				  
-	  #pragma omp parallel for reduction(+:n_accepts)
+#pragma acc parallel loop vector_length(tuning_parameter) async
+	  //#pragma acc parallel loop async				  
+#pragma omp parallel for reduction(+:n_accepts)
 	  for(unsigned int iP=0; iP < len; iP++)
 	    {	
 	   const uint32_t*const poly_arch = p->poly_arch; 
@@ -615,44 +615,13 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 }
 	      
 
-int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter){
+int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const int num_long_chain){
   // We need to check that, otherwise there is a problem in some iterations.
   // But all occuring errors, if any, are reported to the users.
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
   //reorder the polymers according to their length
-  unsigned int* poly_order = (unsigned int*)malloc( (int)p->n_polymers*sizeof(unsigned int));
-  if(poly_order == NULL){
-    fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
-    return -1;
-  }
-  memset(poly_order,0,p->n_polymers*sizeof(unsigned int));
-  poly_order[0]=0;
-  int num_long_chain=0;
-  for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
-	  Polymer *const this_poly = &p->polymers[poly_i];
-	  const unsigned int poly_type = this_poly->type;
-	  uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
-	  if(length_poly_i>(double)p->num_all_beads/500.0)
-	    num_long_chain++;
-
-	  int i=poly_i-1;    
-	  while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
-	    i--;
-	
-	  i=poly_i-1-i;
-	  if(i!=0)
-	    memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
-	
-	  poly_order[poly_i-i]=poly_i;  
-	}
-  for(int index=0;index<num_long_chain;index++){
-	  
-	  Polymer tmp_poly = p->polymers[index];
-	  p->polymers[index]=p->polymers[poly_order[index]];
-	  p->polymers[poly_order[index]]=tmp_poly;
-	  }
-  free(poly_order);
+  
   for(int index=0;index<num_long_chain;index++){
 	  set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
 	}

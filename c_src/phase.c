@@ -414,3 +414,40 @@ int update_self_phase(const Phase * const p)
 
     return p->n_polymers*0+1;
     }
+
+
+int mc_set_init(Phase * const p){
+  unsigned int* poly_order = (unsigned int*)malloc( (int)p->n_polymers*sizeof(unsigned int));
+  if(poly_order == NULL){
+    fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
+    return -1;
+  }
+  memset(poly_order,0,p->n_polymers*sizeof(unsigned int));
+  poly_order[0]=0;
+  int num_long_chain=0;
+  for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
+	  Polymer *const this_poly = &p->polymers[poly_i];
+	  const unsigned int poly_type = this_poly->type;
+	  uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
+	  if(length_poly_i>(double)p->num_all_beads/500.0)
+	    num_long_chain++;
+
+	  int i=poly_i-1;    
+	  while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
+	    i--;
+	
+	  i=poly_i-1-i;
+	  if(i!=0)
+	    memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
+	
+	  poly_order[poly_i-i]=poly_i;  
+	}
+  for(int index=0;index<num_long_chain;index++){
+	  
+	  Polymer tmp_poly = p->polymers[index];
+	  p->polymers[index]=p->polymers[poly_order[index]];
+	  p->polymers[poly_order[index]]=tmp_poly;
+	  }
+  free(poly_order);
+  return num_long_chain;
+}
