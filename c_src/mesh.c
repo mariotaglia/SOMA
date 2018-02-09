@@ -73,7 +73,6 @@ void update_density_fields(const struct Phase *const p)
     else			//Quick exit, because the property has already been calculated for the time step.
 	return;
 
-
     const uint64_t n_indices = p->n_types*p->n_cells;
 #pragma acc parallel
     // num_gangs(200) vector_length(128)

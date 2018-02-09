@@ -20,7 +20,6 @@
    You should have received a copy of the GNU Lesser General Public License
    along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include "mc.h"
 #include <math.h>
 #include <stdbool.h>
@@ -394,7 +393,6 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
 void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain){
   for(unsigned int step = 0; step < nsteps; step++)
     {
-      // printf("multi!\n");
       const uint64_t n_polymers = p->n_polymers ;
       unsigned int n_accepts=0;
 #pragma acc parallel loop vector_length(tuning_parameter) async
@@ -426,7 +424,6 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
 	  for(unsigned int i=0; i < n_sets; i++)
 	    {
 	      const unsigned int d = soma_rng_uint(&(mypoly->poly_state),my_rng_type) % (i+1) ;
-	      // printf("d!!! %i %i \n",d,i);
 	      set_permutation[i] = set_permutation[d];
 	      set_permutation[d] = i;
 	    }
@@ -498,9 +495,7 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
 #endif//_OPENACC
-      // printf("multi end!\n");
-    }
- 
+    } 
 }
 
 void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,uint64_t chain_i){
@@ -535,8 +530,7 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 	  const unsigned int set_id = set_permutation[iSet];		    
 	  const unsigned int len = set_length_tmp[set_id];
 
-#pragma acc parallel loop vector_length(tuning_parameter) async
-	  //#pragma acc parallel loop async				  
+#pragma acc parallel loop vector_length(tuning_parameter) async				  
 #pragma omp parallel for reduction(+:n_accepts)
 	  for(unsigned int iP=0; iP < len; iP++)
 	    {	
@@ -620,12 +614,11 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   // But all occuring errors, if any, are reported to the users.
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
-  
+ 
   //reorder the polymers according to their length
   int num_long_chain=p->num_long_chain;
-
   for(int index=0;index<num_long_chain;index++){
-    //printf("number %i\n",p->poly_arch[p->poly_type_offset[(&p->polymers[index])->type]]);
+      printf("number %i %i\n",num_long_chain,p->poly_arch[p->poly_type_offset[(&p->polymers[index])->type]]);
     set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
   }
   set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);

@@ -178,7 +178,7 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
 
     p->n_polymers -= 1;
 #pragma acc update device(p->n_polymers)
-    
+
     //Fill the gap in vector
     if(poly_id!=p->n_polymers){
       memcpy( p->polymers + poly_id, p->polymers + p->n_polymers, sizeof(Polymer));
@@ -198,38 +198,44 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
 #pragma acc update device(p->num_bead_type_local[0:p->n_types])
 #pragma acc update device(p->num_all_beads_local[0:1])
 
-
     copyout_polymer(p, poly);
+
     return 0;
     }
 
 int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t poly_j){
-  if( poly_i >= p->n_polymers)
-	{
+
+  if(poly_i!=poly_j){
+    if( poly_i >= p->n_polymers)
+      {
 	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
 		,p->info_MPI.current_core,poly_i,p->n_polymers);
 	return -1;
-	}
-  if(poly_j >= p->n_polymers)
-	{
+      }
+    if(poly_j >= p->n_polymers)
+      {
 	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
 		,p->info_MPI.current_core,poly_j,p->n_polymers);
 	return -1;
-	}
+      }
   
-  Polymer tmp_poly=p->polymers[poly_j];
-  p->polymers[poly_j] = p->polymers[poly_i];
-  p->polymers[poly_i] = tmp_poly;
-  
+    Polymer tmp_poly=p->polymers[poly_j];
+    p->polymers[poly_j] = p->polymers[poly_i];
+    p->polymers[poly_i] = tmp_poly;
 #ifdef _OPENACC
     const unsigned int pos_i = poly_i;
     const unsigned int pos_j = poly_j;
-    Polymer*const polymers_dev = acc_deviceptr( p->polymers);
+    Polymer* polymers_dev =acc_malloc(sizeof(Polymer));
+    polymers_dev = acc_deviceptr(p->polymers);
     acc_memcpy_to_device( polymers_dev + pos_i, p->polymers + pos_i, sizeof(Polymer));
-    acc_memcpy_to_device( polymers_dev + pos_j, p->polymers + pos_j, sizeof(Polymer));
-    #endif//_OPENACC
+    acc_memcpy_to_device( polymers_dev + pos_j, p->polymers + pos_j, sizeof(Polymer));    
+#endif//_OPENACC
+    copyin_polymer(p,&(p->polymers[poly_i]));
+    copyin_polymer(p,&(p->polymers[poly_j]));
+ 
+  }
     return 0;
-}
+    }
 
 unsigned int poly_serial_length(const struct Phase*const p,const Polymer*const poly)
     {

@@ -183,24 +183,20 @@ int init_phase(struct Phase * const p)
 
     p->sets = NULL; // Default init of the sets
     p->max_set_members = 0;
-    
-    p->num_long_chain=mc_set_init(p);
-
     if( p->args.iteration_alg_arg == iteration_alg_arg_SET)
       generate_independet_sets(p);
-
 
     init_autotuner(&(p->mc_autotuner));
     init_autotuner(&(p->cm_mc_autotuner));
 
     copyin_phase(p);
+    p->num_long_chain=mc_set_init(p);
     // call update_fields routine
     if(p->bead_data_read)
 	{
-	update_density_fields(p);
-	memcpy(p->old_fields_unified, p->fields_unified, p->n_cells*p->n_types*sizeof(uint16_t));
+	 update_density_fields(p);
+	 memcpy(p->old_fields_unified, p->fields_unified, p->n_cells*p->n_types*sizeof(uint16_t));
 	}
-
     int ret=0;
     if(p->args.coord_file_arg != NULL) //Is it a full init Phase?
 	ret = init_ana(p,p->args.ana_file_arg,p->args.coord_file_arg);
@@ -420,33 +416,36 @@ int update_self_phase(const Phase * const p)
 
 
 int mc_set_init(Phase * const p){
+  int num_long_chain=0;
   unsigned int* poly_order = (unsigned int*)malloc( (int)p->n_polymers*sizeof(unsigned int));
   if(poly_order == NULL){
     fprintf(stderr,"ERROR: malloc %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
   memset(poly_order,0,(int)p->n_polymers*sizeof(unsigned int));
-  int num_long_chain=0;
+  
   for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
-	  Polymer *const this_poly = &p->polymers[poly_i];
-	  const unsigned int poly_type = this_poly->type;
-	  uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
-	  if(length_poly_i>(double)p->num_all_beads/500.0)
-	    num_long_chain++;
+    Polymer *const this_poly = &p->polymers[poly_i];
+    const unsigned int poly_type = this_poly->type;
+    uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
+    if(length_poly_i>p->num_all_beads/500.0)
+      num_long_chain=num_long_chain;
 
-	  int i=poly_i-1;    
-	  while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
-	    i--;
+    int i=poly_i-1;    
+    while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
+      i--;
 	
-	  i=poly_i-1-i;
-	  if(i!=0)
-	    memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
-	
-	  poly_order[poly_i-i]=poly_i;  
-	}
+    i=poly_i-1-i;
+    if(i!=0)
+      memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
+
+    poly_order[poly_i-i]=poly_i;
+  }
+
   for(int index=0;index<num_long_chain;index++){
-    if(poly_order[index]!=index)
-      exchange_polymer(p,poly_order[index],index);
+    if(poly_order[index]!=index){
+      exchange_polymer(p,poly_order[index],index);  
+    }
   }
   free(poly_order);
   return num_long_chain;

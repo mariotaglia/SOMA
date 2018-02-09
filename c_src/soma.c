@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
     p->info_MPI.SOMA_MPI_Comm = MPI_COMM_WORLD;
     /* initialize MPI */
     init_MPI(p);
-
+  
     const int signal_success = init_soma_signal();
     MPI_ERROR_CHECK(signal_success, "Signal init");
 
@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
-
     if( !p->bead_data_read )
 	{
 	if(p->info_MPI.current_core == 0)
@@ -126,7 +125,6 @@ int main(int argc, char *argv[])
 	const int indepent_sets = test_independet_sets(p);
 	MPI_ERROR_CHECK(indepent_sets, "Indepent Set test failed.");
 	}
-
     //Reset the RNG to initial starting conditions.
     reseed(p, p->args.rng_seed_arg);
     int stop_iteration = false;
