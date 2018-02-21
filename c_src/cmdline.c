@@ -60,7 +60,7 @@ const char *som_args_detailed_help[] = {
   "      --user=user-args          Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
   "      --set-generation-algorithm=SET-ALG\n                                Option to select the algorithm to generate the\n                                  indepent sets.  (possible values=\"SIMPLE\",\n                                  \"FIXED-N-SETS\" default=`SIMPLE')",
   "  -m, --bond-minimum-image-convention\n                                Specify the bond length used to calculate the\n                                  energy. This decides, whether the bond length\n                                  between two particle is calculated as the\n                                  absolute distance or the minimum image\n                                  distance.  (default=off)",
-  "      --sync-signal             Synchronize MPI ranks for correct signal\n                                  catching. ON enables termination via sending\n                                  SIGINT or SIGTERM to SOMA if the MPI library\n                                  supports it. OFF accerlerates run with many\n                                  MPI ranks.  (default=on)",
+  "      --no-sync-signal          Synchronize MPI ranks for correct signal\n                                  catching. OFF enables termination via sending\n                                  SIGINT or SIGTERM to SOMA if the MPI library\n                                  supports it. ON accerlerates run with many\n                                  MPI ranks.  (default=off)",
     0
 };
 
@@ -155,7 +155,7 @@ void clear_given (struct som_args *args_info)
   args_info->user_given = 0 ;
   args_info->set_generation_algorithm_given = 0 ;
   args_info->bond_minimum_image_convention_given = 0 ;
-  args_info->sync_signal_given = 0 ;
+  args_info->no_sync_signal_given = 0 ;
 }
 
 static
@@ -201,7 +201,7 @@ void clear_args (struct som_args *args_info)
   args_info->set_generation_algorithm_arg = set_generation_algorithm_arg_SIMPLE;
   args_info->set_generation_algorithm_orig = NULL;
   args_info->bond_minimum_image_convention_flag = 0;
-  args_info->sync_signal_flag = 1;
+  args_info->no_sync_signal_flag = 0;
   
 }
 
@@ -235,7 +235,7 @@ void init_args_info(struct som_args *args_info)
   args_info->user_help = som_args_detailed_help[23] ;
   args_info->set_generation_algorithm_help = som_args_detailed_help[24] ;
   args_info->bond_minimum_image_convention_help = som_args_detailed_help[25] ;
-  args_info->sync_signal_help = som_args_detailed_help[26] ;
+  args_info->no_sync_signal_help = som_args_detailed_help[26] ;
   
 }
 
@@ -471,8 +471,8 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "set-generation-algorithm", args_info->set_generation_algorithm_orig, cmdline_parser_set_generation_algorithm_values);
   if (args_info->bond_minimum_image_convention_given)
     write_into_file(outfile, "bond-minimum-image-convention", 0, 0 );
-  if (args_info->sync_signal_given)
-    write_into_file(outfile, "sync-signal", 0, 0 );
+  if (args_info->no_sync_signal_given)
+    write_into_file(outfile, "no-sync-signal", 0, 0 );
   
 
   i =  1 ;
@@ -804,7 +804,7 @@ cmdline_parser_internal (
         { "user",	1, NULL, 0 },
         { "set-generation-algorithm",	1, NULL, 0 },
         { "bond-minimum-image-convention",	0, NULL, 'm' },
-        { "sync-signal",	0, NULL, 0 },
+        { "no-sync-signal",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -1110,14 +1110,14 @@ cmdline_parser_internal (
               goto failure;
           
           }
-          /* Synchronize MPI ranks for correct signal catching. ON enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. OFF accerlerates run with many MPI ranks..  */
-          else if (strcmp (long_options[option_index].name, "sync-signal") == 0)
+          /* Synchronize MPI ranks for correct signal catching. OFF enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. ON accerlerates run with many MPI ranks..  */
+          else if (strcmp (long_options[option_index].name, "no-sync-signal") == 0)
           {
           
           
-            if (update_arg((void *)&(args_info->sync_signal_flag), 0, &(args_info->sync_signal_given),
-                &(local_args_info.sync_signal_given), optarg, 0, 0, ARG_FLAG,
-                check_ambiguity, override, 1, 0, "sync-signal", '-',
+            if (update_arg((void *)&(args_info->no_sync_signal_flag), 0, &(args_info->no_sync_signal_given),
+                &(local_args_info.no_sync_signal_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "no-sync-signal", '-',
                 additional_error))
               goto failure;
           

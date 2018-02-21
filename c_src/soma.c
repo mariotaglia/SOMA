@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
             }
 
 	stop_iteration = check_signal_stop();
-	if(p->args.sync_signal_flag)
+	if( ! p->args.no_sync_signal_flag)
 	    {
 	    //Sync all mpi cores
 	    MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_comm_world);

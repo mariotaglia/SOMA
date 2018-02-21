@@ -46,4 +46,4 @@ option "rcm-update" - "Frequency of the update of the molecule center of mass. I
 option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="user-args" optional
 option "set-generation-algorithm" - "Option to select the algorithm to generate the indepent sets." enum typestr="SET-ALG" values="SIMPLE","FIXED-N-SETS" default="SIMPLE" optional
 option "bond-minimum-image-convention" m "Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance." flag off
-option "sync-signal" - "Synchronize MPI ranks for correct signal catching. ON enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. OFF accerlerates run with many MPI ranks." flag on
+option "no-sync-signal" - "Synchronize MPI ranks for correct signal catching. OFF enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. ON accerlerates run with many MPI ranks." flag off
