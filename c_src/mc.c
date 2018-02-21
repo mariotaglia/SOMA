@@ -490,7 +490,7 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
 	  n_accepts += accepted_moves_poly;
 #endif//_OPENACC
 	}
-      p->time += 1;
+      //p->time += 1;
       p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
@@ -600,7 +600,7 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 #ifndef _OPENACC
       n_accepts += accepted_moves_poly;
 #endif//_OPENACC	  
-      p->time += 1;
+      //p->time += 1;
       p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
@@ -618,10 +618,13 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   //reorder the polymers according to their length
   int num_long_chain=p->num_long_chain;
   for(int index=0;index<num_long_chain;index++){
-      printf("number %i %i\n",num_long_chain,p->poly_arch[p->poly_type_offset[(&p->polymers[index])->type]]);
+  // printf("number %i\n",num_long_chain);
     set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
+    }
+  if(num_long_chain!=p->n_polymers){
+    set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
   }
-  set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
+  p->time += 1;
 #pragma acc wait
 
   int ret = 0;
