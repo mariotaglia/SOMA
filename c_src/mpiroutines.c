@@ -255,7 +255,14 @@ int recv_polymer_chain(struct Phase*const p, const int source,const MPI_Comm com
 
         //Deserialize and allocate Memory for recved polymer.
         Polymer poly;
-        deserialize_polymer(p, &poly, buffer);
+        int err = deserialize_polymer(p, &poly, buffer);
+        if(err != (int)buffer_length)
+            {
+            fprintf(stderr,"ERROR: %s:%d World rank %d: invalid deserialization %d %d.\n",
+                    __FILE__,__LINE__, p->info_MPI.world_rank, err,buffer_length);
+            return -2;
+            }
+
 
         free(buffer);
 
@@ -395,7 +402,13 @@ int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm com
     unsigned char*const buffer = recv_mult_polymers_core(source, comm, &Nsends, &buffer_length);
     if(buffer != NULL)
         {
-        deserialize_mult_polymers(p, Nsends, buffer_length, buffer);
+        const int err = deserialize_mult_polymers(p, Nsends, buffer_length, buffer);
+        if( err != 0)
+            {
+            fprintf(stderr,"ERROR: %s:%d World rank %d: invalid deserialization %d.\n",
+                    __FILE__,__LINE__, p->info_MPI.world_rank, err);
+            return err;
+            }
         free(buffer);
         return Nsends;
         }
@@ -652,11 +665,27 @@ int send_domain_chains(struct Phase*const p,const bool init)
     //Deserialize
     if( p->n_polymers + total_chains_recv > p->n_polymers_storage)
         reallocate_polymer_mem(p, p->n_polymers + total_chains_recv);
+    int err = 0;
     for(unsigned int i=0; i < len_domain_list; i++)
         {
         if(recv_buffer[i] != NULL)
             {
-            deserialize_mult_polymers(p, n_recv[i], recv_len[i], recv_buffer[i]);
+            err = deserialize_mult_polymers(p, n_recv[i], recv_len[i], recv_buffer[i]);
+            if( err != 0)
+                {
+                fprintf(stderr,"ERROR: %s:%d World rank %d: invalid deserialization %d. "
+                        " i=%d\t %d %d %p\n",
+                        __FILE__,__LINE__, p->info_MPI.world_rank, err,
+                        i,n_recv[i],recv_len[i],recv_buffer[i]);
+                break;
+                }
+            }
+        }
+    MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why,but it doesn't hurt
+    for(unsigned int i=0; i < len_domain_list; i++)
+        {
+        if(recv_buffer[i] != NULL)
+            {
             free(recv_buffer[i]);
             free(send_buffer[i]);
             }
@@ -672,7 +701,11 @@ int send_domain_chains(struct Phase*const p,const bool init)
     free(n_recv);
     free(recv_len);
     free(recv_buffer);
-    return missed_chains;
+    MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why,but it doesn't hurt
+    if( err == 0)
+        return missed_chains;
+    else
+        return -2;
     }
 
 unsigned int get_domain_id(const struct Phase*const p,const Monomer*const rcm)
