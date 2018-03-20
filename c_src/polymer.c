@@ -284,9 +284,16 @@ int deserialize_polymer(const struct Phase*const p, Polymer*const poly,const uns
     unsigned int position = 0;
 
     //Buffer length
-    unsigned int length;
-    memcpy( &length,buffer + position, sizeof(unsigned int));
+    unsigned int length_tmp;
+    memcpy( &length_tmp,buffer + position, sizeof(unsigned int));
     position += sizeof(unsigned int);
+    const unsigned int length = length_tmp;
+    if(length < sizeof(unsigned int) )
+        {
+        fprintf(stderr,"ERROR: %s:%d:%d invalid buffer received %d \n",
+                __FILE__,__LINE__,p->info_MPI.world_rank,length);
+        return length;
+        }
 
     //Type data
     memcpy(&(poly->type),buffer + position, sizeof(unsigned int));
@@ -340,10 +347,10 @@ int deserialize_polymer(const struct Phase*const p, Polymer*const poly,const uns
         }
     if( position != length )
         {
-        fprintf(stderr,"ERROR: %s:%d Deserialization of polymer. "
+        fprintf(stderr,"ERROR: %s:%d rank %d Deserialization of polymer. "
                 " The read buffer size %d, does not coincide with length %d "
                 " claimed by the buffer content.\n",
-                __FILE__, __LINE__,position,length);
+                __FILE__, __LINE__,p->info_MPI.world_rank,position,length);
         return -2;
         }
 

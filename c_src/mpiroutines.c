@@ -309,6 +309,12 @@ int send_mult_polymers(struct Phase*const p,const int destination,
             {
             pop_polymer(p, p->n_polymers - 1, &poly);
             const unsigned int poly_bytes = serialize_polymer(p, &poly, buffer+bytes_written);
+            if( poly_bytes != poly_serial_length(p, &poly) )
+                {
+                fprintf(stderr, "ERROR: %s:%d:%d constructing invalid buffer construction %d,%d.\n",
+                        __FILE__,__LINE__,p->info_MPI.world_size,
+                        poly_bytes,poly_serial_length(p, &poly));
+                }
             //After serialization the polymer deep memory can be freed.
             free_polymer(p, &poly);
             bytes_written += poly_bytes;
@@ -374,13 +380,18 @@ int deserialize_mult_polymers(struct Phase*const p,const unsigned int Nsends,
         assert(bytes_read < buffer_length);
         const unsigned int poly_bytes = deserialize_polymer(p, &poly, buffer+bytes_read);
         bytes_read += poly_bytes;
-        //Push the polymer to the system.
-        push_polymer(p, &poly);
+        //Push the polymer to the system if something has been read
+        if( poly_bytes > 0)
+            push_polymer(p, &poly);
+        else
+            fprintf(stderr,"ERROR: %s:%d rank %d invalid buffer length i=%d pb=%d\n",
+                    __FILE__,__LINE__,p->info_MPI.world_rank,i,poly_bytes);
         }
 
     if( bytes_read != buffer_length)
         {
-        fprintf(stderr,"ERROR: %s:%d invalid buffer length\n",__FILE__,__LINE__);
+        fprintf(stderr,"ERROR: %s:%d rank %d invalid buffer length %d %d\n",
+                __FILE__,__LINE__,p->info_MPI.world_rank,bytes_read,buffer_length);
         return -1;
         }
     assert(bytes_read == buffer_length);
