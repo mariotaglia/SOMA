@@ -384,8 +384,8 @@ int deserialize_mult_polymers(struct Phase*const p,const unsigned int Nsends,
         if( poly_bytes > 0)
             push_polymer(p, &poly);
         else
-            fprintf(stderr,"ERROR: %s:%d rank %d invalid buffer length i=%d pb=%d\n",
-                    __FILE__,__LINE__,p->info_MPI.world_rank,i,poly_bytes);
+            fprintf(stderr,"ERROR: %s:%d rank %d invalid buffer length i=%d pb=%d \t %d %d %d\n",
+                    __FILE__,__LINE__,p->info_MPI.world_rank,i,poly_bytes,bytes_read,buffer_length,Nsends);
         }
 
     if( bytes_read != buffer_length)
