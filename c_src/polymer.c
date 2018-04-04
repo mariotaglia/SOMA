@@ -244,6 +244,7 @@ int serialize_polymer(const struct Phase*const p,const Polymer*const poly,unsign
 
     //Buffer length
     const unsigned int length = poly_serial_length(p, poly);
+    assert(length != 0);
     memcpy( buffer + position, &length, sizeof(unsigned int));
     position += sizeof(unsigned int);
 
@@ -276,6 +277,7 @@ int serialize_polymer(const struct Phase*const p,const Polymer*const poly,unsign
         for(unsigned int i=0; i < p->max_set_members; i++)
             position += serialize_rng_state(p, poly->set_states+i, buffer+position);
 
+    assert( position == length);
     return position;
     }
 
