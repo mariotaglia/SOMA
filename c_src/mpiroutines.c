@@ -338,7 +338,6 @@ int send_mult_polymers(struct Phase*const p,const int destination,
 
         //Send the buffer to destination.
         int err = MPI_Send( buffer, buffer_length, MPI_UNSIGNED_CHAR, destination, 2,comm);
-
         if( err != MPI_SUCCESS)
             {
             fprintf(stderr,"ERROR: %s:%d:%d MPI send not successfull %d %d\n",__FILE__,__LINE__,p->info_MPI.world_rank,err,MPI_SUCCESS);
@@ -391,8 +390,7 @@ unsigned char* recv_mult_polymers_core(const int source, const MPI_Comm comm,
             ret = NULL;
             }
         assert( status.MPI_SOURCE == source );
-        assert( status.MPI_TAG == 0);
-
+        assert( status.MPI_TAG == 2);
 
         return ret;
         }
@@ -447,7 +445,7 @@ int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm com
     unsigned int Nsends;
     unsigned int buffer_length;
     unsigned char*const buffer = recv_mult_polymers_core(source, comm, &Nsends, &buffer_length);
-    MPI_Barrier(p->info_MPI.SOMA_comm_sim); //Sync the simulation, to be sure all data has been sent.
+
     if(buffer != NULL)
         {
         const int err = deserialize_mult_polymers(p, Nsends, buffer_length, buffer);
@@ -716,7 +714,6 @@ int send_domain_chains(struct Phase*const p,const bool init)
             req[ j*len_domain_list + i] = MPI_REQUEST_NULL;
             }
         }
-    MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why, but it doesn't hurt
 
     //Allocate space for recieving the polymers
     for(unsigned int i=0; i< len_domain_list; i++)
@@ -729,7 +726,7 @@ int send_domain_chains(struct Phase*const p,const bool init)
     for(unsigned int i=0; i < len_domain_list; i++)
         {
         const unsigned int comm_domain = domain_list[i];
-        const int comm_to = comm_domain*p->info_MPI.domain_size + p->info_MPI.domain_rank;
+        const unsigned int comm_to = comm_domain*p->info_MPI.domain_size + p->info_MPI.domain_rank;
         MPI_Isend( send_buffer[i], send_len[i], MPI_UNSIGNED_CHAR, comm_to, 2, p->info_MPI.SOMA_comm_sim, req +(0*len_domain_list+i));
 
         MPI_Irecv( recv_buffer[i], recv_len[i], MPI_UNSIGNED_CHAR, comm_to, 2, p->info_MPI.SOMA_comm_sim, req +(1+len_domain_list+i));
@@ -744,7 +741,6 @@ int send_domain_chains(struct Phase*const p,const bool init)
             req[ j*len_domain_list + i] = MPI_REQUEST_NULL;
             }
         }
-    MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why,but it doesn't hurt
 
     //Deserialize
     if( p->n_polymers + total_chains_recv > p->n_polymers_storage)
@@ -767,7 +763,6 @@ int send_domain_chains(struct Phase*const p,const bool init)
         else
             { assert( n_recv[i] == 0); }
         }
-    MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why,but it doesn't hurt
     for(unsigned int i=0; i < len_domain_list; i++)
         {
         if(recv_buffer[i] != NULL)
@@ -787,7 +782,6 @@ int send_domain_chains(struct Phase*const p,const bool init)
     free(n_recv);
     free(recv_len);
     free(recv_buffer);
-    MPI_Barrier(p->info_MPI.SOMA_comm_sim); //I don't know why,but it doesn't hurt
     if( err == 0)
         return missed_chains;
     else
