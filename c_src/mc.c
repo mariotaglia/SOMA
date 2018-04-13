@@ -192,6 +192,7 @@ int monte_carlo_propagation(Phase*const p,unsigned int nsteps)
       break;
     case iteration_alg_arg_SET:
       ret = mc_set_iteration(p,nsteps,p->mc_autotuner.value);
+      
       break;
     case iteration_alg__NULL:
     default:
@@ -618,10 +619,9 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   //reorder the polymers according to their length
   int num_long_chain=p->num_long_chain;
   for(int index=0;index<num_long_chain;index++){
-  // printf("number %i\n",num_long_chain);
     set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
     }
-  if(num_long_chain!=p->n_polymers){
+  if(num_long_chain!=p->n_polymers){  
     set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
   }
   p->time += 1;
