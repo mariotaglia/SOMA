@@ -25,7 +25,6 @@
 
 #include "io.h"
 #include <stdio.h>
-
 #include <assert.h>
 #include <mpi.h>
 #include <stdlib.h>
@@ -1221,8 +1220,8 @@ int screen_output(struct Phase*const p,const unsigned int Nsteps)
 
 	if(p->info_MPI.current_core == 0)
 	    {
-	    fprintf(stdout,"Running for %.0f [s] | TPS %g | steps-to-go: %u | ETA: %s |sec: %f ",
-		    second,tps,steps_to_go,ctime(&end),sec);
+	    fprintf(stdout,"Running for %.0f [s] | TPS %g | steps-to-go: %u | ETA: %s",
+		    second,tps,steps_to_go,ctime(&end));
 	    fflush(stdout);
 	    }
 	last_print = now;

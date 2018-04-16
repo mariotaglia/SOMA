@@ -376,16 +376,13 @@ int update_self_phase(const Phase * const p)
 	return 1;
 
     // Not pointer members are expected to not change on device
-
 #pragma acc update self(p->xn[0:p->n_types][0:p->n_types])
-
+    
     for(uint64_t i=0; i< p->n_polymers; i++)
 	update_self_polymer(p, p->polymers+i);
-
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
 #pragma acc update self(p->old_fields_unified[0:p->n_types*p->n_cells])
 #pragma acc update self(p->fields_32[0:p->n_types*p->n_cells])
-
 
     if (p->area51 != NULL)
 	{
