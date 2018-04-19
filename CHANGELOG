@@ -12,7 +12,8 @@ Please add your contributions.
 	  added                         Gaoyuan Wang
 	  (MIC needs to be compiled and
 	  runned with MIC flag)
-
+	* Separation of ConfGen and     Gaoyuan Wang
+	  AnaGen
 	v0.5.2 not-yet-released
 
 	*
