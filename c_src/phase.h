@@ -262,7 +262,7 @@ int copyin_phase(struct Phase*const p);
   \param p System in which the host data is updated from the device
   \return Errorcode
  */
-int update_self_phase(const Phase * const p);
+int update_self_phase(const Phase * const p, int rng_update_flag);
 
 //! Copy all data out from the DEVICE
 //! \param p Pointer to phase to copy out

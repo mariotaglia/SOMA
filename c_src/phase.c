@@ -368,7 +368,7 @@ int free_phase(struct Phase * const p)
     return 0;
 }
 
-int update_self_phase(const Phase * const p)
+int update_self_phase(const Phase * const p, int rng_update_flag)
     {
     static unsigned int last_time_call = 0;
     if (last_time_call == 0 || p->time > last_time_call)
@@ -381,7 +381,7 @@ int update_self_phase(const Phase * const p)
 #pragma acc update self(p->xn[0:p->n_types][0:p->n_types])
 
     for(uint64_t i=0; i< p->n_polymers; i++)
-	update_self_polymer(p, p->polymers+i);
+      update_self_polymer(p, p->polymers+i,rng_update_flag);
 
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
 #pragma acc update self(p->old_fields_unified[0:p->n_types*p->n_cells])
