@@ -204,6 +204,25 @@ def add_umbrella_field(timestep,type,timesteps,types,nxyz,arguments):
         string += "</Attribute>\n"
     return string
 
+def add_umbrella_field_conf(nxyz,n_types,t,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Umbr"+str(t)+"\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += "<!-- The source is 4 dimensions -->\n"
+    string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1,1 Count=1,*,*,* -->\n"
+    string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
+    string += str(t)+" 0 0 0\n"
+    string += "1 1 1 1\n"
+    string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+    string += "</DataItem>\n"
+    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Endian=\"Little\" Dimensions=\""+str(n_types)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/umbrella_field\n"
+    string +="</DataItem>\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
+
 
 def get_area51(nxyz,arguments,fex_name):
     string = ""
@@ -221,14 +240,14 @@ def get_external_field(nxyz,arguments,fex_name,types,t):
                 string += add_external_field(nxyz,types,t,fex_name)
     return string
 
-# def get_umbrella_field(nxyz,arguments,fex_name,types,t):
-#     string = ""
-#     if arguments['a']:
-#         f = h5py.File(arguments['a'],"r")
-#         if '/umbrella_field' in f:
-#             string += add_umbrella_field(nxyz,types,t,fex_name)
-#         f.close()
-#     return string
+def get_umbrella_field(nxyz,arguments,fex_name,types,t):
+     string = ""
+     if arguments['c']:
+         f = h5py.File(arguments['c'],"r")
+         if '/umbrella_field' in f:
+             string += add_umbrella_field_conf(nxyz,types,t,fex_name)
+         f.close()
+     return string
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Script to create paraview input files.")
@@ -271,6 +290,14 @@ def main(argv):
     string += get_topo_geo(nxyz)
     timesteps = get_timesteps(arguments)
     string += "<Grid GridType=\"Collection\" CollectionType=\"Temporal\">\n"
+    isumbr=False
+    if arguments['a']: 
+        f = h5py.File(arguments['a'],"r")
+        if '/umbrella_field' in f:
+            Dataset=f['umbrella_field']
+            if Dataset.size>0:
+                isumbr=True
+        f.close()
     for time in range(timesteps):
         string += open_grid(time)
         for type in range(types):
@@ -278,8 +305,9 @@ def main(argv):
                 string += add_attribute(time,type,timesteps,types,nxyz,arguments)
                 string += add_phi(time,type,timesteps,types,nxyz,arguments)
             string += get_external_field(nxyz,arguments,fex_name,types,type)
-            if content_dict["/umbrella_field"]:
+            if isumbr==True:
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
+            string += get_umbrella_field(nxyz,arguments,fex_name,types,type)
         string += get_area51(nxyz,arguments,fex_name)
         string += "</Grid>\n"
     string += "</Grid>\n"
