@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+
+#   Copyright (C) 2016-2017 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+import sys
+sys.path.append(@SOMA_PYTHON_DIR@)
+import h5py
+import argparse
+import subprocess as sp
+import numpy as np
+SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
+CONVERT = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/CONVERT"
+CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+AnaGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/AnaGen.py"
+HANDLEANAH5 = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/handleAnaH5.py"
+n_polytype = 2
+
+
+def ConfGen_files():
+    ret = sp.call([CONFGEN,"-i","diverse_polytype.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+
+def run():
+    ret = sp.call([SOMA,"-c","diverse_polytype.h5","-t","100","-a","diverse_polytype_ana.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def AnaGen_files():
+    ret = sp.call([AnaGEN,"-i","diverse_polytype.xml","-c","diverse_polytype.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+
+def check_file_length():
+    
+    #h = h5py.File('diverse_polytype_ana.h5', 'r+')
+    with h5py.File('diverse_polytype_ana.h5', 'r+') as h:
+        Re = np.array(list(h['/Re'])).shape
+        correct_Re=(100/1,4*n_polytype)
+        if Re!=correct_Re:
+            raise RuntimeError("Test failed with Re")
+            return -1
+
+        Rg = np.array(list(h['/Rg'])).shape
+        correct_Rg=(100/2,4*n_polytype)
+        if Rg!=correct_Rg:
+            raise RuntimeError("Test failed with Rg")
+            return -1
+
+        MSD = np.array(list(h['/MSD'])).shape
+        correct_MSD=(100/25,8*n_polytype)
+        if MSD!=correct_MSD:
+            raise RuntimeError("Test failed with MSD")
+            return -1
+
+        acc_ratio = np.array(list(h['/acc_ratio'])).shape
+        correct_acc_ratio=(100/20,1)
+        if acc_ratio!=correct_acc_ratio:
+            raise RuntimeError("Test failed with acc_ratio")
+            return -1
+
+        bond_anisotropy = np.array(list(h['/bond_anisotropy'])).shape
+        correct_bond_anisotropy=(100/5,6*n_polytype)
+        if bond_anisotropy!=correct_bond_anisotropy:
+            raise RuntimeError("Test failed with bond_anisotropy")
+            return -1
+
+        bonded_energy =np.array(list(h['/bonded_energy'])).shape
+        correct_bonded_energy=(100/10,3)
+        if bonded_energy!=correct_bonded_energy:
+            raise RuntimeError("Test failed with bonded_energy")
+            return ret
+
+        density_field = np.array(list(h['/density_field'])).shape
+        correct_density_field=(100/100,2,12,6,6)
+        if density_field!=correct_density_field:
+            raise RuntimeError("Test failed with density_field")
+            return -1
+
+        density_var = np.array(list(h['/density_var'])).shape
+        correct_density_variation=(100/10,1)
+        if density_var!=correct_density_variation:
+            raise RuntimeError("Test failed with density_variation")
+            return -1
+
+        non_bonded_energy = np.array(list(h['/non_bonded_energy'])).shape
+        correct_non_bonded_energy=(100/4,2)
+        if non_bonded_energy!=correct_non_bonded_energy:
+            raise RuntimeError("Test failed with non_bonded_energy")
+            return -1
+
+    return 0
+
+def main_test():
+    ConfGen_files()
+    run()
+    ret=check_file_length()
+    if ret != 0:
+        raise RuntimeError("Test failed")
+        return ret
+
+if __name__ == "__main__":
+    main_test()
