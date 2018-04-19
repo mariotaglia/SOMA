@@ -1,5 +1,6 @@
 
 set(soma_python_scripts
+  AnaGen.py
   ConfGen.py
   create_pov.py
   create_xdmf.py
