@@ -14,6 +14,9 @@ Please add your contributions.
 	  runned with MIC flag)
 	* Separation of ConfGen and     Gaoyuan Wang
 	  AnaGen
+	* The rng_state is changed from
+	  automatic update to update
+	  under requirement             Gaoyuan Wang
 	v0.5.2 not-yet-released
 
 	*
