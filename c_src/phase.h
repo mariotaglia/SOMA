@@ -269,9 +269,10 @@ int copyin_phase(struct Phase*const p);
 
 /*! \brief Copys the data from the device back to the host
   \param p System in which the host data is updated from the device
+  \param rng_update_flag The flag deciding whether rng_state will be updated
   \return Errorcode
  */
-int update_self_phase(const Phase * const p);
+int update_self_phase(const Phase * const p, int rng_update_flag);
 
 //! Copy all data out from the DEVICE
 //! \param p Pointer to phase to copy out

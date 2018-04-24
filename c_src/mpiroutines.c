@@ -560,7 +560,7 @@ int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list
     unsigned int chains_missed=0;
     for(unsigned int i=0; i< p->n_polymers; i++)
         {
-        update_self_polymer(p, p->polymers+i);
+        update_self_polymer(p, p->polymers+i,1);
         const unsigned int target_domain = get_domain_id(p, &(p->polymers[i].rcm) );
         if( target_domain != my_domain)
             {

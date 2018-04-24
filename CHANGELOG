@@ -18,7 +18,11 @@ Please add your contributions.
 	  added                         Gaoyuan Wang
 	  (MIC needs to be compiled and
 	  runned with MIC flag)
-
+	* Separation of ConfGen and     Gaoyuan Wang
+	  AnaGen
+	* The rng_state is changed from
+	  automatic update to update
+	  under requirement             Gaoyuan Wang
 	v0.5.2 not-yet-released
 
         * license update 2018

@@ -359,26 +359,27 @@ int deserialize_polymer(const struct Phase*const p, Polymer*const poly,const uns
     return position;
     }
 
-int update_self_polymer(const struct Phase*const p,Polymer*const poly)
+int update_self_polymer(const struct Phase*const p,Polymer*const poly,int rng_update_flag)
     {
     const unsigned int N= p->poly_arch[ p->poly_type_offset[poly->type] ];
     #pragma acc update self(poly->beads[0:N])
-    update_self_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
 
     if(poly->set_permutation !=NULL)
         {
 #pragma acc update self(poly->set_permutation[0:p->max_n_sets])
         }
-
-    if(poly->set_states !=NULL)
+    if(rng_update_flag)
         {
-#pragma acc update self(poly->set_states[0:p->max_set_members])
-        for(unsigned int j=0; j < p->max_set_members; j++)
+          update_self_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
+          if(poly->set_states !=NULL)
             {
-            update_self_rng_state(poly->set_states +j, p->args.pseudo_random_number_generator_arg);
+#pragma acc update self(poly->set_states[0:p->max_set_members])
+              for(unsigned int j=0; j < p->max_set_members; j++)
+                {
+                  update_self_rng_state(poly->set_states +j, p->args.pseudo_random_number_generator_arg);
+                }
             }
         }
-
 #pragma acc update self(poly->type)
 #pragma acc update self(poly->rcm)
     return 0 + 1*N*0;

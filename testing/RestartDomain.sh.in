@@ -18,6 +18,8 @@
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
 DELTA=0
+SEED=42
+TIMESTEPS=11
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i domain.xml --no-ana-output
 
@@ -25,32 +27,32 @@ if [ ! $? -eq 0 ]; then
     exit -1
 fi
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain.h5 -r 11 -t 0 -d 4 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain.h5 -r $SEED -t 0 -d 4 @ACC_FLAG@
 mv end.h5 domain0.h5
 
 if [ ! $? -eq 0 ]; then
     exit -5
 fi
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 -d 1 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS -d 1 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -2
 fi
 mv end.h5 domain1.h5
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 -d 2 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS -d 2 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -3
 fi
 mv end.h5 domain2.h5
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 -d 4 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS -d 4 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -4
 fi
 mv end.h5 domain4.h5
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r 11 -t 1 @ACC_FLAG@
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -5
 fi

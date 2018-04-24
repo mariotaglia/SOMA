@@ -606,7 +606,7 @@ int analytics(struct Phase *const p)
     // Re calculation
     if(p->ana_info.delta_mc_Re != 0 && p->time % p->ana_info.delta_mc_Re == 0)
         {
-        update_self_phase(p);
+        update_self_phase(p,0);
         soma_scalar_t*const Re=(soma_scalar_t*const)malloc(4*p->n_poly_type*sizeof(soma_scalar_t));
         if(Re == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
         calc_Re(p,Re);
@@ -618,7 +618,7 @@ int analytics(struct Phase *const p)
     // dvar calculation
     if(p->ana_info.delta_mc_density_var != 0 && p->time % p->ana_info.delta_mc_density_var == 0)
         {
-        update_self_phase(p);
+        update_self_phase(p,0);
         soma_scalar_t dvar[1];
         calc_dvar(p,dvar);
         if(p->info_MPI.sim_rank == 0 )
@@ -626,7 +626,7 @@ int analytics(struct Phase *const p)
         }
     // Gyration radius
     if (p->ana_info.delta_mc_Rg != 0 && p->time % p->ana_info.delta_mc_Rg == 0) {
-        update_self_phase(p);
+        update_self_phase(p,0);
         soma_scalar_t*const Rg = (soma_scalar_t*const)malloc(4*p->n_poly_type*sizeof(soma_scalar_t));
         if(Rg == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
         calc_Rg(p, Rg);
@@ -637,7 +637,7 @@ int analytics(struct Phase *const p)
         }
     // Bond anisotropy
     if (p->ana_info.delta_mc_b_anisotropy != 0 && p->time % p->ana_info.delta_mc_b_anisotropy == 0) {
-        update_self_phase(p);
+        update_self_phase(p,0);
         soma_scalar_t*const a=(soma_scalar_t*const)malloc(6*p->n_poly_type*sizeof(soma_scalar_t));
         if(a == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
         calc_anisotropy(p, a);
@@ -646,6 +646,7 @@ int analytics(struct Phase *const p)
         written = true;
         free(a);
         }
+
     // Acceptance ratio
     if (p->ana_info.delta_mc_acc_ratio != 0 && p->time % p->ana_info.delta_mc_acc_ratio == 0) {
         soma_scalar_t acc_ration;
@@ -658,13 +659,14 @@ int analytics(struct Phase *const p)
     if (p->ana_info.delta_mc_MSD != 0 && p->time % p->ana_info.delta_mc_MSD == 0) {
         soma_scalar_t*const msd = (soma_scalar_t*const)malloc(8*p->n_poly_type*sizeof(soma_scalar_t));
         if(msd == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
-        update_self_phase(p);
+        update_self_phase(p,0);
         calc_MSD(p, msd);
         if (p->info_MPI.sim_rank == 0)
             extent_ana_by_field(msd, 8*p->n_poly_type, "/MSD",p->ana_info.file_id);
         written = true;
         free(msd);
         }
+
     // non-bonded energy calculation
     if(p->ana_info.delta_mc_non_bonded_energy != 0
        && p->time % p->ana_info.delta_mc_non_bonded_energy == 0)
@@ -685,7 +687,7 @@ int analytics(struct Phase *const p)
         {
         soma_scalar_t*const b_energy = (soma_scalar_t*const)malloc(NUMBER_SOMA_BOND_TYPES*sizeof(soma_scalar_t));
         if(b_energy == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}
-        update_self_phase(p);
+        update_self_phase(p,0);
         calc_bonded_energy(p, b_energy);
         if(p->info_MPI.sim_rank == 0)
             extent_ana_by_field(b_energy, NUMBER_SOMA_BOND_TYPES, "/bonded_energy",p->ana_info.file_id);
@@ -707,19 +709,20 @@ int analytics(struct Phase *const p)
         }
 
     //umbrella_field
-        if (p->ana_info.delta_mc_umbrella_field != 0 && p->time % p->ana_info.delta_mc_umbrella_field == 0)
+    if (p->ana_info.delta_mc_umbrella_field != 0 && p->time % p->ana_info.delta_mc_umbrella_field == 0)
+        {
+        if (p->info_MPI.sim_size == 1)
             {
-            if (p->info_MPI.sim_size == 1)
-                {
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
-                }
-            extent_density_field(p,p->umbrella_field,"/umbrella_field",H5T_SOMA_NATIVE_SCALAR,MPI_SOMA_SCALAR, sizeof(soma_scalar_t) );
-            written = true;
             }
+        extent_density_field(p,p->umbrella_field,"/umbrella_field",H5T_SOMA_NATIVE_SCALAR,MPI_SOMA_SCALAR, sizeof(soma_scalar_t) );
+        written = true;
+        }
 
     //dump
-    if (p->ana_info.delta_mc_dump != 0 && p->time % p->ana_info.delta_mc_dump == 0) {
-        update_self_phase(p);
+    if (p->ana_info.delta_mc_dump != 0 && p->time % p->ana_info.delta_mc_dump == 0)
+        {
+        update_self_phase(p,0);
         const unsigned int len = 1024;
         char filename[1024];//len
         memset(filename,'\0',len*sizeof(char));

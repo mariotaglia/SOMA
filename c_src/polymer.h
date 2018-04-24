@@ -128,8 +128,9 @@ int deserialize_polymer(const struct Phase*const p, Polymer*const poly,const uns
 //!
 //! \param p System
 //! \param poly Polymer to update
+//! \param rng_update_flag The flag deciding whether rng_state will be updated
 //! \return Errorcode
-int update_self_polymer(const struct Phase*const p,Polymer*const poly);
+int update_self_polymer(const struct Phase*const p,Polymer*const poly,const int rng_update_flag);
 
 //! Update the center of mass of the polymer from its monomer positions.
 //!

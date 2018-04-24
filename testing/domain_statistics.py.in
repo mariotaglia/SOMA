@@ -57,7 +57,7 @@ def run(additional_flags):
 def ana():
 
     #Comparing the results of all 3 runs. The averages should be pretty similar, since they are all doing the same.
-    obs_list = ["Re","Rg","bond_anisotropy","MSD","density_field","non_bonded_energy","bonded_energy"]
+    obs_list = ["Re","Rg","bond_anisotropy","density_field","non_bonded_energy","bonded_energy"]
 
     with h5py.File("domain_ana.h5","r") as f:
         with h5py.File("domain1_ana.h5","r") as f1:
@@ -74,10 +74,10 @@ def ana():
                         diff3 = np.mean((data - data3)**2)
 
                         fail = False
-                        if np.abs(diff1 - diff3) > diff3 + 1e-3:
+                        if np.abs(diff1 - diff3) > diff3 + 1e-2:
                             print(obs,diff1,data.mean(),data1.mean())
                             fail = True
-                        if np.abs(diff2 - diff3) > diff3 + 1e-3:
+                        if np.abs(diff2 - diff3) > diff3 + 1e-2:
                             print(obs,diff2,data.mean(),data2.mean())
                             fail = True
 

@@ -495,7 +495,7 @@ int write_field_hdf5(const struct Phase*const p, const hid_t file_id,
 int write_config_hdf5(const struct Phase * const p, const char *filename)
     {
     // Copy polymer data from device to host
-    update_self_phase(p);
+      update_self_phase(p,0);
 
     herr_t status;
 

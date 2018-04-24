@@ -234,7 +234,7 @@ int test_chains_in_domain(struct Phase*const p)
     if( p->args.N_domains_arg == 1)
         return 0;
     update_polymer_rcm(p);
-    update_self_phase(p);
+    update_self_phase(p,0);
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size ;
     unsigned int violations = 0;
     for(unsigned int i=0; i < p->n_polymers; i++)
