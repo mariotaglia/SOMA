@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Ludwig Schneider
+/* Copyright (C) 2016-2018 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -45,12 +45,10 @@ inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t
 
   soma_scalar_t px, py, pz;
 
-  //\todo Optimization: store inverse box length for instruction optimization
-
   // Fold coordinate back into the box
-  px = rx - p->Lx * (int) (rx / p->Lx);
-  py = ry - p->Ly * (int) (ry / p->Ly);
-  pz = rz - p->Lz * (int) (rz / p->Lz);
+  px = rx - p->Lx * (int) (rx * p->iLx);
+  py = ry - p->Ly * (int) (ry * p->iLy);
+  pz = rz - p->Lz * (int) (rz * p->iLz);
 
   // Assure correct symmetry at coordinate = 0
   if (px < 0 ) px = p->Lx +px;
@@ -58,10 +56,9 @@ inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t
   if (pz < 0 ) pz = p->Lz +pz;
 
   // Calculate index
-  *x = (int)( px / p->Lx * p->nx);
-  *y = (int)( py / p->Ly * p->ny);
-  *z = (int)( pz / p->Lz * p->nz);
-
+  *x = (int)( px * p->iLx * p->nx);
+  *y = (int)( py * p->iLy * p->ny);
+  *z = (int)( pz * p->iLz * p->nz);
 }
 
 
@@ -76,11 +73,27 @@ inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t
 */
 static inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z);
 #pragma acc routine(cell_coordinate_to_index) seq
-inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z){
+inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z)
+    {
+    int xt = x;
+#if ( ENABLE_DOMAIN_DECOMPOSITION == 1 )
+    //For performance reasons compile the domain decomposition only if necessary
+    if( p->args.N_domains_arg > 1)
+        {
+        if( xt >= p->local_nx_high ) //Wrap back if necessary
+            xt -= p->nx;
+        if( xt < p->local_nx_low )
+            xt += p->nx;
+        if( xt < p->local_nx_low || xt >= p->local_nx_high )
+            {
+            return UINT64_MAX; //Error, requested index out of local bounds
+            }
+        xt -= p->local_nx_low;
+        }
+#endif//ENABLE_MIC
     //Unified data layout [type][x][y][z]
-  return x*p->ny*p->nz + y*p->nz + z ;
-}
-
+    return xt*p->ny*p->nz + y*p->nz + z ;
+    }
 
 /*! \brief Calculate an index for any given position and any density field of p.
   This function should ALWAYS be called to get an index of a field.
@@ -97,7 +110,31 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
  \return Index for the field index referencing.
 */
 #pragma acc routine(coord_to_index) seq
-uint64_t coord_to_index(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz);
+static inline uint64_t coord_to_index(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz);
+inline uint64_t coord_to_index(const struct Phase * p, const soma_scalar_t rx,
+                            const soma_scalar_t ry, const soma_scalar_t rz)
+    {
+    int x, y, z;
+    coord_to_cell_coordinate(p, rx, ry, rz, &x, &y, &z);
+    return cell_coordinate_to_index(p, x, y, z);
+    }
+
+//! Get the unified index from the cell_index and the type
+//!
+//! Unified data layout [type][x][y][z]
+//! \param p Phase of system (p->n_cells needed)
+//! \param cell cell index
+//! \param rtype type you request.
+//! \return Calculated unified index.
+#pragma acc routine(cell_to_index_unified) seq
+static inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype);
+inline uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype)
+    {
+    if( cell == UINT64_MAX ) //Error cell out of bounds
+        return UINT64_MAX;
+    //Unified data layout [type][x][y][z]
+    return cell + rtype * p->n_cells_local;
+    }
 
 /*! \brief Calculate an index for any given position and type and the density field / external field of p.
   This function should ALWAYS be called to get an index of a field.
@@ -115,26 +152,27 @@ uint64_t coord_to_index(const struct Phase * const p, const soma_scalar_t rx, co
  \return Index for the field index referencing.
 */
 #pragma acc routine(coord_to_index_unified) seq
-uint64_t coord_to_index_unified(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz, unsigned int rtype);
+static inline uint64_t coord_to_index_unified(const struct Phase * const p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz, unsigned int rtype);
+inline uint64_t coord_to_index_unified(const struct Phase * p, const soma_scalar_t rx,
+                                    const soma_scalar_t ry, const soma_scalar_t rz, const unsigned int rtype)
+    {
+    int x, y, z;
 
-//! Get the unified index from the cell_index and the type
-//!
-//! Unified data layout [type][x][y][z]
-//! \param p Phase of system (p->n_cells needed)
-//! \param cell cell index
-//! \param rtype type you request.
-//! \return Calculated unified index.
-#pragma acc routine(cell_to_index_unified) seq
-uint64_t cell_to_index_unified(const struct Phase*const p,const uint64_t cell,const unsigned int rtype);
+    coord_to_cell_coordinate(p, rx, ry, rz, &x, &y, &z);
+    const uint64_t cell =cell_coordinate_to_index(p, x, y, z);
+    return cell_to_index_unified(p,cell,rtype);
+    }
+
 
 /*! Update the density fields \f$ \rho \f$ of the system.
  The field update fist sets all entries to zero. Then performs a loop over all polymers eg. monomers.
  The field itself is chosen according to the monomer type. Be shure that there is no additional type set otherwise
  the adressing fails.
  \param p Phase configuration to update the  densityfields.
+ \return Errorcode
  \note this call requires MPI collectives so call it on every MPI-core.
  */
-void update_density_fields(const struct Phase*const p);
+int update_density_fields(const struct Phase*const p);
 
 /*! Update the omega \f$ \omega\f$-fields of the system.
 
@@ -152,15 +190,15 @@ void update_omega_fields(const struct Phase*const p);
 //! Function to calculate the omega fields for hamiltonian scmf0.
 //!
 //! \param p Phase configuration to update.
-//! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} (\sum_{i} ^{n_{types}} \phi_i(r) - 1)^2 - \sum_{i\neq j}^{n_{types}} \frac{\chi_{i,j}N_{ref}}{4} (\phi_i(r) - \phi_j(r))^2 \f]
-//! \f[  \frac{\omega_k(c)}{k_BT} = \frac{N}{k_BT \rho_0 \Delta L^3}\frac{\partial H(c)}{k_BT \partial \phi_k} = f_i(r) + \kappa (\sum_i^{n_{typs}} \phi_i(c)-1) - \sum_{i\neq k}^{n_{types}} \frac{\chi_{i,k}}{2} (\phi_k(c)-\phi_i(c))   \f]
+//! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}}\frac{k_i}{2} \left(\phi_i(r)-s_i(r)\right)^2 + \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} (\sum_{i} ^{n_{types}} \phi_i(r) - 1)^2 - \sum_{i\neq j}^{n_{types}} \frac{\chi_{i,j}N_{ref}}{4} (\phi_i(r) - \phi_j(r))^2 \f]
+//! \f[  \frac{\omega_k(c)}{k_BT} = \frac{N}{k_BT \rho_0 \Delta L^3}\frac{\partial H(c)}{k_BT \partial \phi_k} = \sum_i^{n_{types}} k_i\left(\phi_i(c)-s_i(c)\right) + f_k(c) + \kappa (\sum_i^{n_{types}} \phi_i(c)-1) - \sum_{i\neq k}^{n_{types}} \frac{\chi_{i,k}}{2} (\phi_k(c)-\phi_i(c))   \f]
 void update_omega_fields_scmf0(const struct Phase*const p);
 
-//! Function to calculate the omega fields for hamiltonian scmf0.
+//! Function to calculate the omega fields for hamiltonian scmf1.
 //!
 //! \param p Phase configuration to update.
-//! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} (\sum_{i} ^{n_{types}} \phi_i(r) - 1)^2 + \sum_{i\neq j}^{n_{types}} \chi_{i,j}N_{ref} \phi_i(r) \phi_j(r) \f]
-//! \f[ \omega_k(c) = \frac{N_{ref}}{k_BT\rho_0 \Delta L^3}\frac{\partial H(c)}{\partial \phi_k} = f_i(r) + \kappa (\sum_i^{n_{types}} \phi_i(c)-1) + \sum_{i\neq k}^{n_{types}} \chi_{i,k} \phi_i(c)   \f]
+//! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}} \frac{k_i}{2} \left(\phi_i(r)-s_i(r)\right)^2+ \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} \left(\sum_{i} ^{n_{types}} \phi_i(r) - 1\right)^2 + \sum_{i\neq j}^{n_{types}} \chi_{i,j}N_{ref} \phi_i(r) \phi_j(r) \f]
+//! \f[ \omega_k(c) = \frac{N_{ref}}{k_BT\rho_0 \Delta L^3}\frac{\partial H(c)}{\partial \phi_k} = \sum_i^{n_{types}} k_i\left(\phi_i(c)-s_i(c)\right)+ f_k(c) + \kappa \left(\sum_i^{n_{types}} \phi_i(c)-1\right) + \sum_{i\neq k}^{n_{types}} \chi_{i,k} \phi_i(c)   \f]
 void update_omega_fields_scmf1(const struct Phase*const p);
 
 #endif//SOMA_MESH_H

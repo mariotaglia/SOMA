@@ -17,7 +17,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
-DELTA=1e-6
+DELTA=0
+SEED=51854
+TIMESTEPS=136
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 
@@ -25,24 +27,27 @@ if [ ! $? -eq 0 ]; then
     exit -1
 fi
 
-# @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 0
-# mv end.h5 coord.h5
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain.h5 -t 0 @ACC_FLAG@
+mv end.h5 start.h5
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1
+if [ ! $? -eq 0 ]; then
+    exit -5
+fi
 
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS --accepted-load-inbalance=0 -l 1 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -2
 fi
+mv end.h5 load.h5
 
-mv end.h5 cpu.h5
-
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1 -o0
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -3
 fi
-mv end.h5 gpu.h5
+mv end.h5 noload.h5
 
-@HDF5_DIFF_EXECUTABLE@ -d $DELTA cpu.h5 gpu.h5
+
+python compare_mixed_bead_data.py load.h5 noload.h5
 if [ ! $? -eq 0 ]; then
     exit -4
 fi

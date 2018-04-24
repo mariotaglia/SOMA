@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2017 Ludwig Schneider
+/* Copyright (C) 2016-2018 Ludwig Schneider
 
  This file is part of SOMA.
 
@@ -22,6 +22,7 @@
 struct Phase;
 struct Info_MPI;
 #include <stdint.h>
+#include "cmdline.h"
 #include <math.h>
 #include "soma_config.h"
 #include "bond.h"
@@ -33,7 +34,7 @@ struct Info_MPI;
 //! Enum to select the hamiltonian for the non-bonded interaction
 enum Hamiltonian{
     SCMF0=0, //!< Original SCMF hamiltonian. For details refer doc of update_omega_fields_scmf0().
-    SCMF1=1 //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
+    SCMF1=1, //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
     };
 
 //!  Function to extract the bond_type for poly_arch elements.
@@ -93,9 +94,9 @@ uint32_t get_info_bl(const unsigned int offset_bl,const unsigned int type);
 //! \brief after argument parsing of SOMA, this function interpret contradictions and warnings for the user.
 //!
 //! \param args Argument struct to interpret.
-//! \param mpi_info Information about MPI configuration
-//! \return corrected struct copy. (The original is modified as well.)
-struct som_args post_process_args(struct som_args*args,const struct Info_MPI*const mpi_info);
+//! \param world_rank World rank of the calling rank.
+//! \return Error code
+int post_process_args(struct som_args*args,const unsigned int world_rank);
 
 //! \brief Returns the number of bonds of specific type in the poly_arch structure.
 //! \param p Phase of the system.
@@ -122,7 +123,7 @@ int reseed(struct Phase*const p,const unsigned int seed);
 
 //! Macro to abort MPI and print a message with you
 //! specified if status != 0. \warning This macro includes finalize_MPI() and exit();
-#define MPI_ERROR_CHECK(status,msg) if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); finalize_MPI();exit(status);}
+#define MPI_ERROR_CHECK(status,msg) if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); ;exit(status);}
 
 //! Macro to check and return error code if malloc failed.
 #define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %d\n", __FILE__, __LINE__, (int) (size)); return -1;}

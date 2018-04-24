@@ -35,26 +35,8 @@ import soma_type
 import StringIO as stringio
 import ConfGen
 
-class SomaXML:
-    ## List of tag names known to Configuration
-    knownTags = []
-    knownTags += ["interactions"]
-    knownTags += ["equivalent_particle_types"]
-    knownTags += ["A"]
-    knownTags += ["time"]
-    knownTags += ["harmonicvariablescale"]
-    knownTags += ["poly_arch"]
-    knownTags += ["reference_Nbeads"]
-    knownTags += ["lxyz"]
-    knownTags += ["nxyz"]
-    knownTags += ["hamiltonian"]
-    knownTags += ["area51"]
-    knownTags += ["external_field"]
-    knownTags += ["analysis"]
-    knownTags += ["cm_a"]
-    
 ## Class to parse the analysis section of a hdf5 configuration and an SOMA xml.
-class AnalysisFile(SomaXML):
+class AnalysisFile(ConfGen.SomaXML):
     ## Dictionary to store all analysis elements.
     ana_dict = {}
 
@@ -66,7 +48,7 @@ class AnalysisFile(SomaXML):
     def __init__(self,filename,filenametwo):
         ## Is the Configuration fully initialized?
         self.good = False
-        
+
         ## Configuration element from config file.
         with h5py.File(filename, 'r') as hf:
             nxyz = list(hf["parameter/nxyz"])
@@ -92,7 +74,6 @@ class AnalysisFile(SomaXML):
                 for child in ana:
                     self._update_ana_element(child)
 
-        
 
     def _init_ana_dict(self,filename):
         with h5py.File(filename, 'r') as hf:
@@ -124,6 +105,12 @@ class AnalysisFile(SomaXML):
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["density_field"] = copy.deepcopy( element )
 
+            #umbrella_field
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_types_equiv,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element.attr["nxyz"] = self.nxyz
+            element.attr["lxyz"] = self.lxyz
+            self.ana_dict["umbrella_field"] = copy.deepcopy(element)
+
             #acc_ratio
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,1), 0)
             self.ana_dict["acc_ratio"] = copy.deepcopy(element)
@@ -147,7 +134,14 @@ class AnalysisFile(SomaXML):
             #bonded_energy
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,ConfGen.NUMBER_SOMA_BOND_TYPES), 0)
             self.ana_dict["bonded_energy"] = copy.deepcopy(element)
-        
+
+            #chem_potential
+            element=AnaElement( soma_type.get_soma_scalar_type(),(0,self.n_types_equiv,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element.attr["nxyz"] = self.nxyz
+            element.attr["lxyz"] = self.lxyz
+            self.ana_dict["chem_potential"]=copy.deepcopy(element)
+
+
     def _update_ana_element(self,element):
         if element.tag not in self.ana_dict.keys():
             print("WARNING: unknow ana tag "+str(element.tag)+" ignoring element.")
@@ -242,7 +236,7 @@ def main(argv):
     if arguments["ana_filename"] :
         ana_out_file = arguments["ana_filename"][0]
 
-    #Parse the analysis file    
+    #Parse the analysis file
     analysis = AnalysisFile(filename,filenamexml)
 
     if not arguments['no_ana_output']:

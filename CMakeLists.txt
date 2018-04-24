@@ -109,6 +109,7 @@ else()
 endif()
 
 option(ENABLE_MIC "Activate compilation with minimum image convention for bond distances" OFF)
+option(ENABLE_DOMAIN_DECOMPOSITION "Activate compilation with domain decomposition support." OFF)
 
 if( ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
   message(SEND_ERROR "SOMA can be compiled with either OpenACC or OpenMP, not both.")

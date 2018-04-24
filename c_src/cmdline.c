@@ -29,7 +29,7 @@ const char *som_args_purpose = "Running SCMF simulations and timings.";
 
 const char *som_args_usage = "Usage: ./SOMA options";
 
-const char *som_args_versiontext = "SOMA  Copyright (C) 2016-2017 Ludwig Schneider, Ulrich Welling, Marcel\nLangenberg, Fabien Leonforte, Juan Orozco and more. This program comes with\nABSOLUTELY NO WARRANTY; see GNU Lesser General Public Licence v3 for details.\nThis is free software, and you are welcome to redistribute it under certain\nconditions; see GNU Lesser General Public Licence v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to\nComputer Physics Communications. \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18";
+const char *som_args_versiontext = "SOMA  Copyright (C) 2016-2018 Ludwig Schneider, Ulrich Welling, Marcel\nLangenberg, Fabien Leonforte, Juan Orozco and more. This program comes with\nABSOLUTELY NO WARRANTY; see GNU Lesser General Public License v3 for details.\nThis is free software, and you are welcome to redistribute it under certain\nconditions; see GNU Lesser General Public License v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\", submitted to\nComputer Physics Communications. \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18";
 
 const char *som_args_description = "";
 
@@ -54,9 +54,13 @@ const char *som_args_detailed_help[] = {
   "  -l, --load-balance=freq       Frequency of the load balancer. For homogenous\n                                  architectures this can be set to high values,\n                                  for hetereogenous architectures across the\n                                  MPI ranks small values help to equilibrate\n                                  faster. Non-MPI runs are uneffected. Values <\n                                  0 deactivate the load-balancer.\n                                  (default=`500')",
   "      --accepted-load-inbalance=percent\n                                 [0,100] Percent of step time which is ignored\n                                  by load balancer. Low values enable better\n                                  load balancing, but could cause fluctuation\n                                  of polymers.  (default=`8')",
   "      --autotuner-restart-period=period\n                                Period in which the autotuner is restarted.\n                                  (default=`10000')",
+  "  -d, --N-domains=N             Number of domains for a domain decomposition.\n                                  (Domain decomposition is only made linear\n                                  along the X-Axes)  (default=`1')",
+  "      --domain-buffer=N         Number of buffer cells which can contain ghost\n                                  particles. Experiment and find the optimum\n                                  for your simulation.  (default=`10')",
+  "      --rcm-update=f            Frequency of the update of the molecule center\n                                  of mass. If they enter the ghost layer they\n                                  are sen. Experiment and find the optimum for\n                                  your simulation  (default=`10')",
   "      --user=user-args          Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
   "      --set-generation-algorithm=SET-ALG\n                                Option to select the algorithm to generate the\n                                  indepent sets.  (possible values=\"SIMPLE\",\n                                  \"FIXED-N-SETS\" default=`SIMPLE')",
   "  -m, --bond-minimum-image-convention\n                                Specify the bond length used to calculate the\n                                  energy. This decides, whether the bond length\n                                  between two particle is calculated as the\n                                  absolute distance or the minimum image\n                                  distance.  (default=off)",
+  "      --no-sync-signal          Synchronize MPI ranks for correct signal\n                                  catching. OFF enables termination via sending\n                                  SIGINT or SIGTERM to SOMA if the MPI library\n                                  supports it. ON accerlerates run with many\n                                  MPI ranks.  (default=off)",
     0
 };
 
@@ -85,11 +89,15 @@ init_help_array(void)
   som_args_help[19] = som_args_detailed_help[20];
   som_args_help[20] = som_args_detailed_help[21];
   som_args_help[21] = som_args_detailed_help[22];
-  som_args_help[22] = 0; 
+  som_args_help[22] = som_args_detailed_help[23];
+  som_args_help[23] = som_args_detailed_help[24];
+  som_args_help[24] = som_args_detailed_help[25];
+  som_args_help[25] = som_args_detailed_help[26];
+  som_args_help[26] = 0; 
   
 }
 
-const char *som_args_help[23];
+const char *som_args_help[27];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -141,9 +149,13 @@ void clear_given (struct som_args *args_info)
   args_info->load_balance_given = 0 ;
   args_info->accepted_load_inbalance_given = 0 ;
   args_info->autotuner_restart_period_given = 0 ;
+  args_info->N_domains_given = 0 ;
+  args_info->domain_buffer_given = 0 ;
+  args_info->rcm_update_given = 0 ;
   args_info->user_given = 0 ;
   args_info->set_generation_algorithm_given = 0 ;
   args_info->bond_minimum_image_convention_given = 0 ;
+  args_info->no_sync_signal_given = 0 ;
 }
 
 static
@@ -178,11 +190,18 @@ void clear_args (struct som_args *args_info)
   args_info->accepted_load_inbalance_orig = NULL;
   args_info->autotuner_restart_period_arg = 10000;
   args_info->autotuner_restart_period_orig = NULL;
+  args_info->N_domains_arg = 1;
+  args_info->N_domains_orig = NULL;
+  args_info->domain_buffer_arg = 10;
+  args_info->domain_buffer_orig = NULL;
+  args_info->rcm_update_arg = 10;
+  args_info->rcm_update_orig = NULL;
   args_info->user_arg = NULL;
   args_info->user_orig = NULL;
   args_info->set_generation_algorithm_arg = set_generation_algorithm_arg_SIMPLE;
   args_info->set_generation_algorithm_orig = NULL;
   args_info->bond_minimum_image_convention_flag = 0;
+  args_info->no_sync_signal_flag = 0;
   
 }
 
@@ -210,9 +229,13 @@ void init_args_info(struct som_args *args_info)
   args_info->load_balance_help = som_args_detailed_help[17] ;
   args_info->accepted_load_inbalance_help = som_args_detailed_help[18] ;
   args_info->autotuner_restart_period_help = som_args_detailed_help[19] ;
-  args_info->user_help = som_args_detailed_help[20] ;
-  args_info->set_generation_algorithm_help = som_args_detailed_help[21] ;
-  args_info->bond_minimum_image_convention_help = som_args_detailed_help[22] ;
+  args_info->N_domains_help = som_args_detailed_help[20] ;
+  args_info->domain_buffer_help = som_args_detailed_help[21] ;
+  args_info->rcm_update_help = som_args_detailed_help[22] ;
+  args_info->user_help = som_args_detailed_help[23] ;
+  args_info->set_generation_algorithm_help = som_args_detailed_help[24] ;
+  args_info->bond_minimum_image_convention_help = som_args_detailed_help[25] ;
+  args_info->no_sync_signal_help = som_args_detailed_help[26] ;
   
 }
 
@@ -321,6 +344,9 @@ cmdline_parser_release (struct som_args *args_info)
   free_string_field (&(args_info->load_balance_orig));
   free_string_field (&(args_info->accepted_load_inbalance_orig));
   free_string_field (&(args_info->autotuner_restart_period_orig));
+  free_string_field (&(args_info->N_domains_orig));
+  free_string_field (&(args_info->domain_buffer_orig));
+  free_string_field (&(args_info->rcm_update_orig));
   free_string_field (&(args_info->user_arg));
   free_string_field (&(args_info->user_orig));
   free_string_field (&(args_info->set_generation_algorithm_orig));
@@ -433,12 +459,20 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "accepted-load-inbalance", args_info->accepted_load_inbalance_orig, 0);
   if (args_info->autotuner_restart_period_given)
     write_into_file(outfile, "autotuner-restart-period", args_info->autotuner_restart_period_orig, 0);
+  if (args_info->N_domains_given)
+    write_into_file(outfile, "N-domains", args_info->N_domains_orig, 0);
+  if (args_info->domain_buffer_given)
+    write_into_file(outfile, "domain-buffer", args_info->domain_buffer_orig, 0);
+  if (args_info->rcm_update_given)
+    write_into_file(outfile, "rcm-update", args_info->rcm_update_orig, 0);
   if (args_info->user_given)
     write_into_file(outfile, "user", args_info->user_orig, 0);
   if (args_info->set_generation_algorithm_given)
     write_into_file(outfile, "set-generation-algorithm", args_info->set_generation_algorithm_orig, cmdline_parser_set_generation_algorithm_values);
   if (args_info->bond_minimum_image_convention_given)
     write_into_file(outfile, "bond-minimum-image-convention", 0, 0 );
+  if (args_info->no_sync_signal_given)
+    write_into_file(outfile, "no-sync-signal", 0, 0 );
   
 
   i =  1 ;
@@ -764,13 +798,17 @@ cmdline_parser_internal (
         { "load-balance",	1, NULL, 'l' },
         { "accepted-load-inbalance",	1, NULL, 0 },
         { "autotuner-restart-period",	1, NULL, 0 },
+        { "N-domains",	1, NULL, 'd' },
+        { "domain-buffer",	1, NULL, 0 },
+        { "rcm-update",	1, NULL, 0 },
         { "user",	1, NULL, 0 },
         { "set-generation-algorithm",	1, NULL, 0 },
         { "bond-minimum-image-convention",	0, NULL, 'm' },
+        { "no-sync-signal",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:m", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:d:m", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -906,6 +944,18 @@ cmdline_parser_internal (
             goto failure;
         
           break;
+        case 'd':	/* Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes).  */
+        
+        
+          if (update_arg( (void *)&(args_info->N_domains_arg), 
+               &(args_info->N_domains_orig), &(args_info->N_domains_given),
+              &(local_args_info.N_domains_given), optarg, 0, "1", ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "N-domains", 'd',
+              additional_error))
+            goto failure;
+        
+          break;
         case 'm':	/* Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance..  */
         
         
@@ -1004,6 +1054,34 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation..  */
+          else if (strcmp (long_options[option_index].name, "domain-buffer") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->domain_buffer_arg), 
+                 &(args_info->domain_buffer_orig), &(args_info->domain_buffer_given),
+                &(local_args_info.domain_buffer_given), optarg, 0, "10", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "domain-buffer", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation.  */
+          else if (strcmp (long_options[option_index].name, "rcm-update") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->rcm_update_arg), 
+                 &(args_info->rcm_update_orig), &(args_info->rcm_update_given),
+                &(local_args_info.rcm_update_given), optarg, 0, "10", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "rcm-update", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments..  */
           else if (strcmp (long_options[option_index].name, "user") == 0)
           {
@@ -1028,6 +1106,18 @@ cmdline_parser_internal (
                 &(local_args_info.set_generation_algorithm_given), optarg, cmdline_parser_set_generation_algorithm_values, "SIMPLE", ARG_ENUM,
                 check_ambiguity, override, 0, 0,
                 "set-generation-algorithm", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Synchronize MPI ranks for correct signal catching. OFF enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. ON accerlerates run with many MPI ranks..  */
+          else if (strcmp (long_options[option_index].name, "no-sync-signal") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->no_sync_signal_flag), 0, &(args_info->no_sync_signal_given),
+                &(local_args_info.no_sync_signal_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "no-sync-signal", '-',
                 additional_error))
               goto failure;
           

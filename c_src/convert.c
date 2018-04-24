@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Ludwig Schneider
+/* Copyright (C) 2016-2018 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -44,30 +44,46 @@
 //! \return Errorcode
 int main(int argc, char *argv[])
     {
-      if (MPI_Init(NULL, NULL) != MPI_SUCCESS) {
-      fprintf(stderr, "MPI_ERROR (start)\n");
-      return -1;
-    }
+    if (MPI_Init(NULL, NULL) != MPI_SUCCESS)
+        {
+        fprintf(stderr, "MPI_ERROR (start)\n");
+        return -1;
+        }
 
     Phase phase;
     Phase *const p = &phase;
-    /* initialize MPI */
-    p->info_MPI.SOMA_MPI_Comm = MPI_COMM_WORLD;
+   /* initialize MPI */
+    const int error = MPI_Comm_dup( MPI_COMM_WORLD, &(p->info_MPI.SOMA_comm_world) );
+    if( error != MPI_SUCCESS)
+        {
+        fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
+        return -1;
+        }
+    const int error2 = MPI_Comm_dup( p->info_MPI.SOMA_comm_world, &(p->info_MPI.SOMA_comm_sim) );
+    if( error2 != MPI_SUCCESS)
+        {
+        fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
+        return -1;
+        }
+    p->args.N_domains_arg = 1;
+    p->args.domain_buffer_arg = 0;
+
     init_MPI(p);
+
     if ( !(argc == 2 || argc ==3) ) {
-	if (p->info_MPI.current_core == 0)
-	    fprintf(stderr, "Usage: %s filename-to-convert-to-hdf5 <geometry-file>\n",
-		    argv[0]);
-	finalize_MPI();
-	return 0;		//mpi restrictions -- no errorcode
-	}
-    if (p->info_MPI.Ncores != 1) {
-	if (p->info_MPI.current_core == 0)
-	    fprintf(stderr, "Use the convert tool only with 1 core.%d \n",
-		    p->info_MPI.Ncores);
-	finalize_MPI();
-	return 0;		//mpi restrictions -- no errorcode
-	}
+        if (p->info_MPI.world_rank == 0)
+            fprintf(stderr, "Usage: %s filename-to-convert-to-hdf5 <geometry-file>\n",
+                    argv[0]);
+        finalize_MPI(&(p->info_MPI));
+        return 0;               //mpi restrictions -- no errorcode
+        }
+    if (p->info_MPI.world_size != 1) {
+        if (p->info_MPI.world_rank == 0)
+            fprintf(stderr, "Use the convert tool only with 1 core.%d \n",
+                    p->info_MPI.world_size);
+        finalize_MPI(&(p->info_MPI));
+        return 0;               //mpi restrictions -- no errorcode
+        }
 
     //Set the args in a way, that the host is used.
     p->args.gpus_given = false;
@@ -84,10 +100,10 @@ int main(int argc, char *argv[])
     MPI_ERROR_CHECK(read,"Unsucessfully read a configuration. Try to correct your input file.");
 
     if(argc > 2)
-	{
-	const int geometry = read_old_geometry(p, argv[2]);
-	MPI_ERROR_CHECK(geometry,"Unsucessfully read the geometry. Try to correct your input file.");
-	}
+        {
+        const int geometry = read_old_geometry(p, argv[2]);
+        MPI_ERROR_CHECK(geometry,"Unsucessfully read the geometry. Try to correct your input file.");
+        }
 
     /* initialize phase */
     const int init_v = init_phase(p);
@@ -106,16 +122,16 @@ int main(int argc, char *argv[])
     const unsigned int new_len = (strlen(argv[1]) + 4);
     filename = (char *) malloc(new_len * sizeof(char));
     if (filename == NULL) {
-	printf("Malloc error\n");
-	finalize_MPI();
-	return 0;
-	}
+        printf("Malloc error\n");
+        finalize_MPI(&(p->info_MPI));
+        return 0;
+        }
     memset(filename, '\0', new_len * sizeof(char));
     strcpy(filename, argv[1]);
     unsigned int first_dot;
     for (first_dot = new_len - 1; first_dot != 0; first_dot--)
-	if (filename[first_dot] == '.')
-	    break;
+        if (filename[first_dot] == '.')
+            break;
     filename[first_dot + 1] = 'h';
     filename[first_dot + 2] = '5';
     filename[first_dot + 3] = '\0';
@@ -127,5 +143,5 @@ int main(int argc, char *argv[])
     /* deallocate all memory */
     free_phase(p);
 
-    finalize_MPI();
+    finalize_MPI(&(p->info_MPI));
     }

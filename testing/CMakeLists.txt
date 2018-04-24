@@ -1,4 +1,4 @@
-#   Copyright (C) 2017 Ludwig Schneider
+#   Copyright (C) 2017-2018 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -24,6 +24,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../example/coord.dat ${CMAKE_CURRENT_
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/homo.xml ${CMAKE_CURRENT_BINARY_DIR}/homo.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diblock.xml ${CMAKE_CURRENT_BINARY_DIR}/diblock.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scmf1.xml ${CMAKE_CURRENT_BINARY_DIR}/scmf1.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain.xml ${CMAKE_CURRENT_BINARY_DIR}/domain.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.xml ${CMAKE_CURRENT_BINARY_DIR}/mic.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic_time.xml ${CMAKE_CURRENT_BINARY_DIR}/mic_time.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diverse_polytype.xml ${CMAKE_CURRENT_BINARY_DIR}/diverse_polytype.xml COPYONLY)
@@ -48,13 +49,13 @@ add_test(NAME AnaGen WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND pytho
 
 set(ACC_FLAG "")
 if(ENABLE_OPENMP)
-  set(ACC_FLAG " -n ${MPIEXEC_MAX_NUMPROCS}")
+  set(ACC_FLAG " -n 2")
 endif(ENABLE_OPENMP)
 if(ENABLE_NVIDIA_GPU)
   set(ACC_FLAG " -g ${MPIEXEC_MAX_NUMPROCS}")
 endif(ENABLE_NVIDIA_GPU)
 
-set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${MPIEXEC_MAX_NUMPROCS}")
+set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
 
 if(HDF5_DIFF_EXECUTABLE)
 
@@ -67,6 +68,17 @@ if(HDF5_DIFF_EXECUTABLE)
   endif(ENABLE_NVIDIA_GPU)
 
 endif(HDF5_DIFF_EXECUTABLE)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LoadBalance.sh.in ${CMAKE_CURRENT_BINARY_DIR}/LoadBalance.sh)
+add_test(NAME Load-Balance WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./LoadBalance.sh)
+
+
+#domain decomposition tests
+if(ENABLE_DOMAIN_DECOMPOSITION)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/RestartDomain.sh.in ${CMAKE_CURRENT_BINARY_DIR}/RestartDomain.sh)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compare_mixed_bead_data.py.in ${CMAKE_CURRENT_BINARY_DIR}/compare_mixed_bead_data.py)
+  add_test(NAME RestartDomain WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./RestartDomain.sh)
+endif(ENABLE_DOMAIN_DECOMPOSITION)
 
 if(ENABLE_MIC)
   #mic
@@ -91,3 +103,9 @@ endif(ENABLE_MIC)
 add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=--iteration-alg=SET${ACC_FLAG})
 #add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=--iteration-alg=SET--set-generation-algorithm=SIMPLE${ACC_FLAG}) #default
 add_test(NAME SET-FIXED-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py "--additional-flags=--iteration-alg=SET --set-generation-algorithm=FIXED${ACC_FLAG}") #default
+
+#domain stat test
+if(ENABLE_DOMAIN_DECOMPOSITION)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain_statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/domain_statistics.py)
+  add_test(NAME domain-statistics-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python domain_statistics.py --additional-flags=${ACC_FLAG})
+endif(ENABLE_DOMAIN_DECOMPOSITION)

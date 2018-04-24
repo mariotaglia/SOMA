@@ -90,14 +90,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 #END SPLIT_PLUGIN
 
-#START DOUBLE_PLUGIN
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/double_plugin)
-  option(ENABLE_DOUBLE_PLUGIN "Running two SOMA-instances on 4 ranks with 2 ranks assigned to each instance." off)
-  if(ENABLE_DOUBLE_PLUGIN)
-    add_subdirectory(double_plugin)
-  endif(ENABLE_DOUBLE_PLUGIN)
-endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/double_plugin)
-#END DOUBLE_PLUGIN
+
+#START STRING_PLUGIN
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
+  option(ENABLE_STRING_PLUGIN "Running multiple SOMA-instances for the application of the string-method." off)
+  if(ENABLE_STRING_PLUGIN)
+    add_subdirectory(string_plugin)
+  endif(ENABLE_STRING_PLUGIN)
+endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
+#END STRING_PLUGIN
 
 #START CROSSLINK_PLUGIN
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/crosslink)

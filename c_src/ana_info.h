@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2017 Ludwig Schneider
+/* Copyright (C) 2016-2018 Ludwig Schneider
 
  This file is part of SOMA.
 
@@ -36,6 +36,7 @@ typedef struct Ana_Info{
     unsigned int delta_mc_density_var;//!< \#mc_sweeps between the ana of density variance
     unsigned int delta_mc_non_bonded_energy;//!< \# mc_sweeps between the ana of the non-bonded energy
     unsigned int delta_mc_bonded_energy;//!< \# mc_sweeps between the ana of the bonded energy
+    unsigned int delta_mc_umbrella_field;//!<\#mc_sweeps between the ana of the string fields
     char * filename; //!< filename of the analysis file.
     char * coord_filename; //!< filename of the configuration files.
     hid_t file_id; //!< HDF5 file specifier for the ana file. Only valid for current_core == 0. No MPI/IO
