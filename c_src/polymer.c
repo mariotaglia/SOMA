@@ -176,6 +176,7 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
         return -1;
         }
 
+    update_self_polymer(p,p->polymers+poly_id,1);
     // Copy out the polymer host
     memcpy( poly, p->polymers+poly_id, sizeof(Polymer) );
 
@@ -199,7 +200,6 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
         }
 #pragma acc update device(p->num_bead_type_local[0:p->n_types])
 #pragma acc update device(p->num_all_beads_local[0:1])
-
 
     copyout_polymer(p, poly);
     return 0;
