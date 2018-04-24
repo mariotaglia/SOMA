@@ -69,6 +69,10 @@ if(HDF5_DIFF_EXECUTABLE)
 
 endif(HDF5_DIFF_EXECUTABLE)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LoadBalance.sh.in ${CMAKE_CURRENT_BINARY_DIR}/LoadBalance.sh)
+add_test(NAME Load-Balance WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./LoadBalance.sh)
+
+
 #domain decomposition tests
 if(ENABLE_DOMAIN_DECOMPOSITION)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/RestartDomain.sh.in ${CMAKE_CURRENT_BINARY_DIR}/RestartDomain.sh)
