@@ -27,7 +27,7 @@ if [ ! $? -eq 0 ]; then
     exit -1
 fi
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain.h5 -t 0 @ACC_FLAG@
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 0 @ACC_FLAG@
 mv end.h5 start.h5
 
 if [ ! $? -eq 0 ]; then
