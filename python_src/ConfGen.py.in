@@ -31,7 +31,7 @@ import h5py
 import argparse
 import soma_type
 import StringIO as stringio
-import AnaGen
+
 
 ## Matches the enum Bondtype of struct.h
 bondDict = {}
@@ -1610,6 +1610,8 @@ class Configuration(SomaXML):
         return tmp
 
 
+#Late import of the module to compensate circular imports.
+import AnaGen
 ## Run the conversion of an input xml file according to arguments. For more details run ./ConfGen.py --help
 ##
 ## @param argv Argument vector to parse.
