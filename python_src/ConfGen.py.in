@@ -30,7 +30,10 @@ import xml.etree.ElementTree as ET
 import h5py
 import argparse
 import soma_type
-import StringIO as stringio
+try:
+    import StringIO as stringio
+except ImportError:
+    import io as stringio
 
 ## Matches the enum Bondtype of struct.h
 bondDict = {}
@@ -150,8 +153,10 @@ class Types:
 
     ## Get the string name of an exact type
     def get_name(self,exact_id):
-        key = (key for key,value in self._internal_dict_exact.items() if value == exact_id).next()
-        return key
+        for key in self._internal_dict_exact.keys():
+            if self._internal_dict_exact[key] == exact_id:
+                return key
+
 ## Describes a set of molecules with the same architecture.
 class MoleculeSet:
     ## Construct a molecule set.
@@ -1321,7 +1326,7 @@ class Configuration(SomaXML):
 
         array = numpy.zeros( (self.n_poly_type[0],),dtype=soma_type.get_soma_scalar_type())
 
-	string = ""
+        string = ""
         for element in self.root.iter('cm_a'):
             string += element.text
         l = string.strip().split()
