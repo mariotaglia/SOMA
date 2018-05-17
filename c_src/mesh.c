@@ -319,8 +319,12 @@ void add_pair_omega_fields_scmf1(const struct Phase*const p)
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {
-                p->omega_field_unified[cell+T_types*p->n_cells_local] += inverse_refbeads * p->xn[T_types][S_types] * p->field_scaling_type[cell + S_types*p->n_cells_local] * p->field_scaling_type[S_types];
-                p->omega_field_unified[cell+S_types*p->n_cells_local] += inverse_refbeads * p->xn[S_types][T_types] * p->field_scaling_type[cell + T_types*p->n_cells_local] * p->field_scaling_type[T_types];
+                const soma_scalar_t normT = inverse_refbeads * p->xn[T_types][S_types];
+                const soma_scalar_t rhoS = p->fields_unified[cell + S_types*p->n_cells_local] * p->field_scaling_type[S_types];
+                const soma_scalar_t normS = inverse_refbeads * p->xn[S_types][T_types];
+                const soma_scalar_t rhoT = p->fields_unified[cell + T_types*p->n_cells_local] * p->field_scaling_type[T_types];
+                p->omega_field_unified[cell+T_types*p->n_cells_local] += normT * rhoS ;
+                p->omega_field_unified[cell+S_types*p->n_cells_local] += normS * rhoT;
                 }
             }
         }
