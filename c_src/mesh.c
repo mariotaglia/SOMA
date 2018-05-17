@@ -289,18 +289,15 @@ void add_pair_omega_fields_scmf0(const struct Phase*const p)
 
     // XN part
 
-    //soma_scalar_t weight;/*can be added if nessassary */
-
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++) {   /*Loop over all fields according to monotype */
         for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++){
             // precalculate the normalization for this type combination
             soma_scalar_t dnorm = -0.5 * inverse_refbeads * p->xn[T_types][S_types];
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
-            for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {  /*Loop over all cells, max number of cells is product of nx, ny,nz */
-                soma_scalar_t interaction = dnorm *
-                    (  p->field_scaling_type[T_types]*p->fields_unified[cell+T_types*p->n_cells_local]
-                       - p->field_scaling_type[S_types]*p->fields_unified[cell+S_types*p->n_cells_local]); /*Added the rescaling cause p->fields are short now*/
+            for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {
+                soma_scalar_t interaction = dnorm * (  p->field_scaling_type[T_types]*p->fields_unified[cell+T_types*p->n_cells_local]
+                                                       - p->field_scaling_type[S_types]*p->fields_unified[cell+S_types*p->n_cells_local]);
                 p->omega_field_unified[cell+T_types*p->n_cells_local] += interaction;
                 p->omega_field_unified[cell+S_types*p->n_cells_local] -= interaction;
                 }
@@ -317,18 +314,13 @@ void add_pair_omega_fields_scmf1(const struct Phase*const p)
 
     // XN part
 
-    //soma_scalar_t weight;/*can be added if nessassary */
-
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++) {   /*Loop over all fields according to monotype */
         for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++){
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
-            for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {  /*Loop over all cells, max number of cells is product of nx, ny,nz */
-                const soma_scalar_t norm =  inverse_refbeads * p->xn[T_types][S_types];
-                const soma_scalar_t interaction =  norm * p->fields_unified[cell+ S_types*p->n_cells_local] * p->field_scaling_type[S_types];
-
-                p->omega_field_unified[cell+T_types*p->n_cells_local] += interaction;
-                p->omega_field_unified[cell+S_types*p->n_cells_local] -= interaction;
+            for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {
+                p->omega_field_unified[cell+T_types*p->n_cells_local] += inverse_refbeads * p->xn[T_types][S_types] * p->field_scaling_type[cell + S_types*p->n_cells_local] * p->field_scaling_type[S_types];
+                p->omega_field_unified[cell+S_types*p->n_cells_local] += inverse_refbeads * p->xn[S_types][T_types] * p->field_scaling_type[cell + T_types*p->n_cells_local] * p->field_scaling_type[T_types];
                 }
             }
         }
