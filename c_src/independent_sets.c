@@ -344,7 +344,6 @@ int allo_init_memory_for_Polystates(struct Phase* const p){
 
 
 int independent_sets_one_polymer(struct IndependetSets**const set_tmp_pointer,unsigned int n_poly,struct Phase* const p){
-  //struct IndependetSets*const set_tmp=*set_tmp_pointer;
   unsigned int sequence=p->poly_arch[p->poly_type_offset[n_poly]];
   unsigned int max_bond_number=0;//the maximal number of bonds of a monomer in the chain
   unsigned int max_bond=0;//the monomer which has the maximal number of bonds
@@ -595,12 +594,11 @@ unsigned int check_bond_members_of_set(unsigned int **bonds_total,int* bond_numb
 	if(writein_set>max_bond_number)
 	  writein_set=writein_set-max_bond_number-1;
       }
-      break;
+      continue;
     }
     else{
       found=1;
       break;
-      
     }
   }
   return writein_set;

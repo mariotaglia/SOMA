@@ -138,8 +138,8 @@ int update_density_fields(const struct Phase *const p)
     int error_flags[1] = {0}; //error_flag[0] indicates domain errors
 #pragma acc enter data copyin(error_flags[0:1])
 
-
     const uint64_t n_indices = p->n_types*p->n_cells_local;
+
 #pragma acc parallel
     // num_gangs(200) vector_length(128)
         {
