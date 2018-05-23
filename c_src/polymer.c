@@ -213,13 +213,13 @@ int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t p
     if( poly_i >= p->n_polymers)
       {
 	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
-		,p->info_MPI.current_core,poly_i,p->n_polymers);
+		,p->info_MPI.sim_rank,poly_i,p->n_polymers);
 	return -1;
       }
     if(poly_j >= p->n_polymers)
       {
 	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
-		,p->info_MPI.current_core,poly_j,p->n_polymers);
+		,p->info_MPI.sim_rank,poly_j,p->n_polymers);
 	return -1;
       }
   

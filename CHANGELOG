@@ -23,6 +23,9 @@ Please add your contributions.
 	* The rng_state is changed from
 	  automatic update to update
 	  under requirement             Gaoyuan Wang
+	* Async is used to run long
+	  chains and short chains in
+	  parallel on several kernels   Gaoyuan Wang
 	v0.5.2 not-yet-released
 
         * license update 2018

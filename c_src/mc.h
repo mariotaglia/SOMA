@@ -223,9 +223,24 @@ void add_bond_forces(const struct Phase * p, const uint64_t ipoly, unsigned cons
 #pragma acc routine(possible_move_area51) seq
 int possible_move_area51(const struct Phase*p,const soma_scalar_t oldx,const soma_scalar_t oldy,const soma_scalar_t oldz,const soma_scalar_t dx,const soma_scalar_t dy,const soma_scalar_t dz,const int nonexact);
 
-
+/*! \brief Set iteration function used for one long chain, private function
+  \param p Initialized configuration.
+  \param nsteps \#steps to perform with the system.
+  \param tuning_parameter Parameter for ACC kernels. (vector_length)
+  \param my_rng_type enum which carries information about which RNG should by used
+  \param nonexact_area51 The exact check of area51
+  \param chain_i The index of the chain to be handled
+*/
 void set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, uint64_t chain_i);
 
+/*! \brief Set iteration function for all the chains starting from start_chain, private function
+  \param p Initialized configuration.
+  \param nsteps \#steps to perform with the system.
+  \param tuning_parameter Parameter for ACC kernels. (vector_length)
+  \param my_rng_type enum which carries information about which RNG should by used
+  \param nonexact_area51 The exact check of area51
+  \param start_chain the starting index of the chains to be handled with this function
+*/
 void set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain);
 
 #endif//SOMA_MC_H
