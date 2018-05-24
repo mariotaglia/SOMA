@@ -111,6 +111,9 @@ struct som_args
   const char *bond_minimum_image_convention_help; /**< @brief Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance. help description.  */
   int no_sync_signal_flag;	/**< @brief Synchronize MPI ranks for correct signal catching. OFF enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. ON accerlerates run with many MPI ranks. (default=off).  */
   const char *no_sync_signal_help; /**< @brief Synchronize MPI ranks for correct signal catching. OFF enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. ON accerlerates run with many MPI ranks. help description.  */
+  int long_chain_threshold_arg;	/**< @brief Option to determine the length of the long chain, expressed as the inverse fraction of the total bead number. (default='50').  */
+  char * long_chain_threshold_orig;	/**< @brief Option to determine the length of the long chain, expressed as the inverse fraction of the total bead number. original value given at command line.  */
+  const char *long_chain_threshold_help; /**< @brief Option to determine the length of the long chain, expressed as the inverse fraction of the total bead number. help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int detailed_help_given ;	/**< @brief Whether detailed-help was given.  */
@@ -138,6 +141,7 @@ struct som_args
   unsigned int set_generation_algorithm_given ;	/**< @brief Whether set-generation-algorithm was given.  */
   unsigned int bond_minimum_image_convention_given ;	/**< @brief Whether bond-minimum-image-convention was given.  */
   unsigned int no_sync_signal_given ;	/**< @brief Whether no-sync-signal was given.  */
+  unsigned int long_chain_threshold_given ;	/**< @brief Whether long-chain-threshold was given.  */
 
 } ;
 
