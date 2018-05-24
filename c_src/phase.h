@@ -290,7 +290,7 @@ int free_phase(struct Phase*const p);
 
 /*! \brief Order the polymers in p according to their length, private function.
   \param p Initialized configuration.
-  \return the number of chains that have more than 1/500 of the monomers in the total system.
+  \return the number of chains that have more than 1/50 of the monomers in the total system.
 */
 int mc_set_init(struct Phase*const p);
 

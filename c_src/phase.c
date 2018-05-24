@@ -237,8 +237,9 @@ int init_phase(struct Phase * const p)
     init_autotuner(&(p->mc_autotuner));
     init_autotuner(&(p->cm_mc_autotuner));
 
-    copyin_phase(p);
     p->num_long_chain=mc_set_init(p);
+    copyin_phase(p);
+
     // call update_fields routine
 
     if(p->bead_data_read)
@@ -498,14 +499,14 @@ int mc_set_init(Phase * const p){
   Polymer *const first_poly = &p->polymers[0];
   const unsigned int poly_type = first_poly->type;
   uint32_t length_poly_start = p->poly_arch[p->poly_type_offset[poly_type]];
-  if(length_poly_start>p->num_all_beads/50.0)
+  if(length_poly_start>p->num_all_beads/50)
     num_long_chain++;
   
   for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
     Polymer *const this_poly = &p->polymers[poly_i];
     const unsigned int poly_type = this_poly->type;
     uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
-    if(length_poly_i>p->num_all_beads/500.0)
+    if(length_poly_i>p->num_all_beads/50)
       num_long_chain++;
 
     int i=poly_i-1;    
