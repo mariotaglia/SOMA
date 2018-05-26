@@ -501,7 +501,6 @@ int mc_set_init(Phase * const p){
   uint32_t length_poly_start = p->poly_arch[p->poly_type_offset[poly_type]];
   if(length_poly_start>p->num_all_beads/p->args.long_chain_threshold_arg)
     num_long_chain++;
-  
   for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
     Polymer *const this_poly = &p->polymers[poly_i];
     const unsigned int poly_type = this_poly->type;
