@@ -34,7 +34,8 @@ try:
     import StringIO as stringio
 except ImportError:
     import io as stringio
-
+except ModuleNotFoundError:
+    import io as stringio
 
 ## Matches the enum Bondtype of struct.h
 bondDict = {}
