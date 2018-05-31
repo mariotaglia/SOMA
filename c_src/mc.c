@@ -689,7 +689,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
     if(order==1){
       p->num_long_chain=mc_set_init(p);
     }
-    }
+  }
 
 
   int num_long_chain=p->num_long_chain;
