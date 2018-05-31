@@ -662,6 +662,36 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
  
   //reorder the polymers according to their length
+   //test the order of the polymers and reorder the polymers according to their length if needed
+  if(p->time % 200 == 0){
+    int order=0;
+    uint32_t length_poly[p->n_polymers];
+    for (uint64_t poly_i = 0; poly_i <p->n_polymers; poly_i++){
+      Polymer *const this_poly = &p->polymers[poly_i];
+      const unsigned int poly_type = this_poly->type;
+      length_poly[poly_i] = p->poly_arch[p->poly_type_offset[poly_type]];   
+    }
+
+    for (unsigned int poly_n=p->n_polymers; poly_n>1; poly_n--){
+      for (unsigned int poly_i=0; poly_i<poly_n-1; poly_i++){
+	if (length_poly[poly_i] > length_poly[poly_i+1]){
+	  int tmp= length_poly[poly_i];
+	  length_poly[poly_i]=length_poly[poly_i+1];
+	  length_poly[poly_i+1]=tmp;
+	  order=1;
+	  break;
+	}
+      }
+      if(order==1)
+	break;
+    }
+    
+    if(order==1){
+      p->num_long_chain=mc_set_init(p);
+    }
+    }
+
+
   int num_long_chain=p->num_long_chain;
   for(int index=0;index<num_long_chain;index++){
     set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
