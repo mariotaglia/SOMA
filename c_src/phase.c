@@ -237,7 +237,7 @@ int init_phase(struct Phase * const p)
     init_autotuner(&(p->mc_autotuner));
     init_autotuner(&(p->cm_mc_autotuner));
 
-    //p->num_long_chain=mc_set_init(p);
+    p->num_long_chain=mc_set_init(p);
     copyin_phase(p);
 
     // call update_fields routine
