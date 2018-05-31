@@ -661,7 +661,6 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
  
-  //reorder the polymers according to their length
    //test the order of the polymers and reorder the polymers according to their length if needed
   if(p->time % 200 == 0){
     int order=0;
