@@ -436,7 +436,10 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
 
     return 0;
 }
-void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain){
+int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain){
+  
+  int error_flags[2]={0}; // [0] domain error, [1] pgi_bug 
+#pragma acc enter data copyin(error_flags[0:2])
   for(unsigned int step = 0; step < nsteps; step++)
     {
       const uint64_t n_polymers = p->n_polymers ;
@@ -507,13 +510,15 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
 		    smc_deltaE=0.0;
 		    break;
 		  }
+
 		  const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx.x,dx.y,dx.z,nonexact_area51);
+		  // calculate energy change
+		  const soma_scalar_t delta_energy = calc_delta_energy(p, npoly,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
+		  if( delta_energy != delta_energy ) //isnan(delta_energy) ) not working with PGI OpenACC
+		    error_flags[0] = npoly + 1;
+		  
 		  if ( move_allowed  )
 		    {
-		      // calculate energy change
-		      const soma_scalar_t delta_energy =
-			calc_delta_energy(p, npoly,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
-
 		      // MC roll to accept / reject
 		      if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
 			{
@@ -543,10 +548,23 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
 #endif//_OPENACC
-    } 
+    }
+  int ret = 0;
+#pragma acc exit data copyout(error_flags[0:2])
+  if(error_flags[0] != 0){
+    fprintf(stderr,"ERROR: Domain error. %d"
+	    " A particle has left the buffer domain."
+	    " Restart your simulation with larger buffers. %s:%d\n",error_flags[0],__FILE__,__LINE__);
+    return error_flags[0];
+  }
+  ret = error_flags[1];
+  return ret;
+
 }
 
-void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,uint64_t chain_i){
+int set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,uint64_t chain_i){
+  int error_flags[2]={0}; // [0] domain error, [1] pgi_bug 
+#pragma acc enter data copyin(error_flags[0:2])
   for(unsigned int step = 0; step < nsteps; step++)
     {
       unsigned int n_accepts=0;
@@ -557,9 +575,7 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
       //Thanks to the PGI compiler, I have to local copy everything I need.
       const unsigned int n_sets = mySets.n_sets;
       const unsigned int*const set_length_tmp = mySets.set_length;
-      //const unsigned int* const sets_tmp = mySets.sets;
       const unsigned int max_member = mySets.max_member;
-      //RNG_STATE * const set_states_tmp = (&p->polymers[chain_i])->set_states;
       unsigned int*const set_permutation = (&p->polymers[chain_i])->set_permutation;
 
       //Generate random permutation of the sets
@@ -587,7 +603,6 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 	   Polymer *const mypoly = &p->polymers[chain_i];
 	   const unsigned int poly_type = mypoly->type; 
 	   const IndependetSets mySets= p->sets[poly_type];
-	   //const unsigned int*const set_length = mySets.set_length;
 	   const unsigned int* const sets = mySets.sets;
 	   RNG_STATE * const set_states = mypoly->set_states;
 
@@ -619,11 +634,15 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 		break;
 	      }
 	      const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx.x,dx.y,dx.z,nonexact_area51);
+	      // calculate energy change
+	      const soma_scalar_t delta_energy =calc_delta_energy(p, chain_i,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
+	      if(delta_energy != delta_energy) //isnan(delta_energy) ) not working with PGI OpenACC
+		error_flags[0] = chain_i + 1;
+
+
 	      if ( move_allowed  )
 		{
-		  // calculate energy change
-		  const soma_scalar_t delta_energy =
-		    calc_delta_energy(p, 0,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
+
 		  // MC roll to accept / reject
 		  if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
 		    {
@@ -654,12 +673,20 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
       p->n_accepts += n_accepts;
 #endif//_OPENACC
     } 
+      int ret = 0;
+#pragma acc exit data copyout(error_flags[0:2])
+      if(error_flags[0] != 0){
+	fprintf(stderr,"ERROR: Domain error. %d"
+		" A particle has left the buffer domain."
+		" Restart your simulation with larger buffers. %s:%d\n",error_flags[0],__FILE__,__LINE__);
+	return error_flags[0];
+      }
+      ret = error_flags[1];
+      return ret;
 }
 	      
 
 int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter){
-  // We need to check that, otherwise there is a problem in some iterations.
-  // But all occuring errors, if any, are reported to the users.
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
  
@@ -691,19 +718,19 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
       p->num_long_chain=mc_set_init(p);
     }
   }
-
-
+  
+  int ret;
   unsigned int num_long_chain=(unsigned int)p->num_long_chain;
   for(unsigned int index=0;index<num_long_chain;index++){
-    set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
+    ret=set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
     }
   if(num_long_chain!=p->n_polymers){  
-    set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
+    ret=set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
   }
   p->time += 1;
 #pragma acc wait
 
-  int ret = 0;
+  ret = 0;
   return ret;
 }
 

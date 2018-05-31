@@ -231,7 +231,7 @@ int possible_move_area51(const struct Phase*p,const soma_scalar_t oldx,const som
   \param nonexact_area51 The exact check of area51
   \param chain_i The index of the chain to be handled
 */
-void set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, uint64_t chain_i);
+int set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, uint64_t chain_i);
 
 /*! \brief Set iteration function for all the chains starting from start_chain, private function
   \param p Initialized configuration.
@@ -241,6 +241,6 @@ void set_iteration_single_chain(struct Phase * const p, const unsigned int nstep
   \param nonexact_area51 The exact check of area51
   \param start_chain the starting index of the chains to be handled with this function
 */
-void set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain);
+int set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain);
 
 #endif//SOMA_MC_H

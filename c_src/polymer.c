@@ -230,14 +230,12 @@ int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t p
 #ifdef _OPENACC
       const unsigned int pos_i = poly_i;
       const unsigned int pos_j = poly_j;
-      Polymer* polymers_dev =acc_malloc(sizeof(Polymer));
-      polymers_dev = acc_deviceptr(p->polymers);
-      acc_memcpy_to_device( polymers_dev + pos_i, p->polymers + pos_i, sizeof(Polymer));
-      acc_memcpy_to_device( polymers_dev + pos_j, p->polymers + pos_j, sizeof(Polymer));    
-#endif//_OPENACC
-      copyin_polymer(p,&(p->polymers[poly_i]));
-      copyin_polymer(p,&(p->polymers[poly_j]));
- 
+      Polymer* tmp_dev =acc_malloc(sizeof(Polymer));
+      Polymer* polymers_dev = acc_deviceptr(p->polymers);
+      acc_memcpy_device( tmp_dev, polymers_dev + pos_i, sizeof(Polymer));
+      acc_memcpy_device( polymers_dev + pos_i, polymers_dev + pos_j, sizeof(Polymer));
+      acc_memcpy_device( polymers_dev + pos_j, tmp_dev, sizeof(Polymer));    
+#endif//_OPENACC 
       }
     return 0;
     }
