@@ -234,7 +234,8 @@ int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t p
       Polymer* polymers_dev = acc_deviceptr(p->polymers);
       acc_memcpy_device( tmp_dev, polymers_dev + pos_i, sizeof(Polymer));
       acc_memcpy_device( polymers_dev + pos_i, polymers_dev + pos_j, sizeof(Polymer));
-      acc_memcpy_device( polymers_dev + pos_j, tmp_dev, sizeof(Polymer));    
+      acc_memcpy_device( polymers_dev + pos_j, tmp_dev, sizeof(Polymer)); 
+      acc_free(tmp_dev);
 #endif//_OPENACC 
       }
     return 0;
