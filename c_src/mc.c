@@ -440,7 +440,9 @@ void set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const 
   for(unsigned int step = 0; step < nsteps; step++)
     {
       const uint64_t n_polymers = p->n_polymers ;
-      unsigned int n_accepts=0;
+
+      //Shutup compiler warning
+      unsigned int n_accepts = tuning_parameter;n_accepts=0;
 #pragma acc parallel loop vector_length(tuning_parameter) async
 #pragma omp parallel for reduction(+:n_accepts)
       for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
@@ -555,9 +557,9 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
       //Thanks to the PGI compiler, I have to local copy everything I need.
       const unsigned int n_sets = mySets.n_sets;
       const unsigned int*const set_length_tmp = mySets.set_length;
-      const unsigned int* const sets_tmp = mySets.sets;
+      //const unsigned int* const sets_tmp = mySets.sets;
       const unsigned int max_member = mySets.max_member;
-      RNG_STATE * const set_states_tmp = (&p->polymers[chain_i])->set_states;
+      //RNG_STATE * const set_states_tmp = (&p->polymers[chain_i])->set_states;
       unsigned int*const set_permutation = (&p->polymers[chain_i])->set_permutation;
 
       //Generate random permutation of the sets
@@ -572,10 +574,10 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 
       for(unsigned int iSet=0; iSet < n_sets; iSet++)
 	{
-	  unsigned int accepted_moves_set = 0;
 	  const unsigned int set_id = set_permutation[iSet];		    
 	  const unsigned int len = set_length_tmp[set_id];
-
+	  //Shutup compiler warning
+	  unsigned int accepted_moves_set =tuning_parameter;accepted_moves_set=0;
 #pragma acc parallel loop vector_length(tuning_parameter) async				  
 #pragma omp parallel for reduction(+:n_accepts)
 	  for(unsigned int iP=0; iP < len; iP++)
@@ -585,7 +587,7 @@ void set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const
 	   Polymer *const mypoly = &p->polymers[chain_i];
 	   const unsigned int poly_type = mypoly->type; 
 	   const IndependetSets mySets= p->sets[poly_type];
-	   const unsigned int*const set_length = mySets.set_length;
+	   //const unsigned int*const set_length = mySets.set_length;
 	   const unsigned int* const sets = mySets.sets;
 	   RNG_STATE * const set_states = mypoly->set_states;
 
@@ -691,8 +693,8 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   }
 
 
-  int num_long_chain=p->num_long_chain;
-  for(int index=0;index<num_long_chain;index++){
+  unsigned int num_long_chain=(unsigned int)p->num_long_chain;
+  for(unsigned int index=0;index<num_long_chain;index++){
     set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
     }
   if(num_long_chain!=p->n_polymers){  
