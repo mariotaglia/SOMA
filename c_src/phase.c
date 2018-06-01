@@ -519,7 +519,7 @@ int mc_set_init(Phase * const p){
     poly_order[poly_i-i]=poly_i;
   }
 
-  for(int index=0;index<num_long_chain;index++){
+  for(unsigned int index=0;index<num_long_chain;index++){
     if(poly_order[index]!=index){
       exchange_polymer(p,poly_order[index],index);  
     }

@@ -32,7 +32,8 @@ struct Phase;
 #include "soma_config.h"
 #include "rng.h"
 #include "monomer.h"
-
+#include "polymer.h"
+struct Polymer;
 //! Main Monte-Carlo function.
 //!
 //! Automatic selection of the Monte-Carlo algorithm and their execution.
@@ -243,4 +244,18 @@ int set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps
 */
 int set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain);
 
+/*! \brief Private function used together with set_iteration_multi_chain and set_iteration_single_chain
+  \param p Initialized configuration
+  \param set_states The set states of the selected polymer
+  \param chain_index Index of the selected polymer
+  \param iP 
+  \param max_member Maximal number of sets member
+  \param my_rng_type enum which carries information about which RNG should by used
+  \param nonexact_area51 The exact check of area51
+  \param ibead The selected bead
+  \param iwtype The particle type of the selected particle
+  return error_flags[0]
+*/
+#pragma acc routine(set_iteration_possible_move) seq
+int set_iteration_possible_move(const struct Phase * p,RNG_STATE * const set_states,uint64_t chain_index,unsigned int iP,const unsigned int max_member,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const unsigned int ibead,const unsigned int iwtype);
 #endif//SOMA_MC_H

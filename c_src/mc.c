@@ -490,51 +490,10 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const u
 		{
 		  const unsigned int ibead = sets[ set_id*max_member + iP];		  
 		  const unsigned int iwtype =get_particle_type(poly_arch[ poly_type_offset[poly_type]+1+ibead]);
-		  //local copy of rngstate. For fast updates of state in register.
-		  //assert( iP < p->max_set_members );
-		  RNG_STATE my_state = set_states[iP];
-		  Monomer  mybead = mypoly->beads[ibead];
-		  Monomer dx;
-		  dx.x=dx.y=dx.z=0;
-		  soma_scalar_t smc_deltaE=0;
-		  switch(p->args.move_type_arg){
-		  case move_type_arg_TRIAL:
-		    trial_move(p, npoly, ibead, &dx.x, &dx.y, &dx.z,iwtype,my_rng_type,&my_state);	// normal MC move
-		    smc_deltaE=0.0;
-		    break;
-		  case move_type_arg_SMART:
-		    trial_move_smc(p, npoly, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state,my_rng_type,iwtype);	// force biased move
-		    break;
-		  case move_type__NULL:
-		  default:
-		    smc_deltaE=0.0;
-		    break;
-		  }
-
-		  const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx.x,dx.y,dx.z,nonexact_area51);
-		  // calculate energy change
-		  const soma_scalar_t delta_energy = calc_delta_energy(p, npoly,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
-		  if( delta_energy != delta_energy ) //isnan(delta_energy) ) not working with PGI OpenACC
-		    error_flags[0] = npoly + 1;
-		  
-		  if ( move_allowed  )
-		    {
-		      // MC roll to accept / reject
-		      if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
-			{
-			  Monomer newx;
-			  newx.x = mybead.x + dx.x;
-			  newx.y = mybead.y + dx.y;
-			  newx.z = mybead.z + dx.z;
-			  mypoly->beads[ibead] = newx;
-#ifndef _OPENACC
-			  accepted_moves_set += 1;
-#endif//_OPENACC
-			}
-		    }
-		  //Copy the RNGstate back to global memory
-		  mypoly->set_states[iP] = my_state;    
+		  int error_0=set_iteration_possible_move(p,set_states,npoly,iP,max_member,my_rng_type,nonexact_area51,ibead,iwtype);
+		   error_flags[0]=error_0;
 		}
+	     
 #ifndef _OPENACC
 	      accepted_moves_poly += accepted_moves_set;
 #endif//_OPENACC
@@ -605,61 +564,17 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const 
 	   const IndependetSets mySets= p->sets[poly_type];
 	   const unsigned int* const sets = mySets.sets;
 	   RNG_STATE * const set_states = mypoly->set_states;
-
-	     
-	     
+   
 	      const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]]; 
 	      accepted_moves_poly += 0*myN; // Shutup compiler warning 
-	      
 	      const unsigned int ibead = sets[ set_id*max_member + iP];
-	      const unsigned int iwtype =get_particle_type(poly_arch[ poly_type_offset[poly_type]+1+ibead]);
-
-	      RNG_STATE my_state = set_states[iP];
-	      Monomer  mybead = mypoly->beads[ibead];
-	      
-	      Monomer dx;
-	      dx.x=dx.y=dx.z=0;
-	      soma_scalar_t smc_deltaE=0;
-	      switch(p->args.move_type_arg){
-	      case move_type_arg_TRIAL:
-		trial_move(p, 0, ibead, &dx.x, &dx.y, &dx.z,iwtype,my_rng_type,&my_state);	// normal MC move
-		smc_deltaE=0.0;
-		break;
-	      case move_type_arg_SMART:
-		trial_move_smc(p, 0, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state,my_rng_type,iwtype);	// force biased move
-		break;
-	      case move_type__NULL:
-	      default:
-		smc_deltaE=0.0;
-		break;
-	      }
-	      const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx.x,dx.y,dx.z,nonexact_area51);
-	      // calculate energy change
-	      const soma_scalar_t delta_energy =calc_delta_energy(p, chain_i,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
-	      if(delta_energy != delta_energy) //isnan(delta_energy) ) not working with PGI OpenACC
-		error_flags[0] = chain_i + 1;
-
-
-	      if ( move_allowed  )
-		{
-
-		  // MC roll to accept / reject
-		  if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
-		    {
-		      Monomer newx;
-		      newx.x = mybead.x + dx.x;
-		      newx.y = mybead.y + dx.y;
-		      newx.z = mybead.z + dx.z;
-		      mypoly->beads[ibead] = newx;
-#ifndef _OPENACC
-		      accepted_moves_set += 1;
-#endif//_OPENACC
-		    }
-		}	      
-	      //Copy the RNGstate back to global memory
-	      mypoly->set_states[iP] = my_state;
+	      const unsigned int iwtype =get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+ibead]);
+	      int error_0=set_iteration_possible_move(p,set_states,chain_i,iP,max_member,my_rng_type,nonexact_area51,ibead,iwtype);
+	      error_flags[0]=error_0;
 	    }
-		    
+	      //end	    
+	      
+
 #ifndef _OPENACC
 	  accepted_moves_poly += accepted_moves_set;
 #endif//_OPENACC
@@ -875,4 +790,57 @@ inline int possible_move_area51(const Phase*p,const soma_scalar_t oldx,const som
         }
 
     return 2;
+}
+
+
+
+
+int set_iteration_possible_move(const Phase * p,RNG_STATE * const set_states,uint64_t chain_index,unsigned int iP,const unsigned int max_member,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const unsigned int ibead,const unsigned int iwtype){
+
+  Polymer * this_poly= &p->polymers[chain_index];
+  //local copy of rngstate. For fast updates of state in register.
+  RNG_STATE my_state = set_states[iP];
+  Monomer  mybead = this_poly->beads[ibead];
+  Monomer dx;
+  dx.x=dx.y=dx.z=0;
+  soma_scalar_t smc_deltaE=0;
+  switch(p->args.move_type_arg){
+  case move_type_arg_TRIAL:
+    trial_move(p, chain_index, ibead, &dx.x, &dx.y, &dx.z,iwtype,my_rng_type,&my_state);	// normal MC move
+    smc_deltaE=0.0;
+    break;
+  case move_type_arg_SMART:
+    trial_move_smc(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state,my_rng_type,iwtype);	// force biased move
+    break;
+  case move_type__NULL:
+  default:
+    smc_deltaE=0.0;
+    break;
+  }
+  int error=0;
+  const int move_allowed = possible_move_area51(p, mybead.x,mybead.y,mybead.z, dx.x,dx.y,dx.z,nonexact_area51);
+  // calculate energy change
+  const soma_scalar_t delta_energy = calc_delta_energy(p, chain_index,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
+  if( delta_energy != delta_energy ) //isnan(delta_energy) ) not working with PGI OpenACC
+    error = chain_index+ 1;
+		  
+  if ( move_allowed  )
+    {
+      // MC roll to accept / reject
+      if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
+	{
+	  Monomer newx;
+	  newx.x = mybead.x + dx.x;
+	  newx.y = mybead.y + dx.y;
+	  newx.z = mybead.z + dx.z;
+	  this_poly->beads[ibead] = newx;
+#ifndef _OPENACC
+	  accepted_moves_set += 1;
+#endif//_OPENACC
+	}
+    }
+  //Copy the RNGstate back to global memory
+  this_poly->set_states[iP] = my_state;    
+  p->polymers[chain_index] = *this_poly;
+  return error;
 }
