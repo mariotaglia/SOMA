@@ -62,6 +62,7 @@ const char *som_args_detailed_help[] = {
   "  -m, --bond-minimum-image-convention\n                                Specify the bond length used to calculate the\n                                  energy. This decides, whether the bond length\n                                  between two particle is calculated as the\n                                  absolute distance or the minimum image\n                                  distance.  (default=off)",
   "      --no-sync-signal          Synchronize MPI ranks for correct signal\n                                  catching. OFF enables termination via sending\n                                  SIGINT or SIGTERM to SOMA if the MPI library\n                                  supports it. ON accerlerates run with many\n                                  MPI ranks.  (default=off)",
   "      --long-chain-threshold=length\n                                Option to determine the length of the long\n                                  chain, expressed as the inverse fraction of\n                                  the total bead number.  (default=`50')",
+  "      --set_order_frequency=frequency\n                                Option to determine the frequency to check the\n                                  ordering of the polymers which is important\n                                  for independent_set_iteration.\n                                  (default=`200')",
     0
 };
 
@@ -95,11 +96,12 @@ init_help_array(void)
   som_args_help[24] = som_args_detailed_help[25];
   som_args_help[25] = som_args_detailed_help[26];
   som_args_help[26] = som_args_detailed_help[27];
-  som_args_help[27] = 0; 
+  som_args_help[27] = som_args_detailed_help[28];
+  som_args_help[28] = 0; 
   
 }
 
-const char *som_args_help[28];
+const char *som_args_help[29];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -159,6 +161,7 @@ void clear_given (struct som_args *args_info)
   args_info->bond_minimum_image_convention_given = 0 ;
   args_info->no_sync_signal_given = 0 ;
   args_info->long_chain_threshold_given = 0 ;
+  args_info->set_order_frequency_given = 0 ;
 }
 
 static
@@ -207,6 +210,8 @@ void clear_args (struct som_args *args_info)
   args_info->no_sync_signal_flag = 0;
   args_info->long_chain_threshold_arg = 50;
   args_info->long_chain_threshold_orig = NULL;
+  args_info->set_order_frequency_arg = 200;
+  args_info->set_order_frequency_orig = NULL;
   
 }
 
@@ -242,6 +247,7 @@ void init_args_info(struct som_args *args_info)
   args_info->bond_minimum_image_convention_help = som_args_detailed_help[25] ;
   args_info->no_sync_signal_help = som_args_detailed_help[26] ;
   args_info->long_chain_threshold_help = som_args_detailed_help[27] ;
+  args_info->set_order_frequency_help = som_args_detailed_help[28] ;
   
 }
 
@@ -357,6 +363,7 @@ cmdline_parser_release (struct som_args *args_info)
   free_string_field (&(args_info->user_orig));
   free_string_field (&(args_info->set_generation_algorithm_orig));
   free_string_field (&(args_info->long_chain_threshold_orig));
+  free_string_field (&(args_info->set_order_frequency_orig));
   
   
 
@@ -482,6 +489,8 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "no-sync-signal", 0, 0 );
   if (args_info->long_chain_threshold_given)
     write_into_file(outfile, "long-chain-threshold", args_info->long_chain_threshold_orig, 0);
+  if (args_info->set_order_frequency_given)
+    write_into_file(outfile, "set_order_frequency", args_info->set_order_frequency_orig, 0);
   
 
   i =  1 ;
@@ -815,6 +824,7 @@ cmdline_parser_internal (
         { "bond-minimum-image-convention",	0, NULL, 'm' },
         { "no-sync-signal",	0, NULL, 0 },
         { "long-chain-threshold",	1, NULL, 0 },
+        { "set_order_frequency",	1, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -1142,6 +1152,20 @@ cmdline_parser_internal (
                 &(local_args_info.long_chain_threshold_given), optarg, 0, "50", ARG_INT,
                 check_ambiguity, override, 0, 0,
                 "long-chain-threshold", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration..  */
+          else if (strcmp (long_options[option_index].name, "set_order_frequency") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->set_order_frequency_arg), 
+                 &(args_info->set_order_frequency_orig), &(args_info->set_order_frequency_given),
+                &(local_args_info.set_order_frequency_given), optarg, 0, "200", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "set_order_frequency", '-',
                 additional_error))
               goto failure;
           

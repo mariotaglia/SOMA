@@ -114,6 +114,9 @@ struct som_args
   int long_chain_threshold_arg;	/**< @brief Option to determine the length of the long chain, expressed as the inverse fraction of the total bead number. (default='50').  */
   char * long_chain_threshold_orig;	/**< @brief Option to determine the length of the long chain, expressed as the inverse fraction of the total bead number. original value given at command line.  */
   const char *long_chain_threshold_help; /**< @brief Option to determine the length of the long chain, expressed as the inverse fraction of the total bead number. help description.  */
+  int set_order_frequency_arg;	/**< @brief Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration. (default='200').  */
+  char * set_order_frequency_orig;	/**< @brief Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration. original value given at command line.  */
+  const char *set_order_frequency_help; /**< @brief Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration. help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int detailed_help_given ;	/**< @brief Whether detailed-help was given.  */
@@ -142,6 +145,7 @@ struct som_args
   unsigned int bond_minimum_image_convention_given ;	/**< @brief Whether bond-minimum-image-convention was given.  */
   unsigned int no_sync_signal_given ;	/**< @brief Whether no-sync-signal was given.  */
   unsigned int long_chain_threshold_given ;	/**< @brief Whether long-chain-threshold was given.  */
+  unsigned int set_order_frequency_given ;	/**< @brief Whether set_order_frequency was given.  */
 
 } ;
 
