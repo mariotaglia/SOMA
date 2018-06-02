@@ -490,8 +490,8 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const u
 		{
 		  const unsigned int ibead = sets[ set_id*max_member + iP];		  
 		  const unsigned int iwtype =get_particle_type(poly_arch[ poly_type_offset[poly_type]+1+ibead]);
-		  int error_0=set_iteration_possible_move(p,set_states,npoly,iP,max_member,my_rng_type,nonexact_area51,ibead,iwtype);
-		   error_flags[0]=error_0;
+		  int error_0=set_iteration_possible_move(p,set_states,npoly,iP,my_rng_type,nonexact_area51,ibead,iwtype,&accepted_moves_set);
+		  error_flags[0]=error_0;
 		}
 	     
 #ifndef _OPENACC
@@ -556,24 +556,20 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const 
 #pragma acc parallel loop vector_length(tuning_parameter) async				  
 #pragma omp parallel for reduction(+:n_accepts)
 	  for(unsigned int iP=0; iP < len; iP++)
-	    {	
-	   const uint32_t*const poly_arch = p->poly_arch; 
-	   const int*const poly_type_offset = p->poly_type_offset; 
+	    { 
 	   Polymer *const mypoly = &p->polymers[chain_i];
 	   const unsigned int poly_type = mypoly->type; 
 	   const IndependetSets mySets= p->sets[poly_type];
 	   const unsigned int* const sets = mySets.sets;
 	   RNG_STATE * const set_states = mypoly->set_states;
    
-	      const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]]; 
-	      accepted_moves_poly += 0*myN; // Shutup compiler warning 
-	      const unsigned int ibead = sets[ set_id*max_member + iP];
-	      const unsigned int iwtype =get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+ibead]);
-	      int error_0=set_iteration_possible_move(p,set_states,chain_i,iP,max_member,my_rng_type,nonexact_area51,ibead,iwtype);
-	      error_flags[0]=error_0;
+	   const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]]; 
+	   accepted_moves_poly += 0*myN; // Shutup compiler warning 
+	   const unsigned int ibead = sets[ set_id*max_member + iP];
+	   const unsigned int iwtype =get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+ibead]);
+	   int error_0=set_iteration_possible_move(p,set_states,chain_i,iP,my_rng_type,nonexact_area51,ibead,iwtype,&accepted_moves_set);
+	   error_flags[0]=error_0;
 	    }
-	      //end	    
-	      
 
 #ifndef _OPENACC
 	  accepted_moves_poly += accepted_moves_set;
@@ -606,7 +602,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
  
    //test the order of the polymers and reorder the polymers according to their length if needed
-	  if(p->time % p->args.set_order_frequency_arg == 0){
+  if(p->time % p->args.set_order_frequency_arg == 0){
     int order=0;
     uint32_t length_poly[p->n_polymers];
     for (uint64_t poly_i = 0; poly_i <p->n_polymers; poly_i++){
@@ -795,8 +791,9 @@ inline int possible_move_area51(const Phase*p,const soma_scalar_t oldx,const som
 
 
 
-int set_iteration_possible_move(const Phase * p,RNG_STATE * const set_states,uint64_t chain_index,unsigned int iP,const unsigned int max_member,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const unsigned int ibead,const unsigned int iwtype){
+int set_iteration_possible_move(const Phase * p,RNG_STATE * const set_states,uint64_t chain_index,unsigned int iP,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const unsigned int ibead,const unsigned int iwtype,unsigned int *accepted_moves_set_ptr){
 
+  unsigned int accepted_moves_set=*accepted_moves_set_ptr;
   Polymer * this_poly= &p->polymers[chain_index];
   //local copy of rngstate. For fast updates of state in register.
   RNG_STATE my_state = set_states[iP];
@@ -842,5 +839,6 @@ int set_iteration_possible_move(const Phase * p,RNG_STATE * const set_states,uin
   //Copy the RNGstate back to global memory
   this_poly->set_states[iP] = my_state;    
   p->polymers[chain_index] = *this_poly;
+  *accepted_moves_set_ptr=accepted_moves_set;
   return error;
 }
