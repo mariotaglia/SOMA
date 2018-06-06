@@ -126,6 +126,19 @@ int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,con
 int extent_density_field(const struct Phase*const p,const void *const field_pointer,
                          const char *const field_name, hid_t hdf5_type,
                          const MPI_Datatype mpi_type,const size_t data_size);
+//! \brief calculate the structure for each poly type
+//! \param p System to analyze
+//! \param result Pointer to array to store the result
+void calc_structure(const struct Phase * p,soma_scalar_t *const result);
 
+
+//! \brief Helper to ouput soma_scalar_t data to a hdf5 file, used for the strcture.
+//!
+//! \param p Pointer to the state of the system.
+//! \param data Pointer to the data to ouput.
+//! \param name Dataset name
+//! \param file_id File specifier for HDF5 output ana file
+//! \return Errorcode.
+int extent_structure(const struct Phase * p,const soma_scalar_t*const data,const char*const name,const hid_t file_id);
 
 #endif//SOMA_ANA_H

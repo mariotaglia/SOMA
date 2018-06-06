@@ -140,7 +140,17 @@ class AnalysisFile(ConfGen.SomaXML):
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["chem_potential"]=copy.deepcopy(element)
-
+      
+            #structure
+            for ana in self.root.findall("analysis"):
+                for child in ana:
+                    for grandchild in child:
+                        if grandchild.tag=="q":
+                            tmp_file = stringio.StringIO(grandchild.text)
+                            q = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
+                            N_q=q.size
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,N_q), 0 )
+            self.ana_dict["structure"] = copy.deepcopy(element)
 
     def _update_ana_element(self,element):
         if element.tag not in self.ana_dict.keys():
@@ -151,6 +161,11 @@ class AnalysisFile(ConfGen.SomaXML):
         for child in element:
             if child.tag == "compression":
                 dict_element.compression = child.text.strip()
+            elif child.tag == "q":
+                tmp_file = stringio.StringIO(child.text)
+                q = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
+                dict_element.attr[child.tag] = q
+                dict_element.attr["q_size"]=q.size
             else:
                 tmp_file = stringio.StringIO(child.text)
                 matrix = numpy.loadtxt( tmp_file, dtype=numpy.int32)

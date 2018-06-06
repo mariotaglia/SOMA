@@ -18,7 +18,7 @@
 #ifndef ANA_INFO_H
 #define ANA_INFO_H
 #include <hdf5.h>
-
+#include "soma_config.h"
 struct Phase;
 
 //! \file ana_info.h
@@ -37,6 +37,9 @@ typedef struct Ana_Info{
     unsigned int delta_mc_non_bonded_energy;//!< \# mc_sweeps between the ana of the non-bonded energy
     unsigned int delta_mc_bonded_energy;//!< \# mc_sweeps between the ana of the bonded energy
     unsigned int delta_mc_umbrella_field;//!<\#mc_sweeps between the ana of the string fields
+    unsigned int delta_mc_structure;//!<\#mc_sweeps between the ana of the structure
+    soma_scalar_t *q;
+    unsigned int q_size;
     char * filename; //!< filename of the analysis file.
     char * coord_filename; //!< filename of the configuration files.
     hid_t file_id; //!< HDF5 file specifier for the ana file. Only valid for current_core == 0. No MPI/IO

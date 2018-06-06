@@ -35,6 +35,7 @@
 #include "polymer.h"
 #include "mesh.h"
 #include "io.h"
+#include <math.h>
 
 void calc_Re(const struct Phase * p, soma_scalar_t *const result)
     {
@@ -718,6 +719,19 @@ int analytics(struct Phase *const p)
         extent_density_field(p,p->umbrella_field,"/umbrella_field",H5T_SOMA_NATIVE_SCALAR,MPI_SOMA_SCALAR, sizeof(soma_scalar_t) );
         written = true;
         }
+    //structure//start from here
+    if(p->ana_info.delta_mc_structure != 0 && p->time % p->ana_info.delta_mc_structure == 0)
+        {
+        update_self_phase(p,0);
+        soma_scalar_t*const structure=(soma_scalar_t*const)malloc(3*p->n_poly_type*p->ana_info.q_size*sizeof(soma_scalar_t));
+        if(structure == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;}	
+        calc_structure(p,structure);
+        if(p->info_MPI.sim_rank == 0 )
+	  extent_structure(p,structure, "/structure",p->ana_info.file_id);
+        written = true;
+        free(structure);
+        }
+    
 
     //dump
     if (p->ana_info.delta_mc_dump != 0 && p->time % p->ana_info.delta_mc_dump == 0)
@@ -743,5 +757,146 @@ int analytics(struct Phase *const p)
             }
         }
 
+    return 0;
+    }
+
+
+
+void calc_structure(const struct Phase * p,soma_scalar_t *const result){
+  uint64_t *const counter = (uint64_t*)malloc( p->n_poly_type*sizeof(uint64_t));
+  if(counter == NULL){
+    fprintf(stderr,"MALLOC ERROR: %s:%d\n",__FILE__,__LINE__);
+    return;
+  }
+  memset(counter,0, p->n_poly_type*sizeof(uint64_t));
+  memset(result, 0 , 3*p->n_poly_type*p->ana_info.q_size * sizeof(soma_scalar_t));
+  for (uint64_t npoly = 0; npoly < p->n_polymers; npoly++){
+    const unsigned int poly_type = p->polymers[npoly].type;
+    soma_scalar_t real_0[p->ana_info.q_size];
+    memset(real_0,0,p->ana_info.q_size*sizeof(soma_scalar_t));
+    soma_scalar_t imag_0[p->ana_info.q_size];
+    memset(imag_0,0,p->ana_info.q_size*sizeof(soma_scalar_t));
+    soma_scalar_t real_1[p->ana_info.q_size];
+    memset(real_1,0,p->ana_info.q_size*sizeof(soma_scalar_t));
+    soma_scalar_t imag_1[p->ana_info.q_size];
+    memset(imag_1,0,p->ana_info.q_size*sizeof(soma_scalar_t));
+    soma_scalar_t real_2[p->ana_info.q_size];
+    memset(real_2,0,p->ana_info.q_size*sizeof(soma_scalar_t));
+    soma_scalar_t imag_2[p->ana_info.q_size];
+    memset(imag_2,0,p->ana_info.q_size*sizeof(soma_scalar_t));
+    unsigned int poly_length=p->poly_arch[ p->poly_type_offset[poly_type ] ];
+    for(unsigned int mono_i=0;mono_i<poly_length;mono_i++){
+      for(unsigned int mono_j=mono_i+1;mono_j<poly_length;mono_j++){
+	const unsigned int particle_type_i=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+mono_i]);
+	const unsigned int particle_type_j=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+mono_j]);
+
+	const soma_scalar_t dx = p->polymers[npoly].beads[mono_i].x - p->polymers[npoly].msd_beads[mono_j].x;
+	const soma_scalar_t dy = p->polymers[npoly].beads[mono_i].y - p->polymers[npoly].msd_beads[mono_j].y;
+	const soma_scalar_t dz = p->polymers[npoly].beads[mono_i].z - p->polymers[npoly].msd_beads[mono_j].z;
+	const soma_scalar_t diff=sqrt(dx*dx + dy*dy + dz*dz);
+
+	if(particle_type_i==particle_type_j&&particle_type_j==0){
+	  for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
+	    real_0[index_q]+=cos(p->ana_info.q[index_q]*diff);
+	    imag_0[index_q]+=sin(p->ana_info.q[index_q]*diff);
+	  }
+	}
+	if(particle_type_i!=particle_type_j){
+	  for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
+	    real_1[index_q]+=cos(p->ana_info.q[index_q]*diff);
+	    imag_1[index_q]+=sin(p->ana_info.q[index_q]*diff);
+	  }
+	}
+	if(particle_type_i==particle_type_j&&particle_type_j==1){
+	  for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
+	    real_2[index_q]+=cos(p->ana_info.q[index_q]*diff);
+	    imag_2[index_q]+=sin(p->ana_info.q[index_q]*diff);
+	  }
+	}
+	counter[poly_type] += 1;
+      }
+    }
+    for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
+      result[index_q*p->n_poly_type*3+poly_type*3+0]=real_0[index_q]*real_0[index_q]+imag_0[index_q]*imag_0[index_q];
+      result[index_q*p->n_poly_type*3+poly_type*3+1]=real_1[index_q]*real_1[index_q]+imag_1[index_q]*imag_1[index_q];
+      result[index_q*p->n_poly_type*3+poly_type*3+2]=real_2[index_q]*real_2[index_q]+imag_2[index_q]*imag_2[index_q];
+  }
+  }
+  MPI_Allreduce(MPI_IN_PLACE, result, 3*p->n_poly_type*p->ana_info.q_size, MPI_SOMA_SCALAR, MPI_SUM,
+		p->info_MPI.SOMA_comm_sim);
+  MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
+		p->info_MPI.SOMA_comm_sim);
+
+  for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
+    for(unsigned int type=0 ; type < p->n_poly_type; type++){
+      for(unsigned int i=0; i < 3; i++){
+	if( counter[type] > 0)
+	  result[index_q*type*3+i] /= (soma_scalar_t) counter[type];
+      }
+    }
+  }
+  free(counter);
+}
+
+
+int extent_structure(const struct Phase * p,const soma_scalar_t*const data,const char*const name,const hid_t file_id)
+    {
+      herr_t status;
+      hid_t dset = H5Dopen(file_id, name,H5P_DEFAULT);
+      HDF5_ERROR_CHECK(dset);
+    hid_t d_space = H5Dget_space(dset);
+    HDF5_ERROR_CHECK(d_space);
+    const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
+    if( ndims != 3)
+        {
+        fprintf(stderr,"ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",__FILE__,__LINE__,name);
+        return -1;
+        }
+    hsize_t dims[3];//ndims
+
+    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+    HDF5_ERROR_CHECK(status);
+
+    hsize_t dims_new[3];//ndims
+    dims_new[0] = dims[0] + 1;
+    dims_new[1] = 3*p->n_poly_type;
+    assert(dims[1] == 3*p->n_poly_type);
+    dims_new[2] = p->ana_info.q_size;
+    assert(dims[2] == p->ana_info.q_size);
+    status = H5Dset_extent(dset,dims_new);
+    HDF5_ERROR_CHECK(status);
+
+    status = H5Sclose(d_space);
+    HDF5_ERROR_CHECK(status);
+    hid_t filespace = H5Dget_space(dset);
+    HDF5_ERROR_CHECK(filespace);
+
+    hsize_t dims_memspace[3]; //ndims
+    dims_memspace[0] = dims_new[0] - dims[0];
+    for(unsigned int i = 1; i< ndims;i++){
+        dims_memspace[i] = dims[i];
+    }
+
+    hid_t memspace = H5Screate_simple(ndims,dims_memspace,NULL);
+    hsize_t dims_offset[3];//ndims
+    dims_offset[0] = dims[0];
+    for(unsigned int i=1; i < ndims; i++)
+        dims_offset[i] = 0;
+
+    if(dims[0] > 0){
+        status = H5Sselect_hyperslab(filespace,H5S_SELECT_SET,dims_offset,NULL,dims_memspace,NULL);
+        HDF5_ERROR_CHECK(status);
+        }
+    else
+        memspace = H5P_DEFAULT;
+
+    status = H5Dwrite(dset,H5T_SOMA_NATIVE_SCALAR,memspace,filespace,H5P_DEFAULT,data);
+    HDF5_ERROR_CHECK(status);
+
+
+    status = H5Sclose(filespace);
+    HDF5_ERROR_CHECK(status);
+    status = H5Dclose(dset);
+    HDF5_ERROR_CHECK(status);
     return 0;
     }
