@@ -494,7 +494,6 @@ int mc_set_init(Phase * const p){
   }
   memset(poly_order,0,(int)p->n_polymers*sizeof(unsigned int));
 
-
   Polymer *const first_poly = &p->polymers[0];
   const unsigned int poly_type = first_poly->type;
   uint32_t length_poly_start = p->poly_arch[p->poly_type_offset[poly_type]];

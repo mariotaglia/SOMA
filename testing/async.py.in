@@ -38,12 +38,12 @@ def run(test):
     ret = sp.call(["mv","end.h5","async.h5"])
     if ret != 0: raise RuntimeError("Test failed")
 
-    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","2",SOMA,"-o","0","-c","async.h5","-t","1000","-a","async_ana_normal.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET"])
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","2",SOMA,"-c","async.h5","-t","1000","-a","async_ana_normal.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET"])
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","async_normal.h5"])
     if ret != 0: raise RuntimeError("Test failed")
 
-    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","2",SOMA,"-o","0","-c","async.h5","-t","1000","-a","async_ana_new.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET",test])
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","2",SOMA,"-c","async.h5","-t","1000","-a","async_ana_new.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET",test])
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","async_new.h5"])
     if ret != 0: raise RuntimeError("Test failed")
