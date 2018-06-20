@@ -184,12 +184,13 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
 #pragma acc update device(p->n_polymers)
 
     //Fill the gap in vector
-    memcpy( p->polymers + poly_id, p->polymers + p->n_polymers, sizeof(Polymer));
+    if(poly_id!=p->n_polymers){
+      memcpy( p->polymers + poly_id, p->polymers + p->n_polymers, sizeof(Polymer));
 #ifdef _OPENACC
-    Polymer*const polymers_dev = acc_deviceptr(p->polymers);
-    acc_memcpy_device( polymers_dev + poly_id, polymers_dev + p->n_polymers, sizeof(Polymer) );
+      Polymer*const polymers_dev = acc_deviceptr(p->polymers);
+      acc_memcpy_device( polymers_dev + poly_id, polymers_dev + p->n_polymers, sizeof(Polymer) );
 #endif//_OPENACC
-
+    }
     const unsigned int N = p->poly_arch[ p->poly_type_offset[poly->type] ];
     for (unsigned int k = 0; k < N; k++)
         {
@@ -202,6 +203,41 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
 #pragma acc update device(p->num_all_beads_local[0:1])
 
     copyout_polymer(p, poly);
+
+    return 0;
+    }
+
+int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t poly_j)
+    {
+    if(poly_i!=poly_j)
+      {
+      if(poly_i >= p->n_polymers)
+	{
+	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
+		,p->info_MPI.sim_rank,poly_i,p->n_polymers);
+	return -1;
+	}
+      if(poly_j >= p->n_polymers)
+	{
+	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
+		,p->info_MPI.sim_rank,poly_j,p->n_polymers);
+	return -1;
+	}
+  
+      Polymer tmp_poly=p->polymers[poly_j];
+      p->polymers[poly_j] = p->polymers[poly_i];
+      p->polymers[poly_i] = tmp_poly;
+#ifdef _OPENACC
+      const unsigned int pos_i = poly_i;
+      const unsigned int pos_j = poly_j;
+      Polymer* tmp_dev =acc_malloc(sizeof(Polymer));
+      Polymer* polymers_dev = acc_deviceptr(p->polymers);
+      acc_memcpy_device( tmp_dev, polymers_dev + pos_i, sizeof(Polymer));
+      acc_memcpy_device( polymers_dev + pos_i, polymers_dev + pos_j, sizeof(Polymer));
+      acc_memcpy_device( polymers_dev + pos_j, tmp_dev, sizeof(Polymer)); 
+      acc_free(tmp_dev);
+#endif//_OPENACC 
+      }
     return 0;
     }
 

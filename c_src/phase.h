@@ -251,6 +251,8 @@ typedef struct Phase{
     double tps_elapsed_time;
     //! Measured TPS counter
     unsigned int tps_elapsed_steps;
+    //! Measures the number of chains that runs on one separate kernal
+     unsigned int num_long_chain;
     }Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
@@ -286,5 +288,10 @@ int copyout_phase(struct Phase*const p);
 */
 int free_phase(struct Phase*const p);
 
+/*! \brief Order the polymers in p according to their length, private function.
+  \param p Initialized configuration.
+  \return the number of chains that have more than 1/50 of the monomers in the total system.
+*/
+int mc_set_init(struct Phase*const p);
 
 #endif//PHASE_H

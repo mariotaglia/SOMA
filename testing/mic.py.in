@@ -140,7 +140,7 @@ def test_Rg(case):
     if case=="-m":
         Rg_ana=calc_Rg_initial()
         proc = sp.Popen([HANDLEANAH5,"-i","mic_time_ana.h5","-d","Rg","--av"],stdout=sp.PIPE)
-        line =proc.communicate()[0]
+        line =proc.communicate()[0].decode("utf8")
         ret=proc.wait()
         if ret != 0 : raise RuntimeError("Test failed")
         line = line.strip().split("\t")
@@ -150,7 +150,7 @@ def test_Rg(case):
 
     else:
         proc = sp.Popen([HANDLEANAH5,"-i","mic_time_ana.h5","-d","Rg","--av"],stdout=sp.PIPE)
-        line =proc.communicate()[0]
+        line =proc.communicate()[0].decode("utf8")
         ret=proc.wait()
         if ret != 0 : raise RuntimeError("Test failed")
         line = line.strip().split("\t")
@@ -165,12 +165,12 @@ def main_test():
     change_position()
     run("-m")
     ret=test_bond_energy("-m")
-    print ret
+    print(ret)
     if ret != 0:
         raise RuntimeError("Test failed")
         return ret
     ret=test_Rg("-m")
-    print ret
+    print(ret)
     if ret != 0:
         raise RuntimeError("Test failed")
         return ret
@@ -179,15 +179,15 @@ def main_test():
     change_position()
     run("")
     ret=test_bond_energy("")
-    print ret
+    print(ret)
     if ret != 0:
         raise RuntimeError("Test failed")
         return ret
     ret=test_Rg("")
-    print ret
+    print(ret)
     if ret != 0:
         raise RuntimeError("Test failed")
         return ret
 
-
-main_test()
+if __name__ == "__main__":
+    main_test()

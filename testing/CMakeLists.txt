@@ -17,6 +17,17 @@
 
 set(SOMA_PYTHON_DIR "\"${CMAKE_CURRENT_BINARY_DIR}/../python_src\"")
 
+set(ACC_FLAG "")
+if(ENABLE_OPENMP)
+  set(ACC_FLAG " -n 2")
+endif(ENABLE_OPENMP)
+if(ENABLE_NVIDIA_GPU)
+  set(ACC_FLAG " -g ${MPIEXEC_MAX_NUMPROCS}")
+endif(ENABLE_NVIDIA_GPU)
+
+set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
+
+
 #copy relevant files
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../example/coord.xml ${CMAKE_CURRENT_BINARY_DIR}/coord.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../example/complex.xml ${CMAKE_CURRENT_BINARY_DIR}/complex.xml COPYONLY)
@@ -28,6 +39,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain.xml ${CMAKE_CURRENT_BINARY_DIR
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.xml ${CMAKE_CURRENT_BINARY_DIR}/mic.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic_time.xml ${CMAKE_CURRENT_BINARY_DIR}/mic_time.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diverse_polytype.xml ${CMAKE_CURRENT_BINARY_DIR}/diverse_polytype.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.xml ${CMAKE_CURRENT_BINARY_DIR}/async.xml COPYONLY)
 
 #quick
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/quick.sh.in ${CMAKE_CURRENT_BINARY_DIR}/quick.sh)
@@ -42,6 +54,10 @@ add_test(NAME convert WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./co
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/xml.sh.in ${CMAKE_CURRENT_BINARY_DIR}/xml.sh)
 add_test(NAME xml WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./xml.sh)
 
+#async
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.py.in ${CMAKE_CURRENT_BINARY_DIR}/async.py)
+add_test(NAME async WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python async.py ${ACC_FLAG})
+
 #ConfGen_AnaGen
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AnaGen.py.in ${CMAKE_CURRENT_BINARY_DIR}/AnaGen.py)
 add_test(NAME AnaGen WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python AnaGen.py)
@@ -49,15 +65,6 @@ add_test(NAME AnaGen WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND pytho
 #Compare Bead data even if the order of chains has changed.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compare_mixed_bead_data.py.in ${CMAKE_CURRENT_BINARY_DIR}/compare_mixed_bead_data.py)
 
-set(ACC_FLAG "")
-if(ENABLE_OPENMP)
-  set(ACC_FLAG " -n 2")
-endif(ENABLE_OPENMP)
-if(ENABLE_NVIDIA_GPU)
-  set(ACC_FLAG " -g ${MPIEXEC_MAX_NUMPROCS}")
-endif(ENABLE_NVIDIA_GPU)
-
-set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
 
 if(HDF5_DIFF_EXECUTABLE)
 

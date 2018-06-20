@@ -32,7 +32,8 @@ struct Phase;
 #include "soma_config.h"
 #include "rng.h"
 #include "monomer.h"
-
+#include "polymer.h"
+struct Polymer;
 //! Main Monte-Carlo function.
 //!
 //! Automatic selection of the Monte-Carlo algorithm and their execution.
@@ -223,4 +224,40 @@ void add_bond_forces(const struct Phase * p, const uint64_t ipoly, unsigned cons
 #pragma acc routine(possible_move_area51) seq
 int possible_move_area51(const struct Phase*p,const soma_scalar_t oldx,const soma_scalar_t oldy,const soma_scalar_t oldz,const soma_scalar_t dx,const soma_scalar_t dy,const soma_scalar_t dz,const int nonexact);
 
+/*! \brief Set iteration function used for one long chain, private function
+  \param p Initialized configuration.
+  \param nsteps \#steps to perform with the system.
+  \param tuning_parameter Parameter for ACC kernels. (vector_length)
+  \param my_rng_type enum which carries information about which RNG should by used
+  \param nonexact_area51 The exact check of area51
+  \param chain_i The index of the chain to be handled
+  \return Error code. Returns either pgi error or domain error.
+*/
+int set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, uint64_t chain_i);
+
+/*! \brief Set iteration function for all the chains starting from start_chain, private function
+  \param p Initialized configuration.
+  \param nsteps \#steps to perform with the system.
+  \param tuning_parameter Parameter for ACC kernels. (vector_length)
+  \param my_rng_type enum which carries information about which RNG should by used
+  \param nonexact_area51 The exact check of area51
+  \param start_chain the starting index of the chains to be handled with this function
+  \return Error code. Returns either pgi error or domain error.
+*/
+int set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain);
+
+/*! \brief Private function used together with set_iteration_multi_chain and set_iteration_single_chain
+  \param p Initialized configuration
+  \param set_states The set states of the selected polymer
+  \param chain_index Index of the selected polymer
+  \param iP Index of the current selected bead
+  \param my_rng_type enum which carries information about which RNG should by used
+  \param nonexact_area51 The exact check of area51
+  \param ibead The selected bead
+  \param iwtype The particle type of the selected particle
+  \param *accepted_moves_set_ptr The pointer to the number of accepted_moves_set
+  \return error_flags[0] indicating domain error
+*/
+#pragma acc routine(set_iteration_possible_move) seq
+int set_iteration_possible_move(const struct Phase * p,RNG_STATE * const set_states,uint64_t chain_index,unsigned int iP,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const unsigned int ibead,const unsigned int iwtype,unsigned int *accepted_moves_set_ptr);
 #endif//SOMA_MC_H

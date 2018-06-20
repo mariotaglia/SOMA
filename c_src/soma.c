@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
       return -1;
     }
     /* initialize MPI */
+
     const int error = MPI_Comm_dup( MPI_COMM_WORLD, &(p->info_MPI.SOMA_comm_world) );
     if( error != MPI_SUCCESS)
         {
@@ -123,7 +124,6 @@ int main(int argc, char *argv[])
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
-
     if( !p->bead_data_read )
         {
 
@@ -151,6 +151,7 @@ int main(int argc, char *argv[])
         const int test51_exact = test_area51_exact(p);
         if( ! p->args.nonexact_area51_flag )
             MPI_ERROR_CHECK(test51_exact, "Area51 exact test failed.");
+
 
         const int indepent_sets = test_independet_sets(p);
         MPI_ERROR_CHECK(indepent_sets, "Indepent Set test failed.");

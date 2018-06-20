@@ -94,6 +94,18 @@ int push_polymer(struct Phase*const p,const Polymer*const poly);
 //! \return Errorcode.
 int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly);
 
+
+//! Exchange the index of two polymers in p.
+//!
+//! \param p Fully initialized system.
+//! \param poly_i the polymer to be exchanged with poly_j
+//! \param poly_j the polymer to be exchanged with poly_i
+//! \warning If you change properties of the global system, you
+//! need to call collective_global_update().
+//! \return Errorcode.
+int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t poly_j);
+
+
 //! Obtain the number of bytes, which are necessary to serialize a polymer.
 //!
 //! Use this function to allocate memory for polymer serialization.
