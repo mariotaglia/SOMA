@@ -147,9 +147,8 @@ class AnalysisFile(ConfGen.SomaXML):
                     for grandchild in child:
                         if grandchild.tag=="q":
                             tmp_file = stringio.StringIO(grandchild.text)
-                            q = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
-                            N_q=q.size
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,N_q), 0 )
+                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,q_array.size), 0 )
             self.ana_dict["structure"] = copy.deepcopy(element)
 
     def _update_ana_element(self,element):

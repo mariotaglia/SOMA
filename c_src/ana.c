@@ -763,13 +763,13 @@ int analytics(struct Phase *const p)
 
 
 void calc_structure(const struct Phase * p,soma_scalar_t *const result){
-  uint64_t *const counter = (uint64_t*)malloc( p->n_poly_type*sizeof(uint64_t));
+  uint64_t *const counter = (uint64_t*)malloc( p->ana_info.q_size*p->n_poly_type*3*sizeof(uint64_t));
   if(counter == NULL){
     fprintf(stderr,"MALLOC ERROR: %s:%d\n",__FILE__,__LINE__);
     return;
   }
-  memset(counter,0, p->n_poly_type*sizeof(uint64_t));
-  memset(result, 0 , 3*p->n_poly_type*p->ana_info.q_size * sizeof(soma_scalar_t));
+  memset(counter,0,p->ana_info.q_size*p->n_poly_type*3*sizeof(uint64_t));
+  memset(result,0,3*p->n_poly_type*p->ana_info.q_size * sizeof(soma_scalar_t));
   for (uint64_t npoly = 0; npoly < p->n_polymers; npoly++){
     const unsigned int poly_type = p->polymers[npoly].type;
     soma_scalar_t real_0[p->ana_info.q_size];
@@ -784,54 +784,60 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result){
     memset(real_2,0,p->ana_info.q_size*sizeof(soma_scalar_t));
     soma_scalar_t imag_2[p->ana_info.q_size];
     memset(imag_2,0,p->ana_info.q_size*sizeof(soma_scalar_t));
+
+    
     unsigned int poly_length=p->poly_arch[ p->poly_type_offset[poly_type ] ];
     for(unsigned int mono_i=0;mono_i<poly_length;mono_i++){
-      for(unsigned int mono_j=mono_i+1;mono_j<poly_length;mono_j++){
-	const unsigned int particle_type_i=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+mono_i]);
-	const unsigned int particle_type_j=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+mono_j]);
+      for(unsigned int mono_j=mono_i;mono_j<poly_length;mono_j++){
+	const unsigned int particle_type_i=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+mono_i]);
+	const unsigned int particle_type_j=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+mono_j]);
 
-	const soma_scalar_t dx = p->polymers[npoly].beads[mono_i].x - p->polymers[npoly].msd_beads[mono_j].x;
-	const soma_scalar_t dy = p->polymers[npoly].beads[mono_i].y - p->polymers[npoly].msd_beads[mono_j].y;
-	const soma_scalar_t dz = p->polymers[npoly].beads[mono_i].z - p->polymers[npoly].msd_beads[mono_j].z;
+	const soma_scalar_t dx = p->polymers[npoly].msd_beads[mono_j].x - p->polymers[npoly].beads[mono_i].x;
+	const soma_scalar_t dy = p->polymers[npoly].msd_beads[mono_j].y - p->polymers[npoly].beads[mono_i].y;
+	const soma_scalar_t dz = p->polymers[npoly].msd_beads[mono_j].z - p->polymers[npoly].beads[mono_i].z;
 	const soma_scalar_t diff=sqrt(dx*dx + dy*dy + dz*dz);
 
 	if(particle_type_i==particle_type_j&&particle_type_j==0){
 	  for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
 	    real_0[index_q]+=cos(p->ana_info.q[index_q]*diff);
 	    imag_0[index_q]+=sin(p->ana_info.q[index_q]*diff);
+	    counter[p->n_poly_type*p->ana_info.q_size*0+poly_type*0+index_q] += 1;
 	  }
 	}
 	if(particle_type_i!=particle_type_j){
 	  for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
 	    real_1[index_q]+=cos(p->ana_info.q[index_q]*diff);
 	    imag_1[index_q]+=sin(p->ana_info.q[index_q]*diff);
+	    counter[p->n_poly_type*p->ana_info.q_size*1+poly_type*1+index_q] += 1;
 	  }
 	}
 	if(particle_type_i==particle_type_j&&particle_type_j==1){
 	  for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
 	    real_2[index_q]+=cos(p->ana_info.q[index_q]*diff);
 	    imag_2[index_q]+=sin(p->ana_info.q[index_q]*diff);
+	    counter[p->n_poly_type*p->ana_info.q_size*2+poly_type*2+index_q] += 1;
 	  }
 	}
-	counter[poly_type] += 1;
+	
       }
     }
     for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
-      result[index_q*p->n_poly_type*3+poly_type*3+0]=real_0[index_q]*real_0[index_q]+imag_0[index_q]*imag_0[index_q];
-      result[index_q*p->n_poly_type*3+poly_type*3+1]=real_1[index_q]*real_1[index_q]+imag_1[index_q]*imag_1[index_q];
-      result[index_q*p->n_poly_type*3+poly_type*3+2]=real_2[index_q]*real_2[index_q]+imag_2[index_q]*imag_2[index_q];
-  }
+      result[p->n_poly_type*p->ana_info.q_size*0+poly_type*0+index_q]=sqrt(real_0[index_q]*real_0[index_q]+imag_0[index_q]*imag_0[index_q]);
+      result[p->n_poly_type*p->ana_info.q_size*1+poly_type*1+index_q]=sqrt(real_1[index_q]*real_1[index_q]+imag_1[index_q]*imag_1[index_q]);
+      result[p->n_poly_type*p->ana_info.q_size*2+poly_type*2+index_q]=sqrt(real_2[index_q]*real_2[index_q]+imag_2[index_q]*imag_2[index_q]);
+    }
   }
   MPI_Allreduce(MPI_IN_PLACE, result, 3*p->n_poly_type*p->ana_info.q_size, MPI_SOMA_SCALAR, MPI_SUM,
 		p->info_MPI.SOMA_comm_sim);
-  MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
+  MPI_Allreduce(MPI_IN_PLACE, counter, p->ana_info.q_size*p->n_poly_type*3, MPI_UINT64_T, MPI_SUM,
 		p->info_MPI.SOMA_comm_sim);
 
   for(unsigned int index_q=0;index_q<p->ana_info.q_size;index_q++){
     for(unsigned int type=0 ; type < p->n_poly_type; type++){
       for(unsigned int i=0; i < 3; i++){
-	if( counter[type] > 0)
-	  result[index_q*type*3+i] /= (soma_scalar_t) counter[type];
+	if( counter[p->n_poly_type*p->ana_info.q_size*i+type*i+index_q] > 0){
+	  result[p->n_poly_type*p->ana_info.q_size*i+type*i+index_q] /= (soma_scalar_t) counter[p->n_poly_type*p->ana_info.q_size*i+type*i+index_q];
+	}
       }
     }
   }
