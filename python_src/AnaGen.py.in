@@ -32,7 +32,12 @@ import xml.etree.ElementTree as ET
 import h5py
 import argparse
 import soma_type
-import StringIO as stringio
+try:
+    import StringIO as stringio
+except ImportError:
+    import io as stringio
+except ModuleNotFoundError:
+    import io as stringio
 import ConfGen
 
 ## Class to parse the analysis section of a hdf5 configuration and an SOMA xml.
