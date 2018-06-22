@@ -124,7 +124,7 @@ void trial_move(const struct Phase * p,const uint64_t ipoly, const int ibead, so
 //! \param iwtype Type of the monomer.
 //! \return energy difference of proposed move. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_energy) seq
-soma_scalar_t calc_delta_energy(const struct Phase * p, const uint64_t ipoly,const Monomer*const monomer,
+soma_scalar_t calc_delta_energy(const struct Phase * const p, const uint64_t ipoly,const Monomer*const monomer,
                                 const unsigned int ibead,const soma_scalar_t dx,const soma_scalar_t dy,
                                 const soma_scalar_t dz,const unsigned int iwtype);
 
