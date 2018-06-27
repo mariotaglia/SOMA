@@ -58,7 +58,7 @@ void trial_move_cm(const Phase * p, const uint64_t poly_type,soma_scalar_t *cons
 }
 
 
-bool som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator rng_type , soma_scalar_t delta_energy)
+int som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator rng_type , soma_scalar_t delta_energy)
 {
   // \todo kBT reqired
   const soma_scalar_t p_acc = exp(-1.0 * delta_energy );
@@ -76,7 +76,7 @@ bool som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator 
 
 }
 
-soma_scalar_t calc_delta_nonbonded_energy(const Phase * p,const Monomer*const monomer,
+soma_scalar_t calc_delta_nonbonded_energy(const Phase * p,const Monomer* monomer,
                                           const soma_scalar_t dx, const soma_scalar_t dy,const soma_scalar_t dz,
                                           const unsigned int iwtype)
     {
@@ -105,7 +105,7 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p,const Monomer*const mo
     return energy;
     }
 
-soma_scalar_t calc_delta_energy(const Phase * const p, const uint64_t ipoly,const Monomer*const monomer,
+soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly,const Monomer*const monomer,
                                 const unsigned int ibead,const soma_scalar_t dx,const soma_scalar_t dy,
                                 const soma_scalar_t dz,const unsigned int iwtype)
     {
@@ -118,7 +118,7 @@ soma_scalar_t calc_delta_energy(const Phase * const p, const uint64_t ipoly,cons
   return energy;
 }
 
-soma_scalar_t calc_delta_bonded_energy(const Phase * const p,const Monomer*const monomer,
+soma_scalar_t calc_delta_bonded_energy(const Phase * p,const Monomer* monomer,
                                        const uint64_t ipoly,const unsigned int ibead,
                                        const soma_scalar_t dx,const soma_scalar_t dy, const soma_scalar_t dz)
     {
@@ -652,8 +652,8 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned i
   return ret;
 }
 
-void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma_scalar_t *const dx, soma_scalar_t *const dy, soma_scalar_t *const dz,
-                    soma_scalar_t * smc_deltaE,const Monomer *const mybead, RNG_STATE *const myrngstate, const enum enum_pseudo_random_number_generator arg_rng_type,const unsigned int iwtype)
+void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz,
+                    soma_scalar_t * smc_deltaE,const Monomer * mybead, RNG_STATE *const myrngstate, const enum enum_pseudo_random_number_generator arg_rng_type,const unsigned int iwtype)
     {
     soma_scalar_t x=mybead->x;
     soma_scalar_t y=mybead->y;

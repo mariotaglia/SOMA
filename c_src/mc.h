@@ -124,7 +124,7 @@ void trial_move(const struct Phase * p,const uint64_t ipoly, const int ibead, so
 //! \param iwtype Type of the monomer.
 //! \return energy difference of proposed move. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_energy) seq
-soma_scalar_t calc_delta_energy(const struct Phase * const p, const uint64_t ipoly,const Monomer*const monomer,
+soma_scalar_t calc_delta_energy(const struct Phase * p, const uint64_t ipoly,const Monomer* monomer,
                                 const unsigned int ibead,const soma_scalar_t dx,const soma_scalar_t dy,
                                 const soma_scalar_t dz,const unsigned int iwtype);
 
@@ -140,7 +140,7 @@ soma_scalar_t calc_delta_energy(const struct Phase * const p, const uint64_t ipo
 //! \param dz proposed z move
 //! \return bonded energy difference of proposed move
 #pragma acc routine(calc_delta_bonded_energy) seq
-soma_scalar_t calc_delta_bonded_energy(const struct Phase * const p,const Monomer*const monomer,
+soma_scalar_t calc_delta_bonded_energy(const struct Phase * p,const Monomer* monomer,
                                        const uint64_t ipoly,const unsigned int ibead,
                                        const soma_scalar_t dx,const soma_scalar_t dy, const soma_scalar_t dz);
 
@@ -154,7 +154,7 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase * const p,const Monome
   \return true or false according to the Metropolis criteria
 */
 #pragma acc routine(som_accept) seq
-bool som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator rng_type , soma_scalar_t delta_energy);
+int som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator rng_type , soma_scalar_t delta_energy);
 
 /*! \brief Smart Monte-Carlo (SMC) move.  Calculate the displacement and the energy change from the forces.
 
@@ -176,8 +176,8 @@ bool som_accept(RNG_STATE *const rng,  enum enum_pseudo_random_number_generator 
 */
 #pragma acc routine(trial_move_smc) seq
 void trial_move_smc(const struct Phase * p, const uint64_t ipoly, const int ibead,
-                    soma_scalar_t *const dx, soma_scalar_t *const dy, soma_scalar_t *const dz,
-                    soma_scalar_t * smc_deltaE,const Monomer *const mybead,
+                    soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz,
+                    soma_scalar_t * smc_deltaE,const Monomer * mybead,
                     RNG_STATE *const myrngstate,const enum enum_pseudo_random_number_generator arg_rng_type,
                     const unsigned int iwtype);
 
