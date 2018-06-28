@@ -129,7 +129,8 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
 //! \brief calculate the structure for each poly type
 //! \param p System to analyze
 //! \param result Pointer to array to store the result
-void calc_structure(const struct Phase * p,soma_scalar_t *const result);
+//! \param type Type of structure factor. 0 stands for dynamical, 1 stand for static
+void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int type);
 
 
 //! \brief Helper to ouput soma_scalar_t data to a hdf5 file, used for the strcture.
@@ -138,7 +139,11 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result);
 //! \param data Pointer to the data to ouput.
 //! \param name Dataset name
 //! \param file_id File specifier for HDF5 output ana file
+//! \param type Type of structure factor. 0 stands for dynamical, 1 stand for static
 //! \return Errorcode.
-int extent_structure(const struct Phase * p,const soma_scalar_t*const data,const char*const name,const hid_t file_id);
+int extent_structure(const struct Phase * p,const soma_scalar_t*const data,const char*const name,const hid_t file_id,const int type);
+
+void calc_structure_static(const struct Phase * p,soma_scalar_t *const result);
+
 
 #endif//SOMA_ANA_H

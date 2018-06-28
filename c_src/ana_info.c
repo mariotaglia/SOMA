@@ -48,7 +48,8 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     p->ana_info.delta_mc_non_bonded_energy = 0;
     p->ana_info.delta_mc_bonded_energy = 0;
     p->ana_info.delta_mc_umbrella_field = 0;
-    p->ana_info.delta_mc_structure= 0;
+    p->ana_info.delta_mc_dynamical_structure= 0;
+    p->ana_info.delta_mc_static_structure= 0;
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     p->ana_info.filename = NULL;
     p->ana_info.coord_filename = NULL;
@@ -98,7 +99,7 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 #endif//SOMA_NUM_OBS
 //! Number of known observables to SOMA.
 //! \private
-#define SOMA_NUM_OBS 12
+#define SOMA_NUM_OBS 13
     const char* names[SOMA_NUM_OBS];
     unsigned int*delta_mc[SOMA_NUM_OBS];
     names[0] = "/Re";
@@ -123,8 +124,10 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     delta_mc[9] = &(p->ana_info.delta_mc_bonded_energy);
     names[10] = "/umbrella_field";
     delta_mc[10] = &(p->ana_info.delta_mc_umbrella_field);
-    names[11] = "/structure";
-    delta_mc[11] = &(p->ana_info.delta_mc_structure);
+    names[11] = "/dynamical_structure_factor";
+    delta_mc[11] = &(p->ana_info.delta_mc_dynamical_structure);
+    names[12] = "/static_structure_factor";
+    delta_mc[12] = &(p->ana_info.delta_mc_static_structure);
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for(unsigned int i=0; i< SOMA_NUM_OBS; i++)
 	{
@@ -617,33 +620,32 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 	}
     ///structure_start
 
-        if( p->ana_info.delta_mc_structure > 0)
+        if( p->ana_info.delta_mc_dynamical_structure > 0)
 	{
-	const unsigned int tmp = p->ana_info.delta_mc_structure;
-	p->ana_info.delta_mc_structure = 0;
+	const unsigned int tmp = p->ana_info.delta_mc_dynamical_structure;
+	p->ana_info.delta_mc_dynamical_structure = 0;
 
-	hid_t dataset = H5Dopen2(p->ana_info.file_id,"/structure",H5P_DEFAULT);
+	hid_t dataset = H5Dopen2(p->ana_info.file_id,"/dynamical_structure_factor",H5P_DEFAULT);
 	hid_t status = dataset;
 	HDF5_ERROR_CHECK(status);
 
-	//p->ana_info.q_size = (soma_scalar_t*)malloc(5*sizeof(soma_scalar_t));
 	htri_t q_size_exists = H5Aexists(dataset,"q_size");
 	if( q_size_exists > 0)
 	  {//q_size attr exists
-	    hid_t q_size_attr = H5Aopen_by_name(dataset,"/structure","q_size",H5P_DEFAULT,H5P_DEFAULT);
+	    hid_t q_size_attr = H5Aopen_by_name(dataset,"/dynamical_structure_factor","q_size",H5P_DEFAULT,H5P_DEFAULT);
 	    hid_t d_space = H5Aget_space(q_size_attr);
 	    HDF5_ERROR_CHECK(d_space);
 	    hsize_t dims[1];//ndims
 	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
 	    HDF5_ERROR_CHECK(status);
-	    status = H5Aread(q_size_attr,H5T_NATIVE_UINT,&(p->ana_info.q_size));
+	    status = H5Aread(q_size_attr,H5T_NATIVE_UINT,&(p->ana_info.q_size_dynamical));
 	    HDF5_ERROR_CHECK(status);
 	    status = H5Aclose(q_size_attr);
 	    HDF5_ERROR_CHECK(status);
 	}
 
-	p->ana_info.q = (soma_scalar_t*)malloc(p->ana_info.q_size*sizeof(soma_scalar_t));
-	if(p->ana_info.q == NULL)
+	p->ana_info.q_dynamical = (soma_scalar_t*)malloc(p->ana_info.q_size_dynamical*sizeof(soma_scalar_t));
+	if(p->ana_info.q_dynamical == NULL)
 	    {
 	    fprintf(stderr,"Malloc error: %s:%d .\n",__FILE__,__LINE__);
 	    return -1;
@@ -652,20 +654,20 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 	htri_t q_exists = H5Aexists(dataset,"q");
 	if( q_exists > 0)
 	  {//q attr exists
-	    hid_t q_attr = H5Aopen_by_name(dataset,"/structure","q",H5P_DEFAULT,H5P_DEFAULT);
+	    hid_t q_attr = H5Aopen_by_name(dataset,"/dynamical_structure_factor","q",H5P_DEFAULT,H5P_DEFAULT);
 	    hid_t d_space = H5Aget_space(q_attr);
 	    HDF5_ERROR_CHECK(d_space);
 	    const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
 	    if(ndims != 1)
 	      {
-		fprintf(stderr,"ERROR: %s:%d wrong dimensions for end_mono.\n",__FILE__,__LINE__);
+		fprintf(stderr,"ERROR: %s:%d wrong dimensions for q_dynamical.\n",__FILE__,__LINE__);
 		return -1;
 	      }
 	    hsize_t dims[1];//ndims
 	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
 	    HDF5_ERROR_CHECK(status);
 
-	    status = H5Aread(q_attr,H5T_SOMA_NATIVE_SCALAR,p->ana_info.q);
+	    status = H5Aread(q_attr,H5T_SOMA_NATIVE_SCALAR,p->ana_info.q_dynamical);
 	    HDF5_ERROR_CHECK(status);
 
 	    status = H5Aclose(q_attr);
@@ -674,11 +676,75 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
 	    HDF5_ERROR_CHECK(status);
 	}
 	
-	p->ana_info.delta_mc_structure = tmp;
+	p->ana_info.delta_mc_dynamical_structure = tmp;
 
         }
 
-	///structure
+	///dynamic structure
+	///static structure
+
+        if( p->ana_info.delta_mc_static_structure > 0)
+	{
+	const unsigned int tmp = p->ana_info.delta_mc_static_structure;
+	p->ana_info.delta_mc_static_structure = 0;
+
+	hid_t dataset = H5Dopen2(p->ana_info.file_id,"/static_structure_factor",H5P_DEFAULT);
+	hid_t status = dataset;
+	HDF5_ERROR_CHECK(status);
+
+	htri_t q_size_exists = H5Aexists(dataset,"q_size");
+	if( q_size_exists > 0)
+	  {//q_size attr exists
+	    hid_t q_size_attr = H5Aopen_by_name(dataset,"/static_structure_factor","q_size",H5P_DEFAULT,H5P_DEFAULT);
+	    hid_t d_space = H5Aget_space(q_size_attr);
+	    HDF5_ERROR_CHECK(d_space);
+	    hsize_t dims[1];//ndims
+	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aread(q_size_attr,H5T_NATIVE_UINT,&(p->ana_info.q_size_static));
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aclose(q_size_attr);
+	    HDF5_ERROR_CHECK(status);
+	}
+
+	p->ana_info.q_static = (soma_scalar_t*)malloc(p->ana_info.q_size_static*sizeof(soma_scalar_t));
+	if(p->ana_info.q_static == NULL)
+	    {
+	    fprintf(stderr,"Malloc error: %s:%d .\n",__FILE__,__LINE__);
+	    return -1;
+	    }
+
+	htri_t q_exists = H5Aexists(dataset,"q");
+	if( q_exists > 0)
+	  {//q attr exists
+	    hid_t q_attr = H5Aopen_by_name(dataset,"/static_structure_factor","q",H5P_DEFAULT,H5P_DEFAULT);
+	    hid_t d_space = H5Aget_space(q_attr);
+	    HDF5_ERROR_CHECK(d_space);
+	    const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
+	    if(ndims != 1)
+	      {
+		fprintf(stderr,"ERROR: %s:%d wrong dimensions for q_static.\n",__FILE__,__LINE__);
+		return -1;
+	      }
+	    hsize_t dims[1];//ndims
+	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+	    HDF5_ERROR_CHECK(status);
+
+	    status = H5Aread(q_attr,H5T_SOMA_NATIVE_SCALAR,p->ana_info.q_static);
+	    HDF5_ERROR_CHECK(status);
+
+	    status = H5Aclose(q_attr);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Dclose(dataset);
+	    HDF5_ERROR_CHECK(status);
+	}
+	
+	p->ana_info.delta_mc_static_structure = tmp;
+
+        }	
+	//structure
+
+
     if(H5Pclose(plist_id) < 0){
 	fprintf(stderr, "ERROR: HDF5 %s:%s:%d\n",__func__, __FILE__, __LINE__);
 	return -1;

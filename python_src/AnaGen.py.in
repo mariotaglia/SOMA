@@ -145,11 +145,16 @@ class AnalysisFile(ConfGen.SomaXML):
             for ana in self.root.findall("analysis"):
                 for child in ana:
                     for grandchild in child:
-                        if grandchild.tag=="q":
+                        if grandchild.tag=="q" and child.tag=="dynamical_structure_factor":
                             tmp_file = stringio.StringIO(grandchild.text)
                             q_array = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,q_array.size), 0 )
-            self.ana_dict["structure"] = copy.deepcopy(element)
+                            element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,q_array.size), 0 )
+                            self.ana_dict["dynamical_structure_factor"] = copy.deepcopy(element)
+                        elif grandchild.tag=="q" and child.tag=="static_structure_factor":
+                            tmp_file = stringio.StringIO(grandchild.text)
+                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
+                            element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,q_array.size), 0 )
+                            self.ana_dict["static_structure_factor"] = copy.deepcopy(element)
 
     def _update_ana_element(self,element):
         if element.tag not in self.ana_dict.keys():
@@ -162,7 +167,7 @@ class AnalysisFile(ConfGen.SomaXML):
                 dict_element.compression = child.text.strip()
             elif child.tag == "q":
                 tmp_file = stringio.StringIO(child.text)
-                q = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
+                q = numpy.loadtxt( tmp_file, dtype=numpy.float32)
                 dict_element.attr[child.tag] = q
                 dict_element.attr["q_size"]=q.size
             else:
