@@ -26,11 +26,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "phase.h"
 #include "mesh.h"
 #include "independent_sets.h"
 
-void trial_move(const Phase * p, const uint64_t ipoly, const int ibead, 
+void trial_move(const Phase * p, const uint64_t ipoly, const int ibead,
                 soma_scalar_t *dx, soma_scalar_t *dy, soma_scalar_t *dz,const unsigned int iwtype,const enum enum_pseudo_random_number_generator arg_rng_type,RNG_STATE*const rng_state)
     {
     //Just to shut up the compiler warning:
@@ -264,8 +265,8 @@ int mc_center_mass(Phase*const p, const unsigned int nsteps,const unsigned int t
                 soma_scalar_t delta_energy = 0;
                 int move_allowed = 1;
 
-	      //#pragma acc loop vector reduction(+:delta_energy) reduction(|:move_allowed)
-	      //Unfortunately this has to be a seq loop, because the reduction crashes.
+              //#pragma acc loop vector reduction(+:delta_energy) reduction(|:move_allowed)
+              //Unfortunately this has to be a seq loop, because the reduction crashes.
 #pragma acc loop vector seq
                 for (unsigned int ibead = 0; ibead < myN; ibead++)
                     {
@@ -354,10 +355,10 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
             // Rebuild bond information for this chain from bonds, or stay with linear right now?
             Polymer * mypoly = &p->polymers[npoly];
 
-	  unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
-	  RNG_STATE * myrngstate = &mypoly->poly_state; // maybe local copy of rngstate
-	  enum enum_pseudo_random_number_generator arg_rng_type;
-	  arg_rng_type = p->args.pseudo_random_number_generator_arg;
+          unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
+          RNG_STATE * myrngstate = &mypoly->poly_state; // maybe local copy of rngstate
+          enum enum_pseudo_random_number_generator arg_rng_type;
+          arg_rng_type = p->args.pseudo_random_number_generator_arg;
 
             // MC sweep for this chain
 #pragma acc loop seq
@@ -437,8 +438,8 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
     return 0;
 }
 int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain){
-  
-  int error_flags[2]={0}; // [0] domain error, [1] pgi_bug 
+
+  int error_flags[2]={0}; // [0] domain error, [1] pgi_bug
 #pragma acc enter data copyin(error_flags[0:2])
   for(unsigned int step = 0; step < nsteps; step++)
     {
@@ -449,59 +450,59 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const u
 #pragma acc parallel loop vector_length(tuning_parameter) async
 #pragma omp parallel for reduction(+:n_accepts)
       for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
-	{
-	  unsigned int accepted_moves_poly = 0;
-	  const uint32_t*const poly_arch = p->poly_arch;
-	  const int*const poly_type_offset = p->poly_type_offset;
+        {
+          unsigned int accepted_moves_poly = 0;
+          const uint32_t*const poly_arch = p->poly_arch;
+          const int*const poly_type_offset = p->poly_type_offset;
 
-	  Polymer *const mypoly = &p->polymers[npoly];
-	  const unsigned int poly_type = mypoly->type;
+          Polymer *const mypoly = &p->polymers[npoly];
+          const unsigned int poly_type = mypoly->type;
 
-	  const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
-	  accepted_moves_poly += 0*myN; // Shutup compiler warning
-	  const IndependetSets mySets= p->sets[mypoly->type];
+          const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
+          accepted_moves_poly += 0*myN; // Shutup compiler warning
+          const IndependetSets mySets= p->sets[mypoly->type];
 
-	  //Thanks to the PGI compiler, I have to local copy everything I need.
-	  const unsigned int n_sets = mySets.n_sets;
-	  const unsigned int*const set_length = mySets.set_length;
-	  const unsigned int* const sets = mySets.sets;
-	  const unsigned int max_member = mySets.max_member;
-	  RNG_STATE * const set_states = mypoly->set_states;
-	  unsigned int*const set_permutation = mypoly->set_permutation;
+          //Thanks to the PGI compiler, I have to local copy everything I need.
+          const unsigned int n_sets = mySets.n_sets;
+          const unsigned int*const set_length = mySets.set_length;
+          const unsigned int* const sets = mySets.sets;
+          const unsigned int max_member = mySets.max_member;
+          RNG_STATE * const set_states = mypoly->set_states;
+          unsigned int*const set_permutation = mypoly->set_permutation;
 
-	  //Generate random permutation of the sets
-	  //http://www.wikipedia.or.ke/index.php/Permutation
+          //Generate random permutation of the sets
+          //http://www.wikipedia.or.ke/index.php/Permutation
 #pragma acc loop seq
-	  for(unsigned int i=0; i < n_sets; i++)
-	    {
-	      const unsigned int d = soma_rng_uint(&(mypoly->poly_state),my_rng_type) % (i+1) ;
-	      set_permutation[i] = set_permutation[d];
-	      set_permutation[d] = i;
-	    }
+          for(unsigned int i=0; i < n_sets; i++)
+            {
+              const unsigned int d = soma_rng_uint(&(mypoly->poly_state),my_rng_type) % (i+1) ;
+              set_permutation[i] = set_permutation[d];
+              set_permutation[d] = i;
+            }
 
 #pragma acc loop seq
-	  for(unsigned int iSet=0; iSet < n_sets; iSet++)
-	    {
-	      unsigned int accepted_moves_set = 0;
-	      const unsigned int set_id = set_permutation[iSet];
-	      const unsigned int len = set_length[set_id];
+          for(unsigned int iSet=0; iSet < n_sets; iSet++)
+            {
+              unsigned int accepted_moves_set = 0;
+              const unsigned int set_id = set_permutation[iSet];
+              const unsigned int len = set_length[set_id];
 #pragma acc loop vector
-	      for(unsigned int iP=0; iP < len; iP++)
-		{
-		  const unsigned int ibead = sets[ set_id*max_member + iP];		  
-		  const unsigned int iwtype =get_particle_type(poly_arch[ poly_type_offset[poly_type]+1+ibead]);
-		  int error_0=set_iteration_possible_move(p,set_states,npoly,iP,my_rng_type,nonexact_area51,ibead,iwtype,&accepted_moves_set);
-		  error_flags[0]=error_0;
-		}
-	     
+              for(unsigned int iP=0; iP < len; iP++)
+                {
+                  const unsigned int ibead = sets[ set_id*max_member + iP];
+                  const unsigned int iwtype =get_particle_type(poly_arch[ poly_type_offset[poly_type]+1+ibead]);
+                  int error_0=set_iteration_possible_move(p,set_states,npoly,iP,my_rng_type,nonexact_area51,ibead,iwtype,&accepted_moves_set);
+                  error_flags[0]=error_0;
+                }
+
 #ifndef _OPENACC
-	      accepted_moves_poly += accepted_moves_set;
+              accepted_moves_poly += accepted_moves_set;
 #endif//_OPENACC
-	    }
+            }
 #ifndef _OPENACC
-	  n_accepts += accepted_moves_poly;
+          n_accepts += accepted_moves_poly;
 #endif//_OPENACC
-	}
+        }
       //p->time += 1;
       p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
@@ -512,8 +513,8 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const u
 #pragma acc exit data copyout(error_flags[0:2])
   if(error_flags[0] != 0){
     fprintf(stderr,"ERROR: Domain error. %d"
-	    " A particle has left the buffer domain."
-	    " Restart your simulation with larger buffers. %s:%d\n",error_flags[0],__FILE__,__LINE__);
+            " A particle has left the buffer domain."
+            " Restart your simulation with larger buffers. %s:%d\n",error_flags[0],__FILE__,__LINE__);
     return error_flags[0];
   }
   ret = error_flags[1];
@@ -522,7 +523,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const u
 }
 
 int set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,uint64_t chain_i){
-  int error_flags[2]={0}; // [0] domain error, [1] pgi_bug 
+  int error_flags[2]={0}; // [0] domain error, [1] pgi_bug
 #pragma acc enter data copyin(error_flags[0:2])
   for(unsigned int step = 0; step < nsteps; step++)
     {
@@ -539,103 +540,109 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const 
 
       //Generate random permutation of the sets
       //http://www.wikipedia.or.ke/index.php/Permutation
-     
+
       for(unsigned int i=0; i < n_sets; i++)
-	{
-	  const unsigned int d = soma_rng_uint(&((&p->polymers[chain_i])->poly_state),my_rng_type) % (i+1) ;
-	  set_permutation[i] = set_permutation[d];
-	  set_permutation[d] = i;
-	}
+        {
+          const unsigned int d = soma_rng_uint(&((&p->polymers[chain_i])->poly_state),my_rng_type) % (i+1) ;
+          set_permutation[i] = set_permutation[d];
+          set_permutation[d] = i;
+        }
 
       for(unsigned int iSet=0; iSet < n_sets; iSet++)
-	{
-	  const unsigned int set_id = set_permutation[iSet];		    
-	  const unsigned int len = set_length_tmp[set_id];
-	  //Shutup compiler warning
-	  unsigned int accepted_moves_set =tuning_parameter;accepted_moves_set=0;
-#pragma acc parallel loop vector_length(tuning_parameter) async				  
+        {
+          const unsigned int set_id = set_permutation[iSet];
+          const unsigned int len = set_length_tmp[set_id];
+          //Shutup compiler warning
+          unsigned int accepted_moves_set =tuning_parameter;accepted_moves_set=0;
+#pragma acc parallel loop vector_length(tuning_parameter) async
 #pragma omp parallel for reduction(+:n_accepts)
-	  for(unsigned int iP=0; iP < len; iP++)
-	    { 
-	   Polymer *const mypoly = &p->polymers[chain_i];
-	   const unsigned int poly_type = mypoly->type; 
-	   const IndependetSets mySets= p->sets[poly_type];
-	   const unsigned int* const sets = mySets.sets;
-	   RNG_STATE * const set_states = mypoly->set_states;
-   
-	   const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]]; 
-	   accepted_moves_poly += 0*myN; // Shutup compiler warning 
-	   const unsigned int ibead = sets[ set_id*max_member + iP];
-	   const unsigned int iwtype =get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+ibead]);
-	   int error_0=set_iteration_possible_move(p,set_states,chain_i,iP,my_rng_type,nonexact_area51,ibead,iwtype,&accepted_moves_set);
-	   error_flags[0]=error_0;
-	    }
+          for(unsigned int iP=0; iP < len; iP++)
+            {
+           Polymer *const mypoly = &p->polymers[chain_i];
+           const unsigned int poly_type = mypoly->type;
+           const IndependetSets mySets= p->sets[poly_type];
+           const unsigned int* const sets = mySets.sets;
+           RNG_STATE * const set_states = mypoly->set_states;
+
+           const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
+           accepted_moves_poly += 0*myN; // Shutup compiler warning
+           const unsigned int ibead = sets[ set_id*max_member + iP];
+           const unsigned int iwtype =get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+ibead]);
+           int error_0=set_iteration_possible_move(p,set_states,chain_i,iP,my_rng_type,nonexact_area51,ibead,iwtype,&accepted_moves_set);
+           error_flags[0]=error_0;
+            }
 
 #ifndef _OPENACC
-	  accepted_moves_poly += accepted_moves_set;
+          accepted_moves_poly += accepted_moves_set;
 #endif//_OPENACC
-	}
+        }
 #ifndef _OPENACC
       n_accepts += accepted_moves_poly;
-#endif//_OPENACC	  
+#endif//_OPENACC
       //p->time += 1;
       p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
       p->n_accepts += n_accepts;
 #endif//_OPENACC
-    } 
+    }
       int ret = 0;
 #pragma acc exit data copyout(error_flags[0:2])
       if(error_flags[0] != 0){
-	fprintf(stderr,"ERROR: Domain error. %d"
-		" A particle has left the buffer domain."
-		" Restart your simulation with larger buffers. %s:%d\n",error_flags[0],__FILE__,__LINE__);
-	return error_flags[0];
+        fprintf(stderr,"ERROR: Domain error. %d"
+                " A particle has left the buffer domain."
+                " Restart your simulation with larger buffers. %s:%d\n",error_flags[0],__FILE__,__LINE__);
+        return error_flags[0];
       }
       ret = error_flags[1];
       return ret;
 }
-	      
+
 
 int mc_set_iteration(Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter){
   const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
   const int nonexact_area51=p->args.nonexact_area51_flag  + 0*tuning_parameter; //&Shutup compiler warning.
- 
+
    //test the order of the polymers and reorder the polymers according to their length if needed
   if(p->time % p->args.set_order_frequency_arg == 0){
     int order=0;
-    uint32_t length_poly[p->n_polymers];
+    uint32_t*const length_poly= (uint32_t*const) malloc( p->n_polymers*sizeof(uint32_t));
+    if( length_poly == NULL)
+        {
+        fprintf(stderr, "ERROR: %d: %s:%d Malloc error\n", p->info_MPI.world_rank, __FILE__,__LINE__);
+        return -1;
+        }
     for (uint64_t poly_i = 0; poly_i <p->n_polymers; poly_i++){
       Polymer *const this_poly = &p->polymers[poly_i];
       const unsigned int poly_type = this_poly->type;
-      length_poly[poly_i] = p->poly_arch[p->poly_type_offset[poly_type]];   
+      length_poly[poly_i] = p->poly_arch[p->poly_type_offset[poly_type]];
     }
 
     for (unsigned int poly_n=p->n_polymers; poly_n>1; poly_n--){
       for (unsigned int poly_i=0; poly_i<poly_n-1; poly_i++){
-	if (length_poly[poly_i] > length_poly[poly_i+1]){
-	  int tmp= length_poly[poly_i];
-	  length_poly[poly_i]=length_poly[poly_i+1];
-	  length_poly[poly_i+1]=tmp;
-	  order=1;
-	  break;
-	}
+        if (length_poly[poly_i] > length_poly[poly_i+1]){
+          int tmp= length_poly[poly_i];
+          length_poly[poly_i]=length_poly[poly_i+1];
+          length_poly[poly_i+1]=tmp;
+          order=1;
+          break;
+        }
       }
       if(order==1)
-	break;
+        break;
     }
-    
+
     if(order==1){
       p->num_long_chain=mc_set_init(p);
     }
+    free(length_poly);
   }
-  
+
   int ret;
   unsigned int num_long_chain=(unsigned int)p->num_long_chain;
   for(unsigned int index=0;index<num_long_chain;index++){
     ret=set_iteration_single_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,index);
     }
-  if(num_long_chain!=p->n_polymers){  
+  if(num_long_chain!=p->n_polymers){
     ret=set_iteration_multi_chain(p,nsteps,tuning_parameter,my_rng_type,nonexact_area51,num_long_chain);
   }
   p->time += 1;
@@ -803,11 +810,11 @@ int set_iteration_possible_move(const Phase * p,RNG_STATE * const set_states,uin
   soma_scalar_t smc_deltaE=0;
   switch(p->args.move_type_arg){
   case move_type_arg_TRIAL:
-    trial_move(p, chain_index, ibead, &dx.x, &dx.y, &dx.z,iwtype,my_rng_type,&my_state);	// normal MC move
+    trial_move(p, chain_index, ibead, &dx.x, &dx.y, &dx.z,iwtype,my_rng_type,&my_state);        // normal MC move
     smc_deltaE=0.0;
     break;
   case move_type_arg_SMART:
-    trial_move_smc(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state,my_rng_type,iwtype);	// force biased move
+    trial_move_smc(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state,my_rng_type,iwtype);     // force biased move
     break;
   case move_type__NULL:
   default:
@@ -820,24 +827,24 @@ int set_iteration_possible_move(const Phase * p,RNG_STATE * const set_states,uin
   const soma_scalar_t delta_energy = calc_delta_energy(p, chain_index,&mybead, ibead, dx.x, dx.y, dx.z,iwtype) + smc_deltaE;
   if( delta_energy != delta_energy ) //isnan(delta_energy) ) not working with PGI OpenACC
     error = chain_index+ 1;
-		  
+
   if ( move_allowed  )
     {
       // MC roll to accept / reject
       if (som_accept(&my_state, my_rng_type ,delta_energy) == 1)
-	{
-	  Monomer newx;
-	  newx.x = mybead.x + dx.x;
-	  newx.y = mybead.y + dx.y;
-	  newx.z = mybead.z + dx.z;
-	  this_poly->beads[ibead] = newx;
+        {
+          Monomer newx;
+          newx.x = mybead.x + dx.x;
+          newx.y = mybead.y + dx.y;
+          newx.z = mybead.z + dx.z;
+          this_poly->beads[ibead] = newx;
 #ifndef _OPENACC
-	  accepted_moves_set += 1;
+          accepted_moves_set += 1;
 #endif//_OPENACC
-	}
+        }
     }
   //Copy the RNGstate back to global memory
-  this_poly->set_states[iP] = my_state;    
+  this_poly->set_states[iP] = my_state;
   p->polymers[chain_index] = *this_poly;
   *accepted_moves_set_ptr=accepted_moves_set;
   return error;

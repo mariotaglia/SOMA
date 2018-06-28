@@ -31,25 +31,24 @@ def convert_files():
     ret = sp.call(["cp","async_ana.h5","async_ana_new.h5"])
     if ret != 0: raise RuntimeError("Test failed")
 
-
-def run(test):
+def run(test,extra_flags):
     ret = sp.call([SOMA,"-c","async.h5","-t","0"])
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","async.h5"])
     if ret != 0: raise RuntimeError("Test failed")
 
-    ret = sp.call([SOMA,"-c","async.h5","-t","1000","-a","async_ana_normal.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET"])
+    call_list = ["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","2",SOMA,"-c","async.h5","-t","10000","-a","async_ana_normal.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET"]+extra_flags
+    print(call_list)
+    ret = sp.call(call_list)
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","async_normal.h5"])
     if ret != 0: raise RuntimeError("Test failed")
-
-    ret = sp.call([SOMA,"-c","async.h5","-t","1000","-a","async_ana_new.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET",test])
+    call_list = ["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","2",SOMA,"-c","async.h5","-t","10000","-a","async_ana_new.h5","-r","1","--set-generation-algorithm=FIXED-N-SETS","--iteration-alg=SET",test]+extra_flags
+    print(call_list)
+    ret = sp.call(call_list)
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","async_new.h5"])
     if ret != 0: raise RuntimeError("Test failed")
-
-
-
 
 def test():
     f1 = h5py.File("async_ana_new.h5", 'r')
@@ -71,7 +70,7 @@ def test():
         ret=-1
     if (non_bonded_energy_normal==non_bonded_energy_new).any()!=True:
         ret=-1
-        
+
     if (Re_normal==Re_new).any()!=True:
         ret=-1
     if (Rg_normal==Rg_new).any()!=True:
@@ -80,12 +79,17 @@ def test():
     f1.close
     return ret
 
-     
+def main_test(argv):
+    tmp = argv[1]
+    extra_flags = []
+    for arg in tmp.split():
+        extra_flags.append(arg.strip())
 
-def main_test():
+    print(extra_flags)
     convert_files()
-    run("--long-chain-threshold=1")
+    run("--long-chain-threshold=1",extra_flags)
     ret=test()
     return ret
 
-main_test()
+if __name__ == "__main__":
+    main_test(sys.argv)

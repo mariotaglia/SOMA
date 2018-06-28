@@ -236,10 +236,10 @@ int init_phase(struct Phase * const p)
 
     init_autotuner(&(p->mc_autotuner));
     init_autotuner(&(p->cm_mc_autotuner));
-    
+
+
     copyin_phase(p);
     p->num_long_chain=mc_set_init(p);
-   
 
     // call update_fields routine
 
@@ -495,7 +495,6 @@ int mc_set_init(Phase * const p){
     return -1;
   }
   memset(poly_order,0,(int)p->n_polymers*sizeof(unsigned int));
-
 
   Polymer *const first_poly = &p->polymers[0];
   const unsigned int poly_type = first_poly->type;

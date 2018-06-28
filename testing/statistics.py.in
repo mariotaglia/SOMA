@@ -76,7 +76,7 @@ def check_value(value,std,ref_value,msg):
 
 def ana():
     proc = sp.Popen([HANDLEANAH5,"-i","homo_ana.h5","-d","Re","--av"],stdout=sp.PIPE)
-    line =proc.communicate()[0]
+    line =proc.communicate()[0].decode("utf8")
     ret=proc.wait()
     if ret != 0 : raise RuntimeError("Test failed")
     line = line.strip().split("\t")
@@ -84,7 +84,7 @@ def ana():
     check_value(float(value[0]),float(value[1]),1.,"homo Re ")
 
     proc = sp.Popen([HANDLEANAH5,"-i","diblock_ana.h5","-d","Re","--av"],stdout=sp.PIPE)
-    line =proc.communicate()[0]
+    line =proc.communicate()[0].decode("utf8")
     ret=proc.wait()
     if ret != 0 : raise RuntimeError("Test failed")
     line = line.strip().split("\t")
@@ -92,7 +92,7 @@ def ana():
     check_value(float(value[0]),float(value[1]),1.28,"diblock Re ")
 
     proc = sp.Popen([HANDLEANAH5,"-i","scmf1_ana.h5","-d","Re","--av"],stdout=sp.PIPE)
-    line =proc.communicate()[0]
+    line =proc.communicate()[0].decode("utf8")
     ret=proc.wait()
     if ret != 0 : raise RuntimeError("Test failed")
     line = line.strip().split("\t")
@@ -100,7 +100,7 @@ def ana():
     check_value(float(value[0]),float(value[1]),1.28,"scmf1 Re ")
 
     proc = sp.Popen([HANDLEANAH5,"-i","homo_ana.h5","-d","bond_anisotropy","--av"],stdout=sp.PIPE)
-    line =proc.communicate()[0]
+    line =proc.communicate()[0].decode("utf8")
     ret=proc.wait()
     if ret != 0 : raise RuntimeError("Test failed")
     line = line.strip().split("\t")
@@ -108,7 +108,7 @@ def ana():
     check_value(float(value0[0])+float(value1[0])+float(value2[0]),float(value0[1])+float(value1[1])+float(value2[1]),0,"homo bond_anisotropy ")
 
     proc = sp.Popen([HANDLEANAH5,"-i","diblock_ana.h5","-d","bond_anisotropy","--av"],stdout=sp.PIPE)
-    line =proc.communicate()[0]
+    line =proc.communicate()[0].decode("utf8")
     ret=proc.wait()
     if ret != 0 : raise RuntimeError("Test failed")
     line = line.strip().split("\t")
@@ -116,7 +116,7 @@ def ana():
     check_value(float(value0[0])+float(value1[0])+float(value2[0]),float(value0[1])+float(value1[1])+float(value2[1]),0,"diblock bond_anisotropy ")
 
     proc = sp.Popen([HANDLEANAH5,"-i","scmf1_ana.h5","-d","bond_anisotropy","--av"],stdout=sp.PIPE)
-    line =proc.communicate()[0]
+    line =proc.communicate()[0].decode("utf8")
     ret=proc.wait()
     if ret != 0 : raise RuntimeError("Test failed")
     line = line.strip().split("\t")
@@ -125,7 +125,7 @@ def ana():
 
 
     proc = sp.Popen([HANDLEANAH5,"-i","homo_ana.h5","-d","Rg","--av"],stdout=sp.PIPE)
-    line =proc.communicate()[0]
+    line =proc.communicate()[0].decode("utf8")
     ret=proc.wait()
     if ret != 0 : raise RuntimeError("Test failed")
     line = line.strip().split("\t")

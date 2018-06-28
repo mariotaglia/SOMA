@@ -231,6 +231,7 @@ int possible_move_area51(const struct Phase*p,const soma_scalar_t oldx,const som
   \param my_rng_type enum which carries information about which RNG should by used
   \param nonexact_area51 The exact check of area51
   \param chain_i The index of the chain to be handled
+  \return Error code. Returns either pgi error or domain error.
 */
 int set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, uint64_t chain_i);
 
@@ -241,6 +242,7 @@ int set_iteration_single_chain(struct Phase * const p, const unsigned int nsteps
   \param my_rng_type enum which carries information about which RNG should by used
   \param nonexact_area51 The exact check of area51
   \param start_chain the starting index of the chains to be handled with this function
+  \return Error code. Returns either pgi error or domain error.
 */
 int set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,const unsigned int tuning_parameter,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51, const int start_chain);
 
@@ -254,7 +256,7 @@ int set_iteration_multi_chain(struct Phase * const p, const unsigned int nsteps,
   \param ibead The selected bead
   \param iwtype The particle type of the selected particle
   \param *accepted_moves_set_ptr The pointer to the number of accepted_moves_set
-  return error_flags[0]
+  \return error_flags[0] indicating domain error
 */
 #pragma acc routine(set_iteration_possible_move) seq
 int set_iteration_possible_move(const struct Phase * p,RNG_STATE * const set_states,uint64_t chain_index,unsigned int iP,const enum enum_pseudo_random_number_generator my_rng_type,const int nonexact_area51,const unsigned int ibead,const unsigned int iwtype,unsigned int *accepted_moves_set_ptr);
