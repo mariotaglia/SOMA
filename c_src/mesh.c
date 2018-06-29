@@ -123,6 +123,9 @@ void communicate_density_fields(const struct Phase*const p)
             //Update all domain ranks with the results of the root domain rank
             MPI_Bcast( p->fields_unified, p->n_cells_local*p->n_types, MPI_UINT16_T, 0, p->info_MPI.SOMA_comm_domain);
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
+
+            //Avoid false loadbalance
+            MPI_Barrier(p->info_MPI.SOMA_comm_domain);
             }
         }
     }

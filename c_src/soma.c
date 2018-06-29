@@ -42,6 +42,14 @@
 #include "rng.h"
 #include "generate_positions.h"
 
+int wait_for_debugger(void)
+    {
+    volatile int i=0;
+    while( i == 0)
+        ;
+    return i;
+    }
+
 //! Main Function of the Executable SOMA
 //! \private
 //!
@@ -50,6 +58,9 @@
 //! \return Errorcode
 int main(int argc, char *argv[])
     {
+
+    //wait_for_debugger();
+
     Phase phase;
     Phase *const p = &phase;
 
@@ -180,18 +191,18 @@ int main(int argc, char *argv[])
                 exit(missed_chains);
             }
 
-	stop_iteration = check_signal_stop();
-	if( ! p->args.no_sync_signal_flag)
-	    {
-	    //Sync all mpi cores
-	    MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_comm_world);
-	    }
-	if(stop_iteration)
-	    {
-	    if(p->info_MPI.world_rank == 0)
-		fprintf(stdout,"Signal to stop iteration at time %d catched by rank %d.\n",p->time,p->info_MPI.world_rank);
-	    break;
-	    }
+        stop_iteration = check_signal_stop();
+        if( ! p->args.no_sync_signal_flag)
+            {
+            //Sync all mpi cores
+            MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_comm_world);
+            }
+        if(stop_iteration)
+            {
+            if(p->info_MPI.world_rank == 0)
+                fprintf(stdout,"Signal to stop iteration at time %d catched by rank %d.\n",p->time,p->info_MPI.world_rank);
+            break;
+            }
     }
     const int missed_chains = send_domain_chains(p, false);
     if( missed_chains != 0)

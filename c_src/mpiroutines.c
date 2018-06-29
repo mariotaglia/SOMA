@@ -463,9 +463,16 @@ int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm com
 
 int load_balance_mpi_ranks(struct Phase*const p)
     {
-
     if( p->info_MPI.domain_size <= 1)
         return 0;
+
+    static int count=0;
+    if(count == 0)
+        if(p->info_MPI.world_rank == 0)
+            printf("WARNING: load balancing because of stability disabled.");
+    count++;
+    return 0;
+
     double*const waiting_time = (double*const)malloc(p->info_MPI.domain_size*sizeof(double));
     if(waiting_time == NULL){fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__); return -1;}
     double div = p->info_MPI.domain_divergence_sec/p->info_MPI.domain_divergence_counter;
