@@ -489,7 +489,7 @@ int load_balance_mpi_ranks(struct Phase*const p)
     const double divergences = waiting_time[arg_max]-waiting_time[arg_min];
     free(waiting_time);
     const double seconds_per_step = p->tps_elapsed_time / p->tps_elapsed_steps;
-    double p_waiting =  divergences;
+    double p_waiting =  divergences/seconds_per_step;
 
     //Last tps could be different on different rank, so avoid hangs.
     MPI_Bcast(&p_waiting,1,MPI_DOUBLE,0,p->info_MPI.SOMA_comm_domain);
