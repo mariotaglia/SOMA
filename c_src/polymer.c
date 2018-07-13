@@ -190,7 +190,12 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
 
 int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t poly_j)
     {
-    printf("\n\nExchange\n\n");
+    if( p->present_on_device )
+	{
+	fprintf(stderr, "ERROR: %s:%d Exchange %d, but system is present on device. Call copyout_phase first.\n", __FILE__,__LINE__,p->info_MPI.world_rank);
+	return -1;
+	}
+
     if(poly_i!=poly_j)
       {
       if(poly_i >= p->n_polymers)
@@ -209,16 +214,6 @@ int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t p
       Polymer tmp_poly=p->polymers[poly_j];
       p->polymers[poly_j] = p->polymers[poly_i];
       p->polymers[poly_i] = tmp_poly;
-#ifdef _OPENACC
-      const unsigned int pos_i = poly_i;
-      const unsigned int pos_j = poly_j;
-      Polymer* tmp_dev =acc_malloc(sizeof(Polymer));
-      Polymer* polymers_dev = acc_deviceptr(p->polymers);
-      acc_memcpy_device( tmp_dev, polymers_dev + pos_i, sizeof(Polymer));
-      acc_memcpy_device( polymers_dev + pos_i, polymers_dev + pos_j, sizeof(Polymer));
-      acc_memcpy_device( polymers_dev + pos_j, tmp_dev, sizeof(Polymer));
-      acc_free(tmp_dev);
-#endif//_OPENACC
       }
     return 0;
     }

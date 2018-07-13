@@ -357,12 +357,12 @@ int copyout_phase(struct Phase*const p)
         }
     if( p->sets != NULL)
         {
-#pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         for(unsigned int i=0; i < p->n_poly_type; i++)
             {
 #pragma acc exit data copyout(p->sets[i].set_length[0:p->sets[i].n_sets])
 #pragma acc exit data copyout(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
             }
+#pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         }
     for(uint64_t i=0; i < p->n_polymers; i++)
         {
@@ -528,7 +528,9 @@ int mc_set_init(Phase * const p){
 
   for(int index=0;index<num_long_chain;index++){
     if(poly_order[index]!=(unsigned int) index){
+	copyout_phase(p);
       exchange_polymer(p,poly_order[index],index);
+      copyin_phase(p);
     }
   }
   free(poly_order);
