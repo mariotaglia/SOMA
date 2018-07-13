@@ -38,7 +38,7 @@ option "move-type" - "Specify the Monte-Carlo move type." enum typestr="MVT" val
 option "iteration-alg" - "Specify the iteration algorithm of the beads. This specifies also the level of parallelism that is possible." enum typestr="ITR-ALG" values="POLYMER","SET" default="POLYMER" optional
 option "skip-tests" - "Skip tests SOMA is usually preforming before and after the simulation to ensure integrety of the data." flag off
 option "load-balance" l "Frequency of the load balancer. For homogenous architectures this can be set to high values, for hetereogenous architectures across the MPI ranks small values help to equilibrate faster. Non-MPI runs are uneffected. Values < 0 deactivate the load-balancer." int typestr="freq" optional default="500"
-option "accepted-load-inbalance" - " [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
+option "accepted-load-inbalance" - " [0.01,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
 option "autotuner-restart-period" - "Period in which the autotuner is restarted." int typestr="period" optional default="10000"
 option "N-domains" d "Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes)" int typestr="N" optional default="1"
 option "domain-buffer" - "Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation." int typestr="N" optional default="10"

@@ -21,9 +21,6 @@ DELTA=0
 SEED=51854
 TIMESTEPS=136
 
-echo "Load Balancing disabled because of stability problems."
-exit -1
-
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 

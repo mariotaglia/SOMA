@@ -466,16 +466,9 @@ int load_balance_mpi_ranks(struct Phase*const p)
     if( p->info_MPI.domain_size <= 1)
         return 0;
 
-    static int count=0;
-    if(count == 0)
-        if(p->info_MPI.world_rank == 0)
-            printf("WARNING: load balancing because of stability disabled.");
-    count++;
-    return 0;
-
     double*const waiting_time = (double*const)malloc(p->info_MPI.domain_size*sizeof(double));
     if(waiting_time == NULL){fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__); return -1;}
-    double div = p->info_MPI.domain_divergence_sec/p->info_MPI.domain_divergence_counter;
+    double div = (p->info_MPI.domain_divergence_sec+1)/(p->info_MPI.domain_divergence_counter+1);
 
     MPI_Allgather( &(div), 1 , MPI_DOUBLE, waiting_time, 1 , MPI_DOUBLE,
                    p->info_MPI.SOMA_comm_domain);
@@ -496,7 +489,7 @@ int load_balance_mpi_ranks(struct Phase*const p)
     const double divergences = waiting_time[arg_max]-waiting_time[arg_min];
     free(waiting_time);
     const double seconds_per_step = p->tps_elapsed_time / p->tps_elapsed_steps;
-    double p_waiting =  divergences/seconds_per_step;
+    double p_waiting =  divergences;
 
     //Last tps could be different on different rank, so avoid hangs.
     MPI_Bcast(&p_waiting,1,MPI_DOUBLE,0,p->info_MPI.SOMA_comm_domain);
@@ -515,10 +508,20 @@ int load_balance_mpi_ranks(struct Phase*const p)
     unsigned int Nsend = UINT_MAX;
     //! \todo Optimize chain to send. (Poly-Type based?)
     if( p->info_MPI.domain_rank == arg_min )
+	{
+	//CopyIN/OUT not the optimal solution, but the only option I can see so far
+	copyout_phase(p);
         Nsend = send_mult_polymers(p, arg_max, Nchains,p->info_MPI.SOMA_comm_domain);
+	copyin_phase(p);
+	}
 
     if( p->info_MPI.domain_rank == arg_max )
+	{
+	//CopyIN/OUT not the optimal solution, but the only option I can see so far
+	copyout_phase(p);
         Nsend = recv_mult_polymers(p, arg_min,p->info_MPI.SOMA_comm_domain);
+	copyin_phase(p);
+	}
 
     if( arg_min != 0)
         {
@@ -650,6 +653,10 @@ int send_domain_chains(struct Phase*const p,const bool init)
     {
     if(p->args.N_domains_arg < 2)
         return 0;
+
+    //Copy IN/OUT is not optimal, but the only option I can see so far.
+    copyout_phase(p);
+
     update_polymer_rcm(p);
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
@@ -789,6 +796,10 @@ int send_domain_chains(struct Phase*const p,const bool init)
     free(n_recv);
     free(recv_len);
     free(recv_buffer);
+
+    //Copy IN/OUT is not optimal, but the only option I can see so far.
+    copyin_phase(p);
+
     if( err == 0)
         return missed_chains;
     else

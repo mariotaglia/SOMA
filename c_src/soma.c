@@ -42,14 +42,6 @@
 #include "rng.h"
 #include "generate_positions.h"
 
-int wait_for_debugger(void)
-    {
-    volatile int i=0;
-    while( i == 0)
-        ;
-    return i;
-    }
-
 //! Main Function of the Executable SOMA
 //! \private
 //!
@@ -58,9 +50,6 @@ int wait_for_debugger(void)
 //! \return Errorcode
 int main(int argc, char *argv[])
     {
-
-    //wait_for_debugger();
-
     Phase phase;
     Phase *const p = &phase;
 
@@ -230,7 +219,6 @@ int main(int argc, char *argv[])
         MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
         }
 
-    /* deallocate all memory */
     free_phase(p);
 
     printf("Rank: %d \t polymers %ld\n",p->info_MPI.world_rank, p->n_polymers);
