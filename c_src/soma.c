@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
     /* read in configuration with routine from io */
     const int read = read_config_hdf5(p, p->args.coord_file_arg);
     MPI_ERROR_CHECK(read, "Cannot read coord file.");
-
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");

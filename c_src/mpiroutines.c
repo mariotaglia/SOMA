@@ -570,7 +570,6 @@ int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list
     unsigned int chains_missed=0;
     for(unsigned int i=0; i< p->n_polymers; i++)
         {
-        update_self_polymer(p, p->polymers+i,1);
         const unsigned int target_domain = get_domain_id(p, &(p->polymers[i].rcm) );
         if( target_domain != my_domain)
             {
@@ -653,11 +652,11 @@ int send_domain_chains(struct Phase*const p,const bool init)
     {
     if(p->args.N_domains_arg < 2)
         return 0;
+    update_polymer_rcm(p);
 
     //Copy IN/OUT is not optimal, but the only option I can see so far.
     copyout_phase(p);
 
-    update_polymer_rcm(p);
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
     const unsigned int len_domain_list = init ? p->args.N_domains_arg -1 : 2;
