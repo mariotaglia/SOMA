@@ -252,7 +252,13 @@ typedef struct Phase{
     //! Measured TPS counter
     unsigned int tps_elapsed_steps;
     //! Measures the number of chains that runs on one separate kernal
-     unsigned int num_long_chain;
+    unsigned int num_long_chain;
+
+    soma_scalar_t* cos_serie;
+    soma_scalar_t* sin_serie;
+    soma_scalar_t period;
+    unsigned int serie_length;
+
     }Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.

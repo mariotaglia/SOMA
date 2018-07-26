@@ -255,6 +255,15 @@ void self_omega_field(const struct Phase *const p)
     /*Tempfields save the complete densities and remain as type soma_scalar_t -> used for insothermal Compressibility*/
 
     const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
+    //Add cos and sin series with time dependency
+    soma_scalar_t external_field_time=0;
+    for(unsigned int serie_index=0;serie_index<p->serie_length;serie_index++){
+      external_field_time += p->cos_serie[serie_index]*cos(2*M_PI*serie_index/p->period*p->time);
+      external_field_time += p->sin_serie[serie_index]*sin(2*M_PI*serie_index/p->period*p->time);
+    }
+
+
+
 
     // Compressibility part + external fields
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
@@ -269,7 +278,7 @@ void self_omega_field(const struct Phase *const p)
                normalization per bead */
             if(p->external_field_unified != NULL)
                 {
-                p->omega_field_unified[cell + T_types*p->n_cells_local] += inverse_refbeads * p->external_field_unified[ cell+T_types*p->n_cells_local];
+		  p->omega_field_unified[cell + T_types*p->n_cells_local] += inverse_refbeads * p->external_field_unified[ cell+T_types*p->n_cells_local]*external_field_time;
                 }
             //umbrella part
             if( p->umbrella_field != NULL)

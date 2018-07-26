@@ -152,12 +152,12 @@ class AnalysisFile(ConfGen.SomaXML):
                     for grandchild in child:
                         if grandchild.tag=="q" and child.tag=="dynamical_structure_factor":
                             tmp_file = stringio.StringIO(grandchild.text)
-                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
+                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.float32) #why uint??
                             element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,q_array.size), 0 )
                             self.ana_dict["dynamical_structure_factor"] = copy.deepcopy(element)
                         elif grandchild.tag=="q" and child.tag=="static_structure_factor":
                             tmp_file = stringio.StringIO(grandchild.text)
-                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.uint32)
+                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.float32)
                             element = AnaElement( soma_type.get_soma_scalar_type(), (0,3*self.n_types,q_array.size), 0 )
                             self.ana_dict["static_structure_factor"] = copy.deepcopy(element)
 
@@ -166,7 +166,6 @@ class AnalysisFile(ConfGen.SomaXML):
             print("WARNING: unknow ana tag "+str(element.tag)+" ignoring element.")
             return
         dict_element = self.ana_dict[element.tag]
-
         for child in element:
             if child.tag == "compression":
                 dict_element.compression = child.text.strip()
