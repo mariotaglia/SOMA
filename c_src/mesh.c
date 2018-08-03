@@ -257,11 +257,15 @@ void self_omega_field(const struct Phase *const p)
     const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
     //Add cos and sin series with time dependency
     soma_scalar_t external_field_time=0;
-    for(unsigned int serie_index=0;serie_index<p->serie_length;serie_index++){
-      external_field_time += p->cos_serie[serie_index]*cos(2*M_PI*serie_index/p->period*p->time);
-      external_field_time += p->sin_serie[serie_index]*sin(2*M_PI*serie_index/p->period*p->time);
+    if(p->time==0){
+      external_field_time=1;
     }
-
+    else{
+      for(unsigned int serie_index=0;serie_index<p->serie_length;serie_index++){
+	external_field_time += p->cos_serie[serie_index]*cos(2*M_PI*serie_index/p->period*p->time);
+	external_field_time += p->sin_serie[serie_index]*sin(2*M_PI*serie_index/p->period*p->time);
+      }
+      }
 
 
 

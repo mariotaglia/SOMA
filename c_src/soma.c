@@ -159,7 +159,6 @@ int main(int argc, char *argv[])
         const int chains_domain = test_chains_in_domain(p);
         MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
         }
-
     int stop_iteration = false;
     for (unsigned int i = 0; i < N_steps; i++) {
         const int mc_error = monte_carlo_propagation(p, 1);

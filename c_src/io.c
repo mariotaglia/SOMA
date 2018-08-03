@@ -1355,7 +1355,6 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 	HDF5_ERROR_CHECK(status);
 
 	htri_t time_exists = H5Aexists(dataset,"serie_length");
-	printf("exist!!!!%i\n",time_exists);
 	if(time_exists<=0){
 	  p->serie_length=1;
 	  p->cos_serie = (soma_scalar_t*)malloc(p->serie_length*sizeof(soma_scalar_t));
@@ -1388,7 +1387,6 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 	    HDF5_ERROR_CHECK(status);
 	    status = H5Aclose(period_attr);
 	    HDF5_ERROR_CHECK(status);
-
 	    p->cos_serie = (soma_scalar_t*)malloc(p->serie_length*sizeof(soma_scalar_t));
 	    if(p->cos_serie == NULL)
 	      {
@@ -1399,10 +1397,10 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 	    hid_t cos_attr = H5Aopen_by_name(dataset,"/external_field","cos",H5P_DEFAULT,H5P_DEFAULT);
 	    d_space = H5Aget_space(cos_attr);
 	    HDF5_ERROR_CHECK(d_space);
-	    dims[1];//ndims
+	    dims[0]=p->serie_length;//ndims
 	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
 	    HDF5_ERROR_CHECK(status);
-	    status = H5Aread(cos_attr,H5T_SOMA_NATIVE_SCALAR,&(p->cos_serie));
+	    status = H5Aread(cos_attr,H5T_SOMA_NATIVE_SCALAR,p->cos_serie);
 	    HDF5_ERROR_CHECK(status);
 	    status = H5Aclose(cos_attr);
 	    HDF5_ERROR_CHECK(status);
@@ -1417,10 +1415,10 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 	    hid_t sin_attr = H5Aopen_by_name(dataset,"/external_field","sin",H5P_DEFAULT,H5P_DEFAULT);
 	    d_space = H5Aget_space(sin_attr);
 	    HDF5_ERROR_CHECK(d_space);
-	    dims[1];//ndims
+	    dims[0]=p->serie_length;//ndims
 	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
 	    HDF5_ERROR_CHECK(status);
-	    status = H5Aread(sin_attr,H5T_SOMA_NATIVE_SCALAR,&(p->sin_serie));
+	    status = H5Aread(sin_attr,H5T_SOMA_NATIVE_SCALAR,p->sin_serie);
 	    HDF5_ERROR_CHECK(status);
 	    status = H5Aclose(sin_attr);
 	    HDF5_ERROR_CHECK(status);
