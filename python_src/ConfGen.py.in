@@ -36,7 +36,7 @@ except ImportError:
     import io as stringio
 except ModuleNotFoundError:
     import io as stringio
-import AnaGen
+#import AnaGen
 ## Matches the enum Bondtype of struct.h
 bondDict = {}
 bondDict["HARMONIC".upper()] = 0
