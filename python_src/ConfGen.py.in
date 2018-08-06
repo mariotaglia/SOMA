@@ -36,7 +36,6 @@ except ImportError:
     import io as stringio
 except ModuleNotFoundError:
     import io as stringio
-#import AnaGen
 ## Matches the enum Bondtype of struct.h
 bondDict = {}
 bondDict["HARMONIC".upper()] = 0
@@ -1648,7 +1647,7 @@ class Configuration(SomaXML):
 
 
 #Late import of the module to compensate circular imports.
-#import AnaGen
+import AnaGen
 ## Run the conversion of an input xml file according to arguments. For more details run ./ConfGen.py --help
 ##
 ## @param argv Argument vector to parse.
