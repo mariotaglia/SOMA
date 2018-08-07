@@ -34,6 +34,7 @@
 int init_phase(struct Phase * const p)
     {
     print_version(p->info_MPI.world_rank);
+    p->present_on_device = false;
     p->start_time = p->time;
     p->start_clock = time(NULL);
     p->n_accepts = 0;
@@ -262,9 +263,14 @@ int init_phase(struct Phase * const p)
 
 int copyin_phase(struct Phase*const p)
     {
+    if( p->present_on_device )
+	{
+	fprintf(stderr, "WARNING: %s:%d copyin of the phase, but system seems to be already present on device.\n", __FILE__,__LINE__);
+	}
+
 #ifdef _OPENACC
 #pragma acc enter data copyin(p[0:1])
-#pragma acc enter data copyin(p->xn[0:p->n_types][0:p->n_types])
+#pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
 #pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc enter data copyin(p->old_fields_unified[0:p->n_types*p->n_cells_local])
@@ -307,64 +313,69 @@ int copyin_phase(struct Phase*const p)
         Polymer*const poly = &(p->polymers[i]);
         copyin_polymer(p, poly);
         }
-    return 0;
-#else
-    return p->n_polymers*0+1;
 #endif//_OPENACC
+
+    p->present_on_device = true;
+    return p->n_polymers*0+1;
     }
 
 int copyout_phase(struct Phase*const p)
     {
+    if( ! p->present_on_device )
+	{
+	fprintf(stderr, "WARNING: %s:%d copyout of the phase, but system seems to be not present on device.\n", __FILE__,__LINE__);
+	}
 #ifdef _OPENACC
-#pragma acc exit data delete(p[0:1])
-#pragma acc exit data delete(p->xn[0:p->n_types][0:p->n_types])
-#pragma acc exit data delete(p->polymers[0:p->n_polymers_storage])
-#pragma acc exit data delete(p->fields_unified[0:p->n_types*p->n_cells_local])
-#pragma acc exit data delete(p->old_fields_unified[0:p->n_types*p->n_cells_local])
-#pragma acc exit data delete(p->fields_32[0:p->n_types*p->n_cells_local])
+
+#pragma acc exit data copyout(p->xn[0:p->n_types*p->n_types])
+#pragma acc exit data copyout(p->fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc exit data copyout(p->old_fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc exit data copyout(p->fields_32[0:p->n_types*p->n_cells_local])
     if (p->area51 != NULL){
-#pragma acc exit data delete(p->area51[0:p->n_cells_local])
+#pragma acc exit data copyout(p->area51[0:p->n_cells_local])
         }
-#pragma acc exit data delete(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc exit data copyout(p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL){
-#pragma acc exit data delete(p->external_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc exit data copyout(p->external_field_unified[0:p->n_cells_local*p->n_types])
         }
     if (p->umbrella_field != NULL){
-#pragma acc exit data delete(p->umbrella_field[0:p->n_cells_local*p->n_types])
+#pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
-#pragma acc exit data delete(p->tempfield[0:p->n_cells_local])
-#pragma acc exit data delete(p->num_bead_type[0:p->n_types])
-#pragma acc exit data delete(p->num_bead_type_local[0:p->n_types])
-#pragma acc exit data delete(p->A[0:p->n_types])
-#pragma acc exit data delete(p->R[0:p->n_types])
-#pragma acc exit data delete(p->field_scaling_type[0:p->n_types])
-#pragma acc exit data delete(p->k_umbrella[0:p->n_types])
-#pragma acc exit data delete(p->poly_type_offset[0:p->n_poly_type])
-#pragma acc exit data delete(p->poly_arch[0:p->poly_arch_length])
+#pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
+#pragma acc exit data copyout(p->num_bead_type[0:p->n_types])
+#pragma acc exit data copyout(p->num_bead_type_local[0:p->n_types])
+#pragma acc exit data copyout(p->A[0:p->n_types])
+#pragma acc exit data copyout(p->R[0:p->n_types])
+#pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
+#pragma acc exit data copyout(p->k_umbrella[0:p->n_types])
+#pragma acc exit data copyout(p->poly_type_offset[0:p->n_poly_type])
+#pragma acc exit data copyout(p->poly_arch[0:p->poly_arch_length])
 
     if(p->cm_a != NULL)
         {
-#pragma acc exit data delete(p->cm_a[0:p->n_poly_type])
+#pragma acc exit data copyout(p->cm_a[0:p->n_poly_type])
         }
     if( p->sets != NULL)
         {
-#pragma acc exit data delete(p->sets[0:p->n_poly_type])
         for(unsigned int i=0; i < p->n_poly_type; i++)
             {
-#pragma acc exit data delete(p->sets[i].set_length[0:p->sets[i].n_sets])
-#pragma acc exit data delete(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
+#pragma acc exit data copyout(p->sets[i].set_length[0:p->sets[i].n_sets])
+#pragma acc exit data copyout(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
             }
+#pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         }
-
     for(uint64_t i=0; i < p->n_polymers; i++)
         {
         Polymer*const poly = &(p->polymers[i]);
         copyout_polymer(p, poly);
         }
-    return 0;
-#else
-    return p->n_polymers*0 +1;
+#pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
+    //Use here the delete to not overwrite stuff, which only changed on CPU
+#pragma acc exit data delete(p[0:1])
 #endif//_OPENACC
+
+    p->present_on_device = false;
+    return p->n_polymers*0 +1;
     }
 
 int free_phase(struct Phase * const p)
@@ -413,9 +424,6 @@ int free_phase(struct Phase * const p)
     free(p->poly_type_offset);
     free(p->poly_arch);
 
-    /* de allocate XN interaction matrix */
-    for (unsigned int i = 0; i < p->n_types; i++)
-        free(p->xn[i]);
     free(p->xn);
 
     if (p->area51 != NULL) {
@@ -443,8 +451,8 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
         return 1;
 
     // Not pointer members are expected to not change on device
-#pragma acc update self(p->xn[0:p->n_types][0:p->n_types])
-    
+#pragma acc update self(p->xn[0:p->n_types*p->n_types])
+
     for(uint64_t i=0; i< p->n_polymers; i++)
         update_self_polymer(p, p->polymers+i,rng_update_flag);
 
@@ -500,17 +508,17 @@ int mc_set_init(Phase * const p){
   uint32_t length_poly_start = p->poly_arch[p->poly_type_offset[poly_type]];
   if(length_poly_start>p->num_all_beads/p->args.long_chain_threshold_arg)
     num_long_chain++;
-  for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){	  
+  for (uint64_t poly_i = 1; poly_i <p->n_polymers; poly_i++){
     Polymer *const this_poly = &p->polymers[poly_i];
     const unsigned int poly_type = this_poly->type;
     uint32_t length_poly_i = p->poly_arch[p->poly_type_offset[poly_type]];
     if(length_poly_i>p->num_all_beads/p->args.long_chain_threshold_arg)
       num_long_chain++;
 
-    int i=poly_i-1;    
+    int i=poly_i-1;
     while(i>=0&&length_poly_i>p->poly_arch[p->poly_type_offset[(&p->polymers[poly_order[i]])->type]])
       i--;
-	
+
     i=poly_i-1-i;
     if(i!=0)
       memmove(poly_order+poly_i-i, poly_order+poly_i-i+1, i*sizeof(unsigned int) );
@@ -520,7 +528,9 @@ int mc_set_init(Phase * const p){
 
   for(int index=0;index<num_long_chain;index++){
     if(poly_order[index]!=(unsigned int) index){
-      exchange_polymer(p,poly_order[index],index);  
+	copyout_phase(p);
+      exchange_polymer(p,poly_order[index],index);
+      copyin_phase(p);
     }
   }
   free(poly_order);

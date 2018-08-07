@@ -21,6 +21,7 @@ DELTA=0
 SEED=51854
 TIMESTEPS=136
 
+
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then

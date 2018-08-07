@@ -48,6 +48,7 @@ struct IndependetSets;
 
  */
 typedef struct Phase{
+    bool present_on_device; //!< Indicator if the whole system is present of the GPU.
     unsigned int reference_Nbeads; /*!< \brief number of reference beads for the model polymer */
     soma_scalar_t harmonic_normb; //!< Harmonic energy scale (function of spring constant) const. at runtime.
     soma_scalar_t harmonic_normb_variable_scale; //!< different harmonic energy scale (function of spring constant) const. at runtime.
@@ -56,9 +57,10 @@ typedef struct Phase{
     /*! \brief \f$\chi N\f$
       2D matrix with monomer type Flory-Huggins interactions, trace
       contains compressibility \f$\kappa_i\f$.
+      Continous memory layout. Access like p->xn[ i* p->n_types + j];
     */
 
-    soma_scalar_t ** xn;
+    soma_scalar_t * xn;
     uint64_t n_polymers; /*!< \brief \#polymers in the configuration. (Local on the MPI node.)*/
     uint64_t n_polymers_storage; /*!< \brief Storage space for polymers.*/
     uint64_t n_polymers_global; /*!< \brief \#polymers in the global configuration.*/

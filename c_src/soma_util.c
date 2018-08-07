@@ -137,6 +137,12 @@ int post_process_args(struct som_args*args,const unsigned int world_rank)
             fprintf(stderr,"WARNING: Negative number for load-balance freq given, is switched off.\n");
         args->load_balance_arg = 0;
         }
+    if(args->accepted_load_inbalance_arg < 0.01)
+        {
+        if( world_rank == 0)
+            fprintf(stderr,"WARNING: accepted load inbalance too low - using 0.01.\n");
+        args->accepted_load_inbalance_arg = 0.01;
+        }
 
     if(args->N_domains_arg < 1)
         {
