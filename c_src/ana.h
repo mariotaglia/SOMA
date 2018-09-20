@@ -143,7 +143,4 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
 //! \return Errorcode.
 int extent_structure(const struct Phase * p,const soma_scalar_t*const data,const char*const name,const hid_t file_id,const int type);
 
-void calc_structure_static(const struct Phase * p,soma_scalar_t *const result);
-
-
 #endif//SOMA_ANA_H
