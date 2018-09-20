@@ -265,7 +265,7 @@ void self_omega_field(const struct Phase *const p)
 	external_field_time += p->cos_serie[serie_index]*cos(2*M_PI*serie_index/p->period*p->time);
 	external_field_time += p->sin_serie[serie_index]*sin(2*M_PI*serie_index/p->period*p->time);
       }
-      }
+    }
 
 
 

@@ -852,21 +852,18 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
 	  for(unsigned int index_q=0;index_q<size;index_q++){
 	    real_0[index_q]+=cos(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
 	    imag_0[index_q]+=sin(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
-	    //counter[poly_type*3*size+size*0+index_q]++;
 	  }
 	}
 	if(particle_type_i!=particle_type_j){
 	  for(unsigned int index_q=0;index_q<size;index_q++){
 	    real_1[index_q]+=cos(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
 	    imag_1[index_q]+=sin(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
-	    //counter[poly_type*3*size+size*1+index_q]++;
 	  }
 	}
 	if(particle_type_i==particle_type_j&&particle_type_j==1){
 	  for(unsigned int index_q=0;index_q<size;index_q++){
 	    real_2[index_q]+=cos(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
 	    imag_2[index_q]+=sin(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
-	    //counter[poly_type*3*size+size*2+index_q]++;
 	  }
 	}	
       }
