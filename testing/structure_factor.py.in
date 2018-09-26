@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+
+#   Copyright (C) 2016-2017 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+import sys
+sys.path.append(@SOMA_PYTHON_DIR@)
+import h5py
+import argparse
+import subprocess as sp
+import numpy as np
+SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
+CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+
+def convert_files():
+    ret = sp.call([CONFGEN,"-i","structure_factor.xml"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def run(test,extra_flags):
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["mv","end.h5","structure_factor.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000","-o","structure_factor_ana.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+
+def test():
+    f1 = h5py.File("structure_factor_ana.h5", 'r')
+    static_structure_factor= np.asarray(list(f1['/static_structure_factor']))
+    dynamical_structure_factor= np.asarray(list(f1['/dynamical_structure_factor']))
+
+    static_ave=sum(static_structure_factor)/len(static_structure_factor)
+    x=q**2.0/6
+    static_ana=2/(x**2)(math.exp(-x)-1+x)
