@@ -35,6 +35,8 @@
 
 struct Phase;
 
+enum structure_factor_type {DYNAMICAL_STRUCTURE_FACTOR, STATIC_STRUCTURE_FACTOR};
+
 /*!>\brief calculate the end-to-end distance for the polymers of the phase
   \param p Phase configuration to analyze
   \returns global \f$ Re \f$
@@ -130,7 +132,7 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
 //! \param p System to analyze
 //! \param result Pointer to array to store the result
 //! \param type Type of structure factor. 0 stands for dynamical, 1 stand for static
-void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int type);
+int calc_structure(const struct Phase*p,soma_scalar_t*const result, const enum structure_factor_type sf_type);
 
 
 //! \brief Helper to ouput soma_scalar_t data to a hdf5 file, used for the strcture.
@@ -141,6 +143,6 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
 //! \param file_id File specifier for HDF5 output ana file
 //! \param type Type of structure factor. 0 stands for dynamical, 1 stand for static
 //! \return Errorcode.
-int extent_structure(const struct Phase * p,const soma_scalar_t*const data,const char*const name,const hid_t file_id,const int type);
+int extent_structure(const struct Phase*p,const soma_scalar_t*const data,const char*const name,const hid_t file_id,const enum structure_factor_type sf_type);
 
 #endif//SOMA_ANA_H

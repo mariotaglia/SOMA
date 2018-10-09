@@ -29,19 +29,36 @@ def convert_files():
     ret = sp.call([CONFGEN,"-i","structure_factor.xml"])
     if ret != 0: raise RuntimeError("Test failed")
 
-def run(test,extra_flags):
-    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000"])
-    if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call(["mv","end.h5","structure_factor.h5"])
-    if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000","-o","structure_factor_ana.h5"])
+def run(test):
+#    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000"])
+#    if ret != 0: raise RuntimeError("Test failed")
+#    ret = sp.call(["mv","end.h5","structure_factor.h5"])
+#    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","100","-a","structure_factor_ana.h5"])
     if ret != 0: raise RuntimeError("Test failed")
 
 def test():
-    f1 = h5py.File("structure_factor_ana.h5", 'r')
-    static_structure_factor= np.asarray(list(f1['/static_structure_factor']))
-    dynamical_structure_factor= np.asarray(list(f1['/dynamical_structure_factor']))
+    print("test")
+    with h5py.File('structure_factor_ana.h5', 'r') as f:
+        static_structure_factor= np.array(f['/static_structure_factor'])
+        #print(static_structure_factor)
+        dynamical_structure_factor= np.array(f['/dynamical_structure_factor'])
+        
+        static_q_vec = np.array(f['/static_structure_factor'].attrs['q'])
+        static_ave = np.mean(static_structure_factor, axis=0) # time/ensemble average.
+        # collective static structure factor of binary blend in http://arxiv.org/abs/cond-mat/0501076v1 p.28 eq.91.
+        x = static_q_vec**2 / 6.0
+        static_ana = 2 * (np.exp(-x) - 1 + x) / x**2 
+        static_ana = 32.0 / static_ana
 
-    static_ave=sum(static_structure_factor)/len(static_structure_factor)
-    x=q**2.0/6
-    static_ana=2/(x**2)(math.exp(-x)-1+x)
+        print("Static_ave = ", static_ave)
+        print("Static_q_vec = ", static_q_vec)
+        print("Static_ana = ", static_ana)
+
+def main_test():
+    #convert_files()
+    #run("")
+    test()
+
+if __name__ == "__main__":
+    main_test()
