@@ -803,30 +803,28 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
   }
   memset(counter,0,p->n_poly_type*sizeof(uint64_t));
   memset(result,0,3*p->n_poly_type*size * sizeof(soma_scalar_t));
-  soma_scalar_t index=0;
-
 
   soma_scalar_t*const result_tmp=(soma_scalar_t*const)malloc(p->n_polymers*8*size*sizeof(soma_scalar_t));
   memset(result_tmp,0,p->n_polymers*8*size * sizeof(soma_scalar_t));
 
   for (uint64_t npoly = 0; npoly < p->n_polymers; npoly++){
-    if(npoly==1||npoly==4000)
-	printf("poly %i\n",npoly);
     const unsigned int poly_type = p->polymers[npoly].type;
     counter[poly_type]++;
     unsigned int poly_length=p->poly_arch[ p->poly_type_offset[poly_type ] ];
   
     for(unsigned int mono_i=0;mono_i<poly_length;mono_i++){
-
       const unsigned int particle_type_i=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+mono_i]);
       //random q generation
       soma_scalar_t rng1 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
       soma_scalar_t rng2 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
       soma_scalar_t theta=2*M_PI*rng1;
       soma_scalar_t phi=acos(1-2*rng2);
-      soma_scalar_t unit_q_x=sin(phi)*cos(theta);
-      soma_scalar_t unit_q_y=sin(phi)*sin(theta);
-      soma_scalar_t unit_q_z=cos(phi);
+      //soma_scalar_t unit_q_x=sin(phi)*cos(theta);
+      //soma_scalar_t unit_q_y=sin(phi)*sin(theta);
+      //soma_scalar_t unit_q_z=cos(phi);
+      soma_scalar_t unit_q_x=1;
+      soma_scalar_t unit_q_y=0;
+      soma_scalar_t unit_q_z=0;
       //random q generation
 
       soma_scalar_t x = p->polymers[npoly].beads[mono_i].x;
@@ -836,7 +834,7 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
       soma_scalar_t y_0 = p->polymers[npoly].msd_beads[mono_i].y;
       soma_scalar_t z_0 = p->polymers[npoly].msd_beads[mono_i].z;
      
-	  
+      
       for(unsigned int index_q=0;index_q<size;index_q++){
 	if(particle_type_i==0){
 	  result_tmp[npoly*8*size+8*index_q+0]+=cos(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
@@ -862,9 +860,7 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
       if(type==0){
 	result[poly_type*3*size+size*0+index_q]+=(result_tmp[npoly*8*size+8*index_q+4]*result_tmp[npoly*8*size+8*index_q+0]+result_tmp[npoly*8*size+8*index_q+5]*result_tmp[npoly*8*size+8*index_q+1])/poly_length;
 	result[poly_type*3*size+size*1+index_q]+=(result_tmp[npoly*8*size+8*index_q+4]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+5]*result_tmp[npoly*8*size+8*index_q+3]+result_tmp[npoly*8*size+8*index_q+6]*result_tmp[npoly*8*size+8*index_q+0]+result_tmp[npoly*8*size+8*index_q+7]*result_tmp[npoly*8*size+8*index_q+1])/poly_length;
-	result[poly_type*3*size+size*2+index_q]+=(result_tmp[npoly*8*size+8*index_q+6]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+7]*result_tmp[npoly*8*size+8*index_q+3])/poly_length;
-	//printf("result %f %i\n",(result_tmp[npoly*8*size+8*index_q+6]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+7]*result_tmp[npoly*8*size+8*index_q+3])/poly_length,npoly);
-	
+	result[poly_type*3*size+size*2+index_q]+=(result_tmp[npoly*8*size+8*index_q+6]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+7]*result_tmp[npoly*8*size+8*index_q+3])/poly_length;	
       }
     }
   }
