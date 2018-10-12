@@ -224,28 +224,28 @@ def add_umbrella_field_conf(nxyz,n_types,t,h5file):
     return string
 
 
-def get_area51(nxyz,arguments,fex_name):
+def get_area51(nxyz,arguments):
     string = ""
     if arguments['c']:
         with h5py.File(arguments['c'],"r") as f:
             if  '/area51' in f:
-                string += add_area51(nxyz,fex_name)
+                string += add_area51(nxyz,arguments['c'])
     return string
 
-def get_external_field(nxyz,arguments,fex_name,types,t):
+def get_external_field(nxyz,arguments,types,t):
     string = ""
     if arguments['c']:
         with h5py.File(arguments['c'],"r") as f:
             if '/external_field' in f:
-                string += add_external_field(nxyz,types,t,fex_name)
+                string += add_external_field(nxyz,types,t,arguments["c"])
     return string
 
-def get_umbrella_field(nxyz,arguments,fex_name,types,t):
+def get_umbrella_field(nxyz,arguments,types,t):
      string = ""
      if arguments['c']:
          f = h5py.File(arguments['c'],"r")
          if '/umbrella_field' in f:
-             string += add_umbrella_field_conf(nxyz,types,t,fex_name)
+             string += add_umbrella_field_conf(nxyz,types,t,arguments["c"])
          f.close()
      return string
 
@@ -263,27 +263,6 @@ def main(argv):
     types,nxyz = get_dimensions(arguments)
     content_dict = get_content_dict(arguments)
 
-    #Write external field extra and area51 if necessary
-    fex_name = ""
-    if arguments['c']:
-        with  h5py.File(arguments['c'],"r") as f:
-            fex_name = arguments['c'][:-3]+"_conf_fields.h5"
-            with  h5py.File(fex_name,"w") as fex:
-                if '/external_field' in f:
-                    data = f['external_field'][0:]
-                    data = data.reshape( (types,nxyz[0],nxyz[1],nxyz[2]) )
-                    fex.create_dataset("/external_field",data=data)
-
-                if '/area51' in f:
-                    data = f['/area51'][0:]
-                    data = data.reshape( (nxyz[0],nxyz[1],nxyz[2]) )
-                    fex.create_dataset("/area51",data=data)
-
-                if '/umbrella_field' in f:
-                    data = f['/umbrella_field'][0:]
-                    data = data.reshape( (types,nxyz[0],nxyz[1],nxyz[2]) )
-                    fex.create_dataset("/umbrella_field",data=data)
-
     string = ""
     string += get_header()
     string += "<Domain>\n"
@@ -291,24 +270,24 @@ def main(argv):
     timesteps = get_timesteps(arguments)
     string += "<Grid GridType=\"Collection\" CollectionType=\"Temporal\">\n"
     isumbr=False
-    if arguments['a']: 
-        f = h5py.File(arguments['a'],"r")
-        if '/umbrella_field' in f:
-            Dataset=f['umbrella_field']
-            if Dataset.size>0:
-                isumbr=True
-        f.close()
+    if arguments['a']:
+        with h5py.File(arguments['a'],"r") as f:
+            if '/umbrella_field' in f:
+                Dataset=f['umbrella_field']
+                if Dataset.size>0:
+                    isumbr=True
+
     for time in range(timesteps):
         string += open_grid(time)
         for type in range(types):
             if content_dict["/density_field"]:
                 string += add_attribute(time,type,timesteps,types,nxyz,arguments)
                 string += add_phi(time,type,timesteps,types,nxyz,arguments)
-            string += get_external_field(nxyz,arguments,fex_name,types,type)
+            string += get_external_field(nxyz,arguments,types,type)
             if isumbr==True:
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
-            string += get_umbrella_field(nxyz,arguments,fex_name,types,type)
-        string += get_area51(nxyz,arguments,fex_name)
+            string += get_umbrella_field(nxyz,arguments,types,type)
+        string += get_area51(nxyz,arguments)
         string += "</Grid>\n"
     string += "</Grid>\n"
 

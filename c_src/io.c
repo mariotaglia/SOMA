@@ -142,28 +142,17 @@ int read_old_config(struct Phase * p, char *const filename)
     p->A[1] = dt / p->reference_Nbeads;
 
     /* allocate XN interaction matrix */
-    p->xn = (soma_scalar_t **) malloc(2 * sizeof(soma_scalar_t *));
+    p->xn = (soma_scalar_t *) malloc(p->n_types*p->n_types * sizeof(soma_scalar_t));
     if(p->xn == NULL){
         fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
         return -4;
         }
-    p->xn[0] = (soma_scalar_t *) malloc(2 * sizeof(soma_scalar_t));
-    if(p->xn[0] == NULL){
-        fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
-        return -4;
-        }
-    p->xn[1] = (soma_scalar_t *) malloc(2 * sizeof(soma_scalar_t));
-    if(p->xn[1] == NULL){
-        fprintf(stderr,"Malloc problem %s:%d\n",__FILE__,__LINE__);
-        return -4;
-        }
-
 
     /* set parameters */
-    p->xn[0][0] = kappaN;
-    p->xn[1][1] = kappaN;
-    p->xn[0][1] = deltaN;
-    p->xn[1][0] = deltaN;
+    p->xn[0*p->n_types + 0] = kappaN;
+    p->xn[1*p->n_types + 1] = kappaN;
+    p->xn[0*p->n_types + 1] = deltaN;
+    p->xn[1*p->n_types + 0] = deltaN;
 
 
     //Create the polymer architecture list.
@@ -531,19 +520,8 @@ int write_config_hdf5(const struct Phase * const p, const char *filename)
 
     //Number of types
     hsize_t xn_dim[2] = { p->n_types, p->n_types };
-    soma_scalar_t *const tmp_xn =
-        (soma_scalar_t *const) malloc(p->n_types * p->n_types * sizeof(soma_scalar_t));
-    if (tmp_xn == NULL) {
-        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-        return -1;
-        }
-    for (unsigned int i = 0; i < p->n_types; i++)
-        for (unsigned int j = 0; j < p->n_types; j++) {
-            tmp_xn[i * p->n_types + j] = p->xn[i][j];
-            }
-    status = write_hdf5(2,xn_dim,file_id,"/parameter/xn",H5T_SOMA_FILE_SCALAR,H5T_SOMA_NATIVE_SCALAR,plist_id,tmp_xn);
+    status = write_hdf5(2,xn_dim,file_id,"/parameter/xn",H5T_SOMA_FILE_SCALAR,H5T_SOMA_NATIVE_SCALAR,plist_id,p->xn);
     HDF5_ERROR_CHECK2(status,"/parameter/xn");
-    free(tmp_xn);
 
     //A data
     hsize_t a_size = p->n_types;
@@ -1032,34 +1010,14 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
     HDF5_ERROR_CHECK2(status,"/parameter/n_types");
 
 
-    p->xn = (soma_scalar_t **) malloc(p->n_types * sizeof(soma_scalar_t *));
+    p->xn = (soma_scalar_t *const) malloc(p->n_types * p->n_types * sizeof(soma_scalar_t));
     if (p->xn == NULL) {
         fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
         return -1;
         }
-    for (unsigned int i = 0; i < p->n_types; i++) {
-        p->xn[i] = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
-        if (p->xn[i] == NULL) {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-            }
-        }
 
-    //soma_scalar_t tmp_xn[p->n_types][p->n_types];
-    soma_scalar_t *const tmp_xn =
-        (soma_scalar_t *const) malloc(p->n_types * p->n_types * sizeof(soma_scalar_t));
-    if (tmp_xn == NULL) {
-        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-        return -1;
-        }
-
-    status = read_hdf5(file_id,"/parameter/xn",H5T_SOMA_NATIVE_SCALAR,plist_id,tmp_xn);
+    status = read_hdf5(file_id,"/parameter/xn",H5T_SOMA_NATIVE_SCALAR,plist_id,p->xn);
     HDF5_ERROR_CHECK2(status,"/parameter/xn");
-
-    for (unsigned int i = 0; i < p->n_types; i++)
-        for (unsigned int j = 0; j < p->n_types; j++)
-            p->xn[i][j] = tmp_xn[i * p->n_types + j];
-    free(tmp_xn);
 
     //A array for the diffusivity of the particles
     p->A = (soma_scalar_t *const) malloc(p->n_types * sizeof(soma_scalar_t));

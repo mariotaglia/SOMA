@@ -76,12 +76,10 @@ int copyout_polymer(struct Phase*const p, Polymer*const poly)
     const unsigned int N = p->poly_arch[ p->poly_type_offset[poly->type] ];
 #pragma acc exit data copyout(poly->beads[0:N])
     copyout_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
-
       if(poly->set_permutation !=NULL)
           {
 #pragma acc exit data copyout(poly->set_permutation[0:p->max_n_sets])
           }
-
       if(poly->set_states !=NULL)
           {
           for(unsigned int j=0; j < p->max_set_members; j++)
@@ -95,6 +93,12 @@ int copyout_polymer(struct Phase*const p, Polymer*const poly)
 
 int reallocate_polymer_mem(struct Phase*const p,uint64_t new_storage)
     {
+    if( p->present_on_device )
+	{
+	fprintf(stderr, "ERROR: %s:%d %d reallocate of poly mem, but system is present on device. Call copyout_phase first.\n", __FILE__,__LINE__,p->info_MPI.world_rank);
+	return -1;
+	}
+
     const uint64_t heuristics = p->n_polymers_storage * 1.05 + 1;
     if( heuristics > new_storage)
         new_storage = heuristics;
@@ -108,31 +112,24 @@ int reallocate_polymer_mem(struct Phase*const p,uint64_t new_storage)
         fprintf(stderr,"ERROR: %s:%d reallocate malloc %ld\n",__FILE__,__LINE__,new_storage);
         return -1;
         }
+//#pragma acc update self(p->polymers[0:p->n_polymers_storage])
     memcpy( tmp_poly, p->polymers, p->n_polymers_storage*sizeof(Polymer));
 
-#ifdef _OPENACC
-#pragma acc enter data copyin (tmp_poly[0:new_storage])
-    Polymer* tmp_dev = (Polymer*)acc_deviceptr((Polymer*)tmp_poly);
-    Polymer*const poly_dev = (Polymer*)acc_deviceptr((Polymer*const)p->polymers);
-    acc_memcpy_device( tmp_dev , poly_dev, p->n_polymers_storage*sizeof(Polymer) );
-#endif//_OPENACC
-
-#pragma acc exit data delete(p->polymers[0:p->n_polymers_storage])
     free( p->polymers );
 
     p->n_polymers_storage = new_storage;
     p->polymers = tmp_poly;
-#ifdef _OPENACC
-    struct Phase*const p_dev = acc_deviceptr(p);
-
-    acc_memcpy_to_device( &(p_dev->polymers), &tmp_dev, sizeof(Polymer*));
-
-#endif//_OPENACC
     return 0;
     }
 
 int push_polymer(struct Phase*const p,const Polymer*const poly)
     {
+    if( p->present_on_device )
+	{
+	fprintf(stderr, "ERROR: %s:%d %d PUSH, but system is present on device. Call copyout_phase first.\n", __FILE__,__LINE__,p->info_MPI.world_rank);
+	return -1;
+	}
+
     assert(poly);
     if(p->n_polymers >= p->n_polymers_storage)
         reallocate_polymer_mem(p,0);
@@ -140,18 +137,8 @@ int push_polymer(struct Phase*const p,const Polymer*const poly)
 
     p->polymers[p->n_polymers] = *poly;
 
-#ifdef _OPENACC
-    const unsigned int pos = p->n_polymers;
-    Polymer*const polymers_dev = acc_deviceptr( p->polymers);
-    acc_memcpy_to_device( polymers_dev + pos, p->polymers + pos, sizeof(Polymer));
-
-#endif//_OPENACC
-
-    copyin_polymer(p,&(p->polymers[p->n_polymers]));
-
     //Update struct
     p->n_polymers += 1;
-#pragma acc update device(p->n_polymers)
 
     const unsigned int N = p->poly_arch[ p->poly_type_offset[poly->type] ];
     for (unsigned int k = 0; k < N; k++)
@@ -161,14 +148,17 @@ int push_polymer(struct Phase*const p,const Polymer*const poly)
         p->num_bead_type_local[type] += 1;
         p->num_all_beads_local += 1;
         }
-#pragma acc update device(p->num_bead_type_local[0:p->n_types])
-#pragma acc update device(p->num_all_beads_local[0:1])
-
     return 0;
     }
 
 int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
     {
+    if( p->present_on_device )
+	{
+	fprintf(stderr, "ERROR: %s:%d POP %d, but system is present on device. Call copyout_phase first.\n", __FILE__,__LINE__,p->info_MPI.world_rank);
+	return -1;
+	}
+
     if( poly_id >= p->n_polymers)
         {
         fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
@@ -176,21 +166,16 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
         return -1;
         }
 
-    update_self_polymer(p,p->polymers+poly_id,1);
     // Copy out the polymer host
     memcpy( poly, p->polymers+poly_id, sizeof(Polymer) );
 
     p->n_polymers -= 1;
-#pragma acc update device(p->n_polymers)
 
     //Fill the gap in vector
-    if(poly_id!=p->n_polymers){
-      memcpy( p->polymers + poly_id, p->polymers + p->n_polymers, sizeof(Polymer));
-#ifdef _OPENACC
-      Polymer*const polymers_dev = acc_deviceptr(p->polymers);
-      acc_memcpy_device( polymers_dev + poly_id, polymers_dev + p->n_polymers, sizeof(Polymer) );
-#endif//_OPENACC
-    }
+    if(poly_id!=p->n_polymers)
+	{
+	memcpy( p->polymers + poly_id, p->polymers + p->n_polymers, sizeof(Polymer));
+	}
     const unsigned int N = p->poly_arch[ p->poly_type_offset[poly->type] ];
     for (unsigned int k = 0; k < N; k++)
         {
@@ -199,44 +184,36 @@ int pop_polymer(struct Phase*const p,const uint64_t poly_id,Polymer*const poly)
         p->num_bead_type_local[type] -= 1;
         p->num_all_beads_local -= 1;
         }
-#pragma acc update device(p->num_bead_type_local[0:p->n_types])
-#pragma acc update device(p->num_all_beads_local[0:1])
-
-    copyout_polymer(p, poly);
 
     return 0;
     }
 
 int exchange_polymer(struct Phase*const p,const uint64_t poly_i,const uint64_t poly_j)
     {
+    if( p->present_on_device )
+	{
+	fprintf(stderr, "ERROR: %s:%d Exchange %d, but system is present on device. Call copyout_phase first.\n", __FILE__,__LINE__,p->info_MPI.world_rank);
+	return -1;
+	}
+
     if(poly_i!=poly_j)
       {
       if(poly_i >= p->n_polymers)
-	{
-	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
-		,p->info_MPI.sim_rank,poly_i,p->n_polymers);
-	return -1;
-	}
+        {
+        fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
+                ,p->info_MPI.sim_rank,poly_i,p->n_polymers);
+        return -1;
+        }
       if(poly_j >= p->n_polymers)
-	{
-	fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
-		,p->info_MPI.sim_rank,poly_j,p->n_polymers);
-	return -1;
-	}
-  
+        {
+        fprintf(stderr,"WARNING: Invalid pop attempt of polymer. rank: %d poly_id %ld n_polymers %ld.\n"
+                ,p->info_MPI.sim_rank,poly_j,p->n_polymers);
+        return -1;
+        }
+
       Polymer tmp_poly=p->polymers[poly_j];
       p->polymers[poly_j] = p->polymers[poly_i];
       p->polymers[poly_i] = tmp_poly;
-#ifdef _OPENACC
-      const unsigned int pos_i = poly_i;
-      const unsigned int pos_j = poly_j;
-      Polymer* tmp_dev =acc_malloc(sizeof(Polymer));
-      Polymer* polymers_dev = acc_deviceptr(p->polymers);
-      acc_memcpy_device( tmp_dev, polymers_dev + pos_i, sizeof(Polymer));
-      acc_memcpy_device( polymers_dev + pos_i, polymers_dev + pos_j, sizeof(Polymer));
-      acc_memcpy_device( polymers_dev + pos_j, tmp_dev, sizeof(Polymer)); 
-      acc_free(tmp_dev);
-#endif//_OPENACC 
       }
     return 0;
     }
