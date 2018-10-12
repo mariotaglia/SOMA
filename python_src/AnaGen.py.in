@@ -50,30 +50,29 @@ class AnalysisFile(ConfGen.SomaXML):
     ## @param filename File to parse in
     ## @param conf Configuration element corresponding to the xml.
     ## @return None
-    def __init__(self,filename,filenametwo):
+    def __init__(self,filename_conf,filename_xml):
         ## Is the Configuration fully initialized?
         self.good = False
 
         ## Configuration element from config file.
-        with h5py.File(filename, 'r') as hf:
-            nxyz = list(hf["parameter/nxyz"])
-            self.nxyz=nxyz;
-            lxyz=list(hf["parameter/lxyz"])
-            self.lxyz=lxyz
-
+        with h5py.File(filename_conf, 'r') as hf:
+            self.nxyz = list(hf["parameter/nxyz"])
+            self.lxyz=list(hf["parameter/lxyz"])
 
             ## XML tree of the input file.
-            self.tree = ET.parse(filenametwo)
+            self.tree = ET.parse(filename_xml)
             ## Root of the xml tree.
             self.root = self.tree.getroot()
             #assert self.root.tag == "soma","You are not parsing a SOMA input file."
             for child in self.root:
                 if not child.tag in self.knownTags:
                     print("WARNING: unknown tag ("+child.tag+") found in SOMA xml. Value will be ignored. Typo?")
-            ## Number of polymers in configuration.
-            self.n_types = list(hf["parameter/n_poly_type"])[0]
+            ## Number of polymer types in configuration.
+            self.n_poly_types = list(hf["parameter/n_poly_type"])[0]
+            ## Number of particle types in configuration.
+            self.n_particle_types = list(hf["parameter/n_types"])[0]
 
-            self._init_ana_dict(filename)
+            self._init_ana_dict(filename_conf)
 
             for ana in self.root.findall("analysis"):
                 for child in ana:
@@ -83,35 +82,32 @@ class AnalysisFile(ConfGen.SomaXML):
     def _init_ana_dict(self,filename):
         with h5py.File(filename, 'r') as hf:
             #Re
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,4*self.n_types), 0 )
-            n_polytypes = self.n_types
-            end_mono = numpy.zeros((n_polytypes,2),dtype=numpy.uint32)
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,4*self.n_poly_types), 0 )
+            end_mono = numpy.zeros((self.n_poly_types,2),dtype=numpy.uint32)
             poly_type_offset=list(hf["parameter/poly_type_offset"])
             poly_arch=list(hf["parameter/poly_arch"])
-            i=0
-            for i in range (0,n_polytypes):
+            for i in range (0,self.n_poly_types):
                 end_mono[i,0]=0
                 end_mono[i,1]=poly_arch[poly_type_offset[i]]-1
             element.attr["end_mono"] = end_mono
             self.ana_dict["Re"] = copy.deepcopy(element)
 
             #Rg
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,4*self.n_types), 0 )
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,4*self.n_poly_types), 0 )
             self.ana_dict["Rg"] = copy.deepcopy(element)
 
             #bond_anisotropy
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,6*self.n_types), 0 )
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,6*self.n_poly_types), 0 )
             self.ana_dict["bond_anisotropy"] = copy.deepcopy( element )
 
             #density_field
-            self.n_types_equiv = list(hf["parameter/n_types"])[0]
-            element = AnaElement( numpy.uint16 , (0,self.n_types_equiv,self.nxyz[0],self.nxyz[1],self.nxyz[2]), 0)
+            element = AnaElement( numpy.uint16 , (0,self.n_particle_types,self.nxyz[0],self.nxyz[1],self.nxyz[2]), 0)
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["density_field"] = copy.deepcopy( element )
 
             #umbrella_field
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_types_equiv,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_particle_types,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["umbrella_field"] = copy.deepcopy(element)
@@ -121,7 +117,7 @@ class AnalysisFile(ConfGen.SomaXML):
             self.ana_dict["acc_ratio"] = copy.deepcopy(element)
 
             #MSD
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0, 8*self.n_types), 0)
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0, 8*self.n_poly_types), 0)
             self.ana_dict["MSD"] = copy.deepcopy(element)
 
             #dump
@@ -133,7 +129,7 @@ class AnalysisFile(ConfGen.SomaXML):
             self.ana_dict["density_var"] = copy.deepcopy(element)
 
             #non_bonded_energy
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_types_equiv), 0)
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_particle_types), 0)
             self.ana_dict["non_bonded_energy"] = copy.deepcopy(element)
 
             #bonded_energy
@@ -141,7 +137,7 @@ class AnalysisFile(ConfGen.SomaXML):
             self.ana_dict["bonded_energy"] = copy.deepcopy(element)
 
             #chem_potential
-            element=AnaElement( soma_type.get_soma_scalar_type(),(0,self.n_types_equiv,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element=AnaElement( soma_type.get_soma_scalar_type(),(0,self.n_particle_types,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["chem_potential"]=copy.deepcopy(element)
@@ -149,7 +145,7 @@ class AnalysisFile(ConfGen.SomaXML):
 
     def _update_ana_element(self,element):
         if element.tag not in self.ana_dict.keys():
-            print("WARNING: unknow ana tag "+str(element.tag)+" ignoring element.")
+            print("WARNING: unknown ana tag "+str(element.tag)+" ignoring element.")
             return
         dict_element = self.ana_dict[element.tag]
 
@@ -161,6 +157,7 @@ class AnalysisFile(ConfGen.SomaXML):
                 matrix = numpy.loadtxt( tmp_file, dtype=numpy.int32)
                 tmp_file.close()
                 dict_element.attr[child.tag] = matrix
+
 
     ## Write the parsed xml data to an hdf5 file.
     ##
@@ -184,7 +181,6 @@ class AnalysisFile(ConfGen.SomaXML):
                 dset = f.create_dataset( key, ana.shape,maxshape=maxshape,dtype=ana.datatype,compression=ana.compression )
                 for attr in ana.attr.keys():
                     dset.attrs[attr] = ana.attr[attr]
-
 
 
 ## Helper class to wrap all infomation that is needed to create an hdf5 observable.
@@ -212,40 +208,33 @@ class AnaElement:
         return str( (self.datatype,self.shape,self.compression,self.attr) )
 
 
-
-
-
 def main(argv):
-    parser = argparse.ArgumentParser(description="Script to create SOMA h5 input files from a given SOMA xml file.")
-    parser.add_argument('-i',metavar='input_file',type=str,nargs=1,required=True,help="Input SOMA xml file.")
-    parser.add_argument('-c',metavar='input_file_conf',type=str,nargs=1,required=True,help="Input SOMA hdf5 file.")
-    parser.add_argument('--update',action="store_true",help="Update an existing hdf5 configuration file instead of creating a new one. You are responsible, that the update is applicaple to the existing configuration.")
-    parser.add_argument('--ana-filename',metavar='ana filename',type=str,nargs=1,required=False,help="Output filename of the analysis hdf5 file.")
-    parser.add_argument('--no-ana-output',action="store_true",help="Do not write an hdf5 analysis file.",default=False)
-
+    parser = argparse.ArgumentParser(description="Script to create a SOMA analysis hdf5 file from a given SOMA xml file and a given SOMA config file.")
+    parser.add_argument('-i',metavar='input_file_xml',type=str,nargs=1,required=True,help="Input SOMA xml file.")
+    parser.add_argument('-c',metavar='input_file_conf',type=str,nargs=1,required=True,help="Input SOMA hdf5 config file.")
+    parser.add_argument('--ana-filename',metavar='ana_filename',type=str,nargs=1,required=False,help="Output filename of the analysis hdf5 file.")
 
     arguments = vars(parser.parse_args())
 
-    filename = arguments['c'][0]
-    extension = filename.rfind(".h5")
-    if extension < 0 or extension+len(".h5") != len(filename):
-        print("ERROR: "+filename+" does not end with .h5")
+    filename_conf = arguments['c'][0]
+    extension_conf = filename_conf.rfind(".h5")
+    if extension_conf < 0 or extension_conf+len(".h5") != len(filename_conf):
+        print("ERROR: "+filename_conf+" does not end with .h5")
         return
-    filenamexml = arguments['i'][0]
-    extensionxml = filenamexml.rfind(".xml")
-    if extensionxml < 0 or extensionxml+len(".xml") != len(filenamexml):
-        print("ERROR: "+filenamexml+" does not end with .xml")
+    filename_xml = arguments['i'][0]
+    extension_xml = filename_xml.rfind(".xml")
+    if extension_xml < 0 or extension_xml+len(".xml") != len(filename_xml):
+        print("ERROR: "+filename_xml+" does not end with .xml")
         return
 
-    ana_out_file = filename[:extension]+"_ana.h5"
     if arguments["ana_filename"] :
         ana_out_file = arguments["ana_filename"][0]
+    else :
+        ana_out_file = filename_conf[:extension]+"_ana.h5"
 
     #Parse the analysis file
-    analysis = AnalysisFile(filename,filenamexml)
-
-    if not arguments['no_ana_output']:
-        analysis.write_hdf5(ana_out_file)
+    analysis = AnalysisFile(filename_conf,filename_xml)
+    analysis.write_hdf5(ana_out_file)
 
 if __name__ == "__main__":
     main(sys.argv)
