@@ -35,6 +35,7 @@
 #include "polymer.h"
 #include "mesh.h"
 #include "io.h"
+#include "rng.h"
 #include <math.h>
 
 void calc_Re(const struct Phase * p, soma_scalar_t *const result)
@@ -777,25 +778,15 @@ int analytics(struct Phase *const p)
 void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int type){
   unsigned int size;
   soma_scalar_t *q_array;
-  PCG_STATE state;
-  PCG_STATE*const s = &state;
-  soma_seed_rng(s, time(NULL), 0);
+
   if(type==0){
     size=p->ana_info.q_size_dynamical;
-    //q_array=(soma_scalar_t*)malloc(size*sizeof(soma_scalar_t));
     q_array=p->ana_info.q_dynamical;
   }
   if(type==1){
     size=p->ana_info.q_size_static;
-    // q_array=(soma_scalar_t*)malloc(size*sizeof(soma_scalar_t));
     q_array=p->ana_info.q_static;
   }
-  /*  soma_scalar_t*const result_imag=(soma_scalar_t*const)malloc(3*p->n_poly_type*p->ana_info.q_size_dynamical*sizeof(soma_scalar_t));
-  if(result_imag == NULL){
-    fprintf(stderr,"MALLOC ERROR: %s:%d\n",__FILE__,__LINE__);
-    return;
-  }
-  memset(result_imag,0,3*p->n_poly_type*size * sizeof(soma_scalar_t));*/
   uint64_t *const counter = (uint64_t*)malloc(p->n_poly_type*sizeof(uint64_t));
   if(counter == NULL){
     fprintf(stderr,"MALLOC ERROR: %s:%d\n",__FILE__,__LINE__);
@@ -803,68 +794,63 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
   }
   memset(counter,0,p->n_poly_type*sizeof(uint64_t));
   memset(result,0,3*p->n_poly_type*size * sizeof(soma_scalar_t));
-
-  soma_scalar_t*const result_tmp=(soma_scalar_t*const)malloc(p->n_polymers*8*size*sizeof(soma_scalar_t));
-  memset(result_tmp,0,p->n_polymers*8*size * sizeof(soma_scalar_t));
+  soma_scalar_t*const result_tmp=(soma_scalar_t*const)malloc(8*size*sizeof(soma_scalar_t));
 
   for (uint64_t npoly = 0; npoly < p->n_polymers; npoly++){
-    const unsigned int poly_type = p->polymers[npoly].type;
-    counter[poly_type]++;
-    unsigned int poly_length=p->poly_arch[ p->poly_type_offset[poly_type ] ];
-  
-    for(unsigned int mono_i=0;mono_i<poly_length;mono_i++){
-      const unsigned int particle_type_i=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+mono_i]);
+    const unsigned int poly_type = p->polymers[npoly].type;    
+    unsigned int poly_length=p->poly_arch[ p->poly_type_offset[poly_type ] ];  
+    RNG_STATE *s = &(p->polymers[npoly].poly_state);
+    unsigned int n_random_q=poly_length;
+    for(unsigned int index_random_q=0;index_random_q<n_random_q;index_random_q++){  
+      memset(result_tmp,0,8*size * sizeof(soma_scalar_t));
+      counter[poly_type]++;
       //random q generation
-      soma_scalar_t rng1 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
-      soma_scalar_t rng2 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
+      soma_scalar_t rng1 = (uint32_t)soma_rng_uint(s,p->args.pseudo_random_number_generator_arg)/(soma_scalar_t)soma_rng_uint_max();
+      soma_scalar_t rng2 = (uint32_t)soma_rng_uint(s,p->args.pseudo_random_number_generator_arg)/(soma_scalar_t)soma_rng_uint_max();
       soma_scalar_t theta=2*M_PI*rng1;
       soma_scalar_t phi=acos(1-2*rng2);
-      //soma_scalar_t unit_q_x=sin(phi)*cos(theta);
-      //soma_scalar_t unit_q_y=sin(phi)*sin(theta);
-      //soma_scalar_t unit_q_z=cos(phi);
-      soma_scalar_t unit_q_x=1;
-      soma_scalar_t unit_q_y=0;
-      soma_scalar_t unit_q_z=0;
-      //random q generation
-
-      soma_scalar_t x = p->polymers[npoly].beads[mono_i].x;
-      soma_scalar_t y = p->polymers[npoly].beads[mono_i].y;
-      soma_scalar_t z = p->polymers[npoly].beads[mono_i].z;
-      soma_scalar_t x_0 = p->polymers[npoly].msd_beads[mono_i].x;
-      soma_scalar_t y_0 = p->polymers[npoly].msd_beads[mono_i].y;
-      soma_scalar_t z_0 = p->polymers[npoly].msd_beads[mono_i].z;
-     
-      
-      for(unsigned int index_q=0;index_q<size;index_q++){
-	if(particle_type_i==0){
-	  result_tmp[npoly*8*size+8*index_q+0]+=cos(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
-	  result_tmp[npoly*8*size+8*index_q+1]+=sin(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
-	  result_tmp[npoly*8*size+8*index_q+4]+=cos(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
-	  result_tmp[npoly*8*size+8*index_q+5]+=sin(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
+      soma_scalar_t unit_q_x=sin(phi)*cos(theta);
+      soma_scalar_t unit_q_y=sin(phi)*sin(theta);
+      soma_scalar_t unit_q_z=cos(phi);
+      //random q generation  
+      for(unsigned int mono_i=0;mono_i<poly_length;mono_i++){
+	const unsigned int particle_type_i=get_particle_type(p->poly_arch[p->poly_type_offset[poly_type]+1+mono_i]);
+	soma_scalar_t x = p->polymers[npoly].beads[mono_i].x;
+	soma_scalar_t y = p->polymers[npoly].beads[mono_i].y;
+	soma_scalar_t z = p->polymers[npoly].beads[mono_i].z;
+	soma_scalar_t x_0 = p->polymers[npoly].msd_beads[mono_i].x;
+	soma_scalar_t y_0 = p->polymers[npoly].msd_beads[mono_i].y;
+	soma_scalar_t z_0 = p->polymers[npoly].msd_beads[mono_i].z;         
+	for(unsigned int index_q=0;index_q<size;index_q++){
+	  if(particle_type_i==0){
+	    result_tmp[8*index_q+0]+=cos(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
+	    result_tmp[8*index_q+1]+=sin(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
+	    result_tmp[8*index_q+4]+=cos(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
+	    result_tmp[8*index_q+5]+=sin(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
+	  }
+	  else{
+	    result_tmp[8*index_q+2]+=cos(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
+	    result_tmp[8*index_q+3]+=sin(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
+	    result_tmp[8*index_q+6]+=cos(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
+	    result_tmp[8*index_q+7]+=sin(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
+	  } 
 	}
-	else{
-	  result_tmp[npoly*8*size+8*index_q+2]+=cos(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
-	  result_tmp[npoly*8*size+8*index_q+3]+=sin(q_array[index_q]*(unit_q_x*x+unit_q_y*y+unit_q_z*z));
-	  result_tmp[npoly*8*size+8*index_q+6]+=cos(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
-	  result_tmp[npoly*8*size+8*index_q+7]+=sin(q_array[index_q]*(unit_q_x*x_0+unit_q_y*y_0+unit_q_z*z_0));
-	} 
       }
-    }
-    for(unsigned int index_q=0;index_q<size;index_q++){
-      if(type==1){
-	result[poly_type*3*size+size*0+index_q]+=(result_tmp[npoly*8*size+8*index_q+0]*result_tmp[npoly*8*size+8*index_q+0]+result_tmp[npoly*8*size+8*index_q+1]*result_tmp[npoly*8*size+8*index_q+1])/poly_length;
-	
-	result[poly_type*3*size+size*1+index_q]+=2*(result_tmp[npoly*8*size+8*index_q+0]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+1]*result_tmp[npoly*8*size+8*index_q+3])/poly_length;
-	result[poly_type*3*size+size*2+index_q]+=(result_tmp[npoly*8*size+8*index_q+2]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+3]*result_tmp[npoly*8*size+8*index_q+3])/poly_length;
-      }
-      if(type==0){
-	result[poly_type*3*size+size*0+index_q]+=(result_tmp[npoly*8*size+8*index_q+4]*result_tmp[npoly*8*size+8*index_q+0]+result_tmp[npoly*8*size+8*index_q+5]*result_tmp[npoly*8*size+8*index_q+1])/poly_length;
-	result[poly_type*3*size+size*1+index_q]+=(result_tmp[npoly*8*size+8*index_q+4]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+5]*result_tmp[npoly*8*size+8*index_q+3]+result_tmp[npoly*8*size+8*index_q+6]*result_tmp[npoly*8*size+8*index_q+0]+result_tmp[npoly*8*size+8*index_q+7]*result_tmp[npoly*8*size+8*index_q+1])/poly_length;
-	result[poly_type*3*size+size*2+index_q]+=(result_tmp[npoly*8*size+8*index_q+6]*result_tmp[npoly*8*size+8*index_q+2]+result_tmp[npoly*8*size+8*index_q+7]*result_tmp[npoly*8*size+8*index_q+3])/poly_length;	
+      for(unsigned int index_q=0;index_q<size;index_q++){
+	if(type==1){
+	  result[poly_type*3*size+size*0+index_q]+=(result_tmp[8*index_q+0]*result_tmp[8*index_q+0]+result_tmp[8*index_q+1]*result_tmp[8*index_q+1])/poly_length;	
+	  result[poly_type*3*size+size*1+index_q]+=2*(result_tmp[8*index_q+0]*result_tmp[8*index_q+2]+result_tmp[8*index_q+1]*result_tmp[8*index_q+3])/poly_length;
+	  result[poly_type*3*size+size*2+index_q]+=(result_tmp[8*index_q+2]*result_tmp[8*index_q+2]+result_tmp[8*index_q+3]*result_tmp[8*index_q+3])/poly_length;
+	}
+	if(type==0){
+	  result[poly_type*3*size+size*0+index_q]+=(result_tmp[8*index_q+4]*result_tmp[8*index_q+0]+result_tmp[8*index_q+5]*result_tmp[8*index_q+1])/poly_length;
+	  result[poly_type*3*size+size*1+index_q]+=(result_tmp[8*index_q+4]*result_tmp[8*index_q+2]+result_tmp[8*index_q+5]*result_tmp[8*index_q+3]+result_tmp[8*index_q+6]*result_tmp[8*index_q+0]+result_tmp[8*index_q+7]*result_tmp[8*index_q+1])/poly_length;
+	  result[poly_type*3*size+size*2+index_q]+=(result_tmp[8*index_q+6]*result_tmp[8*index_q+2]+result_tmp[8*index_q+7]*result_tmp[8*index_q+3])/poly_length;	
+	}
       }
     }
   }
-  
+
   MPI_Allreduce(MPI_IN_PLACE, result, 3*p->n_poly_type*size, MPI_SOMA_SCALAR, MPI_SUM,
 		p->info_MPI.SOMA_comm_sim);
   MPI_Allreduce(MPI_IN_PLACE, counter, size*p->n_poly_type*3, MPI_UINT64_T, MPI_SUM,
@@ -874,15 +860,12 @@ void calc_structure(const struct Phase * p,soma_scalar_t *const result,const int
     for(unsigned int poly_type=0 ; poly_type < p->n_poly_type; poly_type++){
       for(unsigned int i=0; i < 3; i++){
 	if( counter[poly_type] > 0){
-	  //printf("counter %i\n",counter[poly_type]);
 	  result[poly_type*3*size+size*i+index_q] /= (soma_scalar_t) counter[poly_type];
-	  // result_imag[poly_type*3*size+size*i+index_q] /= (soma_scalar_t) counter[poly_type];
 	}
       }
     }
   }
   free(counter);
-  //free(result_imag);
 }
 
 
@@ -943,7 +926,6 @@ int extent_structure(const struct Phase * p,const soma_scalar_t*const data,const
         }
     else
         memspace = H5P_DEFAULT;
-
     status = H5Dwrite(dset,H5T_SOMA_NATIVE_SCALAR,memspace,filespace,H5P_DEFAULT,data);
     HDF5_ERROR_CHECK(status);
 

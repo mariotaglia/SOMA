@@ -32,6 +32,7 @@
 #include <hdf5.h>
 #include "soma_config.h"
 #include "stdint.h"
+#include "rng.h"
 
 struct Phase;
 
