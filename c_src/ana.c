@@ -35,6 +35,7 @@
 #include "polymer.h"
 #include "mesh.h"
 #include "io.h"
+#include "rng.h"
 #include <math.h>
 
 void calc_Re(const struct Phase * p, soma_scalar_t *const result)
@@ -724,7 +725,7 @@ int analytics(struct Phase *const p)
     if(p->ana_info.delta_mc_dynamical_structure != 0 && p->time % p->ana_info.delta_mc_dynamical_structure == 0) 
         {
         update_self_phase(p,0);
-        soma_scalar_t*const dynamical_structure_factor=(soma_scalar_t*const)malloc(3*p->n_poly_type*p->ana_info.q_size_dynamical*sizeof(soma_scalar_t));
+        soma_scalar_t*const dynamical_structure_factor=(soma_scalar_t*const)malloc(p->ana_info.q_size_dynamical*p->n_poly_type*p->n_types*p->n_types*sizeof(soma_scalar_t));
         if(dynamical_structure_factor == NULL) 
             {
             fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;
@@ -743,7 +744,7 @@ int analytics(struct Phase *const p)
     if(p->ana_info.delta_mc_static_structure != 0 && p->time % p->ana_info.delta_mc_static_structure == 0)
         {
         update_self_phase(p,0);
-	      soma_scalar_t*const static_structure_factor=(soma_scalar_t*const)malloc(3*p->n_poly_type*p->ana_info.q_size_static*sizeof(soma_scalar_t));
+	      soma_scalar_t*const static_structure_factor=(soma_scalar_t*const)malloc(p->ana_info.q_size_static*p->n_poly_type*p->n_types*p->n_types*sizeof(soma_scalar_t));
         if(static_structure_factor == NULL)
             {
             fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -2;
@@ -786,21 +787,21 @@ int analytics(struct Phase *const p)
     }
 
 
-int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum structure_factor_type sf_type){
+int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum structure_factor_type sf_type)
+{
   unsigned int size; 
-  soma_scalar_t *q_array; 
-  PCG_STATE state;
-  PCG_STATE * const s = &state;
-  soma_seed_rng(s, time(NULL), 0);
+  soma_scalar_t *q_array, result_tmp_size; 
 
   switch (sf_type) {
     case DYNAMICAL_STRUCTURE_FACTOR :
       size = p->ana_info.q_size_dynamical;
       q_array = p->ana_info.q_dynamical;
+      result_tmp_size = size * p->n_types * 4;
       break;
     case STATIC_STRUCTURE_FACTOR :
       size = p->ana_info.q_size_static;
       q_array = p->ana_info.q_static;
+      result_tmp_size = size * p->n_types * 2;
       break;
     default :
       fprintf(stderr, "ERROR: Not correct structure_factor_type. %s:%s:%d\n", __func__, __FILE__, __LINE__);
@@ -812,149 +813,126 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
     fprintf(stderr, "MALLOC ERROR: %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
-  memset(result, 0, 3 * p->n_poly_type * size * sizeof(soma_scalar_t));
 
-  for (uint64_t npoly = 0; npoly < p->n_polymers; npoly++){
-    const unsigned int poly_type = p->polymers[npoly].type;
-    counter[poly_type]++;
-   
+  memset(result, 0, size * p->n_poly_type * p->n_types * p->n_types * sizeof(soma_scalar_t));
+
+  soma_scalar_t * const result_tmp = (soma_scalar_t * const) malloc(result_tmp_size * sizeof(soma_scalar_t));
+
+  for (uint64_t poly = 0; poly < p->n_polymers; poly++)
+  {
+    const unsigned int poly_type = p->polymers[poly].type;
     unsigned int poly_length=p->poly_arch[p->poly_type_offset[poly_type]];
+    unsigned int n_random_q = poly_length;
+    RNG_STATE * const s = &(p->polymers[poly].poly_state);
 
-///////////////////////////////////////////////////////////////////////////////
-/*    soma_scalar_t type0_cos[size];
-    soma_scalar_t type0_sin[size];
-    soma_scalar_t type1_cos[size];
-    soma_scalar_t type1_sin[size];
-    memset(type0_cos, 0, size * sizeof(soma_scalar_t));
-    memset(type0_sin, 0, size * sizeof(soma_scalar_t));
-    memset(type1_cos, 0, size * sizeof(soma_scalar_t));
-    memset(type1_sin, 0, size * sizeof(soma_scalar_t));
-
-    for(unsigned int mono = 0; mono < poly_length; mono++)
+    for(unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++)
     {
-      const unsigned int particle_type = get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + mono]);
-
+      counter[poly_type]++;
+      memset(result_tmp, 0, result_tmp_size * sizeof(soma_scalar_t));
+  
       //random q generation
-      soma_scalar_t rng1 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
-      soma_scalar_t rng2 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
+      soma_scalar_t rng1 = (uint32_t) soma_rng_uint(s, p->args.pseudo_random_number_generator_arg) / (soma_scalar_t) soma_rng_uint_max();
+      soma_scalar_t rng2 = (uint32_t) soma_rng_uint(s, p->args.pseudo_random_number_generator_arg) / (soma_scalar_t) soma_rng_uint_max();
       soma_scalar_t theta=2*M_PI*rng1;
       soma_scalar_t phi=acos(1-2*rng2);
       soma_scalar_t unit_q_x=sin(phi)*cos(theta);
       soma_scalar_t unit_q_y=sin(phi)*sin(theta);
       soma_scalar_t unit_q_z=cos(phi);
-     
-      if ( particle_type == 0 )
+  
+      for(unsigned int mono = 0; mono < poly_length; mono++)
       {
+        const unsigned int particle_type = get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + mono]);
+  
+        // Monomer position at t.
+        soma_scalar_t x = p->polymers[poly].beads[mono].x;
+        soma_scalar_t y = p->polymers[poly].beads[mono].y;
+        soma_scalar_t z = p->polymers[poly].beads[mono].z;
+  
         for(unsigned int index_q = 0; index_q < size; index_q++)
         {
-          soma_scalar_t qr = q_array[index_q] * (unit_q_x * p->polymers[npoly].beads[mono].x + 
-                                                 unit_q_y * p->polymers[npoly].beads[mono].y + 
-                                                 unit_q_z * p->polymers[npoly].beads[mono].z);
-          type0_cos[index_q] += cos(qr);
-          type0_sin[index_q] += sin(qr);
+          soma_scalar_t qr = q_array[index_q] * (unit_q_x * x + unit_q_y * y + unit_q_z * z);
+  
+          switch ( sf_type ) 
+          {
+            case STATIC_STRUCTURE_FACTOR :
+              result_tmp[index_q * p->n_types * 2 + particle_type * 2 + 0] += cos(qr);
+              result_tmp[index_q * p->n_types * 2 + particle_type * 2 + 1] += sin(qr);
+              break;
+            case DYNAMICAL_STRUCTURE_FACTOR :
+              ;
+              // Monomer position at t=0.
+              soma_scalar_t x_0 = p->polymers[poly].msd_beads[mono].x;
+              soma_scalar_t y_0 = p->polymers[poly].msd_beads[mono].y;
+              soma_scalar_t z_0 = p->polymers[poly].msd_beads[mono].z;
+              soma_scalar_t qr_msd = q_array[index_q] * (unit_q_x * x_0 + unit_q_y * y_0 + unit_q_z * z_0);
+              result_tmp[index_q * p->n_types * 4 + particle_type * 4 + 0] += cos(qr);
+              result_tmp[index_q * p->n_types * 4 + particle_type * 4 + 1] += sin(qr);
+              result_tmp[index_q * p->n_types * 4 + particle_type * 4 + 2] += cos(qr_msd);
+              result_tmp[index_q * p->n_types * 4 + particle_type * 4 + 3] += sin(qr_msd);
+              break;
+            default :
+              fprintf(stderr, "ERROR: Not correct structure_factor_type. %s:%s:%d\n", __func__, __FILE__, __LINE__);
+              return -1;
+          }
         }
       }
-      if ( particle_type == 1 )
+  
+      for(unsigned int index_q = 0; index_q < size; index_q++)
       {
-        for(unsigned int index_q = 0; index_q < size; index_q++)
+        for(unsigned int particle_type_i = 0; particle_type_i < p->n_types; particle_type_i++)
         {
-          soma_scalar_t qr = q_array[index_q] * (unit_q_x * p->polymers[npoly].beads[mono].x + 
-                                                 unit_q_y * p->polymers[npoly].beads[mono].y + 
-                                                 unit_q_z * p->polymers[npoly].beads[mono].z);
-          type1_cos[index_q] += cos(qr);
-          type1_sin[index_q] += sin(qr);
+          for(unsigned int particle_type_j = 0; particle_type_j < p->n_types; particle_type_j++)
+          {
+            switch ( sf_type ) 
+            {
+              case STATIC_STRUCTURE_FACTOR :
+                result[index_q * p->n_poly_type * p->n_types * p->n_types + poly_type * p->n_types * p->n_types + particle_type_i * p->n_types + particle_type_j] += 
+                  ( result_tmp[index_q * p->n_types * 2 + particle_type_i * 2 + 0] 
+                  * result_tmp[index_q * p->n_types * 2 + particle_type_j * 2 + 0] 
+                  + result_tmp[index_q * p->n_types * 2 + particle_type_i * 2 + 1] 
+                  * result_tmp[index_q * p->n_types * 2 + particle_type_j * 2 + 1]
+                  ) / poly_length;
+                break;
+              case DYNAMICAL_STRUCTURE_FACTOR : 
+                result[index_q * p->n_poly_type * p->n_types * p->n_types + poly_type * p->n_types * p->n_types + particle_type_i * p->n_types + particle_type_j] += 
+                  ( result_tmp[index_q * p->n_types * 4 + particle_type_i * 4 + 0] 
+                  * result_tmp[index_q * p->n_types * 4 + particle_type_j * 4 + 2] 
+                  + result_tmp[index_q * p->n_types * 4 + particle_type_i * 4 + 1] 
+                  * result_tmp[index_q * p->n_types * 4 + particle_type_j * 4 + 3]
+                  ) / poly_length;
+                break;
+              default :
+                fprintf(stderr, "ERROR: Not correct structure_factor_type. %s:%s:%d\n", __func__, __FILE__, __LINE__);
+                return -1;
+            }
+          }
         }
       }
-    }
-
-    for(unsigned int index_q = 0; index_q < size; index_q++)
-    {
-      result[poly_type * 3 * size + size * 0 + index_q] += type0_cos[index_q] * type0_cos[index_q] + type0_sin[index_q] * type0_sin[index_q];
-      result[poly_type * 3 * size + size * 1 + index_q] += type0_cos[index_q] * type1_cos[index_q] + type0_sin[index_q] * type1_sin[index_q];
-      result[poly_type * 3 * size + size * 2 + index_q] += type1_cos[index_q] * type1_cos[index_q] + type1_sin[index_q] * type1_sin[index_q];
-    }
-
-    for(unsigned int index_result = 0; index_result < 3 * p->n_poly_type * size; index_result++)
-    {
-      result[index_result] /= poly_length;
     }
   }
- */  
+  
+  free(result_tmp);
+
 /////////////////////////////////////////////////////////////////////////////////
-    soma_scalar_t real_0[size];
-    memset(real_0,0,size*sizeof(soma_scalar_t));   
-    soma_scalar_t real_1[size];
-    memset(real_1,0,size*sizeof(soma_scalar_t));    
-    soma_scalar_t real_2[size];
-    memset(real_2,0,size*sizeof(soma_scalar_t));
- 
-    for(unsigned int mono_i = 0; mono_i < poly_length; mono_i++){
-      for(unsigned int mono_j = 0; mono_j < poly_length; mono_j++){
-	      const unsigned int particle_type_i = get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + mono_i]);
-	      const unsigned int particle_type_j = get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + mono_j]);
-	      soma_scalar_t dx, dy, dz;
+  MPI_Allreduce(MPI_IN_PLACE, result, size*p->n_poly_type*p->n_types*p->n_types, MPI_SOMA_SCALAR, MPI_SUM,
+		p->info_MPI.SOMA_comm_sim);
+  MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
+		p->info_MPI.SOMA_comm_sim);
 
-        switch (sf_type) {
-          case DYNAMICAL_STRUCTURE_FACTOR :
-            dx = p->polymers[npoly].msd_beads[mono_j].x - p->polymers[npoly].beads[mono_i].x;
-            dy = p->polymers[npoly].msd_beads[mono_j].y - p->polymers[npoly].beads[mono_i].y;
-            dz = p->polymers[npoly].msd_beads[mono_j].z - p->polymers[npoly].beads[mono_i].z;
-            break;
-          case STATIC_STRUCTURE_FACTOR :
-            dx = p->polymers[npoly].beads[mono_j].x - p->polymers[npoly].beads[mono_i].x;
-            dy = p->polymers[npoly].beads[mono_j].y - p->polymers[npoly].beads[mono_i].y;
-            dz = p->polymers[npoly].beads[mono_j].z - p->polymers[npoly].beads[mono_i].z;
-            break;
-          default :
-            fprintf(stderr, "ERROR: Not correct structure_factor_type. %s:%s:%d\n", __func__, __FILE__, __LINE__);
-            return -1;
+  for(unsigned int index_q = 0; index_q < size; index_q++)
+  {
+    for(unsigned int poly_type = 0; poly_type < p->n_poly_type; poly_type++)
+    {
+      for(unsigned int particle_type_i = 0; particle_type_i < p->n_types; particle_type_i++)
+      {
+        for(unsigned int particle_type_j = 0; particle_type_j < p->n_types; particle_type_j++)
+        {
+	        if( counter[poly_type] > 0)
+          {
+	          result[index_q * p->n_poly_type * p->n_types * p->n_types + poly_type * p->n_types * p->n_types + particle_type_i * p->n_types + particle_type_j] /= 
+              (soma_scalar_t) counter[poly_type];
+	        }
         }
-      
-        //random q generation
-        soma_scalar_t rng1 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
-        soma_scalar_t rng2 = (uint32_t)pcg32_random(s)/(soma_scalar_t)soma_rng_uint_max();
-        soma_scalar_t theta=2*M_PI*rng1;
-        soma_scalar_t phi=acos(1-2*rng2);
-        soma_scalar_t unit_q_x=sin(phi)*cos(theta);
-        soma_scalar_t unit_q_y=sin(phi)*sin(theta);
-        soma_scalar_t unit_q_z=cos(phi);
-	      
-	      if(particle_type_i == particle_type_j && particle_type_j == 0){
-	        for(unsigned int index_q = 0; index_q < size; index_q++){
-	          real_0[index_q]+=cos(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
-	        }
-	      }
-	      if(particle_type_i != particle_type_j){
-	        for(unsigned int index_q = 0; index_q < size; index_q++){
-	          real_1[index_q]+=cos(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
-	        }
-	      }
-	      if(particle_type_i == particle_type_j && particle_type_j == 1){
-	        for(unsigned int index_q = 0; index_q < size; index_q++){
-	          real_2[index_q]+=cos(q_array[index_q]*(unit_q_x*dx+unit_q_y*dy+unit_q_z*dz))/poly_length;
-	        }
-	      }	
-      }
-    }
-
-    for(unsigned int index_q=0;index_q<size;index_q++){
-      result[poly_type*3*size+size*0+index_q]+=real_0[index_q];
-      result[poly_type*3*size+size*1+index_q]+=real_1[index_q];
-      result[poly_type*3*size+size*2+index_q]+=real_2[index_q];
-    }
-  }
-
-  MPI_Allreduce(MPI_IN_PLACE, result, 3*p->n_poly_type*size, MPI_SOMA_SCALAR, MPI_SUM,
-		p->info_MPI.SOMA_comm_sim);
-  MPI_Allreduce(MPI_IN_PLACE, counter, size*p->n_poly_type*3, MPI_UINT64_T, MPI_SUM,
-		p->info_MPI.SOMA_comm_sim);
-
-  for(unsigned int index_q=0;index_q<size;index_q++){
-    for(unsigned int poly_type=0 ; poly_type < p->n_poly_type; poly_type++){
-      for(unsigned int i = 0; i < 3; i++){
-	      if( counter[poly_type] > 0){
-	        result[poly_type * 3 * size + size * i + index_q] /= (soma_scalar_t) counter[poly_type];
-	      }
       }
     }
   }
@@ -965,76 +943,81 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
 
 
 int extent_structure(const struct Phase*p,const soma_scalar_t*const data,const char*const name,const hid_t file_id,const enum structure_factor_type sf_type)
-    {
-    unsigned int size;
+{
+  unsigned int size;
 
-    switch (sf_type) {
-      case DYNAMICAL_STRUCTURE_FACTOR :
-        size = p->ana_info.q_size_dynamical;
-        break;
-      case STATIC_STRUCTURE_FACTOR :
-        size = p->ana_info.q_size_static;
-        break;
-      default :
-        fprintf(stderr, "ERROR: Not correct structure_factor_type. %s:%s:%d\n", __func__, __FILE__, __LINE__);
-        return -1;
-    }
+  switch (sf_type) 
+  {
+    case DYNAMICAL_STRUCTURE_FACTOR :
+      size = p->ana_info.q_size_dynamical;
+      break;
+    case STATIC_STRUCTURE_FACTOR :
+      size = p->ana_info.q_size_static;
+      break;
+    default :
+      fprintf(stderr, "ERROR: Not correct structure_factor_type. %s:%s:%d\n", __func__, __FILE__, __LINE__);
+      return -1;
+  }
 
-    herr_t status;
-    hid_t dset = H5Dopen(file_id, name,H5P_DEFAULT);
-    HDF5_ERROR_CHECK(dset);
-    hid_t d_space = H5Dget_space(dset);
-    HDF5_ERROR_CHECK(d_space);
-    const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
-    if( ndims != 3)
-        {
-        fprintf(stderr,"ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",__FILE__,__LINE__,name);
-        return -1;
-        }
-    hsize_t dims[3];//ndims
+  herr_t status;
+  hid_t dset = H5Dopen(file_id, name,H5P_DEFAULT);
+  HDF5_ERROR_CHECK(dset);
+  hid_t d_space = H5Dget_space(dset);
+  HDF5_ERROR_CHECK(d_space);
+  const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
+  if( ndims != 4)
+  {
+    fprintf(stderr,"ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",__FILE__,__LINE__,name);
+    return -1;
+  }
+  hsize_t dims[4]; //ndims -> Stackprotector throws warning, when I use ndims. Maybe allocate array with malloc instead?
 
-    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+  status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+  HDF5_ERROR_CHECK(status);
+
+  hsize_t dims_new[4]; //ndims, s.o.
+  dims_new[0] = dims[0] + 1;
+  dims_new[1] = size;
+  assert(dims[1] == size);
+  dims_new[2] = p->n_poly_type;
+  assert(dims[2] == p->n_poly_type);
+  dims_new[3] = p->n_types * p->n_types; 
+  assert(dims[3] == p->n_types * p->n_types);
+  status = H5Dset_extent(dset,dims_new);
+  HDF5_ERROR_CHECK(status);
+
+  status = H5Sclose(d_space);
+  HDF5_ERROR_CHECK(status);
+  hid_t filespace = H5Dget_space(dset);
+  HDF5_ERROR_CHECK(filespace);
+
+  hsize_t dims_memspace[4]; //ndims, s.o.
+  dims_memspace[0] = dims_new[0] - dims[0];
+  for(unsigned int i = 1; i< ndims;i++)
+  {
+    dims_memspace[i] = dims[i];
+  }
+
+  hid_t memspace = H5Screate_simple(ndims,dims_memspace,NULL);
+  hsize_t dims_offset[4]; //ndims, s.o.
+  dims_offset[0] = dims[0];
+  for(unsigned int i=1; i < ndims; i++)
+      dims_offset[i] = 0;
+
+  if(dims[0] > 0)
+  {
+    status = H5Sselect_hyperslab(filespace,H5S_SELECT_SET,dims_offset,NULL,dims_memspace,NULL);
     HDF5_ERROR_CHECK(status);
+  }
+  else
+    memspace = H5P_DEFAULT;
 
-    hsize_t dims_new[3];//ndims
-    dims_new[0] = dims[0] + 1;
-    dims_new[1] = 3*p->n_poly_type;
-    assert(dims[1] == 3*p->n_poly_type);
-    dims_new[2] = size;
-    assert(dims[2] == size);
-    status = H5Dset_extent(dset,dims_new);
-    HDF5_ERROR_CHECK(status);
+  status = H5Dwrite(dset,H5T_SOMA_NATIVE_SCALAR,memspace,filespace,H5P_DEFAULT,data);
+  HDF5_ERROR_CHECK(status);
 
-    status = H5Sclose(d_space);
-    HDF5_ERROR_CHECK(status);
-    hid_t filespace = H5Dget_space(dset);
-    HDF5_ERROR_CHECK(filespace);
-
-    hsize_t dims_memspace[3]; //ndims
-    dims_memspace[0] = dims_new[0] - dims[0];
-    for(unsigned int i = 1; i< ndims;i++){
-        dims_memspace[i] = dims[i];
-    }
-
-    hid_t memspace = H5Screate_simple(ndims,dims_memspace,NULL);
-    hsize_t dims_offset[3];//ndims
-    dims_offset[0] = dims[0];
-    for(unsigned int i=1; i < ndims; i++)
-        dims_offset[i] = 0;
-
-    if(dims[0] > 0){
-        status = H5Sselect_hyperslab(filespace,H5S_SELECT_SET,dims_offset,NULL,dims_memspace,NULL);
-        HDF5_ERROR_CHECK(status);
-        }
-    else
-        memspace = H5P_DEFAULT;
-
-    status = H5Dwrite(dset,H5T_SOMA_NATIVE_SCALAR,memspace,filespace,H5P_DEFAULT,data);
-    HDF5_ERROR_CHECK(status);
-
-    status = H5Sclose(filespace);
-    HDF5_ERROR_CHECK(status);
-    status = H5Dclose(dset);
-    HDF5_ERROR_CHECK(status);
-    return 0;
-    }
+  status = H5Sclose(filespace);
+  HDF5_ERROR_CHECK(status);
+  status = H5Dclose(dset);
+  HDF5_ERROR_CHECK(status);
+  return 0;
+}

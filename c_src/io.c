@@ -1300,6 +1300,7 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
             }
         }
 
+    p->serie_length = 0;
     if(H5Lexists(file_id,"/external_field",H5P_DEFAULT) > 0)
         {
 	  hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->external_field_unified), "/external_field");

@@ -60,8 +60,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.py.in ${CMAKE_CURRENT_BINARY_DI
 add_test(NAME async WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python async.py ${ACC_FLAG})
 
 #ConfGen_AnaGen
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AnaGen.py.in ${CMAKE_CURRENT_BINARY_DIR}/AnaGen.py)
-add_test(NAME AnaGen WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python AnaGen.py)
+#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AnaGen.py.in ${CMAKE_CURRENT_BINARY_DIR}/AnaGen.py)
+#add_test(NAME AnaGen WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python AnaGen.py)
 
 #Compare Bead data even if the order of chains has changed.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compare_mixed_bead_data.py.in ${CMAKE_CURRENT_BINARY_DIR}/compare_mixed_bead_data.py)

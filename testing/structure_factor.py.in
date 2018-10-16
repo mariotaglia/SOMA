@@ -24,40 +24,46 @@ import subprocess as sp
 import numpy as np
 SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
 CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+from statistics import check_value
+import matplotlib.pyplot as plt
 
 def convert_files():
     ret = sp.call([CONFGEN,"-i","structure_factor.xml"])
     if ret != 0: raise RuntimeError("Test failed")
 
 def run(test):
-#    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000"])
-#    if ret != 0: raise RuntimeError("Test failed")
-#    ret = sp.call(["mv","end.h5","structure_factor.h5"])
-#    if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","100","-a","structure_factor_ana.h5"])
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call(["mv","end.h5","structure_factor.h5"])
+    if ret != 0: raise RuntimeError("Test failed")
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","1000","-a","structure_factor_ana.h5"])
     if ret != 0: raise RuntimeError("Test failed")
 
 def test():
-    print("test")
-    with h5py.File('structure_factor_ana.h5', 'r') as f:
-        static_structure_factor= np.array(f['/static_structure_factor'])
-        #print(static_structure_factor)
-        dynamical_structure_factor= np.array(f['/dynamical_structure_factor'])
+    with h5py.File('structure_factor.h5', 'r') as f1:
+        poly_arch = np.array(f1['/parameter/poly_arch'])
+        n_mono = poly_arch[0] # First element contains number of monomers for homopolymers.
         
-        static_q_vec = np.array(f['/static_structure_factor'].attrs['q'])
-        static_ave = np.mean(static_structure_factor, axis=0) # time/ensemble average.
-        # collective static structure factor of binary blend in http://arxiv.org/abs/cond-mat/0501076v1 p.28 eq.91.
-        x = static_q_vec**2 / 6.0
-        static_ana = 2 * (np.exp(-x) - 1 + x) / x**2 
-        static_ana = 32.0 / static_ana
-
-        print("Static_ave = ", static_ave)
-        print("Static_q_vec = ", static_q_vec)
-        print("Static_ana = ", static_ana)
-
+        with h5py.File('structure_factor_ana.h5', 'r') as f2:
+            static_structure_factor= np.array(f2['/static_structure_factor'])
+            static_q_vec = np.array(f2['/static_structure_factor'].attrs['q'])
+            static_ave = np.mean(static_structure_factor, axis=0) # time/ensemble average.
+            print(static_ave.shape)
+            # collective static structure factor of binary blend in http://arxiv.org/abs/cond-mat/0501076v1 p.28 eq.91.
+            x = static_q_vec**2 / 6.0
+            static_ana = 2 * (np.exp(-x) - 1 + x) / x**2 
+            static_ana = n_mono * static_ana
+            #plt.plot(static_q_vec, static_ave[:, 0, 0])
+            #plt.plot(static_q_vec, static_ana)
+            #plt.show()
+            print("Static_ave = ", static_ave)
+            print("Static_q_vec = ", static_q_vec)
+            print("Static_ana = ", static_ana)
+            for i in range(len(static_q_vec)):
+                check_value(float(static_ave[i, 0, 0]), 1e-1, float(static_ana[i]), "homo static structure factor ")    
 def main_test():
-    #convert_files()
-    #run("")
+#    convert_files()
+#    run("")
     test()
 
 if __name__ == "__main__":

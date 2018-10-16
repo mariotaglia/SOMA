@@ -2,7 +2,7 @@
 <soma version="0.2.0">
   <interactions>
     <kappaN>
-      50
+      0
     </kappaN>
     <chiN>
       A B 0
@@ -62,11 +62,11 @@
     </bonded_energy>
     <dynamical_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 6.28</q>
+      <q>1 2 3 4 6.28</q>
     </dynamical_structure_factor>
     <static_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 6.28</q>
+      <q>1 2 3 4 6.28</q>
     </static_structure_factor>
   </analysis>
 </soma>
