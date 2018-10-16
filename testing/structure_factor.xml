@@ -6,11 +6,16 @@
     </kappaN>
     <chiN>
       A B 0
+      A C 0
+      B C 0
     </chiN>
     <bonds>
     A A  harmonic
     A B  harmonic
+    A C  harmonic
     B B  harmonic
+    B C  harmonic
+    C C  harmonic
     </bonds>
   </interactions>
   <A>
@@ -31,8 +36,9 @@
    12 12 12
   </nxyz>
   <poly_arch>
-    3269 A{32}
-    3269 B{32}   
+    2179 A{32}
+    2179 B{32}   
+    2179 C{32}
   </poly_arch>
   <analysis>
     <density_var>
@@ -62,11 +68,11 @@
     </bonded_energy>
     <dynamical_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 2 3 4 6.28</q>
+      <q>1 2 3 4 5 6</q>
     </dynamical_structure_factor>
     <static_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 2 3 4 6.28</q>
+      <q>1 2 3 4 5 6</q>
     </static_structure_factor>
   </analysis>
 </soma>
