@@ -27,7 +27,7 @@
     0
   </time>
   <reference_Nbeads>
-    32 
+    256 
   </reference_Nbeads>
   <lxyz>
     2 2 2
@@ -36,9 +36,9 @@
    12 12 12
   </nxyz>
   <poly_arch>
-    2179 A{32}
-    2179 B{32}   
-    2179 C{32}
+    600 A{256}
+    600 B{256}   
+    600 C{256}
   </poly_arch>
   <analysis>
     <density_var>
@@ -68,11 +68,11 @@
     </bonded_energy>
     <dynamical_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 2 3 4 5 6</q>
+      <q>0.5 1 6.28</q>
     </dynamical_structure_factor>
     <static_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 2 3 4 5 6</q>
+      <q>0.5 1 6.28</q>
     </static_structure_factor>
   </analysis>
 </soma>

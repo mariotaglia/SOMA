@@ -32,7 +32,7 @@ def convert_files():
     if ret != 0: raise RuntimeError("Test failed")
 
 def run(test):
-    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10000"])
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10"])
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","structure_factor.h5"])
     if ret != 0: raise RuntimeError("Test failed")
@@ -40,13 +40,15 @@ def run(test):
     if ret != 0: raise RuntimeError("Test failed")
 
 def test():
-    with h5py.File('structure_factor.h5', 'r') as f1:
-        poly_arch = np.array(f1['/parameter/poly_arch'])
+    with h5py.File('structure_factor.h5', 'r') as hf_config:
+        poly_arch = np.array(hf_config['/parameter/poly_arch'])
         n_mono = poly_arch[0] # First element contains number of monomers for homopolymers.
+        n_particle_types = np.array(hf_config['/parameter/n_types'])[0]
+        n_poly_types = np.array(hf_config['/parameter/n_poly_type'])[0]
         
-        with h5py.File('structure_factor_ana.h5', 'r') as f2:
-            static_structure_factor= np.array(f2['/static_structure_factor'])
-            static_q_vec = np.array(f2['/static_structure_factor'].attrs['q'])
+        with h5py.File('structure_factor_ana.h5', 'r') as hf_ana:
+            static_structure_factor= np.array(hf_ana['/static_structure_factor'])
+            static_q_vec = np.array(hf_ana['/static_structure_factor'].attrs['q'])
             static_ave = np.mean(static_structure_factor, axis=0) # time/ensemble average.
 
             # collective static structure factor of binary blend in http://arxiv.org/abs/cond-mat/0501076v1 p.28 eq.91.
@@ -54,20 +56,15 @@ def test():
             static_ana = 2 * (np.exp(-x) - 1 + x) / x**2 
             static_ana = n_mono * static_ana
 
-            #err = np.mean(static_ave[:, 0, 0] - static_ana[:])
 
-            #plt.plot(static_q_vec, static_ave[:, 0, 0])
-            #plt.plot(static_q_vec, static_ana + err)
-            #plt.show()
-            #print("Static_ave = ", static_ave)
-            #print("Static_q_vec = ", static_q_vec)
-            #print("Static_ana = ", static_ana)
-            for i in range(len(static_q_vec)):
-                check_value(float(static_ave[i, 0, 0]), 1e-1, float(static_ana[i]), "homo static structure factor ")    
+            print(static_ave)
+            for q_index in range(len(static_q_vec)):
+                for poly_type_index in range(n_poly_types):
+                    check_value(float(static_ave[q_index, poly_type_index, poly_type_index * n_particle_types + poly_type_index]), 1e-1, float(static_ana[q_index]), "homo static structure factor ")    
 
 def main_test():
-    convert_files()
-    run("")
+    #convert_files()
+    #run("")
     test()
 
 if __name__ == "__main__":

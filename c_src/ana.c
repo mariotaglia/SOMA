@@ -789,19 +789,19 @@ int analytics(struct Phase *const p)
 
 int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum structure_factor_type sf_type)
 {
-  unsigned int size; 
-  soma_scalar_t *q_array, result_tmp_size; 
+  unsigned int q_size, result_tmp_size; 
+  soma_scalar_t *q_array; 
 
   switch (sf_type) {
     case DYNAMICAL_STRUCTURE_FACTOR :
-      size = p->ana_info.q_size_dynamical;
+      q_size = p->ana_info.q_size_dynamical;
       q_array = p->ana_info.q_dynamical;
-      result_tmp_size = size * p->n_types * 4;
+      result_tmp_size = q_size * p->n_types * 4;
       break;
     case STATIC_STRUCTURE_FACTOR :
-      size = p->ana_info.q_size_static;
+      q_size = p->ana_info.q_size_static;
       q_array = p->ana_info.q_static;
-      result_tmp_size = size * p->n_types * 2;
+      result_tmp_size = q_size * p->n_types * 2;
       break;
     default :
       fprintf(stderr, "ERROR: Not correct structure_factor_type. %s:%s:%d\n", __func__, __FILE__, __LINE__);
@@ -809,14 +809,20 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
   }
 
   uint64_t * const counter = (uint64_t * const) calloc(p->n_poly_type, sizeof(uint64_t));
-  if(counter == NULL){
+  if(counter == NULL)
+  {
     fprintf(stderr, "MALLOC ERROR: %s:%d\n",__FILE__,__LINE__);
     return -1;
   }
 
-  memset(result, 0, size * p->n_poly_type * p->n_types * p->n_types * sizeof(soma_scalar_t));
+  memset(result, 0, q_size * p->n_poly_type * p->n_types * p->n_types * sizeof(soma_scalar_t));
 
   soma_scalar_t * const result_tmp = (soma_scalar_t * const) malloc(result_tmp_size * sizeof(soma_scalar_t));
+  if(result_tmp == NULL)
+  {
+    fprintf(stderr, "MALLOC ERROR: %s:%d\n",__FILE__,__LINE__);
+    return -1;
+  }
 
   for (uint64_t poly = 0; poly < p->n_polymers; poly++)
   {
@@ -848,7 +854,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
         soma_scalar_t y = p->polymers[poly].beads[mono].y;
         soma_scalar_t z = p->polymers[poly].beads[mono].z;
   
-        for(unsigned int index_q = 0; index_q < size; index_q++)
+        for(unsigned int index_q = 0; index_q < q_size; index_q++)
         {
           soma_scalar_t qr = q_array[index_q] * (unit_q_x * x + unit_q_y * y + unit_q_z * z);
   
@@ -877,7 +883,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
         }
       }
   
-      for(unsigned int index_q = 0; index_q < size; index_q++)
+      for(unsigned int index_q = 0; index_q < q_size; index_q++)
       {
         for(unsigned int particle_type_i = 0; particle_type_i < p->n_types; particle_type_i++)
         {
@@ -913,13 +919,10 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
   
   free(result_tmp);
 
-/////////////////////////////////////////////////////////////////////////////////
-  MPI_Allreduce(MPI_IN_PLACE, result, size*p->n_poly_type*p->n_types*p->n_types, MPI_SOMA_SCALAR, MPI_SUM,
-		p->info_MPI.SOMA_comm_sim);
-  MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
-		p->info_MPI.SOMA_comm_sim);
+  MPI_Allreduce(MPI_IN_PLACE, result, q_size*p->n_poly_type*p->n_types*p->n_types, MPI_SOMA_SCALAR, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+  MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 
-  for(unsigned int index_q = 0; index_q < size; index_q++)
+  for(unsigned int index_q = 0; index_q < q_size; index_q++)
   {
     for(unsigned int poly_type = 0; poly_type < p->n_poly_type; poly_type++)
     {
@@ -938,6 +941,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
   }
 
   free(counter);
+
   return 0;
 }
 
@@ -970,12 +974,12 @@ int extent_structure(const struct Phase*p,const soma_scalar_t*const data,const c
     fprintf(stderr,"ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",__FILE__,__LINE__,name);
     return -1;
   }
-  hsize_t dims[4]; //ndims -> Stackprotector throws warning, when I use ndims. Maybe allocate array with malloc instead?
+  hsize_t dims[4]; //ndims, no malloc because!
 
   status = H5Sget_simple_extent_dims(d_space,dims,NULL);
   HDF5_ERROR_CHECK(status);
 
-  hsize_t dims_new[4]; //ndims, s.o.
+  hsize_t dims_new[4]; //ndims
   dims_new[0] = dims[0] + 1;
   dims_new[1] = size;
   assert(dims[1] == size);
@@ -991,7 +995,7 @@ int extent_structure(const struct Phase*p,const soma_scalar_t*const data,const c
   hid_t filespace = H5Dget_space(dset);
   HDF5_ERROR_CHECK(filespace);
 
-  hsize_t dims_memspace[4]; //ndims, s.o.
+  hsize_t dims_memspace[4]; //ndims
   dims_memspace[0] = dims_new[0] - dims[0];
   for(unsigned int i = 1; i< ndims;i++)
   {
@@ -999,7 +1003,7 @@ int extent_structure(const struct Phase*p,const soma_scalar_t*const data,const c
   }
 
   hid_t memspace = H5Screate_simple(ndims,dims_memspace,NULL);
-  hsize_t dims_offset[4]; //ndims, s.o.
+  hsize_t dims_offset[4]; //ndims
   dims_offset[0] = dims[0];
   for(unsigned int i=1; i < ndims; i++)
       dims_offset[i] = 0;

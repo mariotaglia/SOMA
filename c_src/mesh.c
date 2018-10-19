@@ -260,7 +260,8 @@ void self_omega_field(const struct Phase *const p)
     const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
     //Add cos and sin series with time dependency
     soma_scalar_t external_field_time=0;
-    if(p->time==0){
+    
+    if(p->time==0||p->serie_length==0){//to fix serie_length seg fault
       external_field_time=1;
     }
     else{
@@ -269,9 +270,6 @@ void self_omega_field(const struct Phase *const p)
 	external_field_time += p->sin_serie[serie_index]*sin(2*M_PI*serie_index/p->period*p->time);
       }
     }
-
-
-
     // Compressibility part + external fields
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
         {
