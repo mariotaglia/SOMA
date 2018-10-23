@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
     /* read in configuration with routine from io */
     const int read = read_config_hdf5(p, p->args.coord_file_arg);
     MPI_ERROR_CHECK(read, "Cannot read coord file.");
-
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
@@ -179,18 +178,18 @@ int main(int argc, char *argv[])
                 exit(missed_chains);
             }
 
-	stop_iteration = check_signal_stop();
-	if( ! p->args.no_sync_signal_flag)
-	    {
-	    //Sync all mpi cores
-	    MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_comm_world);
-	    }
-	if(stop_iteration)
-	    {
-	    if(p->info_MPI.world_rank == 0)
-		fprintf(stdout,"Signal to stop iteration at time %d catched by rank %d.\n",p->time,p->info_MPI.world_rank);
-	    break;
-	    }
+        stop_iteration = check_signal_stop();
+        if( ! p->args.no_sync_signal_flag)
+            {
+            //Sync all mpi cores
+            MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_comm_world);
+            }
+        if(stop_iteration)
+            {
+            if(p->info_MPI.world_rank == 0)
+                fprintf(stdout,"Signal to stop iteration at time %d catched by rank %d.\n",p->time,p->info_MPI.world_rank);
+            break;
+            }
     }
     const int missed_chains = send_domain_chains(p, false);
     if( missed_chains != 0)
@@ -218,7 +217,6 @@ int main(int argc, char *argv[])
         MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
         }
 
-    /* deallocate all memory */
     free_phase(p);
 
     printf("Rank: %d \t polymers %ld\n",p->info_MPI.world_rank, p->n_polymers);

@@ -2,15 +2,20 @@
 <soma version="0.2.0">
   <interactions>
     <kappaN>
-      50
+      0
     </kappaN>
     <chiN>
       A B 0
+      A C 0
+      B C 0
     </chiN>
     <bonds>
     A A  harmonic
     A B  harmonic
+    A C  harmonic
     B B  harmonic
+    B C  harmonic
+    C C  harmonic
     </bonds>
   </interactions>
   <A>
@@ -22,7 +27,7 @@
     0
   </time>
   <reference_Nbeads>
-    32 
+    256 
   </reference_Nbeads>
   <lxyz>
     2 2 2
@@ -31,8 +36,9 @@
    12 12 12
   </nxyz>
   <poly_arch>
-    3269 A{32}
-    3269 B{32}   
+    600 A{256}
+    600 B{256}   
+    600 C{256}
   </poly_arch>
   <analysis>
     <density_var>
@@ -62,11 +68,11 @@
     </bonded_energy>
     <dynamical_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 6.28</q>
+      <q>0.5 1 6.28</q>
     </dynamical_structure_factor>
     <static_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>1 6.28</q>
+      <q>0.5 1 6.28</q>
     </static_structure_factor>
   </analysis>
 </soma>
