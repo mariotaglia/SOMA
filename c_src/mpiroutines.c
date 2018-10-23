@@ -463,12 +463,12 @@ int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm com
 
 int load_balance_mpi_ranks(struct Phase*const p)
     {
-
     if( p->info_MPI.domain_size <= 1)
         return 0;
+
     double*const waiting_time = (double*const)malloc(p->info_MPI.domain_size*sizeof(double));
     if(waiting_time == NULL){fprintf(stderr,"ERROR: Malloc %s:%d\n",__FILE__,__LINE__); return -1;}
-    double div = p->info_MPI.domain_divergence_sec/p->info_MPI.domain_divergence_counter;
+    double div = (p->info_MPI.domain_divergence_sec+1)/(p->info_MPI.domain_divergence_counter+1);
 
     MPI_Allgather( &(div), 1 , MPI_DOUBLE, waiting_time, 1 , MPI_DOUBLE,
                    p->info_MPI.SOMA_comm_domain);
@@ -508,10 +508,20 @@ int load_balance_mpi_ranks(struct Phase*const p)
     unsigned int Nsend = UINT_MAX;
     //! \todo Optimize chain to send. (Poly-Type based?)
     if( p->info_MPI.domain_rank == arg_min )
+	{
+	//CopyIN/OUT not the optimal solution, but the only option I can see so far
+	copyout_phase(p);
         Nsend = send_mult_polymers(p, arg_max, Nchains,p->info_MPI.SOMA_comm_domain);
+	copyin_phase(p);
+	}
 
     if( p->info_MPI.domain_rank == arg_max )
+	{
+	//CopyIN/OUT not the optimal solution, but the only option I can see so far
+	copyout_phase(p);
         Nsend = recv_mult_polymers(p, arg_min,p->info_MPI.SOMA_comm_domain);
+	copyin_phase(p);
+	}
 
     if( arg_min != 0)
         {
@@ -560,7 +570,6 @@ int extract_chains_per_domain(struct Phase*const p, const int*domain_lookup_list
     unsigned int chains_missed=0;
     for(unsigned int i=0; i< p->n_polymers; i++)
         {
-        update_self_polymer(p, p->polymers+i,1);
         const unsigned int target_domain = get_domain_id(p, &(p->polymers[i].rcm) );
         if( target_domain != my_domain)
             {
@@ -644,6 +653,10 @@ int send_domain_chains(struct Phase*const p,const bool init)
     if(p->args.N_domains_arg < 2)
         return 0;
     update_polymer_rcm(p);
+
+    //Copy IN/OUT is not optimal, but the only option I can see so far.
+    copyout_phase(p);
+
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
     const unsigned int len_domain_list = init ? p->args.N_domains_arg -1 : 2;
@@ -782,6 +795,10 @@ int send_domain_chains(struct Phase*const p,const bool init)
     free(n_recv);
     free(recv_len);
     free(recv_buffer);
+
+    //Copy IN/OUT is not optimal, but the only option I can see so far.
+    copyin_phase(p);
+
     if( err == 0)
         return missed_chains;
     else
