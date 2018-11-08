@@ -132,6 +132,7 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
 //! \param p System to analyze
 //! \param result Pointer to array to store the result
 //! \param type Type of structure factor. 0 stands for dynamical, 1 stand for static
+//#pragma acc routine(calc_structure) seq
 int calc_structure(const struct Phase*p,soma_scalar_t*const result, const enum structure_factor_type sf_type);
 
 
