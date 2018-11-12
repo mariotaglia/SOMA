@@ -45,9 +45,11 @@ int init_phase(struct Phase * const p)
     p->tps_elapsed_time = 1; //Bla default, bigger 0
     p->tps_elapsed_steps = 1; //Bla default, bigger 0
 
-    uint64_t n_polymer_offset;
+    uint64_t n_polymer_offset=0;
+#if ( ENABLE_MPI == 1 )
     MPI_Scan( &(p->n_polymers), &n_polymer_offset, 1,MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     n_polymer_offset -= p->n_polymers;
+#endif//ENABLE_MPI
 
     for(uint64_t i=0; i < p->n_polymers;i++)
         {
@@ -71,10 +73,12 @@ int init_phase(struct Phase * const p)
     p->harmonic_normb =
         1.0 / (2.0 * harmonic_spring_Cste * harmonic_spring_Cste);
 
+#if ( ENABLE_MPI == 1 )
     uint64_t n_polymers_global_sum;
     MPI_Allreduce(&(p->n_polymers), &n_polymers_global_sum, 1,
                   MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     assert(p->n_polymers_global == n_polymers_global_sum);
+#endif//ENABLE_MPI
 
     p->n_cells = p->nx * p->ny * p->nz;
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -175,14 +179,22 @@ int init_phase(struct Phase * const p)
             p->num_all_beads_local += 1;
             }
         }
+#if ( ENABLE_MPI == 1 )
     // Share p->num_all_beads
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1,
                   MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+#else
+    p->num_all_beads = p->num_all_beads_local;
+#endif//ENABLE_MPI
 
     // Share p->num_bead_type
     for (unsigned int i = 0; i < p->n_types; i++) {
+#if ( ENABLE_MPI == 1 )
         MPI_Allreduce(&(p->num_bead_type_local[i]), &(p->num_bead_type[i]),
                       1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+#else
+	p->num_bead_type[i] = p->num_bead_type_local[i];
+#endif//ENABLE_MPI
         }
     // Check if uint16_t density field is enough
     soma_scalar_t check_short = p->num_all_beads/p->n_cells;
@@ -209,7 +221,9 @@ int init_phase(struct Phase * const p)
         }
     else
         ncells=0;//Not domain rank == 0, count only once per domain
+#if ( ENABLE_MPI == 1 )
     MPI_Allreduce( MPI_IN_PLACE, &ncells, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
 
     // Loop to calculate scaling parameter
     for (unsigned int i = 0; i < p->n_types; i++)
@@ -245,9 +259,11 @@ int init_phase(struct Phase * const p)
 
     if(p->bead_data_read)
         {
+#if ( ENABLE_MPI == 1 )
         const int init_domain_chains_status = send_domain_chains(p,true);
         if( init_domain_chains_status != 0)
             return init_domain_chains_status;
+#endif//ENABLE_MPI
         update_density_fields(p);
         memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local*p->n_types*sizeof(uint16_t));
         }

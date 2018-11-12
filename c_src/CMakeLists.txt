@@ -56,12 +56,23 @@ add_library(soma_lib ${soma_source})
 add_executable(SOMA soma.c)
 add_executable(CONVERT convert.c)
 
+option(BUILD_STATIC "Try to build static if possible. No guarantee your EXE is completely static" OFF)
+
 foreach(EXE SOMA CONVERT)
   target_link_libraries(${EXE} soma_lib)
   target_link_libraries(${EXE} ${MPI_LIBRARIES})
   target_link_libraries(${EXE} ${HDF5_LIBRARIES})
   target_link_libraries(${EXE} ${HDF5_C_LIBRARIES})
   target_link_libraries(${EXE} ${soma_link_flags})
+
+  if(BUILD_STATIC)
+    if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+      target_link_libraries(${EXE} "-static -static-libgcc")
+    endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+      target_link_libraries(${EXE} "-Bstatic_pgi")
+    endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+  endif(BUILD_STATIC)
 
   install(TARGETS ${EXE} DESTINATION bin)
 endforeach(EXE)

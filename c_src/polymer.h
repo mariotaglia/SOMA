@@ -17,7 +17,7 @@
 */
 #ifndef POLYMER_H
 #define POLYMER_H
-
+#include "soma_config.h"
 #include "rng.h"
 #include "monomer.h"
 

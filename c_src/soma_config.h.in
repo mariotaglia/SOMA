@@ -18,11 +18,12 @@
 
 //! \file soma_config.h
 //! \brief configuration variables for SOMA File is configured by CMAKE.
-#ifndef SOMA_CONFIG_H
-#define SOMA_CONFIG_H
 
 //! Macro to destinguish between SINGLE_PRECISION and DOUBLE.
 //! Automatically set by CMake
+#ifndef SOMA_CONFIG_H
+#define SOMA_CONFIG_H
+
 #cmakedefine01 SINGLE_PRECISION
 
 //! Macro to activate MIC support
@@ -33,6 +34,10 @@
 //! Automatically set by CMake
 #cmakedefine01 ENABLE_DOMAIN_DECOMPOSITION
 
+//! Macro indicating an MPI build
+#cmakedefine01 ENABLE_MPI
+
+
 #if ( SINGLE_PRECISION == 1)
 
 //! Alias for float or double variables
@@ -41,8 +46,14 @@ typedef float soma_scalar_t;
 #define H5T_SOMA_NATIVE_SCALAR H5T_NATIVE_FLOAT
 //! Alias for float or double variables in HDF5 files
 #define H5T_SOMA_FILE_SCALAR H5T_IEEE_F32LE
+#if ( ENABLE_MPI == 1 )
 //! Alias for flow or double variable in MPI
 #define MPI_SOMA_SCALAR MPI_FLOAT
+#else //ENABLE_MPI
+//! MPI_DUMMY
+#define MPI_SOMA_SCALAR -1
+#endif//ENABLE_MPI
+
 
 #else//SINGLE_PRECISION
 
@@ -52,8 +63,14 @@ typedef double soma_scalar_t;
 #define H5T_SOMA_NATIVE_SCALAR H5T_NATIVE_DOUBLE
 //! Alias for float of double variables in HDF5 files
 #define H5T_SOMA_FILE_SCALAR H5T_IEEE_F64LE
+#if ( ENABLE_MPI == 1 )
 //! Alias for flow or double variable in MPI
 #define MPI_SOMA_SCALAR MPI_DOUBLE
+#else //ENABLE_MPI
+//! MPI_DUMMY
+#define MPI_SOMA_SCALAR -1
+#endif//ENABLE_MPI
+
 
 #endif//SINGLE_PRECISION
 
