@@ -20,8 +20,9 @@
 //! \file monomer.h
 //! \brief Collection of code for Monomer struct
 
-#include <hdf5.h>
 #include "soma_config.h"
+#include <hdf5.h>
+
 
 
 

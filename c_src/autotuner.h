@@ -27,7 +27,7 @@
 
 //! \file autotuner.h
 //! \brief Code for the Autotuner.
-
+#include "soma_config.h"
 #include <stdbool.h>
 
 //! Number of elements that are tried for the autotuner.

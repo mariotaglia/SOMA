@@ -21,10 +21,10 @@
 
 struct Phase;
 struct Info_MPI;
+#include "soma_config.h"
 #include <stdint.h>
 #include "cmdline.h"
 #include <math.h>
-#include "soma_config.h"
 #include "bond.h"
 #include "monomer.h"
 

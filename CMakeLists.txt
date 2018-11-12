@@ -9,7 +9,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug")
 endif()
-
+cmake_policy(SET CMP0074 NEW)
 
 project(SOMA C)
 
@@ -32,18 +32,28 @@ if( "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
 endif()
 
 
-#Find dependency packages
-find_package(MPI REQUIRED)
-if (MPI_FOUND)
-  include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-else (MPI_FOUND)
-  message(SEND_ERROR "SOMA can only be compiled with MPI")
-endif (MPI_FOUND)
+option(ENABLE_MPI "Enable distributed memory execution via MPI" ON)
+if(ENABLE_MPI)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} MPI")
+else(ENABLE_MPI)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} NO-MPI")
+endif(ENABLE_MPI)
+
+if(ENABLE_MPI)
+  #Find dependency packages
+  find_package(MPI REQUIRED)
+  if (MPI_FOUND)
+    include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+  else (MPI_FOUND)
+    message(SEND_ERROR "MPI not found. Install MPI or disable MPI support.")
+  endif (MPI_FOUND)
+endif(ENABLE_MPI)
 
 #Cache the HDF5_ROOT if specified by user
 if (NOT "$ENV{HDF5_ROOT}" STREQUAL "")
-    set(HDF5_ROOT "$ENV{HDF5_ROOT}" CACHE INTERNAL "Stored user specified HDF5_ROOT")
+  set(HDF5_ROOT "$ENV{HDF5_ROOT}" CACHE INTERNAL "Stored user specified HDF5_ROOT")
 endif()
+
 
 find_package(HDF5 REQUIRED)
 if (HDF5_FOUND)
@@ -51,10 +61,13 @@ if (HDF5_FOUND)
 else (HDF5_FOUND)
   message(SEND_ERROR "SOMA requires a hdf5 library.")
 endif(HDF5_FOUND)
-#Test HDF5 for parallel support.
-if(NOT HDF5_IS_PARALLEL)
-  message(SEND_ERROR "SOMA requires a hdf5 library with parallel IO support.")
-endif(NOT HDF5_IS_PARALLEL)
+
+if(ENABLE_MPI)
+  #Test HDF5 for parallel support.
+  if(NOT HDF5_IS_PARALLEL)
+    message(SEND_ERROR "SOMA requires a hdf5 library with parallel IO support.")
+  endif(NOT HDF5_IS_PARALLEL)
+endif(ENABLE_MPI)
 
 #Check for supported compilers.
 if( NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
@@ -110,6 +123,11 @@ endif()
 
 option(ENABLE_MIC "Activate compilation with minimum image convention for bond distances" OFF)
 option(ENABLE_DOMAIN_DECOMPOSITION "Activate compilation with domain decomposition support." OFF)
+if( !ENABLE_MPI)
+  if(ENABLE_DOMAIN_DECOMPOSITION)
+    message(SEND_ERROR "Domain decomposition requires enabled MPI")
+  endif(ENABLE_DOMAIN_DECOMPOSITION)
+endif( !ENABLE_MPI )
 
 if( ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
   message(SEND_ERROR "SOMA can be compiled with either OpenACC or OpenMP, not both.")
@@ -126,46 +144,49 @@ if(ENABLE_NVIDIA_GPU)
 
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Minfo=accel")
 
-  # now perform some more in-depth tests of whether the MPI library supports CUDA memory
-  if ( MPI_LIBRARY MATCHES mpich OR MPI_LIBRARY MATCHES "MVAPICH" )
-    # find out if this is MVAPICH2
-    get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
-    find_program(MPICH2_VERSION
-      NAMES mpichversion mpich2version
-      HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
-      )
-    if (MPICH2_VERSION)
-      execute_process(COMMAND ${MPICH2_VERSION}
-        OUTPUT_VARIABLE _output)
-      if (_output MATCHES "--enable-cuda")
-        set(MPI_CUDA TRUE)
-        message(STATUS "Found MVAPICH2 with CUDA support.")
-      endif()
-    endif()
-  elseif(MPI_LIBRARY MATCHES libmpi)
-    # find out if this is OpenMPI
-    get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
-    find_program(OMPI_INFO
-      NAMES ompi_info
-      HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
-      )
-    if (OMPI_INFO)
-      execute_process(COMMAND ${OMPI_INFO}
-        OUTPUT_VARIABLE _output)
-      if (_output MATCHES "smcuda")
-        set(MPI_CUDA TRUE)
-        message(STATUS "Found OpenMPI with CUDA support.")
-      endif()
-    endif()
-  endif()
+  if(ENABLE_MPI)
+    # now perform some more in-depth tests of whether the MPI library supports CUDA memory
+    if ( MPI_LIBRARY MATCHES mpich OR MPI_LIBRARY MATCHES "MVAPICH" )
+      # find out if this is MVAPICH2
+      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      find_program(MPICH2_VERSION
+	NAMES mpichversion mpich2version
+	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
+	)
+      if (MPICH2_VERSION)
+	execute_process(COMMAND ${MPICH2_VERSION}
+          OUTPUT_VARIABLE _output)
+	if (_output MATCHES "--enable-cuda")
+          set(MPI_CUDA TRUE)
+          message(STATUS "Found MVAPICH2 with CUDA support.")
+	endif(_output MATCHES "--enable-cuda")
+      endif(MPICH2_VERSION)
+    elseif(MPI_LIBRARY MATCHES libmpi)
+      # find out if this is OpenMPI
+      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      find_program(OMPI_INFO
+	NAMES ompi_info
+	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
+	)
+      if (OMPI_INFO)
+	execute_process(COMMAND ${OMPI_INFO}
+          OUTPUT_VARIABLE _output)
+	if (_output MATCHES "smcuda")
+          set(MPI_CUDA TRUE)
+          message(STATUS "Found OpenMPI with CUDA support.")
+	endif(_output MATCHES "smcuda")
+      endif(OMPI_INFO)
+    endif(MPI_LIBRARY MATCHES libmpi)
 
-  if (MPI_CUDA)
-    message(STATUS "MPI<->CUDA interoperability is available and disabled by default.")
-    option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
-  else(MPI_CUDA)
-    message(STATUS "MPI<->CUDA interoperability does not appear to be available.")
-    option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
-  endif(MPI_CUDA)
+
+    if (MPI_CUDA)
+      message(STATUS "MPI<->CUDA interoperability is available and disabled by default.")
+      option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
+    else(MPI_CUDA)
+      message(STATUS "MPI<->CUDA interoperability does not appear to be available.")
+      option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
+    endif(MPI_CUDA)
+  endif(ENABLE_MPI)
 
 endif(ENABLE_NVIDIA_GPU)
 

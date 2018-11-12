@@ -27,7 +27,9 @@
 #include "autotuner.h"
 #include <assert.h>
 #include <stdio.h>
+#if ( ENABLE_MPI == 1 )
 #include <mpi.h>
+#endif//ENABLE_MPI
 #include <stdbool.h>
 #include <time.h>
 
@@ -65,8 +67,11 @@ int start_autotuner(Autotuner*a)
 	}
     assert(a->next_trial < AUTO_TUNER_N_ELEMENTS);
     a->value = a->trials[ a->next_trial ];
-
+#if ( ENABLE_MPI == 1 )
     a->last_start = MPI_Wtime();
+#else
+    a->last_start = time(NULL);
+#endif
     a->started = true;
     return 0;
     }
@@ -76,7 +81,11 @@ int end_autotuner(Autotuner*a)
     assert(a);
     if(a->equilibrated)
 	return 0;
+#if ( ENABLE_MPI == 1 )
     const double end = MPI_Wtime();
+#else
+    const double end = time(NULL);
+#endif//ENABLE_MPI
     if( ! a->started)
 	{
 	fprintf(stderr,"ERROR: %s:%d No started Autotuner end.\n",__FILE__,__LINE__);

@@ -20,6 +20,7 @@
 
 //! \file signal.h Functions that handle signal handling, to enable smooth program abort.
 #include <signal.h>
+#include "soma_config.h"
 
 //! Initialize custom signal handlers for SIGINT and SIGTERM
 //!

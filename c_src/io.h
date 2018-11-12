@@ -36,7 +36,7 @@
   \post Initialized \a p points to an fully initialized configuration.
   \return Error code. Returns not equal to zero if an error occured.
 */
-
+#include "soma_config.h"
 #include <hdf5.h>
 struct Phase;
 

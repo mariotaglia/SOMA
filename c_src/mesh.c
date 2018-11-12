@@ -28,7 +28,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "mpiroutines.h"
-
+#include "soma_config.h"
 
 /* #pragma acc routine seq */
 /* inline void increment_16_bit_uint(uint16_t*const ptr) */
@@ -45,8 +45,10 @@
 */
 void communicate_density_fields(const struct Phase*const p)
     {
+#if ( ENABLE_MPI == 1 )
     //Const cast!
     mpi_divergence((struct Phase*const) p);
+
 
     if (p->info_MPI.sim_size > 1)
         {
@@ -128,6 +130,7 @@ void communicate_density_fields(const struct Phase*const p)
             MPI_Barrier(p->info_MPI.SOMA_comm_domain);
             }
         }
+#endif//ENABLE_MPI
     }
 
 int update_density_fields(const struct Phase *const p)

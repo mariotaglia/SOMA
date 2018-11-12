@@ -40,8 +40,9 @@ int test_read_write_hdf5(const struct Phase * const p)
                 __LINE__);
         return status;
         }
-
+#if ( ENABLE_MPI == 1 )
     MPI_Barrier(p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
 
     struct Phase phase2;
     struct Phase *const p2 = &phase2;
@@ -218,7 +219,9 @@ int test_area51_exact(const struct Phase * const p)
                 }
             }
         }
+#if ( ENABLE_MPI == 1 )
     MPI_Allreduce(MPI_IN_PLACE,&violations,1,MPI_UNSIGNED,MPI_SUM,p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
     if (p->info_MPI.sim_rank == 0)
         {
         if( violations == 0)
@@ -251,7 +254,9 @@ int test_chains_in_domain(struct Phase*const p)
                    p->info_MPI.world_rank, p->polymers[i].rcm.x);
             }
         }
+#if ( ENABLE_MPI == 1 )
     MPI_Allreduce(MPI_IN_PLACE,&violations,1,MPI_UNSIGNED,MPI_SUM,p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
     if (p->info_MPI.sim_rank == 0)
         {
         if( violations == 0)

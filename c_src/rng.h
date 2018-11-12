@@ -28,6 +28,7 @@
 */
 #ifndef SOMA_RNG_H
 #define SOMA_RNG_H
+#include "soma_config.h"
 #include <stdint.h>
 #include "cmdline.h"
 struct Phase;

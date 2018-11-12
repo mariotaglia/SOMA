@@ -24,7 +24,7 @@
 #define PHASE_H
 
 struct IndependetSets;
-
+#include "soma_config.h"
 #include "mpiroutines.h"
 #include "ana_info.h"
 #include "cmdline.h"

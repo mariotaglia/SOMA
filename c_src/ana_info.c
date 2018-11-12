@@ -25,6 +25,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "soma_config.h"
 #include "phase.h"
 
 //! \def SOMA_NUM_OBS
@@ -73,9 +74,11 @@ int init_ana(struct Phase * const p,const char*const filename,const char*const c
     //Set up file access property list with parallel I/O access
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
     if (p->info_MPI.sim_size > 1){
+#if ( ENABLE_MPI == 1 )
 	status = H5Pset_fapl_mpio(plist_id, p->info_MPI.SOMA_comm_sim,
 				  MPI_INFO_NULL);
 	HDF5_ERROR_CHECK(status);
+#endif//ENABLE_MPI
 	}
 
     //Write to the file only for the attr of density_field.

@@ -25,7 +25,9 @@
 //! \brief Implementation of mpiroutines.h
 
 #include"mpiroutines.h"
+#if ( ENABLE_MPI == 1 )
 #include<mpi.h>
+#endif//ENABLE_MPI
 #include<stdio.h>
 #include<stdlib.h>
 #include <string.h>
@@ -41,6 +43,18 @@
 
 int init_MPI(struct Phase * p)
     {
+    //Initialize all variable even without MPI
+    p->info_MPI.domain_divergence_sec = 0.;
+    p->info_MPI.domain_divergence_counter = 0;
+
+    p->info_MPI.world_rank = 0;
+    p->info_MPI.world_size = 1;
+    p->info_MPI.sim_size = 1;
+    p->info_MPI.sim_rank = 0;
+    p->info_MPI.domain_size = 1;
+    p->info_MPI.domain_rank = 0;
+
+#if ( ENABLE_MPI == 1 )
     int test;
     if( MPI_Comm_rank( p->info_MPI.SOMA_comm_world, &(test)) != MPI_SUCCESS)
         {
@@ -107,16 +121,13 @@ int init_MPI(struct Phase * p)
     p->args.rng_seed_arg = fixed_seed;
     if(p->info_MPI.sim_rank == 0)
         printf("All %d ranks use fixed seed %u.\n",p->info_MPI.sim_size,p->args.rng_seed_arg);
-
-
-    p->info_MPI.domain_divergence_sec = 0.;
-    p->info_MPI.domain_divergence_counter = 0;
-
+#endif//ENABLE_MPI
     return 0;
 }
 
 int finalize_MPI(struct Info_MPI*mpi)
     {
+#if ( ENABLE_MPI == 1 )
     if( mpi->SOMA_comm_domain != MPI_COMM_NULL )
         MPI_Comm_free( &(mpi->SOMA_comm_domain) );
     if( mpi->SOMA_comm_sim != MPI_COMM_NULL )
@@ -125,10 +136,16 @@ int finalize_MPI(struct Info_MPI*mpi)
         MPI_Comm_free( &(mpi->SOMA_comm_world) );
 
     return MPI_Finalize();
+#else
+    return 0;
+#endif//ENABLE_MPI
     }
+
+
 
 int check_status_on_mpi(const struct Phase*const p,int my_status)
     {
+#if ( ENABLE_MPI == 1 )
     int*const status_array =(int*const)malloc(p->info_MPI.sim_size*sizeof(int));
     if(status_array == NULL){fprintf(stderr,"ERROR: Malloc %s:%d \n",__FILE__,__LINE__);return -1;}
     MPI_Allgather(&my_status,1,MPI_INT,
@@ -139,8 +156,12 @@ int check_status_on_mpi(const struct Phase*const p,int my_status)
             return status_array[i];
     free(status_array);
     return 0;
+#else
+    return my_status;
+#endif //ENABLE_MPI
     }
 
+#if ( ENABLE_MPI == 1 )
 double mpi_divergence(struct Phase*const p)
     {
     if(p->args.load_balance_arg == 0)
@@ -155,6 +176,7 @@ double mpi_divergence(struct Phase*const p)
 
 int collective_global_update(struct Phase*const p)
     {
+
     // Global number of polymers
     MPI_Allreduce(&(p->n_polymers), &(p->n_polymers_global), 1,
                   MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
@@ -816,3 +838,5 @@ unsigned int get_domain_id(const struct Phase*const p,const Monomer*const rcm)
     assert( (int) target_domain < p->args.N_domains_arg);
     return target_domain;
     }
+
+#endif//ENABLE_MPI

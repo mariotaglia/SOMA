@@ -44,14 +44,16 @@
 //! \return Errorcode
 int main(int argc, char *argv[])
     {
+    Phase phase;
+    Phase *const p = &phase;
+
+#if ( ENABLE_MPI == 1 )
     if (MPI_Init(NULL, NULL) != MPI_SUCCESS)
         {
         fprintf(stderr, "MPI_ERROR (start)\n");
         return -1;
         }
 
-    Phase phase;
-    Phase *const p = &phase;
    /* initialize MPI */
     const int error = MPI_Comm_dup( MPI_COMM_WORLD, &(p->info_MPI.SOMA_comm_world) );
     if( error != MPI_SUCCESS)
@@ -65,6 +67,8 @@ int main(int argc, char *argv[])
         fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
         return -1;
         }
+#endif//ENABLE_MPI
+
     p->args.N_domains_arg = 1;
     p->args.domain_buffer_arg = 0;
     p->args.long_chain_threshold_arg = 1;
@@ -142,6 +146,7 @@ int main(int argc, char *argv[])
 
     /* deallocate all memory */
     free_phase(p);
-
+#if ( ENABLE_MPI == 1 )
     finalize_MPI(&(p->info_MPI));
+#endif//ENABLE_MPI
     }

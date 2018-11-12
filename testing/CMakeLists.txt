@@ -22,10 +22,18 @@ if(ENABLE_OPENMP)
   set(ACC_FLAG " -n 2")
 endif(ENABLE_OPENMP)
 if(ENABLE_NVIDIA_GPU)
-  set(ACC_FLAG " -g ${MPIEXEC_MAX_NUMPROCS}")
+  if(ENABLE_MPI)
+    set(ACC_FLAG " -g ${MPIEXEC_MAX_NUMPROCS}")
+  else(ENABLE_MPI)
+    set(ACC_FLAG " -o 0")
+  endif(ENABLE_MPI)
 endif(ENABLE_NVIDIA_GPU)
 
-set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
+if(ENABLE_MPI)
+  set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
+else(ENABLE_MPI)
+    set(MPI_PREFIX "")
+endif(ENABLE_MPI)
 
 
 #copy relevant files
@@ -54,9 +62,11 @@ add_test(NAME convert WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./co
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/xml.sh.in ${CMAKE_CURRENT_BINARY_DIR}/xml.sh)
 add_test(NAME xml WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./xml.sh)
 
-#async
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.py.in ${CMAKE_CURRENT_BINARY_DIR}/async.py)
-add_test(NAME async WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python async.py ${ACC_FLAG})
+if(ENABLE_MPI)
+  #async
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.py.in ${CMAKE_CURRENT_BINARY_DIR}/async.py)
+  add_test(NAME async WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python async.py ${ACC_FLAG})
+endif(ENABLE_MPI)
 
 #ConfGen_AnaGen
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AnaGen.py.in ${CMAKE_CURRENT_BINARY_DIR}/AnaGen.py)
@@ -78,8 +88,10 @@ if(HDF5_DIFF_EXECUTABLE)
 
 endif(HDF5_DIFF_EXECUTABLE)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LoadBalance.sh.in ${CMAKE_CURRENT_BINARY_DIR}/LoadBalance.sh)
-add_test(NAME Load-Balance WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./LoadBalance.sh)
+if(ENABLE_MPI)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LoadBalance.sh.in ${CMAKE_CURRENT_BINARY_DIR}/LoadBalance.sh)
+  add_test(NAME Load-Balance WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./LoadBalance.sh)
+endif(ENABLE_MPI)
 
 
 #domain decomposition tests
@@ -98,7 +110,9 @@ endif(ENABLE_MIC)
 #stat
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/statistics.py)
 add_test(NAME default-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=${ACC_FLAG})#default
-add_test(NAME MPI-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --prefix=${MPI_PREFIX} --additional-flags=${ACC_FLAG})
+if(ENABLE_MPI)
+  add_test(NAME MPI-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --prefix=${MPI_PREFIX} --additional-flags=${ACC_FLAG})
+endif(ENABLE_MPI)
 #add_test(NAME PCG32-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=-pPCG32${ACC_FLAG}) #default case
 add_test(NAME MT-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --additional-flags=-pMT${ACC_FLAG})
 if(ENABLE_MIC)
