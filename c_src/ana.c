@@ -837,21 +837,21 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
     tmp[index]=0;
   }
   enum enum_pseudo_random_number_generator arg_rng_type = p->args.pseudo_random_number_generator_arg;
-#pragma acc data copy(counter[0:p->n_poly_type],result[0: q_size * p->n_poly_type * p->n_types * p->n_types],result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size],tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
-#pragma acc host_data use_device(counter,result,result_tmp,q_array,tmp)
-#pragma acc parallel loop
+  //#pragma acc data copy(counter[0:p->n_poly_type],result[0: q_size * p->n_poly_type * p->n_types * p->n_types],result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size],tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
+  //#pragma acc host_data use_device(counter,result,result_tmp,q_array,tmp)
+  //#pragma acc parallel loop
   for (uint64_t poly = 0; poly < p->n_polymers; poly++){
     const unsigned int poly_type = p->polymers[poly].type;
     unsigned int poly_length=p->poly_arch[p->poly_type_offset[poly_type]];
     RNG_STATE * const s = &(p->polymers[poly].poly_state);
     //random q generation
  
-#pragma acc loop
+    //#pragma acc loop
     for(unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++){
-#pragma acc atomic
+      //#pragma acc atomic
       counter[poly_type]=counter[poly_type]+1;
       soma_scalar_t rng1,rng2;
-#pragma acc loop seq
+      //#pragma acc loop seq
       for(int random_i=0;random_i<index_random_q;random_i++){
         rng1=soma_rng_uint(s,arg_rng_type);
         rng2=soma_rng_uint(s,arg_rng_type);
@@ -863,16 +863,17 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
       soma_scalar_t unit_q_x=sin(phi)*cos(theta);
       soma_scalar_t unit_q_y=sin(phi)*sin(theta);
       soma_scalar_t unit_q_z=cos(phi);
-#pragma acc loop
+      //#pragma acc loop
       for(unsigned int mono = 0; mono < poly_length; mono++){
         const unsigned int particle_type = get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + mono]);
         // Monomer position at t.
         soma_scalar_t x = p->polymers[poly].beads[mono].x;
         soma_scalar_t y = p->polymers[poly].beads[mono].y;
         soma_scalar_t z = p->polymers[poly].beads[mono].z;
-#pragma acc loop
+	//#pragma acc loop
         for(unsigned int index_q = 0; index_q < q_size; index_q++){
           soma_scalar_t qr = q_array[index_q] * (unit_q_x * x + unit_q_y * y + unit_q_z * z);
+	  
           switch ( sf_type ){
             case STATIC_STRUCTURE_FACTOR :
               result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*2+poly*q_size*p->n_types*2+index_q * p->n_types * 2 + particle_type * 2 + 0] += cos(qr);
@@ -884,7 +885,6 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
 	      soma_scalar_t y_0 =p->polymers[poly].msd_beads[mono].y;
 	      soma_scalar_t z_0 =p->polymers[poly].msd_beads[mono].z;
               soma_scalar_t qr_msd = q_array[index_q] * (unit_q_x * x_0 + unit_q_y * y_0 + unit_q_z * z_0);
-	      random=x_0;
               result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 0] += cos(qr);
               result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 1] += sin(qr);
 	      result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 2] += cos(qr_msd);
@@ -895,11 +895,11 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
           }
         } 
       }
-#pragma acc loop
+      //#pragma acc loop
       for(unsigned int particle_type_i = 0; particle_type_i < p->n_types; particle_type_i++){
-#pragma acc loop
+	//#pragma acc loop
 	for(unsigned int particle_type_j = 0; particle_type_j < p->n_types; particle_type_j++){
-#pragma acc loop	  
+	  //#pragma acc loop	  
 	  for(unsigned int index_q = 0; index_q < q_size; index_q++){
             switch ( sf_type ){
 	    case STATIC_STRUCTURE_FACTOR :    
@@ -907,7 +907,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
 		(result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*2+poly*q_size*p->n_types*2+index_q * p->n_types * 2 + particle_type_i * 2 + 0] 
 		 * result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*2+poly*q_size*p->n_types*2+index_q * p->n_types * 2 + particle_type_j * 2 + 0] 
 		 + result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*2+poly*q_size*p->n_types*2+index_q * p->n_types * 2 + particle_type_i * 2 + 1] 
-		 * result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*2+poly*q_size*p->n_types*2+index_q * p->n_types * 2 + particle_type_j * 2 + 1])/poly_length
+		 * result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*2+poly*q_size*p->n_types*2+index_q * p->n_types * 2 + particle_type_j * 2 + 1])/poly_length	
 		;
 	      break;
 	    case DYNAMICAL_STRUCTURE_FACTOR :
@@ -915,7 +915,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
 		(result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type_i * 4 + 0] 
 		 * result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type_j * 4 + 2] 
 		 + result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type_i * 4 + 1] 
-		* result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type_j * 4 + 3])/poly_length
+		 * result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type_j * 4 + 3])/poly_length
 		 ;
 	      break;
 	    default :
@@ -936,6 +936,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
         for(unsigned int particle_type_j = 0; particle_type_j < p->n_types; particle_type_j++){
           for(unsigned int index_q = 0; index_q < q_size; index_q++){
 	    result[index_q * p->n_poly_type * p->n_types * p->n_types + poly_type * p->n_types * p->n_types + particle_type_i * p->n_types + particle_type_j]+=(tmp[index_random_q*p->n_polymers*q_size*p->n_types*p->n_types+poly*q_size*p->n_types*p->n_types+index_q*p->n_types*p->n_types+particle_type_i*p->n_types+particle_type_j]/(soma_scalar_t)counter[poly_type]);
+	    printf("counter %i\n",counter[poly_type]);
           }
         }
       }
