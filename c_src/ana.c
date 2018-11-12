@@ -817,7 +817,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
     return -1;
   }
   memset(result, 0, q_size * p->n_poly_type * p->n_types * p->n_types * sizeof(soma_scalar_t));
-  unsigned int n_random_q = 32;
+  unsigned int n_random_q = p->args.n_random_q_arg;
   soma_scalar_t * const result_tmp = (soma_scalar_t * const) malloc(n_random_q*p->n_polymers*result_tmp_size * sizeof(soma_scalar_t));
   if(result_tmp == NULL)
   {
@@ -836,7 +836,6 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
   for(unsigned int index=0;index<n_random_q*p->n_polymers*q_size*p->n_types*p->n_types;index++){
     tmp[index]=0;
   }
-  soma_scalar_t random;
   enum enum_pseudo_random_number_generator arg_rng_type = p->args.pseudo_random_number_generator_arg;
 #pragma acc data copy(counter[0:p->n_poly_type],result[0: q_size * p->n_poly_type * p->n_types * p->n_types],result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size],tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 #pragma acc host_data use_device(counter,result,result_tmp,q_array,tmp)
