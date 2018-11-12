@@ -178,7 +178,7 @@ if(ENABLE_NVIDIA_GPU)
           message(STATUS "Found OpenMPI with CUDA support.")
 	endif(_output MATCHES "smcuda")
       endif(OMPI_INFO)
-    endif(MPI_LIBRARY MATCHES libmpi)
+    endif()
 
 
     if (MPI_CUDA)
