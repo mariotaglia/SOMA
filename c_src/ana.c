@@ -928,8 +928,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
     }//index_random_q
   }//poly
 
-  MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim); 
-  MPI_Allreduce(MPI_IN_PLACE, result, q_size*p->n_poly_type*p->n_types*p->n_types, MPI_SOMA_SCALAR, MPI_SUM, p->info_MPI.SOMA_comm_sim); 
+
   for(uint64_t poly = 0; poly < p->n_polymers; poly++){
     unsigned int poly_type = p->polymers[poly].type;
     unsigned int poly_length=p->poly_arch[p->poly_type_offset[poly_type]];
@@ -943,6 +942,8 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
       }
     } 
   }
+  MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim); 
+  MPI_Allreduce(MPI_IN_PLACE, result, q_size*p->n_poly_type*p->n_types*p->n_types, MPI_SOMA_SCALAR, MPI_SUM, p->info_MPI.SOMA_comm_sim); 
   free(result_tmp);
   free(tmp);
   free(counter);
