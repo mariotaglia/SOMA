@@ -9,7 +9,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug")
 endif()
-cmake_policy(SET CMP0074 NEW)
+if(${CMAKE_VERSION} VERSION_GREATER "3.11.0") 
+  cmake_policy(SET CMP0074 NEW)
+endif()
 
 project(SOMA C)
 
@@ -28,7 +30,7 @@ set(SOMA_SYSTEM_INFO "${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_C_COMPIL
 
 #Set proper release flags for PGI.
 if( "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
-  set( CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING "" FORCE)
+  set( CMAKE_C_FLAGS_RELEASE "-O0 -DNDEBUG" CACHE STRING "" FORCE)
 endif()
 
 
@@ -176,7 +178,7 @@ if(ENABLE_NVIDIA_GPU)
           message(STATUS "Found OpenMPI with CUDA support.")
 	endif(_output MATCHES "smcuda")
       endif(OMPI_INFO)
-    endif(MPI_LIBRARY MATCHES libmpi)
+    endif()
 
 
     if (MPI_CUDA)
