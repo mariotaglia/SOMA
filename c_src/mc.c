@@ -241,7 +241,7 @@ int mc_center_mass(Phase*const p, const unsigned int nsteps,const unsigned int t
         uint64_t n_polymers = p->n_polymers ;
         unsigned int n_accepts = 0;
 //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
-#pragma acc parallel loop vector_length(tuning_parameter)
+#pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
 #pragma omp parallel for reduction(+:n_accepts)
         for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
             {
@@ -343,7 +343,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps,const unsign
         unsigned int n_accepts = 0;
 
       //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
-#pragma acc parallel loop vector_length(tuning_parameter)
+#pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
 #pragma omp parallel for reduction(+:n_accepts)
 
         for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
@@ -445,7 +445,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps,const u
 
       //Shutup compiler warning
       unsigned int n_accepts = tuning_parameter;n_accepts=0;
-#pragma acc parallel loop vector_length(tuning_parameter) async
+#pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
 #pragma omp parallel for reduction(+:n_accepts)
       for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
         {
@@ -552,7 +552,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps,const 
           const unsigned int len = set_length_tmp[set_id];
           //Shutup compiler warning
           unsigned int accepted_moves_set =tuning_parameter;accepted_moves_set=0;
-#pragma acc parallel loop vector_length(tuning_parameter) async
+#pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
 #pragma omp parallel for reduction(+:n_accepts)
           for(unsigned int iP=0; iP < len; iP++)
             {

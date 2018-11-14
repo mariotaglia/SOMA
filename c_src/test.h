@@ -21,6 +21,7 @@
 #ifndef SOMA_TEST_H
 #define SOMA_TEST_H
 
+#include "soma_config.h"
 struct Phase;
 
 //! Test the read and write functionality for a given phase.

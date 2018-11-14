@@ -26,7 +26,9 @@
 #include "io.h"
 #include <stdio.h>
 #include <assert.h>
+#if ( ENABLE_MPI == 1 )
 #include <mpi.h>
+#endif//ENABLE_MPI
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -35,6 +37,7 @@
 #endif//_OPENMP
 #include "mesh.h"
 #include "cmdline.h"
+#include "soma_config.h"
 
 int read_old_config(struct Phase * p, char *const filename)
     {
@@ -334,8 +337,9 @@ int read_old_geometry(struct Phase*p,const char*filename)
     return 0;
     }
 
-
+#if ( ENABLE_MPI == 1 )
 #include <mpi.h>
+#endif// ( ENABLE_MPI == 1 )
 #include "hdf5.h"
 
 int write_hdf5(const hsize_t ndims,const hsize_t*const dims,const hid_t file_id,
@@ -383,7 +387,9 @@ int write_area51_hdf5(const struct Phase*const p, const hid_t file_id,const hid_
     const hsize_t offset[3] = { my_domain*(p->nx/p->args.N_domains_arg), 0 , 0};
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
+#if ( ENABLE_MPI == 1 )
     MPI_Barrier( p->info_MPI.SOMA_comm_world);
+#endif//ENABLE_MPI
     int status;
     if ((status =
          H5Dwrite(dataset, H5T_NATIVE_UINT8, memspace,dataspace, plist_id, p->area51 + ghost_buffer_size)) < 0) {
@@ -490,17 +496,21 @@ int write_config_hdf5(const struct Phase * const p, const char *filename)
 
     //Set up file access property list with parallel I/O access
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+#if ( ENABLE_MPI == 1 )
     if (p->info_MPI.sim_size > 1)
         H5Pset_fapl_mpio(plist_id, p->info_MPI.SOMA_comm_sim,
                          MPI_INFO_NULL);
+#endif//ENABLE_MPI
 
     //Create a new h5 file and overwrite the content.
     hid_t file_id =
         H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
     H5Pclose(plist_id);
     plist_id = H5Pcreate(H5P_DATASET_XFER);
+#if ( ENABLE_MPI == 1 )
     if (p->info_MPI.sim_size > 1)
         H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+#endif//ENABLE_MPI
 
     //Create a group for all parameter of the simulation
     hid_t parameter_group =
@@ -594,11 +604,13 @@ int write_config_hdf5(const struct Phase * const p, const char *filename)
 
     //Write out the polymers
     //Determine the offset, for each process.
-    uint64_t n_polymer_offset;
+    uint64_t n_polymer_offset=0;
+#if ( ENABLE_MPI == 1 )
     //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
     MPI_Scan((uint64_t *) &(p->n_polymers), &n_polymer_offset, 1,
              MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     n_polymer_offset -= p->n_polymers;
+#endif//ENABLE_MPI
 
     unsigned int *const poly_type =
         (unsigned int *const) malloc(p->n_polymers_storage * sizeof(unsigned int));
@@ -839,6 +851,7 @@ int read_area51_hdf5(struct Phase*const p, const hid_t file_id,const hid_t plist
         return status;
         }
 
+#if ( ENABLE_MPI == 1 )
     const int left_neigh_rank = ( ((my_domain-1) + p->args.N_domains_arg ) % p->args.N_domains_arg) * p->info_MPI.domain_size + p->info_MPI.domain_rank;
     const int right_neigh_rank = ( ((my_domain+1) + p->args.N_domains_arg ) % p->args.N_domains_arg) * p->info_MPI.domain_size + p->info_MPI.domain_rank;
 
@@ -857,6 +870,7 @@ int read_area51_hdf5(struct Phase*const p, const hid_t file_id,const hid_t plist
 
     MPI_Waitall(4,req,stat);
     MPI_Barrier(p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
 
     if ((status = H5Sclose(dataspace)) < 0)
         {
@@ -925,7 +939,7 @@ int read_field_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t 
             return status;
             }
 
-
+#if ( ENABLE_MPI == 1 )
         MPI_Request req[4];
         MPI_Status stat[4];
 
@@ -941,6 +955,7 @@ int read_field_hdf5(const struct Phase*const p, const hid_t file_id,const hid_t 
 
         MPI_Waitall(4,req,stat);
         MPI_Barrier(p->info_MPI.SOMA_comm_sim);
+#endif// ( ENABLE_MPI == 1 )
 
         if ((status = H5Sclose(dataspace)) < 0)
             {
@@ -972,16 +987,20 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
     herr_t status;
     //Set up file access property list with parallel I/O access
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+#if ( ENABLE_MPI == 1 )
     if (p->info_MPI.sim_size > 1)
         H5Pset_fapl_mpio(plist_id, p->info_MPI.SOMA_comm_sim,
                          MPI_INFO_NULL);
+#endif//ENABLE_MPI
 
     //Create a new h5 file and overwrite the content.
     hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, plist_id);
     H5Pclose(plist_id);
     plist_id = H5Pcreate(H5P_DATASET_XFER);
+#if ( ENABLE_MPI == 1 )
     if (p->info_MPI.sim_size > 1)
         H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+#endif//ENABLE_MPI
 
     status = read_hdf5(file_id,"/parameter/n_polymers",H5T_NATIVE_UINT64,plist_id,&(p->n_polymers_global));
     HDF5_ERROR_CHECK2(status,"/parameter/n_polymers");
@@ -994,11 +1013,13 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
         n_polymers += 1;
     p->n_polymers = n_polymers;
     p->n_polymers_storage = p->n_polymers;
-    uint64_t n_polymer_offset;
+    uint64_t n_polymer_offset=0;
+#if ( ENABLE_MPI == 1 )
     //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
     MPI_Scan((uint64_t *) &(p->n_polymers), &n_polymer_offset, 1,
              MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     n_polymer_offset -= p->n_polymers;
+#endif//ENABLE_MPI
 
     if (p->info_MPI.sim_rank == p->info_MPI.sim_size - 1)
         assert(p->n_polymers + n_polymer_offset == p->n_polymers_global);
@@ -1412,13 +1433,21 @@ int screen_output(struct Phase*const p,const unsigned int Nsteps)
     static unsigned int last_time = 0;
     static double last_sec = 0;
     if(last_time == 0) last_time = p->start_time;
+#if ( ENABLE_MPI == 1 )
     if(last_sec == 0) last_sec = MPI_Wtime();
+#else
+    if(last_sec == 0) last_sec = time(NULL);
+#endif//( ENABLE_MPI == 1 )
 
     const time_t now = time(NULL); if(last_print == 0) last_print = now;
     const unsigned int second = now - p->start_clock;
     const unsigned int steps_done = p->time - p->start_time;
     const time_t end = p->start_clock + second  * (Nsteps)/(soma_scalar_t)steps_done ;
+#if ( ENABLE_MPI == 1 )
     const double now_sec = MPI_Wtime();
+#else
+    const double now_sec = time(NULL);
+#endif//ENABLE_MPI
     const double sec =  now_sec - last_sec;
     p->tps_elapsed_time += sec;
     p->tps_elapsed_steps += p->time-last_time;

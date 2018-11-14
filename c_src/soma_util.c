@@ -27,6 +27,7 @@
 #include "phase.h"
 #include "mpiroutines.h"
 #include <math.h>
+#include <string.h>
 
 unsigned int get_bond_type(const uint32_t info)
     {
@@ -178,16 +179,21 @@ int post_process_args(struct som_args*args,const unsigned int world_rank)
         return -2;
         }
 #endif//ENABLE_MIC
-#if ( ENABLE_DOMAIN_DECOMPOSITION != 1 )
+#if ( ENABLE_DOMAIN_DECOMPOSITION != 1 || ENABLE_MPI == 1  )
     if( args->N_domains_arg > 1 )
         {
-        fprintf(stderr,"ERROR: Domain decomposition support requested via CMDline, but SOMA is compiled without the support. Recompile SOMA with the appropriate option for domain decomposition.\n");
+        fprintf(stderr,"ERROR: Domain decomposition  support requested via CMDline, but SOMA is compiled without the support /MPI. Recompile SOMA with the appropriate option for domain decomposition.\n");
         return -5;
         }
 #endif//ENABLE_DOMAIN_DECOMPOSITION
 
-
-
+    if( strstr(args->final_file_arg, ".h5") == NULL)
+	{
+	if(world_rank == 0)
+	    {
+	    fprintf(stderr, "WARNING: '.h5' could not be found in the filename of the final configuration.\nWARNING: Proceed at your own risk. filename=%s",args->final_file_arg);
+	    }
+	}
 
     if(world_rank == 0)
         cmdline_parser_dump(stdout, args);
@@ -223,9 +229,11 @@ unsigned int get_number_bond_type(const struct Phase*const p,const enum Bondtype
 
 int reseed(struct Phase*const p,const unsigned int seed)
     {
-    uint64_t n_polymer_offset;
+    uint64_t n_polymer_offset=0;
+#if ( ENABLE_MPI == 1 )
     MPI_Scan( &(p->n_polymers), &n_polymer_offset, 1,MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     n_polymer_offset -= p->n_polymers;
+#endif//ENABLE_MPI
 
     //Reset PRNG to initial state
     for(uint64_t i=0; i < p->n_polymers;i++)

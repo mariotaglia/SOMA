@@ -17,7 +17,7 @@
 */
 #ifndef BOND_H
 #define BOND_H
-
+#include "soma_config.h"
 /*!\file bond.h
   \brief Definition of Bond related code pieces.
 */

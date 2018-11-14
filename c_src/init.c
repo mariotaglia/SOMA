@@ -33,7 +33,9 @@
 #include <string.h>
 #include <limits.h>
 #include <stdbool.h>
+#if ( ENABLE_MPI == 1 )
 #include <mpi.h>
+#endif//ENABLE_MPI
 #include <stdio.h>
 #ifdef _OPENACC
 #include <openacc.h>
@@ -59,6 +61,7 @@ int print_version(const int rank)
 	unsigned int majnum=0,minnum=0,relnum=0;
 	H5get_libversion(&majnum,&minnum,&relnum);
 	fprintf(stdout,"HDF5 version is %u.%u.%u\n",majnum,minnum,relnum);
+#if ( ENABLE_MPI == 1 )
 #ifdef MPI_MAX_LIBRARY_VERSION_STRING
 	//MPI
 	char mpi_version[MPI_MAX_LIBRARY_VERSION_STRING];
@@ -70,6 +73,7 @@ int print_version(const int rank)
 #else
 	fprintf(stdout,"No MPI lib version available.\n");
 #endif//mpi_max_library_version_string
+#endif//( ENABLE_MPI == 1 )
 	}
     return 0;
     }

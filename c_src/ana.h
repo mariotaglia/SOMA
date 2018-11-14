@@ -29,8 +29,8 @@
 #ifndef SOMA_ANA_H
 #define SOMA_ANA_H
 
-#include <hdf5.h>
 #include "soma_config.h"
+#include <hdf5.h>
 #include "stdint.h"
 
 struct Phase;
@@ -110,6 +110,12 @@ int analytics(struct Phase *const p);
 //! \param file_id File specifier for HDF5 output ana file
 //! \return Errorcode.
 int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,const char*const name,const hid_t file_id);
+
+#if ( ENABLE_MPI != 1 )
+//! Dummy MPI type definition
+typedef int MPI_Datatype;
+#define MPI_UINT16_T -1
+#endif//ENABLE_MPI
 
 //! Helper to ouput data to a hdf5 , may be used for the density fields.
 //!

@@ -65,10 +65,12 @@ void calc_Re(const struct Phase * p, soma_scalar_t *const result)
         counter[type] += 1;
         }
 
+#if ( ENABLE_MPI == 1 )
     MPI_Allreduce(MPI_IN_PLACE, result, 4*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
 
     for(unsigned int type=0 ; type < p->n_poly_type; type++)
         for(unsigned int i=0; i < 4; i++)
@@ -97,10 +99,12 @@ void calc_dvar(const struct Phase * p, soma_scalar_t *dvar)
     memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local*p->n_types*sizeof(uint16_t));
     *dvar = var; //Cast to float
     *dvar /= p->n_cells_local*p->n_types;
+#if ( ENABLE_MPI == 1 )
     if( p->info_MPI.sim_rank == 0)
         MPI_Reduce( MPI_IN_PLACE, dvar, 1, MPI_SOMA_SCALAR, MPI_SUM, 0 , p->info_MPI.SOMA_comm_sim );
     else
         MPI_Reduce( dvar, NULL, 1, MPI_SOMA_SCALAR, MPI_SUM, 0 , p->info_MPI.SOMA_comm_sim );
+#endif//ENABLE_MPI
 
     *dvar /= p->args.N_domains_arg;
     }
@@ -148,11 +152,12 @@ void calc_Rg(const struct Phase *p, soma_scalar_t *const result)
         result[type*4 + 3] += (z2/(soma_scalar_t)(N) - zcm*zcm);
         counter[type] += 1;
         }
-
+#if ( ENABLE_MPI == 1 )
     MPI_Allreduce(MPI_IN_PLACE, result, 4*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
 
     for(unsigned int type=0 ; type < p->n_poly_type; type++)
         for(unsigned int i=0; i < 4; i++)
@@ -218,10 +223,12 @@ void calc_anisotropy(const struct Phase * p, soma_scalar_t *const result)
             }
         }
 
+#if ( ENABLE_MPI == 1 )
     MPI_Allreduce(MPI_IN_PLACE, result, 6*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, p->n_poly_type, MPI_UINT64_T, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
 
     for(unsigned int type=0 ; type < p->n_poly_type; type++)
         for(unsigned int i=0; i < 6; i++)
@@ -278,10 +285,12 @@ void calc_MSD(const struct Phase * p, soma_scalar_t *const result)
         result[type*8 + 7] += ((tx_c-mx_c)*(tx_c-mx_c) +(ty_c-my_c)*(ty_c-my_c) + (tz_c-mz_c)*(tz_c-mz_c) )/(N*N);
         }
 
+#if ( ENABLE_MPI == 1 )
     MPI_Allreduce(MPI_IN_PLACE, result, 8*p->n_poly_type, MPI_SOMA_SCALAR, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
     MPI_Allreduce(MPI_IN_PLACE, counter, 2*p->n_poly_type, MPI_UINT64_T, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
 
     //Looping over twice the number of poly types. But loop over half the elements
     // 8/2 = 4, because the norm for first and second half differ.
@@ -311,11 +320,13 @@ void calc_acc_ratio(struct Phase*const p,soma_scalar_t*const acc_ratio)
     uint64_t exchange[4] = {p->n_accepts,p->n_moves,p->n_accepts,p->n_moves};
     //Zero out result for next calc
     p->n_accepts = p->n_moves = 0;
+#if ( ENABLE_MPI == 1 )
     MPI_Reduce(exchange+2,exchange,2,MPI_UINT64_T,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     if( exchange[1] > 0)
         last_acc = exchange[0]/(soma_scalar_t)exchange[1];
     else
         last_acc = 0;
+#endif//ENABLE_MPI
 
     *acc_ratio = last_acc;
     }
@@ -340,10 +351,12 @@ void calc_non_bonded_energy(const struct Phase*const p, soma_scalar_t*const non_
                         }
             }
         }
+#if ( ENABLE_MPI == 1 )
     if( p->info_MPI.sim_rank == 0)
         MPI_Reduce( MPI_IN_PLACE, non_bonded_energy, p->n_types, MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     else
         MPI_Reduce( non_bonded_energy, NULL, p->n_types, MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
     }
 
 void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_energy)
@@ -406,10 +419,12 @@ void calc_bonded_energy(const struct Phase*const p, soma_scalar_t*const bonded_e
                 }
             }
         }
+#if ( ENABLE_MPI == 1 )
     if( p->info_MPI.sim_rank == 0)
         MPI_Reduce(MPI_IN_PLACE,bonded_energy,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
     else
         MPI_Reduce(bonded_energy, NULL ,NUMBER_SOMA_BOND_TYPES,MPI_SOMA_SCALAR,MPI_SUM,0,p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
     }
 
 int extent_ana_by_field(const soma_scalar_t*const data,const uint64_t n_data,const char*const name,const hid_t file_id)
@@ -569,7 +584,9 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
                 if( i+1 < p->args.N_domains_arg )
                     {
                     const unsigned int rank = (i+1)*p->info_MPI.domain_size;
+#if ( ENABLE_MPI == 1 ) //Safe, because i+1 < p->args.N_domains_arg = 1 for non-mpi simulation
                     MPI_Recv( ptr, buffer_size, mpi_type, rank, (i+1) + type*p->args.N_domains_arg, p->info_MPI.SOMA_comm_sim,MPI_STATUS_IGNORE);
+#endif//ENABLEXS
                     dims_offset[2] += p->nx/p->args.N_domains_arg;
                     }
                 }
@@ -588,8 +605,10 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
         {//Send data to sim rank to write the data
         for(unsigned int type=0; type < p->n_types; type++)
             {
+#if ( ENABLE_MPI == 1 )
             MPI_Send( field_pointer + ghost_buffer_size*data_size + type*p->n_cells_local*data_size,
                       buffer_size, mpi_type, 0, my_domain + type*p->args.N_domains_arg, p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_MPI
             }
         }
 

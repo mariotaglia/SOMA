@@ -28,7 +28,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include "mpiroutines.h"
-
+#include "soma_config.h"
 
 /* #pragma acc routine seq */
 /* inline void increment_16_bit_uint(uint16_t*const ptr) */
@@ -45,8 +45,10 @@
 */
 void communicate_density_fields(const struct Phase*const p)
     {
+#if ( ENABLE_MPI == 1 )
     //Const cast!
     mpi_divergence((struct Phase*const) p);
+
 
     if (p->info_MPI.sim_size > 1)
         {
@@ -128,6 +130,7 @@ void communicate_density_fields(const struct Phase*const p)
             MPI_Barrier(p->info_MPI.SOMA_comm_domain);
             }
         }
+#endif//ENABLE_MPI
     }
 
 int update_density_fields(const struct Phase *const p)
@@ -143,46 +146,41 @@ int update_density_fields(const struct Phase *const p)
 
     const uint64_t n_indices = p->n_types*p->n_cells_local;
 
-#pragma acc parallel
-    // num_gangs(200) vector_length(128)
-        {
-#pragma acc loop independent
+#pragma acc parallel loop independent present(p[0:1])
 #pragma omp parallel for
-        for (uint64_t index = 0; index < n_indices; index++)    /*Loop over all fields according to monotype */
-            p->fields_32[index] = 0;
-        }
-        const uint64_t n_polymers = p->n_polymers;
+    for (uint64_t index = 0; index < n_indices; index++)    /*Loop over all fields according to monotype */
+	p->fields_32[index] = 0;
+    const uint64_t n_polymers = p->n_polymers;
 
-#pragma acc parallel num_gangs(n_polymers) vector_length(128) present(p->poly_arch[0:1])
-
-            {
-#pragma acc loop gang
+#pragma acc parallel loop gang num_gangs(n_polymers) vector_length(128) present(p[0:1])
 #pragma omp parallel for
-            for (uint64_t i = 0; i < n_polymers; i++){  /*Loop over polymers */
-                const unsigned int N = p->poly_arch[ p->poly_type_offset[p->polymers[i].type]];
+    for (uint64_t i = 0; i < n_polymers; i++)
+	{  /*Loop over polymers */
+	const unsigned int N = p->poly_arch[ p->poly_type_offset[p->polymers[i].type]];
 #pragma acc loop vector
-                for (unsigned int j = 0; j < N; j++) {  /*Loop over monomers */
-                    const unsigned int monotype = get_particle_type(
-                        p->poly_arch[ p->poly_type_offset[p->polymers[i].type]+1+j]);
+	for (unsigned int j = 0; j < N; j++)
+	    {  /*Loop over monomers */
+	    const unsigned int monotype = get_particle_type(
+		p->poly_arch[ p->poly_type_offset[p->polymers[i].type]+1+j]);
 
-                    const unsigned int index = coord_to_index_unified(p, p->polymers[i].beads[j].x,
-                                                                      p->polymers[i].beads[j].y,
-                                                                      p->polymers[i].beads[j].z, monotype);
-                    if( index < p->n_cells_local*p->n_types)
-                        {
+	    const unsigned int index = coord_to_index_unified(p, p->polymers[i].beads[j].x,
+							      p->polymers[i].beads[j].y,
+							      p->polymers[i].beads[j].z, monotype);
+	    if( index < p->n_cells_local*p->n_types)
+		{
 #pragma acc atomic update
 #pragma omp atomic
-                        p->fields_32[index] += 1;
-                        }
-                    else
-                        {
-                        error_flags[0] = i+1;
-                        }
-                    }
-                }
-            }
+		p->fields_32[index] += 1;
+		}
+	    else
+		{
+		error_flags[0] = i+1;
+		}
+	    }
+	}
+
 #pragma acc exit data copyout(error_flags[0:1])
-    if(error_flags[0] != 0)
+if(error_flags[0] != 0)
         {
         fprintf(stderr,"ERROR: Domain error. %d world-rank %d"
                 " A particle has left the buffer domain."
@@ -191,35 +189,32 @@ int update_density_fields(const struct Phase *const p)
         return error_flags[0];
         }
 
-#pragma acc parallel
-            // num_gangs(200) vector_length(128)
-                {
-#pragma acc loop independent
-                for(uint64_t index = 0; index < n_indices; index++)
-                    p->fields_unified[index] = p->fields_32[index];
-                }
+#pragma acc parallel loop independent present(p[0:1])
+    for(uint64_t index = 0; index < n_indices; index++)
+	p->fields_unified[index] = p->fields_32[index];
 
-                /*Share the densityfields -> needed because Hamiltonian may not only quadratic order */
-                communicate_density_fields(p);
 
-                /* Calculate the added up densities */
+    /*Share the densityfields -> needed because Hamiltonian may not only quadratic order */
+    communicate_density_fields(p);
 
-                /*Use first type to initialize the fields-> saves set zero routine*/
-                soma_scalar_t rescale_density= p->field_scaling_type[0];
-#pragma acc parallel loop
+    /* Calculate the added up densities */
+
+    /*Use first type to initialize the fields-> saves set zero routine*/
+    soma_scalar_t rescale_density= p->field_scaling_type[0];
+#pragma acc parallel loop present(p[0:1])
 #pragma omp parallel for
-                for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
-                    p->tempfield[cell] = rescale_density*p->fields_unified[cell];
+    for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
+	p->tempfield[cell] = rescale_density*p->fields_unified[cell];
 
 
-                for (unsigned int T_types = 1; T_types < p->n_types; T_types++){
-                    rescale_density = p->field_scaling_type[T_types];
-#pragma acc parallel loop
+    for (unsigned int T_types = 1; T_types < p->n_types; T_types++){
+	rescale_density = p->field_scaling_type[T_types];
+#pragma acc parallel loop present(p[0:1])
 #pragma omp parallel for
-                    for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
-                        p->tempfield[cell] += rescale_density*p->fields_unified[T_types * p->n_cells_local + cell];
-                    /*!\todo p->ncells as a temporary variable */
-                    }
+	for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
+	    p->tempfield[cell] += rescale_density*p->fields_unified[T_types * p->n_cells_local + cell];
+	/*!\todo p->ncells as a temporary variable */
+	}
 //#pragma acc update self(p->tempfield[0:p->n_cells_local])
     return 0;
     }

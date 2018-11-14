@@ -409,7 +409,7 @@ int update_polymer_rcm(struct Phase*const p)
 
     const unsigned int n_polymers = p->n_polymers;
 
-    #pragma acc parallel loop
+#pragma acc parallel loop present(p[0:1])
     for(uint64_t npoly=0; npoly < n_polymers; npoly++)
         {
         Polymer *const mypoly = &( p->polymers[npoly] );

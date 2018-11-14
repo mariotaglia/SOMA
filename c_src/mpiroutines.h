@@ -23,7 +23,11 @@
 #ifndef SOMA_MPIROUTINES_H
 #define SOMA_MPIROUTINES_H
 
+#include "soma_config.h"
+#if ( ENABLE_MPI == 1 )
 #include <mpi.h>
+#endif//ENABLE_MPI
+
 #include <stdint.h>
 #include <stdbool.h>
 struct Phase;
@@ -57,10 +61,13 @@ typedef struct Info_MPI{
     int sim_rank; //!< Rank of the simulation communicator
     int domain_size; //!< Size of a single domain communicator
     int domain_rank; //!< Rank of a single domain communicator
+#if ( ENABLE_MPI == 1 )
+
     MPI_Comm    SOMA_comm_world; //!< Global communicator for 1 simulation
     MPI_Comm    SOMA_comm_sim;  /*!< \brief communicator within one conf, SCMF parallelization */
     MPI_Comm    SOMA_comm_domain;       /*!< \brief communicator within one domain of a SCMF simulation parallelization */
     MPI_Status          mpi_status; //!< Status of the mpi init.
+#endif//ENABLE_MPI
     //! Store MPI divergence in between domain ranks.
     double domain_divergence_sec;
     //! Counter for the MPI divergence in between domain ranks.
@@ -81,6 +88,12 @@ typedef struct Info_MPI{
 */
 int init_MPI(struct Phase *p);
 
+//! \brief wrapper for MPI_Finalize
+//! \param mpi Input of initialized MPI data.
+//! \post the communicators are freed
+//! \return Errorcode
+int finalize_MPI(struct Info_MPI*mpi);
+
 //! \brief Function to check wheter one MPI-rank passed a non-zero value.
 //!
 //! Useful for error checking and grace fully exiting MPI.
@@ -89,6 +102,7 @@ int init_MPI(struct Phase *p);
 //! \return Nonzero value if one MPI-rank passed a non-zero value.
 int check_status_on_mpi(const struct Phase*const p,int my_status);
 
+#if ( ENABLE_MPI == 1 )
 //! Measure divergence of MPI ranks with an MPI_Barrier call.
 //!
 //! \param p System which running the simulation. (Reqired for MPI context.)
@@ -96,11 +110,6 @@ int check_status_on_mpi(const struct Phase*const p,int my_status);
 //! \return seconds waiting in Barrier.
 double mpi_divergence(struct Phase*const p);
 
-//! \brief wrapper for MPI_Finalize
-//! \param mpi Input of initialized MPI data.
-//! \post the communicators are freed
-//! \return Errorcode
-int finalize_MPI(struct Info_MPI*mpi);
 
 //! Update global properties, which can be combined from local statistics.
 //!
@@ -201,5 +210,7 @@ int load_balance_mpi_ranks(struct Phase*const p);
 //! error is issued.
 //! \return Number of unsent chains should be 0, otherwise error.
 int send_domain_chains(struct Phase*const p,const bool init);
+
+#endif//ENABLE_MPI
 
 #endif/*SOMA_MPIROUTINES_H*/

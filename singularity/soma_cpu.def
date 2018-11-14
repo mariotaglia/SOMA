@@ -1,0 +1,24 @@
+BootStrap: docker
+From: debian:latest
+
+%post
+        apt-get -y update
+        apt-get -y install gcc cmake libhdf5-openmpi-dev git python python-h5py libopenmpi-dev
+        git clone https://gitlab.com/InnocentBug/SOMA.git
+        cd SOMA
+        mkdir build
+        cd build
+        git checkout master
+        cmake -DCMAKE_INSTALL_PREFIX=../install -DENABLE_DOMAIN_DECOMPOSITION=ON ..
+        make
+        make install
+
+%environment
+        export PATH=$PATH:/SOMA/install/bin:/SOMA/install/python-script
+
+%runscript
+        SOMA "$@"
+
+%labels
+        Author Ludwig Schneider
+        

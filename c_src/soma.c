@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     {
     Phase phase;
     Phase *const p = &phase;
-
+#if ( ENABLE_MPI == 1 )
     if (MPI_Init(NULL, NULL) != MPI_SUCCESS) {
       fprintf(stderr, "MPI_ERROR (start)\n");
       return -1;
@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
         fprintf(stderr,"MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n",__FILE__,__LINE__);
         return -1;
         }
+#endif//ENABLE_MPI
 
     const int args_success = cmdline_parser(argc,argv,&(p->args));
     if( args_success < 0 )
@@ -95,13 +96,13 @@ int main(int argc, char *argv[])
 
     const int signal_success = init_soma_signal();
     MPI_ERROR_CHECK(signal_success, "Signal init");
-
     const int mpi_args = check_status_on_mpi(p,args_success);
     if( mpi_args != 0 )
         {
         finalize_MPI(&(p->info_MPI));
         return 0;
         }
+
     if(p->args.move_type_arg == move_type_arg_TRIAL)
         {MPI_ERROR_CHECK(1,"ERROR: Trial move type is currently not working.");}
 
@@ -135,9 +136,10 @@ int main(int argc, char *argv[])
         //Reset the RNG to initial starting conditions.
         reseed(p, p->args.rng_seed_arg);
         }
-
+#if ( ENABLE_MPI == 1 )
     const int init_domain_chains_status = send_domain_chains(p,true);
     MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
+#endif//ENABLE_MPI
 
     if( ! p->args.skip_tests_flag)
         {
@@ -169,6 +171,7 @@ int main(int argc, char *argv[])
             }
         analytics(p);
         screen_output(p,N_steps);
+#if ( ENABLE_MPI == 1 )
         if(p->args.load_balance_arg > 0 && i % p->args.load_balance_arg  == (unsigned int) p->args.load_balance_arg -1 )
             load_balance_mpi_ranks(p);
         if( p->args.N_domains_arg > 1 && p->args.rcm_update_arg > 0 && i % p->args.rcm_update_arg == (unsigned int) p->args.rcm_update_arg -1)
@@ -177,13 +180,17 @@ int main(int argc, char *argv[])
             if( missed_chains != 0)
                 exit(missed_chains);
             }
+#endif//ENABLE_MPI
 
         stop_iteration = check_signal_stop();
+#if ( ENABLE_MPI == 1 )
         if( ! p->args.no_sync_signal_flag)
             {
             //Sync all mpi cores
             MPI_Allreduce(MPI_IN_PLACE,&stop_iteration,1,MPI_INT,MPI_SUM,p->info_MPI.SOMA_comm_world);
             }
+#endif//ENABLE_MPI
+
         if(stop_iteration)
             {
             if(p->info_MPI.world_rank == 0)
@@ -191,19 +198,13 @@ int main(int argc, char *argv[])
             break;
             }
     }
+#if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);
     if( missed_chains != 0)
         exit(missed_chains);
+#endif//ENABLE_MPI
 
-    const char *filename;
-    const char normal[] = "end.h5";
-    const char exitfile[] = "exit.h5";
-    if( ! stop_iteration)
-        filename = normal;
-    else
-        filename = exitfile;
-
-    const int write = write_config_hdf5(p, filename);
+    const int write = write_config_hdf5(p, p->args.final_file_arg);
     MPI_ERROR_CHECK(write, "Cannot write final configuration.");
     if( !stop_iteration && ! p->args.skip_tests_flag)
         {

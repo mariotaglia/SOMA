@@ -18,7 +18,7 @@
 
 #ifndef GENERATE_POSITIONS_H
 #define GENERATE_POSITIONS_H
-
+#include "soma_config.h"
 struct Phase;
 
 //! \file generate_positions.h

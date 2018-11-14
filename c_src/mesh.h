@@ -36,8 +36,8 @@
   \param z pointer to resulting z index
 */
 
-#include "phase.h"
 #include "soma_config.h"
+#include "phase.h"
 
 #pragma acc routine(coord_to_cell_coordinate) seq
 static inline void coord_to_cell_coordinate(const struct Phase * p, const soma_scalar_t rx, const soma_scalar_t ry, const soma_scalar_t rz, int * x, int * y, int * z);
