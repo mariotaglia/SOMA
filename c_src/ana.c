@@ -854,21 +854,19 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
     return -1;
   }
   memset(tmp,0,n_random_q*p->n_polymers*q_size*p->n_types*p->n_types* sizeof(soma_scalar_t));
-    /*for(unsigned int index=0;index<n_random_q*p->n_polymers*q_size*p->n_types*p->n_types;index++){
-    tmp[index]=0;
-    }*/
   enum enum_pseudo_random_number_generator arg_rng_type = p->args.pseudo_random_number_generator_arg;
   
 #pragma acc enter data copyin(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
 #pragma acc enter data copyin(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types]) async
-#pragma acc parallel loop vector_length(n_random_q) async
+#pragma acc parallel loop vector_length(n_random_q) present(p[0:1]) async
+#pragma omp parallel for
   for (uint64_t poly = 0; poly < p->n_polymers; poly++){
     const unsigned int poly_type = p->polymers[poly].type;
     unsigned int poly_length=p->poly_arch[p->poly_type_offset[poly_type]];
     RNG_STATE * const s = &(p->polymers[poly].poly_state);
     //random q generation
  
-#pragma acc loop//be careful, seq? 
+#pragma acc loop seq//be careful, seq? 
     for(unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++){
       soma_scalar_t rng1,rng2;
 #pragma acc loop seq 
@@ -916,14 +914,15 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
           }
 	}
       }
+     }
     }
-  }
-  for(uint64_t poly = 0; poly < p->n_polymers; poly++){
+for(uint64_t poly = 0; poly < p->n_polymers; poly++){
     const unsigned int poly_type = p->polymers[poly].type;
     counter[poly_type]++;
-  }
+    }
 #pragma acc wait
-#pragma acc parallel loop gang vector
+#pragma acc parallel loop gang vector present(p[0:1])
+#pragma omp parallel for
   for (uint64_t poly = 0; poly < p->n_polymers; poly++){
     const unsigned int poly_type = p->polymers[poly].type;
     unsigned int poly_length=p->poly_arch[p->poly_type_offset[poly_type]];
@@ -958,9 +957,8 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
 	  }
         }
       }
-    }//index_random_q
+      }//index_random_q
   }//poly
-
 #pragma acc exit data copyout(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
 #pragma acc exit data copyout(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 
