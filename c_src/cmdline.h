@@ -117,15 +117,12 @@ struct som_args
   int set_order_frequency_arg;	/**< @brief Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration. (default='200').  */
   char * set_order_frequency_orig;	/**< @brief Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration. original value given at command line.  */
   const char *set_order_frequency_help; /**< @brief Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration. help description.  */
-<<<<<<< HEAD
   int n_random_q_arg;	/**< @brief Option to determine the number of random wave vectors used for the calculation of structure factor. (default='32').  */
   char * n_random_q_orig;	/**< @brief Option to determine the number of random wave vectors used for the calculation of structure factor. original value given at command line.  */
   const char *n_random_q_help; /**< @brief Option to determine the number of random wave vectors used for the calculation of structure factor. help description.  */
-=======
   char * final_file_arg;	/**< @brief Filename to write the final configuration. (HDF5-Format) (default='end.h5').  */
   char * final_file_orig;	/**< @brief Filename to write the final configuration. (HDF5-Format) original value given at command line.  */
   const char *final_file_help; /**< @brief Filename to write the final configuration. (HDF5-Format) help description.  */
->>>>>>> master
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int detailed_help_given ;	/**< @brief Whether detailed-help was given.  */
@@ -155,11 +152,8 @@ struct som_args
   unsigned int no_sync_signal_given ;	/**< @brief Whether no-sync-signal was given.  */
   unsigned int long_chain_threshold_given ;	/**< @brief Whether long-chain-threshold was given.  */
   unsigned int set_order_frequency_given ;	/**< @brief Whether set_order_frequency was given.  */
-<<<<<<< HEAD
   unsigned int n_random_q_given ;	/**< @brief Whether n_random_q was given.  */
-=======
   unsigned int final_file_given ;	/**< @brief Whether final-file was given.  */
->>>>>>> master
 
 } ;
 
