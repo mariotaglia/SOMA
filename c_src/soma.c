@@ -205,15 +205,7 @@ int main(int argc, char *argv[])
         exit(missed_chains);
 #endif//ENABLE_MPI
 
-    const char *filename;
-    const char normal[] = "end.h5";
-    const char exitfile[] = "exit.h5";
-    if( ! stop_iteration)
-        filename = normal;
-    else
-        filename = exitfile;
-
-    const int write = write_config_hdf5(p, filename);
+    const int write = write_config_hdf5(p, p->args.final_file_arg);
     MPI_ERROR_CHECK(write, "Cannot write final configuration.");
     if( !stop_iteration && ! p->args.skip_tests_flag)
         {
