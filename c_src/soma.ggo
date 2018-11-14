@@ -38,7 +38,7 @@ option "move-type" - "Specify the Monte-Carlo move type." enum typestr="MVT" val
 option "iteration-alg" - "Specify the iteration algorithm of the beads. This specifies also the level of parallelism that is possible." enum typestr="ITR-ALG" values="POLYMER","SET" default="POLYMER" optional
 option "skip-tests" - "Skip tests SOMA is usually preforming before and after the simulation to ensure integrety of the data." flag off
 option "load-balance" l "Frequency of the load balancer. For homogenous architectures this can be set to high values, for hetereogenous architectures across the MPI ranks small values help to equilibrate faster. Non-MPI runs are uneffected. Values < 0 deactivate the load-balancer." int typestr="freq" optional default="500"
-option "accepted-load-inbalance" - " [0.01,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
+option "accepted-load-inbalance" - " [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
 option "autotuner-restart-period" - "Period in which the autotuner is restarted." int typestr="period" optional default="10000"
 option "N-domains" d "Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes)" int typestr="N" optional default="1"
 option "domain-buffer" - "Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation." int typestr="N" optional default="10"
@@ -49,3 +49,4 @@ option "bond-minimum-image-convention" m "Specify the bond length used to calcul
 option "no-sync-signal" - "Synchronize MPI ranks for correct signal catching. OFF enables termination via sending SIGINT or SIGTERM to SOMA if the MPI library supports it. ON accerlerates run with many MPI ranks." flag off
 option "long-chain-threshold" - "Option to determine the length of the long chain, expressed as the inverse fraction of the total bead number." int typestr="length" optional default="50"
 option "set_order_frequency" - "Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration." int typestr="frequency" optional default="200"
+option "final-file" f "Filename to write the final configuration. (HDF5-Format)" string typestr="filename" optional default="end.h5"

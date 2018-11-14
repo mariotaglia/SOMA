@@ -27,6 +27,7 @@
 #include "phase.h"
 #include "mpiroutines.h"
 #include <math.h>
+#include <string.h>
 
 unsigned int get_bond_type(const uint32_t info)
     {
@@ -186,8 +187,13 @@ int post_process_args(struct som_args*args,const unsigned int world_rank)
         }
 #endif//ENABLE_DOMAIN_DECOMPOSITION
 
-
-
+    if( strstr(args->final_file_arg, ".h5") == NULL)
+	{
+	if(world_rank == 0)
+	    {
+	    fprintf(stderr, "WARNING: '.h5' could not be found in the filename of the final configuration.\nWARNING: Proceed at your own risk. filename=%s",args->final_file_arg);
+	    }
+	}
 
     if(world_rank == 0)
         cmdline_parser_dump(stdout, args);
