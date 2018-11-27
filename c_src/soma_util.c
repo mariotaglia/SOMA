@@ -179,7 +179,7 @@ int post_process_args(struct som_args*args,const unsigned int world_rank)
         return -2;
         }
 #endif//ENABLE_MIC
-#if ( ENABLE_DOMAIN_DECOMPOSITION != 1 || ENABLE_MPI == 1  )
+#if ( ENABLE_DOMAIN_DECOMPOSITION != 1 || ENABLE_MPI != 1  )
     if( args->N_domains_arg > 1 )
         {
         fprintf(stderr,"ERROR: Domain decomposition  support requested via CMDline, but SOMA is compiled without the support /MPI. Recompile SOMA with the appropriate option for domain decomposition.\n");
