@@ -230,7 +230,7 @@ def main(argv):
     if arguments["ana_filename"] :
         ana_out_file = arguments["ana_filename"][0]
     else :
-        ana_out_file = filename_conf[:extension]+"_ana.h5"
+        ana_out_file = filename_conf[:extension_conf]+"_ana.h5"
 
     #Parse the analysis file
     analysis = AnalysisFile(filename_conf,filename_xml)
