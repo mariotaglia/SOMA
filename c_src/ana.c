@@ -866,7 +866,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
     RNG_STATE * const s = &(p->polymers[poly].poly_state);
     //random q generation
  
-#pragma acc loop seq//be careful, seq? 
+#pragma acc loop//be careful, seq? 
     for(unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++){
       soma_scalar_t rng1,rng2;
 #pragma acc loop seq 
@@ -906,7 +906,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
 	    result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 0] += cos(qr);
 	    result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 1] += sin(qr);  
 	    result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 2] += cos(qr_msd);
-	    result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 3] += sin(qr_msd);//this line can not be performed with atomic (seg fault), reason unknown
+	    result_tmp[index_random_q*p->n_polymers*q_size*p->n_types*4+poly*q_size*p->n_types*4+index_q * p->n_types * 4 + particle_type * 4 + 3] += sin(qr_msd);
               
 	    break;
 	  default :
