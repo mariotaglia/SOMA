@@ -68,11 +68,11 @@
     </bonded_energy>
     <dynamical_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>0.5 1 6.28</q>
+      <q>0.3 0.5</q>
     </dynamical_structure_factor>
     <static_structure_factor>
       <DeltaMC> 1 </DeltaMC>
-      <q>0.5 1 6.28</q>
+      <q>0.3 0.5 </q>
     </static_structure_factor>
   </analysis>
 </soma>
