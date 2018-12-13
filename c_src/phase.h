@@ -32,7 +32,9 @@ struct IndependetSets;
 #include "autotuner.h"
 #include "polymer.h"
 
-/*#define M_PI 3.1415926535897*/
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 //! \file phase.h
 //! \brief All relevant aspects for the struct Phase
