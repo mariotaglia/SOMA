@@ -915,6 +915,10 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
       }
      }
     }
+  if(error!=0){
+    fprintf(stderr,"ERROR: %d unknown structure factor type %s:%d\n",error,__FILE__,__LINE__);
+    return error;
+  }
 for(uint64_t poly = 0; poly < p->n_polymers; poly++){
     const unsigned int poly_type = p->polymers[poly].type;
     counter[poly_type]++;
@@ -958,6 +962,10 @@ for(uint64_t poly = 0; poly < p->n_polymers; poly++){
       }
       }//index_random_q
   }//poly
+  if(error!=0){
+    fprintf(stderr,"ERROR: %d unknown structure factor type %s:%d\n",error,__FILE__,__LINE__);
+    return error;
+  }
 #pragma acc exit data copyout(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
 #pragma acc exit data copyout(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 
