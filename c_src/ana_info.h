@@ -40,10 +40,10 @@ typedef struct Ana_Info{
     unsigned int delta_mc_umbrella_field;//!<\#mc_sweeps between the ana of the string fields
     unsigned int delta_mc_dynamical_structure;//!<\#mc_sweeps between the ana of the dynamical structure factor
     unsigned int delta_mc_static_structure;//!<\#mc_sweeps between the ana of the static structure factor
-    soma_scalar_t *q_static;
-    soma_scalar_t *q_dynamical;
-    unsigned int q_size_static;
-    unsigned int q_size_dynamical;
+    soma_scalar_t *q_static; //! absolute value of wave vector to be calculated for static structure factor
+    soma_scalar_t *q_dynamical; //! absolute value of wave vector to be calculated for dynamical structure factor
+    unsigned int q_size_static; //! number of wave vector to calculate for static structure factor
+    unsigned int q_size_dynamical; //! number of wave vector to calculate for dynamical structure factor
     char * filename; //!< filename of the analysis file.
     char * coord_filename; //!< filename of the configuration files.
     hid_t file_id; //!< HDF5 file specifier for the ana file. Only valid for current_core == 0. No MPI/IO

@@ -1361,7 +1361,6 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
 	    hid_t period_attr = H5Aopen_by_name(dataset,"/external_field","period",H5P_DEFAULT,H5P_DEFAULT);
 	    d_space = H5Aget_space(period_attr);
 	    HDF5_ERROR_CHECK(d_space);
-	    dims[1];//ndims
 	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
 	    HDF5_ERROR_CHECK(status);
 	    status = H5Aread(period_attr,H5T_SOMA_NATIVE_SCALAR,&(p->period));

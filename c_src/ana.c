@@ -743,7 +743,7 @@ int analytics(struct Phase *const p)
     // Dynamical Structure Factor.
     if(p->ana_info.delta_mc_dynamical_structure != 0 && p->time % p->ana_info.delta_mc_dynamical_structure == 0) 
         {
-	  //update_self_phase(p,0);
+	  //update_self_phase(p,0); //update not needed, because the calculation is on the device
         soma_scalar_t*const dynamical_structure_factor=(soma_scalar_t*const)malloc(p->ana_info.q_size_dynamical*p->n_poly_type*p->n_types*p->n_types*sizeof(soma_scalar_t));
         if(dynamical_structure_factor == NULL) 
             {
@@ -763,7 +763,7 @@ int analytics(struct Phase *const p)
     // Static Structure Factor
     if(p->ana_info.delta_mc_static_structure != 0 && p->time % p->ana_info.delta_mc_static_structure == 0)
         {
-	  //update_self_phase(p,0);
+	  //update_self_phase(p,0); //update not needed, because the calculation is on the device
 	  soma_scalar_t*const static_structure_factor=(soma_scalar_t*const)malloc(p->ana_info.q_size_static*p->n_poly_type*p->n_types*p->n_types*sizeof(soma_scalar_t));
         if(static_structure_factor == NULL)
             {
@@ -810,7 +810,6 @@ int analytics(struct Phase *const p)
 int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum structure_factor_type sf_type)
 {
   unsigned int error=0;
-  const unsigned int tuning_parameter=p->mc_autotuner.value;
   unsigned int q_size, result_tmp_size; 
   soma_scalar_t *q_array; 
 
@@ -870,7 +869,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
     for(unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++){
       soma_scalar_t rng1,rng2;
 #pragma acc loop seq 
-      for(int random_i=0;random_i<index_random_q;random_i++){
+      for(unsigned int random_i=0;random_i<index_random_q;random_i++){
         rng1=soma_rng_uint(s,arg_rng_type);
         rng2=soma_rng_uint(s,arg_rng_type);
 	}
@@ -964,7 +963,6 @@ for(uint64_t poly = 0; poly < p->n_polymers; poly++){
 
   for(uint64_t poly = 0; poly < p->n_polymers; poly++){
     unsigned int poly_type = p->polymers[poly].type;
-    unsigned int poly_length=p->poly_arch[p->poly_type_offset[poly_type]];
     for(unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++){
       for(unsigned int particle_type_i = 0; particle_type_i < p->n_types; particle_type_i++){
         for(unsigned int particle_type_j = 0; particle_type_j < p->n_types; particle_type_j++){

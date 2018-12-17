@@ -26,6 +26,10 @@ Please add your contributions.
 	* Async is used to run long
 	  chains and short chains in
 	  parallel on several kernels   Gaoyuan Wang
+	* Calculation of dynamical
+	  and static structure factors  Gaoyuan Wang
+	* Time dependent external
+	  potential is added            Gaoyuan Wang
 	v0.5.2 not-yet-released
 
         * license update 2018
