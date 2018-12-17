@@ -50,6 +50,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diverse_polytype.xml ${CMAKE_CURRENT_
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.xml ${CMAKE_CURRENT_BINARY_DIR}/async.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/structure_factor.xml ${CMAKE_CURRENT_BINARY_DIR}/structure_factor.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/external_field.xml ${CMAKE_CURRENT_BINARY_DIR}/external_field.xml COPYONLY)
+
 #quick
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/quick.sh.in ${CMAKE_CURRENT_BINARY_DIR}/quick.sh)
 add_test(NAME quick WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./quick.sh)
