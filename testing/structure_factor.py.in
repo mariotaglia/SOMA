@@ -55,13 +55,12 @@ def test():
             # collective static structure factor of binary blend in http://arxiv.org/abs/cond-mat/0501076v1 p.28 eq.91.
             x = static_q_vec**2 / 6.0
             static_ana = 2 * (np.exp(-x) - 1 + x) / x**2 
-            static_ana = n_mono * static_ana
-            print len(dynamical_structure_factor),len(dynamical_structure_factor[0]),len(dynamical_structure_factor[0][0])
+            static_ana = n_mono * static_ana 
 
             for q_index in range(len(static_q_vec)):
                 for poly_type_index in range(n_poly_types):
                     check_value(float(static_ave[q_index, poly_type_index, poly_type_index * n_particle_types + poly_type_index]), 1e-1, float(static_ana[q_index]), "homo static structure factor ")    
-                    check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 1e-1,static_structure_factor[0][q_index][poly_type_index][0], "homo dynamical structure factor ")
+                    check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 2e-1,static_ave[q_index][poly_type_index][0], "homo dynamical structure factor ")
 
 def main_test(argv):
     tmp = argv[1]
