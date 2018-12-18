@@ -60,7 +60,7 @@ def test():
             for q_index in range(len(static_q_vec)):
                 for poly_type_index in range(n_poly_types):
                     check_value(float(static_ave[q_index, poly_type_index, poly_type_index * n_particle_types + poly_type_index]), 1e-1, float(static_ana[q_index]), "homo static structure factor ")    
-                    check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 2e-1,static_ave[q_index][poly_type_index][0], "homo dynamical structure factor ")
+                    check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 1e-1,static_structure_factor[0][q_index][poly_type_index][0], "homo dynamical structure factor ")
 
 def main_test(argv):
     tmp = argv[1]

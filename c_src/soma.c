@@ -162,6 +162,7 @@ int main(int argc, char *argv[])
         }
     int stop_iteration = false;
     for (unsigned int i = 0; i < N_steps; i++) {
+        analytics(p);
         const int mc_error = monte_carlo_propagation(p, 1);
         if( mc_error != 0)
             {
@@ -169,7 +170,6 @@ int main(int argc, char *argv[])
                     ,mc_error,p->info_MPI.world_rank);
             exit(mc_error);
             }
-        analytics(p);
         screen_output(p,N_steps);
 #if ( ENABLE_MPI == 1 )
         if(p->args.load_balance_arg > 0 && i % p->args.load_balance_arg  == (unsigned int) p->args.load_balance_arg -1 )
