@@ -79,7 +79,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compare_mixed_bead_data.py.in ${CMAKE
 
 #Structure factor
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/structure_factor.py.in ${CMAKE_CURRENT_BINARY_DIR}/structure_factor.py)
-add_test(NAME StructureFactor WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python structure_factor.py)
+add_test(NAME StructureFactor WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python structure_factor.py ${ACC_FLAG})
 
 #External field
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/external_field.py.in ${CMAKE_CURRENT_BINARY_DIR}/external_field.py)

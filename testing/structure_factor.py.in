@@ -24,18 +24,19 @@ import subprocess as sp
 import numpy as np
 SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
 CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+
 from statistics import check_value
 
 def convert_files():
     ret = sp.call([CONFGEN,"-i","structure_factor.xml"])
     if ret != 0: raise RuntimeError("Test failed")
 
-def run():
+def run(extra_flags):
     ret = sp.call([SOMA,"-c","structure_factor.h5","-t","10"])
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","structure_factor.h5"])
     if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","100","-a","structure_factor_ana.h5"])
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","100","-a","structure_factor_ana.h5"]+extra_flags)
     if ret != 0: raise RuntimeError("Test failed")
 
 def test():
@@ -62,10 +63,16 @@ def test():
                     check_value(float(static_ave[q_index, poly_type_index, poly_type_index * n_particle_types + poly_type_index]), 1e-1, float(static_ana[q_index]), "homo static structure factor ")    
                     check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 1e-1,static_structure_factor[0][q_index][poly_type_index][0], "homo dynamical structure factor ")
 
-def main_test():
+def main_test(argv):
+    tmp = argv[1]
+    extra_flags = []
+    for arg in tmp.split():
+        extra_flags.append(arg.strip())
+
+    print(extra_flags)
     convert_files()
-    run()
+    run(extra_flags)
     test()
 
 if __name__ == "__main__":
-    main_test()
+    main_test(sys.argv)

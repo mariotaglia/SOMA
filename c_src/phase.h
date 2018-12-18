@@ -261,10 +261,10 @@ typedef struct Phase{
     //! Measures the number of chains that runs on one separate kernal
     unsigned int num_long_chain;
 
-    soma_scalar_t* cos_serie; //! the prefactor of the cosine elements to define time-dependent external field 
-    soma_scalar_t* sin_serie; //! the prefactor of the sine elements to define time-dependent external field 
-    soma_scalar_t period; //! period of the time-dependent external field
-    unsigned int serie_length; //! number of time-dependent external field
+    soma_scalar_t* cos_serie; //!< the prefactor of the cosine elements to define time-dependent external field 
+    soma_scalar_t* sin_serie; //!< the prefactor of the sine elements to define time-dependent external field 
+    soma_scalar_t period; //!< period of the time-dependent external field
+    unsigned int serie_length; //!< number of time-dependent external field
 
     }Phase;
 
