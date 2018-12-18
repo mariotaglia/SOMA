@@ -141,6 +141,7 @@ int extent_density_field(const struct Phase*const p,const void *const field_poin
 //! \param p System to analyze
 //! \param result Pointer to array to store the result
 //! \param sf_type Type of structure factor. 0 stands for dynamical, 1 stand for static
+//! \return Errorcode.
 //#pragma acc routine(calc_structure) seq
 int calc_structure(const struct Phase*p,soma_scalar_t*const result, const enum structure_factor_type sf_type);
 
@@ -151,7 +152,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result, const enum s
 //! \param data Pointer to the data to ouput.
 //! \param name Dataset name
 //! \param file_id File specifier for HDF5 output ana file
-//! \param type Type of structure factor. 0 stands for dynamical, 1 stand for static
+//! \param sf_type Type of structure factor. 0 stands for dynamical, 1 stand for static
 //! \return Errorcode.
 int extent_structure(const struct Phase*p,const soma_scalar_t*const data,const char*const name,const hid_t file_id,const enum structure_factor_type sf_type);
 
