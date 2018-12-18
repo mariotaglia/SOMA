@@ -36,7 +36,7 @@ def run(extra_flags):
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","structure_factor.h5"])
     if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","100","-a","structure_factor_ana.h5"]+extra_flags)
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","1","-a","structure_factor_ana.h5","--n_random_q","320"]+extra_flags)
     if ret != 0: raise RuntimeError("Test failed")
 
 def test():
@@ -60,7 +60,7 @@ def test():
             for q_index in range(len(static_q_vec)):
                 for poly_type_index in range(n_poly_types):
                     check_value(float(static_ave[q_index, poly_type_index, poly_type_index * n_particle_types + poly_type_index]), 1e-1, float(static_ana[q_index]), "homo static structure factor ")    
-                    check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 1e-1,static_structure_factor[0][q_index][poly_type_index][0], "homo dynamical structure factor ")
+                    check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 1e-1,static_ave[q_index][poly_type_index][0], "homo dynamical structure factor ")
 
 def main_test(argv):
     tmp = argv[1]
