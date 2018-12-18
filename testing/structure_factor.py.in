@@ -36,7 +36,7 @@ def run(extra_flags):
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","structure_factor.h5"])
     if ret != 0: raise RuntimeError("Test failed")
-    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","1","-a","structure_factor_ana.h5","--n_random_q","320"]+extra_flags)
+    ret = sp.call([SOMA,"-c","structure_factor.h5","-t","1","-a","structure_factor_ana.h5","--n_random_q","5000"]+extra_flags)
     if ret != 0: raise RuntimeError("Test failed")
 
 def test():

@@ -857,7 +857,7 @@ int calc_structure(const struct Phase*p,soma_scalar_t*const result,const enum st
   
 #pragma acc enter data copyin(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
 #pragma acc enter data copyin(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types]) async
-#pragma acc parallel loop vector_length(n_random_q) present(p[0:1]) async
+#pragma acc parallel loop vector_length(32) present(p[0:1]) async
 #pragma omp parallel for
   for (uint64_t poly = 0; poly < p->n_polymers; poly++){
     const unsigned int poly_type = p->polymers[poly].type;
