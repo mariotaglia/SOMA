@@ -21,15 +21,14 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef SOMA_INIT_H
-#define SOMA_INIT_H
-#include "soma_config.h"
+#    define SOMA_INIT_H
+#    include "soma_config.h"
 /*! \file init.h
   \brief Header file functions required for initialization processes.
 */
 
 //! Forward declaration of the Phase struct. To avoid inclusion of struct.h.
 struct Phase;
-
 
 //!  Print version of SOMA and libraries linked to SOMA
 //! \param rank MPI rank of the calling process.
@@ -43,11 +42,11 @@ int print_version(const int rank);
 //! particles.
 //! \param p System description.
 //! \return Errorcode
-int init_msd(struct Phase*const p);
+int init_msd(struct Phase *const p);
 
 //! \brief setup the OpenACC devices according to the commandline arguments.
 //! \param p System for which the devices are set.
 //! \return Errorcode
-int set_openacc_devices(const struct Phase*const p);
+int set_openacc_devices(const struct Phase *const p);
 
-#endif//SOMA_INIT_H
+#endif                          //SOMA_INIT_H
