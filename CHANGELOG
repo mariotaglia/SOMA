@@ -30,7 +30,16 @@ Please add your contributions.
 	  and static structure factors  Gaoyuan Wang
 	* Time dependent external
 	  potential is added            Gaoyuan Wang
-	v0.5.2 not-yet-released
+        * User option to specify an     LS
+	  output file.
+	* compatibilty with PGI 18.7    LS
+	* Environment to manage wall    LS
+	  time options. See doc for
+	  details
+	deprecate:
+	* signal management             LS
+
+	v0.5.2 05/11/18
 
         * license update 2018
 

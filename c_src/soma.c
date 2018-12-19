@@ -38,8 +38,8 @@
 #include "init.h"
 #include "test.h"
 #include "ana.h"
-#include "signal.h"
 #include "rng.h"
+#include "walltime.h"
 #include "generate_positions.h"
 
 //! Main Function of the Executable SOMA
@@ -92,15 +92,6 @@ int main(int argc, char *argv[])
         {
         fprintf(stderr,"ERROR: Unable to setup MPI %s:%d\n",__FILE__,__LINE__);
         exit(mpi_init);
-        }
-
-    const int signal_success = init_soma_signal();
-    MPI_ERROR_CHECK(signal_success, "Signal init");
-    const int mpi_args = check_status_on_mpi(p,args_success);
-    if( mpi_args != 0 )
-        {
-        finalize_MPI(&(p->info_MPI));
-        return 0;
         }
 
     if(p->args.move_type_arg == move_type_arg_TRIAL)
@@ -182,7 +173,7 @@ int main(int argc, char *argv[])
             }
 #endif//ENABLE_MPI
 
-        stop_iteration = check_signal_stop();
+        stop_iteration = check_walltime_stop();
 #if ( ENABLE_MPI == 1 )
         if( ! p->args.no_sync_signal_flag)
             {
@@ -194,7 +185,7 @@ int main(int argc, char *argv[])
         if(stop_iteration)
             {
             if(p->info_MPI.world_rank == 0)
-                fprintf(stdout,"Signal to stop iteration at time %d catched by rank %d.\n",p->time,p->info_MPI.world_rank);
+                fprintf(stdout,"Environment to stop iteration at time %d catched by rank %d.\n",p->time,p->info_MPI.world_rank);
             break;
             }
     }

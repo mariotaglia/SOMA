@@ -19,9 +19,9 @@ set(soma_source
   phase.c
   polymer.c
   rng.c
-  signal.c
   soma_config.c
   soma_util.c
+  walltime.c
   test.c
   )
 
@@ -46,8 +46,8 @@ set(soma_header
   phase.h
   polymer.h
   rng.h
-  signal.h
   soma_util.h
+  walltime.h
   test.h
   )
 

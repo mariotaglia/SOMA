@@ -55,6 +55,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/external_field.xml ${CMAKE_CURRENT_BI
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/quick.sh.in ${CMAKE_CURRENT_BINARY_DIR}/quick.sh)
 add_test(NAME quick WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./quick.sh)
 
+#Walltime
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/walltime.sh.in ${CMAKE_CURRENT_BINARY_DIR}/walltime.sh)
+add_test(NAME walltime WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./walltime.sh)
+
 #convert
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/convert.sh.in ${CMAKE_CURRENT_BINARY_DIR}/convert.sh)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compareDatH5.py.in ${CMAKE_CURRENT_BINARY_DIR}/compareDatH5.py)

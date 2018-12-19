@@ -56,7 +56,8 @@
  - Exact non passing area51.
  - External fields.
  - 3 different random number generators.
- - Signal management. SIGINT and SIGTERM are catched and SOMA exits gracefully with final configuration. ( Only some MPI implementation support this. The jureca setup does. Use "#SBATCH --signal=SIGINT@360" to gracefully exist 1 min. before time limit.
+ - Walltime management with environment variable SOMA_WALLTIME_STOP. Set up SOMA to finish in 23 hours and 45 minutes independent of the simulation progress with "export SOMA_WALLTIME_STOP=$((`date +%s` + 23 * 3600 - 15 * 60))". The final configuration is written in the 'normal' output file and can be used to restart the simulation.
+ - Signal management is deprecated. Use the environment variable SOMA_WALLTIME_STOP instead. A running process can be stopped by attaching (with gdb) to the process and change the variable.
  - Checkpointing: User specified interval to "dump" full configurations.
  - Online output file compression. (gzip for density_field).
  - Automatic random configuration generation.
