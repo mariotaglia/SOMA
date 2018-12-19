@@ -15,21 +15,15 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef SOMA_SIGNAL_H
-#define SOMA_SIGNAL_H
 
-//! \file signal.h Functions that handle signal handling, to enable smooth program abort.
-#include <signal.h>
-#include "soma_config.h"
+#ifndef SOMA_WALLTIME_H
+#define SOMA_WALLTIME_H
 
-//! Initialize custom signal handlers for SIGINT and SIGTERM
-//!
-//! \return Errorcode
-int init_soma_signal(void);
 
-//! Check whether to stop iteration, because of a send signal.
-//!
-//! \return Stop indication
-int check_signal_stop(void);
+/* \brief check environment if simulation should be stopped.
+   Reads environment variable SOMA_WALLTIME_STOP and compares to time(NULL)
+   \return true if simulation should be stopped false otherwise
+ */
+int check_walltime_stop(void);
 
-#endif//SOMA_SIGNAL_H
+#endif

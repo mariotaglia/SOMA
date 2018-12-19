@@ -64,7 +64,7 @@
       <DeltaMC> 5000</DeltaMC>
     </non_bonded_energy>
     <bonded_energy>
-      <DeltaMC> 49</DeltaMC>
+      <DeltaMC> 5000</DeltaMC>
     </bonded_energy>
   </analysis>
 </soma>
