@@ -842,6 +842,8 @@ int close_ana(struct Ana_Info *const a)
 {
     free(a->coord_filename);
     free(a->filename);
+    free(a->q_dynamical);
+    free(a->q_static);
 
     if (a->file_id >= 0)
         {
