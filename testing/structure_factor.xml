@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soma version="0.2.0">
+  <interactions>
+    <kappaN>
+      0
+    </kappaN>
+    <chiN>
+      A B 0
+      A C 0
+      B C 0
+    </chiN>
+    <bonds>
+    A A  harmonic
+    A B  harmonic
+    A C  harmonic
+    B B  harmonic
+    B C  harmonic
+    C C  harmonic
+    </bonds>
+  </interactions>
+  <A>
+    <dt>
+    0.17
+    </dt>
+  </A>
+  <time>
+    0
+  </time>
+  <reference_Nbeads>
+    256 
+  </reference_Nbeads>
+  <lxyz>
+    2 2 2
+  </lxyz>
+  <nxyz>
+   12 12 12
+  </nxyz>
+  <poly_arch>
+    600 A{256}
+    600 B{256}   
+    600 C{256}
+  </poly_arch>
+  <analysis>
+    <density_var>
+      <DeltaMC> 0 </DeltaMC>
+    </density_var>
+    <bond_anisotropy>
+      <DeltaMC> 0 </DeltaMC>
+    </bond_anisotropy>
+    <acc_ratio>
+      <DeltaMC> 0 </DeltaMC>
+    </acc_ratio>
+    <MSD>
+      <DeltaMC> 5000 </DeltaMC>
+    </MSD>
+    <Re>
+      <DeltaMC> 5000 </DeltaMC>
+    </Re>
+    <density_field>
+      <DeltaMC> 10000 </DeltaMC>
+      <compression> gzip </compression>
+    </density_field>
+    <non_bonded_energy>
+      <DeltaMC> 5000</DeltaMC>
+    </non_bonded_energy>
+    <bonded_energy>
+      <DeltaMC> 0</DeltaMC>
+    </bonded_energy>
+    <dynamical_structure_factor>
+      <DeltaMC> 1 </DeltaMC>
+      <q>0.3 0.5</q>
+    </dynamical_structure_factor>
+    <static_structure_factor>
+      <DeltaMC> 1 </DeltaMC>
+      <q>0.3 0.5</q>
+    </static_structure_factor>
+  </analysis>
+</soma>

@@ -1,0 +1,54 @@
+#!/bin/bash
+
+#   Copyright (C) 2016-2018 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+
+DELTA=0
+SEED=51854
+TIMESTEPS=136
+
+
+@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
+
+if [ ! $? -eq 0 ]; then
+    exit -1
+fi
+
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 0 @ACC_FLAG@
+mv end.h5 start.h5
+
+if [ ! $? -eq 0 ]; then
+    exit -5
+fi
+
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS --accepted-load-inbalance=0 -l 1 @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -2
+fi
+mv end.h5 load.h5
+
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -3
+fi
+mv end.h5 noload.h5
+
+
+python compare_mixed_bead_data.py load.h5 noload.h5
+if [ ! $? -eq 0 ]; then
+    exit -4
+fi

@@ -19,9 +19,9 @@ set(soma_source
   phase.c
   polymer.c
   rng.c
-  signal.c
   soma_config.c
   soma_util.c
+  walltime.c
   test.c
   )
 
@@ -46,8 +46,8 @@ set(soma_header
   phase.h
   polymer.h
   rng.h
-  signal.h
   soma_util.h
+  walltime.h
   test.h
   )
 
@@ -56,12 +56,23 @@ add_library(soma_lib ${soma_source})
 add_executable(SOMA soma.c)
 add_executable(CONVERT convert.c)
 
+option(BUILD_STATIC "Try to build static if possible. No guarantee your EXE is completely static" OFF)
+
 foreach(EXE SOMA CONVERT)
   target_link_libraries(${EXE} soma_lib)
   target_link_libraries(${EXE} ${MPI_LIBRARIES})
   target_link_libraries(${EXE} ${HDF5_LIBRARIES})
   target_link_libraries(${EXE} ${HDF5_C_LIBRARIES})
   target_link_libraries(${EXE} ${soma_link_flags})
+
+  if(BUILD_STATIC)
+    if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+      target_link_libraries(${EXE} "-static -static-libgcc")
+    endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+      target_link_libraries(${EXE} "-Bstatic_pgi")
+    endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+  endif(BUILD_STATIC)
 
   install(TARGETS ${EXE} DESTINATION bin)
 endforeach(EXE)
@@ -90,11 +101,21 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)
 #END SPLIT_PLUGIN
 
-#START DOUBLE_PLUGIN
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/double_plugin)
-  option(ENABLE_DOUBLE_PLUGIN "Running two SOMA-instances on 4 ranks with 2 ranks assigned to each instance." off)
-  if(ENABLE_DOUBLE_PLUGIN)
-    add_subdirectory(double_plugin)
-  endif(ENABLE_DOUBLE_PLUGIN)
-endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/double_plugin)
-#END DOUBLE_PLUGIN
+
+#START STRING_PLUGIN
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
+  option(ENABLE_STRING_PLUGIN "Running multiple SOMA-instances for the application of the string-method." off)
+  if(ENABLE_STRING_PLUGIN)
+    add_subdirectory(string_plugin)
+  endif(ENABLE_STRING_PLUGIN)
+endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/string_plugin)
+#END STRING_PLUGIN
+
+#START CROSSLINK_PLUGIN
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/crosslink)
+  option(ENABLE_CROSSLINK_PLUGIN "Plugin for crosslinking." off)
+  if(ENABLE_CROSSLINK_PLUGIN)
+    add_subdirectory(crosslink)
+  endif(ENABLE_CROSSLINK_PLUGIN)
+endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/crosslink)
+#END CROSSLINK_PLUGIN

@@ -40,6 +40,9 @@
      compared to the other iteration scheme.
 
    Choose the "--iteration-alg" flag to select the iteration algorithm of SOMA. Default is polymer iteration.
+ - Two options to calculate the independent sets.
+   - SIMPLE heuristic to obtain the fewest number of balanced sets. O(N^2) where N is the number of beads in a molecule. Suitable for simple molecules (like linear chains).
+   - FIXED-N-SETS set generation that scales like O(N), but uses m+1 sets. m is max number of bonds a bead has. Suitable for large molecules like networks.
  - Two non-bonded hamiltonian available (SCMF0 and SCMF1), for details refer update_omega_fields_scmf0() and update_omega_fields_scmf1().
  - Documentation via Doxygen. Almost all executables offer a help page.
  - Simple random displacement MC.
@@ -53,7 +56,8 @@
  - Exact non passing area51.
  - External fields.
  - 3 different random number generators.
- - Signal management. SIGINT and SIGTERM are catched and SOMA exits gracefully with final configuration. ( Only some MPI implementation support this. The jureca setup does. Use "#SBATCH --signal=SIGINT@360" to gracefully exist 1 min. before time limit.
+ - Walltime management with environment variable SOMA_WALLTIME_STOP. Set up SOMA to finish in 23 hours and 45 minutes independent of the simulation progress with "export SOMA_WALLTIME_STOP=$((`date +%s` + 23 * 3600 - 15 * 60))". The final configuration is written in the 'normal' output file and can be used to restart the simulation.
+ - Signal management is deprecated. Use the environment variable SOMA_WALLTIME_STOP instead. A running process can be stopped by attaching (with gdb) to the process and change the variable.
  - Checkpointing: User specified interval to "dump" full configurations.
  - Online output file compression. (gzip for density_field).
  - Automatic random configuration generation.
@@ -63,6 +67,8 @@
  - Online run estimation time output.
  - Center of mass simple Monte-Carlo algorithm for full molecule diffusion.
  - Doxygen API documentation.
+ - Domain decomposition as a third layer of parallelism.
+ - Time dependent external field.
 
  \subsection observables Available Observables
 
@@ -96,6 +102,10 @@ The output matrix in the hdf5 has than the dimensions 5x8, the first dimension i
 
  - Non-Bonded energy: For each bond type \f$ k \f$: \f$ E_k = \sum_{<ij>} V_k(r_{ij}) \delta_{i<j} \f$, where \f$ <ij> \f$ denotes all bonded (of bond type \f$ k \f$) particles \f$ i,j\f$.
 
+ - Static-Structure-Factor: For each polymer_type: \f$ S_q = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(t)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
+
+ - Dynamical-Structure-Factor: For each polymer_type: \f$ S_q(t) = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(0)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
+
  \subsection no-features Not Available Features
 
  If you want to implement a feature, please do not hesitate to help
@@ -103,10 +113,5 @@ The output matrix in the hdf5 has than the dimensions 5x8, the first dimension i
 
  - Smoothing neighbor functions like NEIGHBOUR8 or NEIGHBOUR27,
    because useful physical application is rare.
-
- - Domain decomposition, because the scaling is good enough with GPUs.
-
- - Dynamic load balance, because so far only chains of similar length
-   were considered.
 
 */

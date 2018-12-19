@@ -1,10 +1,52 @@
 Change log of the development of SOMA.
 Please add your contributions.
 
-	v0.6.0 not-yet-released
+v0.7.0 not-yet-released
+	
+v0.6.1 not-yet-released
+	
+	
+v0.6.0 19/12/18
 
-	*
-	v0.5.2 not-yet-released
+	* A second option for independent
+	  sets calculation FIXED-N-SETS
+	  (suitable for networks)       Gaoyuan Wang
+	* Implemenation of an umbrella
+	  field for advanced sampling   Niklas Blagojevic
+	  techniques.                   Ludwig Schneider
+	* Domain decomposition as
+	  another parallel layer for
+	  large system sizes.           Ludwig Schneider
+	* The option to calculated the
+	  bond energy and bond force with
+	  minmum image convention is
+	  added                         Gaoyuan Wang
+	  (MIC needs to be compiled and
+	  runned with MIC flag)
+	* Separation of ConfGen and     Gaoyuan Wang
+	  AnaGen
+	* The rng_state is changed from
+	  automatic update to update
+	  under requirement             Gaoyuan Wang
+	* Async is used to run long
+	  chains and short chains in
+	  parallel on several kernels   Gaoyuan Wang
+	* Calculation of dynamical
+	  and static structure factors  Gaoyuan Wang
+	* Time dependent external
+	  potential is added            Gaoyuan Wang
+        * User option to specify an     LS
+	  output file.
+	* compatibilty with PGI 18.7    LS
+	* Environment to manage wall    LS
+	  time options. See doc for
+	  details
+	* Force an indention style      LS
+	
+	remove:
+	* signal management             LS
+
+	v0.5.2 05/11/18
 
         * license update 2018
 

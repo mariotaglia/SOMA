@@ -311,6 +311,10 @@
     to the grid per monomer type. The units are in \f$ k_B T\f$. The
     objects you can define are equivalent to the ones of "area51". All
     values of a grid site are summed up.
+    - \code <time> \endcode allows time dependency of any external field expanded as trigonometry series.
+      - \code <period> \endcode is the period of the time dependent external field.
+      - \code <cos> \endcode is the array containing the prefactor of the cosine series.
+      - \code <sin> \endcode is the array containing the prefactor of the sine series.
   \note Objects that leave the grid are mapped back via periodic boundary conditions.
 
 

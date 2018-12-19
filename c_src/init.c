@@ -33,129 +33,139 @@
 #include <string.h>
 #include <limits.h>
 #include <stdbool.h>
-#include <mpi.h>
+#if ( ENABLE_MPI == 1 )
+#    include <mpi.h>
+#endif                          //ENABLE_MPI
 #include <stdio.h>
 #ifdef _OPENACC
-#include <openacc.h>
-#endif//_OPENACC
+#    include <openacc.h>
+#endif                          //_OPENACC
 #ifdef _OPENMP
-#include <omp.h>
-#endif//_OPENMP
+#    include <omp.h>
+#endif                          //_OPENMP
 #include <hdf5.h>
 #include "soma_config.h"
 #include "phase.h"
 
 int print_version(const int rank)
-    {
+{
     if (rank == 0)
-	{
-	//Sytem
-	fprintf(stdout,"system is %s with C std %ld.\n",get_soma_system_info(),__STDC_VERSION__);
+        {
+            //Sytem
+            fprintf(stdout, "system is %s with C std %ld.\n", get_soma_system_info(), __STDC_VERSION__);
 
-	//SOMA git
-	fprintf(stdout, "GIT version of SOMA is %s compiled on %s %s.\n",get_soma_version(),__DATE__,__TIME__);
+            //SOMA git
+            fprintf(stdout, "GIT version of SOMA is %s compiled on %s %s.\n", get_soma_version(), __DATE__, __TIME__);
 
-	//HDF5
-	unsigned int majnum=0,minnum=0,relnum=0;
-	H5get_libversion(&majnum,&minnum,&relnum);
-	fprintf(stdout,"HDF5 version is %u.%u.%u\n",majnum,minnum,relnum);
-#ifdef MPI_MAX_LIBRARY_VERSION_STRING
-	//MPI
-	char mpi_version[MPI_MAX_LIBRARY_VERSION_STRING];
-	int length;
-	MPI_Get_library_version(mpi_version,&length);
-	int mpi_maj=0,mpi_min=0;
-	MPI_Get_version(&mpi_maj,&mpi_min);
-	fprintf(stdout,"MPI version: %s %d.%d\n",mpi_version,mpi_maj,mpi_min);
-#else
-	fprintf(stdout,"No MPI lib version available.\n");
-#endif//mpi_max_library_version_string
-	}
+            //HDF5
+            unsigned int majnum = 0, minnum = 0, relnum = 0;
+            H5get_libversion(&majnum, &minnum, &relnum);
+            fprintf(stdout, "HDF5 version is %u.%u.%u\n", majnum, minnum, relnum);
+#if ( ENABLE_MPI == 1 )
+#    ifdef MPI_MAX_LIBRARY_VERSION_STRING
+            //MPI
+            char mpi_version[MPI_MAX_LIBRARY_VERSION_STRING];
+            int length;
+            MPI_Get_library_version(mpi_version, &length);
+            int mpi_maj = 0, mpi_min = 0;
+            MPI_Get_version(&mpi_maj, &mpi_min);
+            fprintf(stdout, "MPI version: %s %d.%d\n", mpi_version, mpi_maj, mpi_min);
+#    else
+            fprintf(stdout, "No MPI lib version available.\n");
+#    endif                      //mpi_max_library_version_string
+#endif                          //( ENABLE_MPI == 1 )
+        }
     return 0;
-    }
+}
 
-int set_openacc_devices(const struct Phase*const p)
-    {
-    int ret=0;
+int set_openacc_devices(const struct Phase *const p)
+{
+    int ret = 0;
 #ifdef _OPENACC
 
     bool on_host = false;
-    if( p->args.gpus_given && p->args.gpus_arg == 0)
-	on_host = true;
-    if( (!p->args.gpus_given && !p->args.only_gpu_given) )
-	on_host = true;
-    if(on_host)	{
-	acc_init(acc_device_host);
-	acc_set_device(acc_device_host);
-	printf("INFO: rank %d runs single core CPU.\n",p->info_MPI.current_core);
-    }
-    else{
-	unsigned int my_gpu_rank;
-	if( p->args.only_gpu_given )
-	    my_gpu_rank = p->args.only_gpu_arg;
-	else{
-	assert( p->args.gpus_given);
-	assert( p->args.gpus_arg > 0);
-	my_gpu_rank = p->info_MPI.current_core % p->args.gpus_arg;
-	}
+    if (p->args.gpus_given && p->args.gpus_arg == 0)
+        on_host = true;
+    if ((!p->args.gpus_given && !p->args.only_gpu_given))
+        on_host = true;
+    if (on_host)
+        {
+            acc_init(acc_device_host);
+            acc_set_device(acc_device_host);
+            printf("INFO: rank %d runs single core CPU.\n", p->info_MPI.world_rank);
+        }
+    else
+        {
+            unsigned int my_gpu_rank;
+            if (p->args.only_gpu_given)
+                my_gpu_rank = p->args.only_gpu_arg;
+            else
+                {
+                    assert(p->args.gpus_given);
+                    assert(p->args.gpus_arg > 0);
+                    my_gpu_rank = p->info_MPI.world_rank % p->args.gpus_arg;
+                }
 
-	acc_init(acc_device_nvidia);
-	const unsigned int num_gpus = acc_get_num_devices(acc_device_nvidia);
-	if( my_gpu_rank >= num_gpus){
-	fprintf(stderr,"ERROR: rank %d tried to set gpuId %u, but only %u are available.\n",
-	    p->info_MPI.current_core,my_gpu_rank,num_gpus);
-	return -1;
-	}
-	acc_set_device_num( my_gpu_rank,acc_device_nvidia);
-	const unsigned int check_gpu = acc_get_device_num(acc_device_nvidia);
-	if( check_gpu != my_gpu_rank ){
-	    fprintf(stderr,"WARNING: rank %d tried to run GPU %u, but now it runs GPU %u.\n",
-	    p->info_MPI.current_core,my_gpu_rank,check_gpu);
-	}
-	printf("INFO: rank %d runs GPU %u.\n",p->info_MPI.current_core,my_gpu_rank);
-    }
-    if( p->args.omp_threads_given && p->info_MPI.current_core == 0)
-	{
-	fprintf(stderr,"ERROR: You passed an OMP option for an OPENACC compiled program. This"
-		"is not possible. If you want multiple CPU usage for OpenACC builds use"
-		"the multicore option, if the compiler supports it.\n");
-	return -1;
-	}
-#else//_OPENACC
-    if( (p->args.only_gpu_given || (p->args.gpus_given && p->args.gpus_arg != 0)) && p->info_MPI.current_core == 0)
-	{
-	fprintf(stderr,"WARNING: The command line arguments request a GPU use,"
-		" but SOMA has been compiled without OpenACC support.\n"
-		"\t If you want GPU acceleration, recompile SOMA with OpenACC support.\n"
-	        "\t This simulation will run on the CPU.\n");
-	ret += 1;
-	}
-#ifdef _OPENMP
+            acc_init(acc_device_nvidia);
+            const unsigned int num_gpus = acc_get_num_devices(acc_device_nvidia);
+            if (my_gpu_rank >= num_gpus)
+                {
+                    fprintf(stderr, "ERROR: rank %d tried to set gpuId %u, but only %u are available.\n",
+                            p->info_MPI.world_rank, my_gpu_rank, num_gpus);
+                    return -1;
+                }
+            acc_set_device_num(my_gpu_rank, acc_device_nvidia);
+            const unsigned int check_gpu = acc_get_device_num(acc_device_nvidia);
+            if (check_gpu != my_gpu_rank)
+                {
+                    fprintf(stderr, "WARNING: rank %d tried to run GPU %u, but now it runs GPU %u.\n",
+                            p->info_MPI.world_rank, my_gpu_rank, check_gpu);
+                }
+            printf("INFO: rank %d runs GPU %u.\n", p->info_MPI.world_rank, my_gpu_rank);
+        }
+    if (p->args.omp_threads_given && p->info_MPI.world_rank == 0)
+        {
+            fprintf(stderr, "ERROR: You passed an OMP option for an OPENACC compiled program. This"
+                    "is not possible. If you want multiple CPU usage for OpenACC builds use"
+                    "the multicore option, if the compiler supports it.\n");
+            return -1;
+        }
+#else                           //_OPENACC
+    if ((p->args.only_gpu_given || (p->args.gpus_given && p->args.gpus_arg != 0)) && p->info_MPI.world_rank == 0)
+        {
+            fprintf(stderr, "WARNING: The command line arguments request a GPU use,"
+                    " but SOMA has been compiled without OpenACC support.\n"
+                    "\t If you want GPU acceleration, recompile SOMA with OpenACC support.\n"
+                    "\t This simulation will run on the CPU.\n");
+            ret += 1;
+        }
+#    ifdef _OPENMP
     omp_set_dynamic(0);
     //Fallback option set OMP ranks to 1
     unsigned int nthreads = 1;
 
-    if(p->args.omp_threads_given && p->args.omp_threads_arg > 1)
-	{
-	nthreads =p->args.omp_threads_arg;
-	if( p->args.omp_threads_arg > omp_get_num_procs())
-	    {
-	    fprintf(stderr,"WARNING: rank %d tried to use %d OMP threads, but only %d are available. Resetting to max. number.\n",
-		    p->info_MPI.current_core,p->args.omp_threads_arg,omp_get_num_procs());
-	    nthreads = omp_get_num_procs();
-	    }
-	}
+    if (p->args.omp_threads_given && p->args.omp_threads_arg > 1)
+        {
+            nthreads = p->args.omp_threads_arg;
+            if (p->args.omp_threads_arg > omp_get_num_procs())
+                {
+                    fprintf(stderr,
+                            "WARNING: world rank %d tried to use %d OMP threads, but only %d are available. Resetting to max. number.\n",
+                            p->info_MPI.world_rank, p->args.omp_threads_arg, omp_get_num_procs());
+                    nthreads = omp_get_num_procs();
+                }
+        }
     omp_set_num_threads(nthreads);
-    printf("INFO: rank %d runs %u CPU OMP threads.\n",p->info_MPI.current_core,nthreads);
-#else
-    if(p->args.omp_threads_given && p->args.omp_threads_arg > 1)
-	{
-	fprintf(stderr,"WARNING: rank %d tried to use %d OMP threads, but the binary is compiled without OMP support.\n",
-		p->info_MPI.current_core,p->args.omp_threads_arg);
-	}
-#endif//_OPENMP
+    printf("INFO: world rank %d runs %u CPU OMP threads.\n", p->info_MPI.world_rank, nthreads);
+#    else
+    if (p->args.omp_threads_given && p->args.omp_threads_arg > 1)
+        {
+            fprintf(stderr,
+                    "WARNING: world rank %d tried to use %d OMP threads, but the binary is compiled without OMP support.\n",
+                    p->info_MPI.world_rank, p->args.omp_threads_arg);
+        }
+#    endif                      //_OPENMP
 
-
-#endif//_OPENACC
+#endif                          //_OPENACC
     return ret;
-    }
+}

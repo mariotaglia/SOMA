@@ -30,7 +30,7 @@ else
 fi
 
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1 -f la.h5
 
 value=$?
 
@@ -41,3 +41,10 @@ else
     echo Test failed
     exit -1
 fi
+
+if [ ! -f la.h5 ]; then
+    echo "Test failed, output file 'la.h5' missing"
+    exit -1
+fi
+
+rm la.h5

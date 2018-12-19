@@ -17,8 +17,8 @@
 */
 
 #ifndef GENERATE_POSITIONS_H
-#define GENERATE_POSITIONS_H
-
+#    define GENERATE_POSITIONS_H
+#    include "soma_config.h"
 struct Phase;
 
 //! \file generate_positions.h
@@ -34,8 +34,6 @@ struct Phase;
 //! unfavorable configurations. For most systems this can be
 //! equilibrated, but if your area51 has topological constraints,
 //! equilibration might be impossible.
-int generate_new_beads(struct Phase*const p);
+int generate_new_beads(struct Phase *const p);
 
-
-
-#endif//GENERATE_POSITIONS_H
+#endif                          //GENERATE_POSITIONS_H
