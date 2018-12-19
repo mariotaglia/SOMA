@@ -192,6 +192,7 @@ int generate_new_beads(struct Phase*const p)
 #pragma acc update device(poly->beads[0:N])
         //Init MSD positions
         memcpy( poly->msd_beads, poly->beads, N*sizeof(Monomer));
+#pragma acc update device(poly->msd_beads[0:N])
         }
     update_density_fields(p);
     memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local*p->n_types*sizeof(uint16_t));

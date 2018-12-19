@@ -1321,14 +1321,90 @@ int read_config_hdf5(struct Phase * const p, const char *filename)
             }
         }
 
+    p->serie_length = 0;
+
     if(H5Lexists(file_id,"/external_field",H5P_DEFAULT) > 0)
         {
-        hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->external_field_unified), "/external_field");
+	  hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->external_field_unified), "/external_field");
         if( status != 0 )
             {
             fprintf(stderr, "ERROR: failed to read external_field %s:%d.\n", __FILE__,__LINE__);
             return status;
             }
+	hid_t dataset = H5Dopen2(file_id,"/external_field",H5P_DEFAULT);
+	status = dataset;
+	HDF5_ERROR_CHECK(status);
+
+	htri_t time_exists = H5Aexists(dataset,"serie_length");
+	if(time_exists<=0){
+	  p->serie_length=1;
+	  p->cos_serie = (soma_scalar_t*)malloc(p->serie_length*sizeof(soma_scalar_t));
+	  p->sin_serie = (soma_scalar_t*)malloc(p->serie_length*sizeof(soma_scalar_t));
+	  p->sin_serie[0]=0;
+	  p->cos_serie[0]=1;
+	  p->period=1;
+	}
+	if( time_exists > 0)
+	  {//time attr exists
+
+	    hid_t length_attr = H5Aopen_by_name(dataset,"/external_field","serie_length",H5P_DEFAULT,H5P_DEFAULT);
+	    hid_t d_space = H5Aget_space(length_attr);
+	    HDF5_ERROR_CHECK(d_space);
+	    hsize_t dims[1];//ndims
+	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aread(length_attr,H5T_NATIVE_UINT,&(p->serie_length));
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aclose(length_attr);
+	    HDF5_ERROR_CHECK(status);
+	    
+	    hid_t period_attr = H5Aopen_by_name(dataset,"/external_field","period",H5P_DEFAULT,H5P_DEFAULT);
+	    d_space = H5Aget_space(period_attr);
+	    HDF5_ERROR_CHECK(d_space);
+	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aread(period_attr,H5T_SOMA_NATIVE_SCALAR,&(p->period));
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aclose(period_attr);
+	    HDF5_ERROR_CHECK(status);
+	    p->cos_serie = (soma_scalar_t*)malloc(p->serie_length*sizeof(soma_scalar_t));
+	    if(p->cos_serie == NULL)
+	      {
+		fprintf(stderr,"Malloc error: %s:%d .\n",__FILE__,__LINE__);
+		return -1;
+	      }
+
+	    hid_t cos_attr = H5Aopen_by_name(dataset,"/external_field","cos",H5P_DEFAULT,H5P_DEFAULT);
+	    d_space = H5Aget_space(cos_attr);
+	    HDF5_ERROR_CHECK(d_space);
+	    dims[0]=p->serie_length;//ndims
+	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aread(cos_attr,H5T_SOMA_NATIVE_SCALAR,p->cos_serie);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aclose(cos_attr);
+	    HDF5_ERROR_CHECK(status);
+
+	    p->sin_serie = (soma_scalar_t*)malloc(p->serie_length*sizeof(soma_scalar_t));
+	    if(p->sin_serie == NULL)
+	      {
+		fprintf(stderr,"Malloc error: %s:%d .\n",__FILE__,__LINE__);
+		return -1;
+	      }
+
+	    hid_t sin_attr = H5Aopen_by_name(dataset,"/external_field","sin",H5P_DEFAULT,H5P_DEFAULT);
+	    d_space = H5Aget_space(sin_attr);
+	    HDF5_ERROR_CHECK(d_space);
+	    dims[0]=p->serie_length;//ndims
+	    status = H5Sget_simple_extent_dims(d_space,dims,NULL);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aread(sin_attr,H5T_SOMA_NATIVE_SCALAR,p->sin_serie);
+	    HDF5_ERROR_CHECK(status);
+	    status = H5Aclose(sin_attr);
+	    HDF5_ERROR_CHECK(status);
+	  }
+	status = H5Dclose(dataset);
+	HDF5_ERROR_CHECK(status);
         }
 
     if(H5Lexists(file_id,"/umbrella_field",H5P_DEFAULT) > 0)

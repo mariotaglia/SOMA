@@ -190,9 +190,7 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p,const Monomer* monomer,
 int monte_carlo_propagation(Phase*const p,unsigned int nsteps)
 {
   //Update the omega fields for the calculations.
-
   update_omega_fields(p);
-
     int ret;
     start_autotuner(&(p->mc_autotuner));
     switch( p->args.iteration_alg_arg)

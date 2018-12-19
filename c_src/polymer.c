@@ -53,6 +53,7 @@ int copyin_polymer(struct Phase*const p, Polymer*const poly)
     {
     const unsigned int N = p->poly_arch[ p->poly_type_offset[ poly->type ] ];
 #pragma acc enter data copyin(poly->beads[0:N])
+#pragma acc enter data copyin(poly->msd_beads[0:N])
     copyin_rng_state( &(poly->poly_state), p->args.pseudo_random_number_generator_arg);
 
     if(poly->set_permutation !=NULL)
@@ -75,6 +76,7 @@ int copyout_polymer(struct Phase*const p, Polymer*const poly)
     {
     const unsigned int N = p->poly_arch[ p->poly_type_offset[poly->type] ];
 #pragma acc exit data copyout(poly->beads[0:N])
+#pragma acc exit data copyout(poly->msd_beads[0:N])
     copyout_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
       if(poly->set_permutation !=NULL)
           {
@@ -376,7 +378,6 @@ int update_self_polymer(const struct Phase*const p,Polymer*const poly,int rng_up
     {
     const unsigned int N= p->poly_arch[ p->poly_type_offset[poly->type] ];
     #pragma acc update self(poly->beads[0:N])
-
     if(poly->set_permutation !=NULL)
         {
 #pragma acc update self(poly->set_permutation[0:p->max_n_sets])

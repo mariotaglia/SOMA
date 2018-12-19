@@ -48,6 +48,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.xml ${CMAKE_CURRENT_BINARY_DIR}/m
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic_time.xml ${CMAKE_CURRENT_BINARY_DIR}/mic_time.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diverse_polytype.xml ${CMAKE_CURRENT_BINARY_DIR}/diverse_polytype.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.xml ${CMAKE_CURRENT_BINARY_DIR}/async.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/structure_factor.xml ${CMAKE_CURRENT_BINARY_DIR}/structure_factor.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/external_field.xml ${CMAKE_CURRENT_BINARY_DIR}/external_field.xml COPYONLY)
 
 #quick
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/quick.sh.in ${CMAKE_CURRENT_BINARY_DIR}/quick.sh)
@@ -69,12 +71,19 @@ if(ENABLE_MPI)
 endif(ENABLE_MPI)
 
 #ConfGen_AnaGen
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AnaGen.py.in ${CMAKE_CURRENT_BINARY_DIR}/AnaGen.py)
-add_test(NAME AnaGen WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python AnaGen.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/AnaGen.sh.in ${CMAKE_CURRENT_BINARY_DIR}/AnaGen.sh)
+add_test(NAME AnaGen WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./AnaGen.sh)
 
 #Compare Bead data even if the order of chains has changed.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compare_mixed_bead_data.py.in ${CMAKE_CURRENT_BINARY_DIR}/compare_mixed_bead_data.py)
 
+#Structure factor
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/structure_factor.py.in ${CMAKE_CURRENT_BINARY_DIR}/structure_factor.py)
+add_test(NAME StructureFactor WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python structure_factor.py ${ACC_FLAG})
+
+#External field
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/external_field.py.in ${CMAKE_CURRENT_BINARY_DIR}/external_field.py)
+add_test(NAME ExternalField WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python external_field.py)
 
 if(HDF5_DIFF_EXECUTABLE)
 

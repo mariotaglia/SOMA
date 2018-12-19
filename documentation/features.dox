@@ -67,6 +67,7 @@
  - Center of mass simple Monte-Carlo algorithm for full molecule diffusion.
  - Doxygen API documentation.
  - Domain decomposition as a third layer of parallelism.
+ - Time dependent external field.
 
  \subsection observables Available Observables
 
@@ -100,6 +101,10 @@ The output matrix in the hdf5 has than the dimensions 5x8, the first dimension i
 
  - Non-Bonded energy: For each bond type \f$ k \f$: \f$ E_k = \sum_{<ij>} V_k(r_{ij}) \delta_{i<j} \f$, where \f$ <ij> \f$ denotes all bonded (of bond type \f$ k \f$) particles \f$ i,j\f$.
 
+ - Static-Structure-Factor: For each polymer_type: \f$ S_q = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(t)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
+
+ - Dynamical-Structure-Factor: For each polymer_type: \f$ S_q(t) = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(0)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
+
  \subsection no-features Not Available Features
 
  If you want to implement a feature, please do not hesitate to help
@@ -107,10 +112,5 @@ The output matrix in the hdf5 has than the dimensions 5x8, the first dimension i
 
  - Smoothing neighbor functions like NEIGHBOUR8 or NEIGHBOUR27,
    because useful physical application is rare.
-
- - Domain decomposition, because the scaling is good enough with GPUs.
-
- - Dynamic load balance, because so far only chains of similar length
-   were considered.
 
 */

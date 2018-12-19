@@ -94,6 +94,7 @@ unsigned int soma_rng_uint(RNG_STATE * state, enum enum_pseudo_random_number_gen
 //! Status function to get the max random number.
 //!
 //! \return Maximum generated rng by soma_rng_uint
+#pragma acc routine(soma_rng_uint_max) seq
 unsigned int soma_rng_uint_max(void);
 
 //!\brief Set the seed of Mersenne-Twister with the PCG32

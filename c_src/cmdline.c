@@ -63,6 +63,7 @@ const char *som_args_detailed_help[] = {
   "      --no-sync-signal          Synchronize MPI ranks for correct signal\n                                  catching. OFF enables termination via sending\n                                  SIGINT or SIGTERM to SOMA if the MPI library\n                                  supports it. ON accerlerates run with many\n                                  MPI ranks.  (default=off)",
   "      --long-chain-threshold=length\n                                Option to determine the length of the long\n                                  chain, expressed as the inverse fraction of\n                                  the total bead number.  (default=`50')",
   "      --set_order_frequency=frequency\n                                Option to determine the frequency to check the\n                                  ordering of the polymers which is important\n                                  for independent_set_iteration.\n                                  (default=`200')",
+  "      --n_random_q=N            Option to determine the number of random wave\n                                  vectors used for the calculation of structure\n                                  factor.  (default=`32')",
   "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
     0
 };
@@ -99,11 +100,12 @@ init_help_array(void)
   som_args_help[26] = som_args_detailed_help[27];
   som_args_help[27] = som_args_detailed_help[28];
   som_args_help[28] = som_args_detailed_help[29];
-  som_args_help[29] = 0; 
+  som_args_help[29] = som_args_detailed_help[30];
+  som_args_help[30] = 0; 
   
 }
 
-const char *som_args_help[30];
+const char *som_args_help[31];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -164,6 +166,7 @@ void clear_given (struct som_args *args_info)
   args_info->no_sync_signal_given = 0 ;
   args_info->long_chain_threshold_given = 0 ;
   args_info->set_order_frequency_given = 0 ;
+  args_info->n_random_q_given = 0 ;
   args_info->final_file_given = 0 ;
 }
 
@@ -215,6 +218,8 @@ void clear_args (struct som_args *args_info)
   args_info->long_chain_threshold_orig = NULL;
   args_info->set_order_frequency_arg = 200;
   args_info->set_order_frequency_orig = NULL;
+  args_info->n_random_q_arg = 32;
+  args_info->n_random_q_orig = NULL;
   args_info->final_file_arg = gengetopt_strdup ("end.h5");
   args_info->final_file_orig = NULL;
   
@@ -253,7 +258,8 @@ void init_args_info(struct som_args *args_info)
   args_info->no_sync_signal_help = som_args_detailed_help[26] ;
   args_info->long_chain_threshold_help = som_args_detailed_help[27] ;
   args_info->set_order_frequency_help = som_args_detailed_help[28] ;
-  args_info->final_file_help = som_args_detailed_help[29] ;
+  args_info->n_random_q_help = som_args_detailed_help[29] ;
+  args_info->final_file_help = som_args_detailed_help[30] ;
   
 }
 
@@ -370,6 +376,7 @@ cmdline_parser_release (struct som_args *args_info)
   free_string_field (&(args_info->set_generation_algorithm_orig));
   free_string_field (&(args_info->long_chain_threshold_orig));
   free_string_field (&(args_info->set_order_frequency_orig));
+  free_string_field (&(args_info->n_random_q_orig));
   free_string_field (&(args_info->final_file_arg));
   free_string_field (&(args_info->final_file_orig));
   
@@ -499,6 +506,8 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "long-chain-threshold", args_info->long_chain_threshold_orig, 0);
   if (args_info->set_order_frequency_given)
     write_into_file(outfile, "set_order_frequency", args_info->set_order_frequency_orig, 0);
+  if (args_info->n_random_q_given)
+    write_into_file(outfile, "n_random_q", args_info->n_random_q_orig, 0);
   if (args_info->final_file_given)
     write_into_file(outfile, "final-file", args_info->final_file_orig, 0);
   
@@ -835,6 +844,7 @@ cmdline_parser_internal (
         { "no-sync-signal",	0, NULL, 0 },
         { "long-chain-threshold",	1, NULL, 0 },
         { "set_order_frequency",	1, NULL, 0 },
+        { "n_random_q",	1, NULL, 0 },
         { "final-file",	1, NULL, 'f' },
         { 0,  0, 0, 0 }
       };
@@ -1189,6 +1199,20 @@ cmdline_parser_internal (
                 &(local_args_info.set_order_frequency_given), optarg, 0, "200", ARG_INT,
                 check_ambiguity, override, 0, 0,
                 "set_order_frequency", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Option to determine the number of random wave vectors used for the calculation of structure factor..  */
+          else if (strcmp (long_options[option_index].name, "n_random_q") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->n_random_q_arg), 
+                 &(args_info->n_random_q_orig), &(args_info->n_random_q_given),
+                &(local_args_info.n_random_q_given), optarg, 0, "32", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "n_random_q", '-',
                 additional_error))
               goto failure;
           

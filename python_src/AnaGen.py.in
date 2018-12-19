@@ -141,17 +141,35 @@ class AnalysisFile(ConfGen.SomaXML):
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["chem_potential"]=copy.deepcopy(element)
-
+      
+            #structure
+            for ana in self.root.findall("analysis"):
+                for child in ana:
+                    for grandchild in child:
+                        if grandchild.tag=="q" and child.tag=="dynamical_structure_factor":
+                            tmp_file = stringio.StringIO(grandchild.text)
+                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.float32) 
+                            element = AnaElement( soma_type.get_soma_scalar_type(), (0,q_array.size,self.n_poly_types,self.n_particle_types*self.n_particle_types), 0 )
+                            self.ana_dict["dynamical_structure_factor"] = copy.deepcopy(element)
+                        elif grandchild.tag=="q" and child.tag=="static_structure_factor":
+                            tmp_file = stringio.StringIO(grandchild.text)
+                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.float32)
+                            element = AnaElement( soma_type.get_soma_scalar_type(), (0,q_array.size,self.n_poly_types,self.n_particle_types*self.n_particle_types), 0 )
+                            self.ana_dict["static_structure_factor"] = copy.deepcopy(element)
 
     def _update_ana_element(self,element):
         if element.tag not in self.ana_dict.keys():
             print("WARNING: unknown ana tag "+str(element.tag)+" ignoring element.")
             return
         dict_element = self.ana_dict[element.tag]
-
         for child in element:
             if child.tag == "compression":
                 dict_element.compression = child.text.strip()
+            elif child.tag == "q":
+                tmp_file = stringio.StringIO(child.text)
+                q = numpy.loadtxt( tmp_file, dtype=numpy.float32)
+                dict_element.attr[child.tag] = q
+                dict_element.attr["q_size"]=q.size
             else:
                 tmp_file = stringio.StringIO(child.text)
                 matrix = numpy.loadtxt( tmp_file, dtype=numpy.int32)
@@ -217,6 +235,7 @@ def main(argv):
     arguments = vars(parser.parse_args())
 
     filename_conf = arguments['c'][0]
+    
     extension_conf = filename_conf.rfind(".h5")
     if extension_conf < 0 or extension_conf+len(".h5") != len(filename_conf):
         print("ERROR: "+filename_conf+" does not end with .h5")
@@ -226,7 +245,6 @@ def main(argv):
     if extension_xml < 0 or extension_xml+len(".xml") != len(filename_xml):
         print("ERROR: "+filename_xml+" does not end with .xml")
         return
-
     if arguments["ana_filename"] :
         ana_out_file = arguments["ana_filename"][0]
     else :
