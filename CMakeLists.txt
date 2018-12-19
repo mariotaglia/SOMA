@@ -9,8 +9,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug")
 endif()
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0") 
-  cmake_policy(SET CMP0074 NEW)
+if( ${CMAKE_VERSION} VERSION_GREATER "3.7.0" )
+  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0") 
+    cmake_policy(SET CMP0074 NEW)
+  endif()
 endif()
 
 project(SOMA C)

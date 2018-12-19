@@ -49,9 +49,13 @@ All contributors must agree to the Contributor Agreement ([ContributorAgreement]
 
 # Source code
 
-## Use a consistent style
+## Use our style
 
-It is important to have a consistent style throughout the source code. Readibilty of your code matters.
+It is important to have a consistent style throughout the source code.
+For this matter we use a fixed style. The exact style can be forced with a script reformating the source code: c_src/force_indention.sh.
+The GNU indent tool is required to reformat the source code. Run the script before you push your contribution. If you added new source code and they are not automaticaly detected, add the files manually to the script.
+
+Readibilty of your code matters.
 
 ## Document code with comments
 

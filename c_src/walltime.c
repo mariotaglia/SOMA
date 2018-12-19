@@ -20,17 +20,16 @@
 #include <stdlib.h>
 #include <time.h>
 
-
 int check_walltime_stop(void)
-    {
-    char * env = getenv("SOMA_WALLTIME_STOP");
-    if( env != NULL)
-	{
-	const long int walltime = atol(env);
-	const time_t ac_time = time(NULL);
-	if( walltime != 0)
-	    if( ac_time > walltime )
-		return 1;
-	}
+{
+    char *env = getenv("SOMA_WALLTIME_STOP");
+    if (env != NULL)
+        {
+            const long int walltime = atol(env);
+            const time_t ac_time = time(NULL);
+            if (walltime != 0)
+                if (ac_time > walltime)
+                    return 1;
+        }
     return 0;
-    }
+}

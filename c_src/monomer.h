@@ -16,23 +16,20 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef MONOMER_H
-#define MONOMER_H
+#    define MONOMER_H
 //! \file monomer.h
 //! \brief Collection of code for Monomer struct
 
-#include "soma_config.h"
-#include <hdf5.h>
-
-
-
+#    include "soma_config.h"
+#    include <hdf5.h>
 
 /*! \brief Monomer struct contains spatial position and type.
   \warning The bit pattern of the type \a w is an int in a soma_scalar_t variable.*/
-typedef struct{
-    soma_scalar_t x; /*!<\brief X-coordinate */
-    soma_scalar_t y; /*!<\brief Y-coordinate */
-    soma_scalar_t z; /*!<\brief Z-coordinate */
-    }Monomer;
+typedef struct {
+    soma_scalar_t x;            /*!<\brief X-coordinate */
+    soma_scalar_t y;            /*!<\brief Y-coordinate */
+    soma_scalar_t z;            /*!<\brief Z-coordinate */
+} Monomer;
 //! function to get the hdf5 identifier for the monomer_memtype.
 //!
 //! \warning You as a user have to close the id after you used it!
@@ -51,14 +48,14 @@ hid_t get_monomer_filetype(void);
 //! \param z Z coordinate of the new monomer
 //! \return newly constructed monomer
 static inline Monomer make_monomer(const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z);
-#pragma acc routine(make_monomer) seq
+#    pragma acc routine(make_monomer) seq
 inline Monomer make_monomer(const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z)
-    {
+{
     Monomer ret;
     ret.x = x;
     ret.y = y;
     ret.z = z;
     return ret;
-    }
+}
 
-#endif//MONOMER_H
+#endif                          //MONOMER_H

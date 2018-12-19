@@ -21,15 +21,15 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef SOMA_MPIROUTINES_H
-#define SOMA_MPIROUTINES_H
+#    define SOMA_MPIROUTINES_H
 
-#include "soma_config.h"
-#if ( ENABLE_MPI == 1 )
-#include <mpi.h>
-#endif//ENABLE_MPI
+#    include "soma_config.h"
+#    if ( ENABLE_MPI == 1 )
+#        include <mpi.h>
+#    endif                      //ENABLE_MPI
 
-#include <stdint.h>
-#include <stdbool.h>
+#    include <stdint.h>
+#    include <stdbool.h>
 struct Phase;
 
 /*! \file mpiroutines.h
@@ -54,25 +54,25 @@ struct Phase;
 //! c) DOMAIN: A simulation can be split into different spatial domains.
 //! This finest level is used to communicate between the different domains.
 //! Each domain can have multiple mpi ranks.
-typedef struct Info_MPI{
-    int world_rank; //!< Rank of the world communicator
-    int world_size; //!< Size of the world communicator
-    int sim_size; //!< Size of the simulation communicator
-    int sim_rank; //!< Rank of the simulation communicator
-    int domain_size; //!< Size of a single domain communicator
-    int domain_rank; //!< Rank of a single domain communicator
-#if ( ENABLE_MPI == 1 )
+typedef struct Info_MPI {
+    int world_rank;             //!< Rank of the world communicator
+    int world_size;             //!< Size of the world communicator
+    int sim_size;               //!< Size of the simulation communicator
+    int sim_rank;               //!< Rank of the simulation communicator
+    int domain_size;            //!< Size of a single domain communicator
+    int domain_rank;            //!< Rank of a single domain communicator
+#    if ( ENABLE_MPI == 1 )
 
-    MPI_Comm    SOMA_comm_world; //!< Global communicator for 1 simulation
-    MPI_Comm    SOMA_comm_sim;  /*!< \brief communicator within one conf, SCMF parallelization */
-    MPI_Comm    SOMA_comm_domain;       /*!< \brief communicator within one domain of a SCMF simulation parallelization */
-    MPI_Status          mpi_status; //!< Status of the mpi init.
-#endif//ENABLE_MPI
+    MPI_Comm SOMA_comm_world;   //!< Global communicator for 1 simulation
+    MPI_Comm SOMA_comm_sim;     /*!< \brief communicator within one conf, SCMF parallelization */
+    MPI_Comm SOMA_comm_domain;  /*!< \brief communicator within one domain of a SCMF simulation parallelization */
+    MPI_Status mpi_status;      //!< Status of the mpi init.
+#    endif                      //ENABLE_MPI
     //! Store MPI divergence in between domain ranks.
     double domain_divergence_sec;
     //! Counter for the MPI divergence in between domain ranks.
     unsigned int domain_divergence_counter;
-    }Info_MPI;
+} Info_MPI;
 
 /*! \brief Initialize MPI.
 
@@ -92,7 +92,7 @@ int init_MPI(struct Phase *p);
 //! \param mpi Input of initialized MPI data.
 //! \post the communicators are freed
 //! \return Errorcode
-int finalize_MPI(struct Info_MPI*mpi);
+int finalize_MPI(struct Info_MPI *mpi);
 
 //! \brief Function to check wheter one MPI-rank passed a non-zero value.
 //!
@@ -100,16 +100,15 @@ int finalize_MPI(struct Info_MPI*mpi);
 //! \param p Phase containing the communicator and more.
 //! \param my_status Status of the local rank.
 //! \return Nonzero value if one MPI-rank passed a non-zero value.
-int check_status_on_mpi(const struct Phase*const p,int my_status);
+int check_status_on_mpi(const struct Phase *const p, int my_status);
 
-#if ( ENABLE_MPI == 1 )
+#    if ( ENABLE_MPI == 1 )
 //! Measure divergence of MPI ranks with an MPI_Barrier call.
 //!
 //! \param p System which running the simulation. (Reqired for MPI context.)
 //! \note this function also updates summed counters in info_MPI
 //! \return seconds waiting in Barrier.
-double mpi_divergence(struct Phase*const p);
-
+double mpi_divergence(struct Phase *const p);
 
 //! Update global properties, which can be combined from local statistics.
 //!
@@ -121,7 +120,7 @@ double mpi_divergence(struct Phase*const p);
 //! the global number of beads and beads per type.)
 //! \note This function is MPI collective.
 //! \return Errorcode.
-int collective_global_update(struct Phase*const p);
+int collective_global_update(struct Phase *const p);
 
 //! Send a polymer from one MPI rank to another.
 //!
@@ -132,8 +131,7 @@ int collective_global_update(struct Phase*const p);
 //! \param destination Id of the recving MPI rank.
 //! \param comm MPI communicator in which the polymer should be sent
 //! \return Errorcode.
-int send_polymer_chain(struct Phase*const p, const uint64_t poly_id,
-                       const int destination, const MPI_Comm comm);
+int send_polymer_chain(struct Phase *const p, const uint64_t poly_id, const int destination, const MPI_Comm comm);
 
 //! Recv a polymer from one MPI rank to another.
 //!
@@ -143,7 +141,7 @@ int send_polymer_chain(struct Phase*const p, const uint64_t poly_id,
 //! \param source Id of the recving MPI rank.
 //! \param comm MPI communicator in which the polymer should be recieved
 //! \return Errorcode.
-int recv_polymer_chain(struct Phase*const p, const int source,const MPI_Comm comm);
+int recv_polymer_chain(struct Phase *const p, const int source, const MPI_Comm comm);
 
 //! Send a multiple polymers from one MPI rank to another.
 //!
@@ -154,8 +152,7 @@ int recv_polymer_chain(struct Phase*const p, const int source,const MPI_Comm com
 //! \param destination Id of the recving MPI rank.
 //! \param comm MPI communicator in which the polymer should be sent
 //! \return >= 0 Number of polymers send. else Errorcode
-int send_mult_polymers(struct Phase*const p,const int destination,
-                       unsigned int Nsends,const MPI_Comm comm);
+int send_mult_polymers(struct Phase *const p, const int destination, unsigned int Nsends, const MPI_Comm comm);
 
 //! Helper function to obtain the malloc allocated buffer containing polymers from another rank.
 //!
@@ -164,8 +161,8 @@ int send_mult_polymers(struct Phase*const p,const int destination,
 //! \param Nsends Output parameter for the number of chains
 //! \param buffer_length Ouput parameter for the length of allocated buffer
 //! \return Pointer to buffer if successful, NULL otherwise
-unsigned char* recv_mult_polymers_core(const int source, const MPI_Comm comm,
-                                       unsigned int*const Nsends,unsigned int*const buffer_length);
+unsigned char *recv_mult_polymers_core(const int source, const MPI_Comm comm,
+                                       unsigned int *const Nsends, unsigned int *const buffer_length);
 
 //! Helper function to deserialize and pop in multiple polymer in a buffer.
 //!
@@ -174,8 +171,8 @@ unsigned char* recv_mult_polymers_core(const int source, const MPI_Comm comm,
 //! \param buffer_length Length of the buffer
 //! \param buffer Pointer to the buffer
 //! \return Errorcode
-int deserialize_mult_polymers(struct Phase*const p,const unsigned int Nsends,
-                              const unsigned int buffer_length,const unsigned char*const buffer);
+int deserialize_mult_polymers(struct Phase *const p, const unsigned int Nsends,
+                              const unsigned int buffer_length, const unsigned char *const buffer);
 
 //! Recv multiple polymers from one MPI rank to another.
 //!
@@ -185,7 +182,7 @@ int deserialize_mult_polymers(struct Phase*const p,const unsigned int Nsends,
 //! \param source Id of the recving MPI rank.
 //! \param comm MPI communicator in which the polymer should be sent
 //! \return Errorcode.
-int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm comm);
+int recv_mult_polymers(struct Phase *const p, const int source, const MPI_Comm comm);
 
 //! Load balance the MPI ranks.
 //!
@@ -198,7 +195,7 @@ int recv_mult_polymers(struct Phase*const p, const int source,const MPI_Comm com
 //! \note This function is MPI collective.
 //! \param p System.
 //! \return Errorcode
-int load_balance_mpi_ranks(struct Phase*const p);
+int load_balance_mpi_ranks(struct Phase *const p);
 
 //! Distribute all chains to their corresponding rank for a domain decomposition
 //!
@@ -209,8 +206,8 @@ int load_balance_mpi_ranks(struct Phase*const p);
 //! addressed. If chains cannot be sent to their corresponding rank an
 //! error is issued.
 //! \return Number of unsent chains should be 0, otherwise error.
-int send_domain_chains(struct Phase*const p,const bool init);
+int send_domain_chains(struct Phase *const p, const bool init);
 
-#endif//ENABLE_MPI
+#    endif                      //ENABLE_MPI
 
-#endif/*SOMA_MPIROUTINES_H*/
+#endif                          /*SOMA_MPIROUTINES_H */

@@ -21,21 +21,21 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef PHASE_H
-#define PHASE_H
+#    define PHASE_H
 
 struct IndependetSets;
-#include "soma_config.h"
-#include "mpiroutines.h"
-#include "ana_info.h"
-#include "cmdline.h"
-#include "soma_util.h"
-#include "autotuner.h"
-#include "polymer.h"
+#    include "soma_config.h"
+#    include "mpiroutines.h"
+#    include "ana_info.h"
+#    include "cmdline.h"
+#    include "soma_util.h"
+#    include "autotuner.h"
+#    include "polymer.h"
 
 //! Value of Pi.
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#    ifndef M_PI
+#        define M_PI 3.14159265358979323846
+#    endif
 
 //! \file phase.h
 //! \brief All relevant aspects for the struct Phase
@@ -52,30 +52,29 @@ struct IndependetSets;
  * with future releases.
 
  */
-typedef struct Phase{
-    bool present_on_device; //!< Indicator if the whole system is present of the GPU.
-    unsigned int reference_Nbeads; /*!< \brief number of reference beads for the model polymer */
-    soma_scalar_t harmonic_normb; //!< Harmonic energy scale (function of spring constant) const. at runtime.
-    soma_scalar_t harmonic_normb_variable_scale; //!< different harmonic energy scale (function of spring constant) const. at runtime.
-    unsigned int n_types;  /*!<\brief number of monomer types */
+typedef struct Phase {
+    bool present_on_device;     //!< Indicator if the whole system is present of the GPU.
+    unsigned int reference_Nbeads;      /*!< \brief number of reference beads for the model polymer */
+    soma_scalar_t harmonic_normb;       //!< Harmonic energy scale (function of spring constant) const. at runtime.
+    soma_scalar_t harmonic_normb_variable_scale;        //!< different harmonic energy scale (function of spring constant) const. at runtime.
+    unsigned int n_types;       /*!<\brief number of monomer types */
 
     /*! \brief \f$\chi N\f$
-      2D matrix with monomer type Flory-Huggins interactions, trace
-      contains compressibility \f$\kappa_i\f$.
-      Continous memory layout. Access like p->xn[ i* p->n_types + j];
-    */
+       2D matrix with monomer type Flory-Huggins interactions, trace
+       contains compressibility \f$\kappa_i\f$.
+       Continous memory layout. Access like p->xn[ i* p->n_types + j];
+     */
 
-    soma_scalar_t * xn;
-    uint64_t n_polymers; /*!< \brief \#polymers in the configuration. (Local on the MPI node.)*/
-    uint64_t n_polymers_storage; /*!< \brief Storage space for polymers.*/
-    uint64_t n_polymers_global; /*!< \brief \#polymers in the global configuration.*/
-    Polymer * polymers; /*!< \brief pointer to array of polymers */
-
+    soma_scalar_t *xn;
+    uint64_t n_polymers;        /*!< \brief \#polymers in the configuration. (Local on the MPI node.) */
+    uint64_t n_polymers_storage;        /*!< \brief Storage space for polymers. */
+    uint64_t n_polymers_global; /*!< \brief \#polymers in the global configuration. */
+    Polymer *polymers;          /*!< \brief pointer to array of polymers */
 
     //uint16_t **fields; /*!< \brief n_types fields in 3D, mimics the DENSITY NOT normalized to 1, this has to be done in the omega_field calculation*/
-    uint16_t * fields_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of fields */
-    uint16_t * old_fields_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of old fields for density variance calculations*/
-    uint32_t *fields_32; //!< \brief linear 32 bit version of the fields. This is required for GPU-simulation, because no 16-bit atomic operations are available.
+    uint16_t *fields_unified;   /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of fields */
+    uint16_t *old_fields_unified;       /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of old fields for density variance calculations */
+    uint32_t *fields_32;        //!< \brief linear 32 bit version of the fields. This is required for GPU-simulation, because no 16-bit atomic operations are available.
 
 /*! \brief array of shape of field, containing the information if
  * this cell is free space or not. == 0  is a free cell, !=0 is a forbidden cell.
@@ -85,71 +84,71 @@ typedef struct Phase{
  * specify for access always type=0.
  * \warning Before any access to area51, check for NULL.
  */
-    uint8_t * area51;
+    uint8_t *area51;
 
     //soma_scalar_t ** omega_field; /*!< \brief calculates the omega fields according to the Hamiltonian*/
-    soma_scalar_t * omega_field_unified;  /*!< \brief calculates the omega fields according to the Hamiltonian, unified access*/
+    soma_scalar_t *omega_field_unified; /*!< \brief calculates the omega fields according to the Hamiltonian, unified access */
     //soma_scalar_t ** external_field; /*!< \brief external fields that act on the polymers, one field per type */
-    soma_scalar_t * external_field_unified; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
-    soma_scalar_t * umbrella_field; /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
-    soma_scalar_t * tempfield; /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
-    uint64_t *num_bead_type; /*!< \brief stores the number of beads of a specific type*/
-    uint64_t *num_bead_type_local; /*!< \brief stores the number of beads of a specific type locally (for this mpi-core)*/
+    soma_scalar_t *external_field_unified;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
+    soma_scalar_t *umbrella_field;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
+    soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
+    uint64_t *num_bead_type;    /*!< \brief stores the number of beads of a specific type */
+    uint64_t *num_bead_type_local;      /*!< \brief stores the number of beads of a specific type locally (for this mpi-core) */
 
-    soma_scalar_t * A; /*!< \brief stores the diffusion constants for each type */
-    soma_scalar_t * R; /*!< \brief stores the derived dR for the diffusion constant */
+    soma_scalar_t *A;           /*!< \brief stores the diffusion constants for each type */
+    soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
     //!  Mobility of the center of mass for all polymer types.
     //!  Length is p->n_poly_types. NULL if no mobility wanted.
-    soma_scalar_t * cm_a;
+    soma_scalar_t *cm_a;
     //! Tries of the cm moves
     unsigned int n_tries_cm;
     //! Accepted moves of the cm
     unsigned int n_acc_cm;
 
-    soma_scalar_t *field_scaling_type; /*!< \brief stores the scaling factor according to the density */
+    soma_scalar_t *field_scaling_type;  /*!< \brief stores the scaling factor according to the density */
 
-    soma_scalar_t * k_umbrella; //!< Strength prefactor for the umbrella Hamiltonians for each type, if needed. Default 0
+    soma_scalar_t *k_umbrella;  //!< Strength prefactor for the umbrella Hamiltonians for each type, if needed. Default 0
 
-    unsigned int time; /*!< \brief MC steps into the simulation */
-    uint64_t num_all_beads; //!< Number of all monomer/beads in the global system
-    uint64_t num_all_beads_local; //!< Number of all monomer/beads on the local MPI core
+    unsigned int time;          /*!< \brief MC steps into the simulation */
+    uint64_t num_all_beads;     //!< Number of all monomer/beads in the global system
+    uint64_t num_all_beads_local;       //!< Number of all monomer/beads on the local MPI core
 
-    unsigned int nx; /*!< \brief x-spatial discretization */
-    unsigned int ny; /*!< \brief y-spatial discretization */
-    unsigned int nz; /*!< \brief z-spatial discretization */
-    uint64_t n_cells; /*!< \brief number of cells in the field */
-    soma_scalar_t Lx; /*!< \brief x-spatial dimensions in units of \f$ Re_0 \f$ */
-    soma_scalar_t Ly; /*!< \brief y-spatial dimensions in units of \f$ Re_0 \f$ */
-    soma_scalar_t Lz; /*!< \brief z-spatial dimensions in units of \f$ Re_0 \f$ */
-    soma_scalar_t iLx; /*!< \brief inverse x-spatial dimensions in units of \f$ Re_0 \f$ */
-    soma_scalar_t iLy; /*!< \brief inverse y-spatial dimensions in units of \f$ Re_0 \f$ */
-    soma_scalar_t iLz; /*!< \brief inverse z-spatial dimensions in units of \f$ Re_0 \f$ */
+    unsigned int nx;            /*!< \brief x-spatial discretization */
+    unsigned int ny;            /*!< \brief y-spatial discretization */
+    unsigned int nz;            /*!< \brief z-spatial discretization */
+    uint64_t n_cells;           /*!< \brief number of cells in the field */
+    soma_scalar_t Lx;           /*!< \brief x-spatial dimensions in units of \f$ Re_0 \f$ */
+    soma_scalar_t Ly;           /*!< \brief y-spatial dimensions in units of \f$ Re_0 \f$ */
+    soma_scalar_t Lz;           /*!< \brief z-spatial dimensions in units of \f$ Re_0 \f$ */
+    soma_scalar_t iLx;          /*!< \brief inverse x-spatial dimensions in units of \f$ Re_0 \f$ */
+    soma_scalar_t iLy;          /*!< \brief inverse y-spatial dimensions in units of \f$ Re_0 \f$ */
+    soma_scalar_t iLz;          /*!< \brief inverse z-spatial dimensions in units of \f$ Re_0 \f$ */
 
-    int local_nx_low; //!< Lowest Nx available on local domain
-    int local_nx_high; //!< Highest Nx available on local domain
-    uint64_t n_cells_local; //!< Number of locally available cells
-    uint16_t* left_tmp_buffer; //!< If not NULL: Temporary memory of size domain_buffer*ny*nz for MPI communication
-    uint16_t* right_tmp_buffer; //!< If not NULL: Temporary memory of size domain_buffer*ny*nz for MPI communication
+    int local_nx_low;           //!< Lowest Nx available on local domain
+    int local_nx_high;          //!< Highest Nx available on local domain
+    uint64_t n_cells_local;     //!< Number of locally available cells
+    uint16_t *left_tmp_buffer;  //!< If not NULL: Temporary memory of size domain_buffer*ny*nz for MPI communication
+    uint16_t *right_tmp_buffer; //!< If not NULL: Temporary memory of size domain_buffer*ny*nz for MPI communication
 
     // Variables for statistics/ analytics
-    unsigned long int n_moves; /*!< \brief total number of moves */
-    unsigned long int n_accepts; /*!< \brief accepted moves */
+    unsigned long int n_moves;  /*!< \brief total number of moves */
+    unsigned long int n_accepts;        /*!< \brief accepted moves */
 
-    soma_scalar_t msd_old; /*!< \brief store the MSD from n steps ago */
+    soma_scalar_t msd_old;      /*!< \brief store the MSD from n steps ago */
     //! two dimensional array, (npoly_types x 2) describing the start
     //! and end monomer of each polymer type.
-    unsigned int* end_mono;
+    unsigned int *end_mono;
 
-    Info_MPI info_MPI; /*!< \brief  stores all information regarding MPI */
+    Info_MPI info_MPI;          /*!< \brief  stores all information regarding MPI */
 
-    Ana_Info ana_info; //!< \brief Bundled info about the output routines.
+    Ana_Info ana_info;          //!< \brief Bundled info about the output routines.
 
     //! Number of different polymer architectures.
     unsigned int n_poly_type;
     //!Offset where to start/end reading the architecture data.
     //!
     //! Array size n_poly_type.
-    int* poly_type_offset;
+    int *poly_type_offset;
     //! Length of the poly_arch array
     unsigned int poly_arch_length;
     //! Array to all store information about the polymer architecture.
@@ -216,7 +215,7 @@ typedef struct Phase{
     //!     //Do stuff
     //!   }while(end==0);
     //!  \endcode
-    uint32_t* poly_arch;
+    uint32_t *poly_arch;
 
     //! \brief Struct containing the command line arguments.
     struct som_args args;
@@ -245,7 +244,7 @@ typedef struct Phase{
     //! Array of independet sets. If NULL no sets are stored, the move type is not available.
     //!
     //! Length of the array is the number of polymer types.
-    struct IndependetSets*sets;
+    struct IndependetSets *sets;
     //! Number of max members in an independet set. Used for the length of polymer states.
     unsigned int max_set_members;
     //! Max number of sets for all polymer types.
@@ -261,12 +260,12 @@ typedef struct Phase{
     //! Measures the number of chains that runs on one separate kernal
     unsigned int num_long_chain;
 
-    soma_scalar_t* cos_serie; //!< the prefactor of the cosine elements to define time-dependent external field 
-    soma_scalar_t* sin_serie; //!< the prefactor of the sine elements to define time-dependent external field 
-    soma_scalar_t period; //!< period of the time-dependent external field
-    unsigned int serie_length; //!< number of time-dependent external field
+    soma_scalar_t *cos_serie;   //!< the prefactor of the cosine elements to define time-dependent external field 
+    soma_scalar_t *sin_serie;   //!< the prefactor of the sine elements to define time-dependent external field 
+    soma_scalar_t period;       //!< period of the time-dependent external field
+    unsigned int serie_length;  //!< number of time-dependent external field
 
-    }Phase;
+} Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
 
@@ -275,12 +274,12 @@ typedef struct Phase{
   \param p Phase to initialize.
   \return error code.
 */
-int init_phase(struct Phase*const p);
+int init_phase(struct Phase *const p);
 
 //! Initialize and copy in all data to DEVICE
 //! \param p Pointer to phase to copy in
 //! \return Errorcode
-int copyin_phase(struct Phase*const p);
+int copyin_phase(struct Phase *const p);
 
 /*! \brief Copys the data from the device back to the host
   \param p System in which the host data is updated from the device
@@ -292,19 +291,19 @@ int update_self_phase(const Phase * const p, int rng_update_flag);
 //! Copy all data out from the DEVICE
 //! \param p Pointer to phase to copy out
 //! \return Errorcode
-int copyout_phase(struct Phase*const p);
+int copyout_phase(struct Phase *const p);
 
 /*! \brief Deallocate the memory used by p.
   \param p Initialized configuration.
   \return Errorcode.
   \post p points to an invalid configuration. Do not use it for any other call afterwards.
 */
-int free_phase(struct Phase*const p);
+int free_phase(struct Phase *const p);
 
 /*! \brief Order the polymers in p according to their length, private function.
   \param p Initialized configuration.
   \return the number of chains that have more than 1/50 of the monomers in the total system.
 */
-int mc_set_init(struct Phase*const p);
+int mc_set_init(struct Phase *const p);
 
-#endif//PHASE_H
+#endif                          //PHASE_H
