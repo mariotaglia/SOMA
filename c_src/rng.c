@@ -259,8 +259,9 @@ unsigned int soma_rng_tt800(MTTSTATE * itt800_rng)
                 {
                     itt800_rng->internal_state[k] =
                         itt800_rng->internal_state[k +
-                                                   M] ^ (itt800_rng->internal_state[k] >> 1) ^ itt800_rng->
-                        A[itt800_rng->internal_state[k] & 1];
+                                                   M] ^ (itt800_rng->
+                                                         internal_state[k] >> 1) ^ itt800_rng->A[itt800_rng->
+                                                                                                 internal_state[k] & 1];
                 }
             for (k = TT_num_int_state - M; k < TT_num_int_state; ++k)
                 {

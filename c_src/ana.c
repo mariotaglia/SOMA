@@ -395,18 +395,18 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                                             const soma_scalar_t dx = calc_bond_length(p->polymers[poly].beads[mono].x,
                                                                                       p->polymers[poly].beads[mono_j].x,
                                                                                       p->Lx,
-                                                                                      p->
-                                                                                      args.bond_minimum_image_convention_flag);
+                                                                                      p->args.
+                                                                                      bond_minimum_image_convention_flag);
                                             const soma_scalar_t dy = calc_bond_length(p->polymers[poly].beads[mono].y,
                                                                                       p->polymers[poly].beads[mono_j].y,
                                                                                       p->Ly,
-                                                                                      p->
-                                                                                      args.bond_minimum_image_convention_flag);
+                                                                                      p->args.
+                                                                                      bond_minimum_image_convention_flag);
                                             const soma_scalar_t dz = calc_bond_length(p->polymers[poly].beads[mono].z,
                                                                                       p->polymers[poly].beads[mono_j].z,
                                                                                       p->Lz,
-                                                                                      p->
-                                                                                      args.bond_minimum_image_convention_flag);
+                                                                                      p->args.
+                                                                                      bond_minimum_image_convention_flag);
 
                                             const soma_scalar_t r2 = dx * dx + dy * dy + dz * dz;
 

@@ -141,14 +141,19 @@ class AnalysisFile(ConfGen.SomaXML):
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["chem_potential"]=copy.deepcopy(element)
-      
+
+            #default structure factor elements
+            element = AnaElement( soma_type.get_soma_scalar_type(),(0,1),0)
+            self.ana_dict["dynamical_structure_factor"] = copy.deepcopy(element)
+            self.ana_dict["static_structure_factor"] = copy.deepcopy(element)
+
             #structure
             for ana in self.root.findall("analysis"):
                 for child in ana:
                     for grandchild in child:
                         if grandchild.tag=="q" and child.tag=="dynamical_structure_factor":
                             tmp_file = stringio.StringIO(grandchild.text)
-                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.float32) 
+                            q_array = numpy.loadtxt( tmp_file, dtype=numpy.float32)
                             element = AnaElement( soma_type.get_soma_scalar_type(), (0,q_array.size,self.n_poly_types,self.n_particle_types*self.n_particle_types), 0 )
                             self.ana_dict["dynamical_structure_factor"] = copy.deepcopy(element)
                         elif grandchild.tag=="q" and child.tag=="static_structure_factor":
@@ -235,7 +240,7 @@ def main(argv):
     arguments = vars(parser.parse_args())
 
     filename_conf = arguments['c'][0]
-    
+
     extension_conf = filename_conf.rfind(".h5")
     if extension_conf < 0 or extension_conf+len(".h5") != len(filename_conf):
         print("ERROR: "+filename_conf+" does not end with .h5")

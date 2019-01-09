@@ -54,6 +54,8 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     p->ana_info.filename = NULL;
     p->ana_info.coord_filename = NULL;
     p->ana_info.file_id = -1;
+    p->ana_info.q_dynamical = NULL;
+    p->ana_info.q_static = NULL;
     //Copy no ana conf as backup to device.
 #pragma acc update device(p->ana_info)
 
@@ -745,7 +747,6 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 
     ///dynamic structure
     ///static structure
-
     if (p->ana_info.delta_mc_static_structure > 0)
         {
             const unsigned int tmp = p->ana_info.delta_mc_static_structure;
