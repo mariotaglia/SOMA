@@ -257,19 +257,15 @@ unsigned int soma_rng_tt800(MTTSTATE * itt800_rng)
                 }
             for (k = 0; k < TT_num_int_state - M; ++k)
                 {
-                    itt800_rng->internal_state[k] =
-                        itt800_rng->internal_state[k +
-                                                   M] ^ (itt800_rng->
-                                                         internal_state[k] >> 1) ^ itt800_rng->A[itt800_rng->
-                                                                                                 internal_state[k] & 1];
+                    const uint32_t tmp =
+                        (itt800_rng->internal_state[k] >> 1) ^ itt800_rng->A[itt800_rng->internal_state[k] & 1];
+                    itt800_rng->internal_state[k] = itt800_rng->internal_state[k + M] ^ tmp;
                 }
             for (k = TT_num_int_state - M; k < TT_num_int_state; ++k)
                 {
-                    itt800_rng->internal_state[k] =
-                        itt800_rng->internal_state[k +
-                                                   (M -
-                                                    TT_num_int_state)] ^ (itt800_rng->internal_state[k] >> 1) ^
-                        itt800_rng->A[itt800_rng->internal_state[k] & 1];
+                    const uint32_t tmp =
+                        (itt800_rng->internal_state[k] >> 1) ^ itt800_rng->A[itt800_rng->internal_state[k] & 1];
+                    itt800_rng->internal_state[k] = itt800_rng->internal_state[k + (M - TT_num_int_state)] ^ tmp;
                 }
             itt800_rng->internal_index = 0;
         }
