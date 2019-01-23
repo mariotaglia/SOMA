@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#   Copyright (C) 2016-2017 Ludwig Schneider
+#   Copyright (C) 2016-2019 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -45,7 +45,7 @@ def test():
         n_mono = poly_arch[0] # First element contains number of monomers for homopolymers.
         n_particle_types = np.array(hf_config['/parameter/n_types'])[0]
         n_poly_types = np.array(hf_config['/parameter/n_poly_type'])[0]
-        
+
         with h5py.File('structure_factor_ana.h5', 'r') as hf_ana:
             static_structure_factor= np.array(hf_ana['/static_structure_factor'])
             dynamical_structure_factor= np.array(hf_ana['/dynamical_structure_factor'])
@@ -54,12 +54,12 @@ def test():
 
             # collective static structure factor of binary blend in http://arxiv.org/abs/cond-mat/0501076v1 p.28 eq.91.
             x = static_q_vec**2 / 6.0
-            static_ana = 2 * (np.exp(-x) - 1 + x) / x**2 
-            static_ana = n_mono * static_ana 
+            static_ana = 2 * (np.exp(-x) - 1 + x) / x**2
+            static_ana = n_mono * static_ana
 
             for q_index in range(len(static_q_vec)):
                 for poly_type_index in range(n_poly_types):
-                    check_value(float(static_ave[q_index, poly_type_index, poly_type_index * n_particle_types + poly_type_index]), 1e-1, float(static_ana[q_index]), "homo static structure factor ")    
+                    check_value(float(static_ave[q_index, poly_type_index, poly_type_index * n_particle_types + poly_type_index]), 1e-1, float(static_ana[q_index]), "homo static structure factor ")
                     check_value(dynamical_structure_factor[0][q_index][poly_type_index][0], 1e-1,static_ave[q_index][poly_type_index][0], "homo dynamical structure factor ")
 
 def main_test(argv):

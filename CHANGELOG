@@ -4,7 +4,10 @@ Please add your contributions.
 v0.7.0 not-yet-released
 	
 v0.6.1 not-yet-released
-	
+	* fix a problem with memory management for
+	structure factors		LS
+	* fix bug with version or help output LS
+	* license update 2019		LS
 	
 v0.6.0 19/12/18
 

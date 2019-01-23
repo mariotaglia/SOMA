@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2018 Ludwig Schneider
+/* Copyright (C) 2016-2019 Ludwig Schneider
 
  This file is part of SOMA.
 

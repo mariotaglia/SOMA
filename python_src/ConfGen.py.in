@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#   Copyright (C) 2016-2018 Ludwig Schneider
+#   Copyright (C) 2016-2019 Ludwig Schneider
 #   Copyright (C) 2016-2017 Marcel Langenberg
 #
 # This file is part of SOMA.
@@ -1213,7 +1213,7 @@ class Configuration(SomaXML):
                 del f[element[0]]
             f.create_dataset(element[0],data=element[1])
 
-        
+
 
         if "/area51" in f:
             del f["/area51"]
@@ -1554,7 +1554,7 @@ class Configuration(SomaXML):
                #         self.conf_dict["dynamical_structure_factor"] = copy.deepcopy(here)
                #         child.attr[grandchild.tag] = array
                #         child.attr["length"]=array.size
-                            
+
                 if not child.tag in knownTags:
                     print("WARNING: unknown tag ("+child.tag+") found in external_field xml. Value will be ignored. Typo?")
 

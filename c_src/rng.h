@@ -4,7 +4,7 @@
 // Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
 //"PCG_LICENSE.txt"
 
-/* Copyright (C) 2016-2018 Ludwig Schneider
+/* Copyright (C) 2016-2019 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
