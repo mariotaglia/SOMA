@@ -2,13 +2,17 @@ Change log of the development of SOMA.
 Please add your contributions.
 
 v0.7.0 not-yet-released
-	
-v0.6.1 not-yet-released
+
+v0.6.2 not-yet-released
+
+v0.6.1 23/1/19
 	* fix a problem with memory management for
-	structure factors		LS
+	  structure factors		LS
 	* fix bug with version or help output LS
 	* license update 2019		LS
-	
+	* reduce runtime of domain	LS
+	  statistics test
+
 v0.6.0 19/12/18
 
 	* A second option for independent
