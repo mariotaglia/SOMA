@@ -17,6 +17,31 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA --version
+
+value=$?
+
+if [ $value -eq 0 ]
+then
+    echo Test passed
+else
+    echo Test failed
+    exit -1
+fi
+
+@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA --help
+
+value=$?
+
+if [ $value -eq 0 ]
+then
+    echo Test passed
+else
+    echo Test failed
+    exit -1
+fi
+
+
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 
 value=$?
