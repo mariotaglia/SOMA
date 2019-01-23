@@ -85,6 +85,10 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Process %d failed to read the cmdline. Exiting.\n", p->info_MPI.world_rank);
             return -2;
         }
+    else if (args_success == 1) //Help and version output
+        {
+            return MPI_Finalize();
+        }
     const int post_args = post_process_args(&(p->args), p->info_MPI.world_rank);
     if (post_args < 0)
         {
