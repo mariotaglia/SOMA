@@ -21,21 +21,21 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef PHASE_H
-#    define PHASE_H
+#define PHASE_H
 
 struct IndependetSets;
-#    include "soma_config.h"
-#    include "mpiroutines.h"
-#    include "ana_info.h"
-#    include "cmdline.h"
-#    include "soma_util.h"
-#    include "autotuner.h"
-#    include "polymer.h"
+#include "soma_config.h"
+#include "mpiroutines.h"
+#include "ana_info.h"
+#include "cmdline.h"
+#include "soma_util.h"
+#include "autotuner.h"
+#include "polymer.h"
 
 //! Value of Pi.
-#    ifndef M_PI
-#        define M_PI 3.14159265358979323846
-#    endif
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 //! \file phase.h
 //! \brief All relevant aspects for the struct Phase

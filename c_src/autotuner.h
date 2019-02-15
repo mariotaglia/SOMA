@@ -23,17 +23,17 @@
 
 //! \file autotuner.h Autotuner related structures and functions.
 #ifndef SOMA_AUTO_TUNER_H
-#    define SOMA_AUTO_TUNER_H
+#define SOMA_AUTO_TUNER_H
 
 //! \file autotuner.h
 //! \brief Code for the Autotuner.
-#    include "soma_config.h"
-#    include <stdbool.h>
+#include "soma_config.h"
+#include <stdbool.h>
 
 //! Number of elements that are tried for the autotuner.
 //! \warning There is a problem with one kernel, if you increase this.
 //! \todo Ask PGI about this.
-#    define AUTO_TUNER_N_ELEMENTS  12U
+#define AUTO_TUNER_N_ELEMENTS  12U
 
 //! \brief Autotuner to struct to hold data, which is necessary to determine
 //! an optimal parameter for ACC kernels.

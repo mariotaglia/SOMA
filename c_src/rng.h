@@ -27,10 +27,10 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef SOMA_RNG_H
-#    define SOMA_RNG_H
-#    include "soma_config.h"
-#    include <stdint.h>
-#    include "cmdline.h"
+#define SOMA_RNG_H
+#include "soma_config.h"
+#include <stdint.h>
+#include "cmdline.h"
 struct Phase;
 struct RNG_STATE;
 
@@ -45,7 +45,7 @@ typedef struct {
 } PCG_STATE;
 
 //! \brief Number of internal states of the Mersenne-Twister
-#    define MTMAX_num_int_state 624
+#define MTMAX_num_int_state 624
 //! \brief State of the random number generator (Mersenne-Twister)
 typedef struct MERSENNE_TWISTER_STATE {
     uint32_t A[2];              //!<\brief "Static" mask for bitwise operations
@@ -54,7 +54,7 @@ typedef struct MERSENNE_TWISTER_STATE {
 } MERSENNE_TWISTER_STATE;
 
 //! \brief Number of internal states of the TT800
-#    define TT_num_int_state 27
+#define TT_num_int_state 27
 //! \brief State of the random number generator (TT800)
 typedef struct MTTSTATE {
     uint32_t A[2];              //!<\brief "Static" mask for bitwise operations
@@ -86,13 +86,13 @@ int soma_seed_rng(PCG_STATE * rng, uint64_t seed, uint64_t stream);
 //! \param state RNG_STATE to use and modify for PRNG
 //! \param rng_type Type of the used PRNG
 //! \return prng as uint in range [0:soma_rng_uint_max)
-#    pragma acc routine(soma_rng_uint) seq
+#pragma acc routine(soma_rng_uint) seq
 unsigned int soma_rng_uint(RNG_STATE * state, enum enum_pseudo_random_number_generator rng_type);
 
 //! Status function to get the max random number.
 //!
 //! \return Maximum generated rng by soma_rng_uint
-#    pragma acc routine(soma_rng_uint_max) seq
+#pragma acc routine(soma_rng_uint_max) seq
 unsigned int soma_rng_uint_max(void);
 
 //!\brief Set the seed of Mersenne-Twister with the PCG32
@@ -100,7 +100,7 @@ unsigned int soma_rng_uint_max(void);
 //!\param rng
 //!\param mt_rng
 //!\return uint32
-#    pragma acc routine(soma_seed_rng_mt) seq
+#pragma acc routine(soma_seed_rng_mt) seq
 int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng);
 // !Mersenne Twister with state of 624 integers
 // \return  as uint in range [0:soma_rng_uint_max_mt)
@@ -109,12 +109,12 @@ int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng);
 //!
 //!\param mt_rng is the struct which contains the internal state of the random number generator
 //!\return uint32
-#    pragma acc routine(soma_mersenne_twister)
+#pragma acc routine(soma_mersenne_twister)
 unsigned int soma_mersenne_twister(MERSENNE_TWISTER_STATE * mt_rng);
 //! Status function to get the max random number.
 //!
 //! \return Maximum generated rng by soma_mersenne_twister()
-#    pragma acc routine(soma_rng_uint_mt)
+#pragma acc routine(soma_rng_uint_mt)
 unsigned int soma_rng_uint_max_mt();
 
 //! Wrapper function for float random numbers.
@@ -122,7 +122,7 @@ unsigned int soma_rng_uint_max_mt();
 //! \param rng struct which contains all information about the internal states of the rngs
 //! \pre rng has been seeded.
 //! \return prng in range [0,1)
-#    pragma acc routine(soma_rng_soma_scalar) seq
+#pragma acc routine(soma_rng_soma_scalar) seq
 soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, enum enum_pseudo_random_number_generator rng_type);
 
 //! Function that adds a 3D gaussian vector to the vector (x,y,z)
@@ -132,7 +132,7 @@ soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, enum enum_pseudo_random_numb
 //! \param y coordinate of the vector
 //! \param z coordinate of the vector
 //! \pre rng has been seeded
-#    pragma acc routine(soma_normal_vector) seq
+#pragma acc routine(soma_normal_vector) seq
 void soma_normal_vector(RNG_STATE * rng, enum enum_pseudo_random_number_generator rng_type, soma_scalar_t * x,
                         soma_scalar_t * y, soma_scalar_t * z);
 
@@ -150,13 +150,13 @@ void soma_normal_vector2(RNG_STATE * rng, enum enum_pseudo_random_number_generat
 //! \param rng  struct which contains all information about PCG32
 //! \param mt_rng  is the struct which contains the internal state of the random number generator
 //! \return int
-#    pragma acc routine(soma_seed_rng_tt800) seq
+#pragma acc routine(soma_seed_rng_tt800) seq
 int soma_seed_rng_tt800(PCG_STATE * rng, MTTSTATE * mt_rng);
 
 //!\brief Function which uses the reduced Mersenne-Twister TT800
 //!\param mt_rng is the struct which contains the internal state of the random number generator
 //!\return uint32
-#    pragma acc routine(soma_rng_tt800) seq
+#pragma acc routine(soma_rng_tt800) seq
 unsigned int soma_rng_tt800(MTTSTATE * mt_rng);
 
 //! Obtain the number of bytes, which are necessary to serialize a RNG_STATE.

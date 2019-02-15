@@ -292,46 +292,46 @@ int copyin_phase(struct Phase *const p)
         }
 
 #ifdef _OPENACC
-#    pragma acc enter data copyin(p[0:1])
-#    pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
-#    pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
-#    pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
-#    pragma acc enter data copyin(p->old_fields_unified[0:p->n_types*p->n_cells_local])
-#    pragma acc enter data copyin(p->fields_32[0:p->n_types*p->n_cells_local])
+#pragma acc enter data copyin(p[0:1])
+#pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
+#pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
+#pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc enter data copyin(p->old_fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc enter data copyin(p->fields_32[0:p->n_types*p->n_cells_local])
     if (p->area51 != NULL)
         {
-#    pragma acc enter data copyin(p->area51[0:p->n_cells_local])
+#pragma acc enter data copyin(p->area51[0:p->n_cells_local])
         }
-#    pragma acc enter data copyin(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc enter data copyin(p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL)
         {
-#    pragma acc enter data copyin(p->external_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc enter data copyin(p->external_field_unified[0:p->n_cells_local*p->n_types])
         }
     if (p->umbrella_field != NULL)
         {
-#    pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
+#pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
-#    pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
-#    pragma acc enter data copyin(p->num_bead_type[0:p->n_types])
-#    pragma acc enter data copyin(p->num_bead_type_local[0:p->n_types])
-#    pragma acc enter data copyin(p->A[0:p->n_types])
-#    pragma acc enter data copyin(p->R[0:p->n_types])
-#    pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
-#    pragma acc enter data copyin(p->k_umbrella[0:p->n_types])
-#    pragma acc enter data copyin(p->poly_type_offset[0:p->n_poly_type])
-#    pragma acc enter data copyin(p->poly_arch[0:p->poly_arch_length])
+#pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
+#pragma acc enter data copyin(p->num_bead_type[0:p->n_types])
+#pragma acc enter data copyin(p->num_bead_type_local[0:p->n_types])
+#pragma acc enter data copyin(p->A[0:p->n_types])
+#pragma acc enter data copyin(p->R[0:p->n_types])
+#pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
+#pragma acc enter data copyin(p->k_umbrella[0:p->n_types])
+#pragma acc enter data copyin(p->poly_type_offset[0:p->n_poly_type])
+#pragma acc enter data copyin(p->poly_arch[0:p->poly_arch_length])
 
     if (p->cm_a != NULL)
         {
-#    pragma acc enter data copyin(p->cm_a[0:p->n_poly_type])
+#pragma acc enter data copyin(p->cm_a[0:p->n_poly_type])
         }
     if (p->sets != NULL)
         {
-#    pragma acc enter data copyin(p->sets[0:p->n_poly_type])
+#pragma acc enter data copyin(p->sets[0:p->n_poly_type])
             for (unsigned int i = 0; i < p->n_poly_type; i++)
                 {
-#    pragma acc enter data copyin(p->sets[i].set_length[0:p->sets[i].n_sets])
-#    pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
+#pragma acc enter data copyin(p->sets[i].set_length[0:p->sets[i].n_sets])
+#pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
         }
     for (uint64_t i = 0; i < p->n_polymers; i++)
@@ -354,54 +354,54 @@ int copyout_phase(struct Phase *const p)
         }
 #ifdef _OPENACC
 
-#    pragma acc exit data copyout(p->xn[0:p->n_types*p->n_types])
-#    pragma acc exit data copyout(p->fields_unified[0:p->n_types*p->n_cells_local])
-#    pragma acc exit data copyout(p->old_fields_unified[0:p->n_types*p->n_cells_local])
-#    pragma acc exit data copyout(p->fields_32[0:p->n_types*p->n_cells_local])
+#pragma acc exit data copyout(p->xn[0:p->n_types*p->n_types])
+#pragma acc exit data copyout(p->fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc exit data copyout(p->old_fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc exit data copyout(p->fields_32[0:p->n_types*p->n_cells_local])
     if (p->area51 != NULL)
         {
-#    pragma acc exit data copyout(p->area51[0:p->n_cells_local])
+#pragma acc exit data copyout(p->area51[0:p->n_cells_local])
         }
-#    pragma acc exit data copyout(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc exit data copyout(p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL)
         {
-#    pragma acc exit data copyout(p->external_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc exit data copyout(p->external_field_unified[0:p->n_cells_local*p->n_types])
         }
     if (p->umbrella_field != NULL)
         {
-#    pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
+#pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
-#    pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
-#    pragma acc exit data copyout(p->num_bead_type[0:p->n_types])
-#    pragma acc exit data copyout(p->num_bead_type_local[0:p->n_types])
-#    pragma acc exit data copyout(p->A[0:p->n_types])
-#    pragma acc exit data copyout(p->R[0:p->n_types])
-#    pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
-#    pragma acc exit data copyout(p->k_umbrella[0:p->n_types])
-#    pragma acc exit data copyout(p->poly_type_offset[0:p->n_poly_type])
-#    pragma acc exit data copyout(p->poly_arch[0:p->poly_arch_length])
+#pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
+#pragma acc exit data copyout(p->num_bead_type[0:p->n_types])
+#pragma acc exit data copyout(p->num_bead_type_local[0:p->n_types])
+#pragma acc exit data copyout(p->A[0:p->n_types])
+#pragma acc exit data copyout(p->R[0:p->n_types])
+#pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
+#pragma acc exit data copyout(p->k_umbrella[0:p->n_types])
+#pragma acc exit data copyout(p->poly_type_offset[0:p->n_poly_type])
+#pragma acc exit data copyout(p->poly_arch[0:p->poly_arch_length])
 
     if (p->cm_a != NULL)
         {
-#    pragma acc exit data copyout(p->cm_a[0:p->n_poly_type])
+#pragma acc exit data copyout(p->cm_a[0:p->n_poly_type])
         }
     if (p->sets != NULL)
         {
             for (unsigned int i = 0; i < p->n_poly_type; i++)
                 {
-#    pragma acc exit data copyout(p->sets[i].set_length[0:p->sets[i].n_sets])
-#    pragma acc exit data copyout(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
+#pragma acc exit data copyout(p->sets[i].set_length[0:p->sets[i].n_sets])
+#pragma acc exit data copyout(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
-#    pragma acc exit data copyout(p->sets[0:p->n_poly_type])
+#pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         }
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
             Polymer *const poly = &(p->polymers[i]);
             copyout_polymer(p, poly);
         }
-#    pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
+#pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
-#    pragma acc exit data delete(p[0:1])
+#pragma acc exit data delete(p[0:1])
 #endif                          //_OPENACC
 
     p->present_on_device = false;

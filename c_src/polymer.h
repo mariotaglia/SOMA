@@ -16,10 +16,10 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef POLYMER_H
-#    define POLYMER_H
-#    include "soma_config.h"
-#    include "rng.h"
-#    include "monomer.h"
+#define POLYMER_H
+#include "soma_config.h"
+#include "rng.h"
+#include "monomer.h"
 
 //! \file polymer.h
 //! \brief Code related to the Polymer structures

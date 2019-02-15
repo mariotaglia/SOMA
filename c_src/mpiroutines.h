@@ -21,15 +21,15 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef SOMA_MPIROUTINES_H
-#    define SOMA_MPIROUTINES_H
+#define SOMA_MPIROUTINES_H
 
-#    include "soma_config.h"
-#    if ( ENABLE_MPI == 1 )
-#        include <mpi.h>
-#    endif                      //ENABLE_MPI
+#include "soma_config.h"
+#if ( ENABLE_MPI == 1 )
+#include <mpi.h>
+#endif                          //ENABLE_MPI
 
-#    include <stdint.h>
-#    include <stdbool.h>
+#include <stdint.h>
+#include <stdbool.h>
 struct Phase;
 
 /*! \file mpiroutines.h
@@ -61,13 +61,13 @@ typedef struct Info_MPI {
     int sim_rank;               //!< Rank of the simulation communicator
     int domain_size;            //!< Size of a single domain communicator
     int domain_rank;            //!< Rank of a single domain communicator
-#    if ( ENABLE_MPI == 1 )
+#if ( ENABLE_MPI == 1 )
 
     MPI_Comm SOMA_comm_world;   //!< Global communicator for 1 simulation
     MPI_Comm SOMA_comm_sim;     /*!< \brief communicator within one conf, SCMF parallelization */
     MPI_Comm SOMA_comm_domain;  /*!< \brief communicator within one domain of a SCMF simulation parallelization */
     MPI_Status mpi_status;      //!< Status of the mpi init.
-#    endif                      //ENABLE_MPI
+#endif                          //ENABLE_MPI
     //! Store MPI divergence in between domain ranks.
     double domain_divergence_sec;
     //! Counter for the MPI divergence in between domain ranks.
@@ -102,7 +102,7 @@ int finalize_MPI(struct Info_MPI *mpi);
 //! \return Nonzero value if one MPI-rank passed a non-zero value.
 int check_status_on_mpi(const struct Phase *const p, int my_status);
 
-#    if ( ENABLE_MPI == 1 )
+#if ( ENABLE_MPI == 1 )
 //! Measure divergence of MPI ranks with an MPI_Barrier call.
 //!
 //! \param p System which running the simulation. (Reqired for MPI context.)
@@ -208,6 +208,6 @@ int load_balance_mpi_ranks(struct Phase *const p);
 //! \return Number of unsent chains should be 0, otherwise error.
 int send_domain_chains(struct Phase *const p, const bool init);
 
-#    endif                      //ENABLE_MPI
+#endif                          //ENABLE_MPI
 
 #endif                          /*SOMA_MPIROUTINES_H */

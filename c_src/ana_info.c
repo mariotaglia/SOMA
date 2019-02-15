@@ -31,7 +31,7 @@
 //! \def SOMA_NUM_OBS
 //! \brief Number of known observables to SOMA.
 #ifdef SOMA_NUM_OBS
-#    error "Namespace violation SOMA_NUM_OBS already defined."
+#error "Namespace violation SOMA_NUM_OBS already defined."
 #endif                          //SOMA_NUM_OBS
 
 int init_ana(struct Phase *const p, const char *const filename, const char *const coord_filename)
@@ -100,7 +100,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     /*  H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE); */
     //******** START EDIT FOR NEW OBSERVABLES HERE**********
 #ifdef SOMA_NUM_OBS
-#    error "Namespace violation SOMA_NUM_OBS already defined."
+#error "Namespace violation SOMA_NUM_OBS already defined."
 #endif                          //SOMA_NUM_OBS
 //! Number of known observables to SOMA.
 //! \private

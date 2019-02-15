@@ -53,26 +53,26 @@ void communicate_density_fields(const struct Phase *const p)
         {
             if (p->args.N_domains_arg == 1)
                 {
-#    ifndef ENABLE_MPI_CUDA
-#        pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#ifndef ENABLE_MPI_CUDA
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
                     MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM,
                                   p->info_MPI.SOMA_comm_sim);
-#        pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
-#    else                       //ENABLE_MPI_CUDA
+#pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
+#else                           //ENABLE_MPI_CUDA
                     uint16_t *fields_unified = p->fields_unified;
-#        pragma acc host_data use_device(fields_unified)
+#pragma acc host_data use_device(fields_unified)
                     {
                         MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
                                       MPI_SUM, p->info_MPI.SOMA_comm_sim);
                     }
-#        pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
-#    endif                      //ENABLE_MPI_CUDA
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#endif                          //ENABLE_MPI_CUDA
                 }
             else                //Communication for domain decomposition
                 {
                     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
-#    pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
                     //Sum up all values of a single domain to the root domain
                     if (p->info_MPI.domain_rank == 0)
                         MPI_Reduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
@@ -143,7 +143,7 @@ void communicate_density_fields(const struct Phase *const p)
                     //Update all domain ranks with the results of the root domain rank
                     MPI_Bcast(p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, 0,
                               p->info_MPI.SOMA_comm_domain);
-#    pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
 
                     //Avoid false loadbalance
                     MPI_Barrier(p->info_MPI.SOMA_comm_domain);

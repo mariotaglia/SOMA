@@ -17,7 +17,7 @@
 */
 
 #ifndef SOMA_WALLTIME_H
-#    define SOMA_WALLTIME_H
+#define SOMA_WALLTIME_H
 
 /* \brief check environment if simulation should be stopped.
    Reads environment variable SOMA_WALLTIME_STOP and compares to time(NULL)

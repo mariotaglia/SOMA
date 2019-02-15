@@ -7,33 +7,33 @@
  *  @author GNU Gengetopt by Lorenzo Bettini */
 
 #ifndef CMDLINE_H
-#    define CMDLINE_H
+#define CMDLINE_H
 
 /* If we use autoconf.  */
-#    ifdef HAVE_CONFIG_H
-#        include "config.h"
-#    endif
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
-#    include <stdio.h>          /* for FILE */
+#include <stdio.h>              /* for FILE */
 
-#    ifdef __cplusplus
+#ifdef __cplusplus
 extern "C" {
-#    endif                      /* __cplusplus */
+#endif                          /* __cplusplus */
 
-#    ifndef CMDLINE_PARSER_PACKAGE
+#ifndef CMDLINE_PARSER_PACKAGE
 /** @brief the program name (used for printing errors) */
-#        define CMDLINE_PARSER_PACKAGE "SOMA"
-#    endif
+#define CMDLINE_PARSER_PACKAGE "SOMA"
+#endif
 
-#    ifndef CMDLINE_PARSER_PACKAGE_NAME
+#ifndef CMDLINE_PARSER_PACKAGE_NAME
 /** @brief the complete program name (used for help and version) */
-#        define CMDLINE_PARSER_PACKAGE_NAME "SOMA"
-#    endif
+#define CMDLINE_PARSER_PACKAGE_NAME "SOMA"
+#endif
 
-#    ifndef CMDLINE_PARSER_VERSION
+#ifndef CMDLINE_PARSER_VERSION
 /** @brief the program version */
-#        define CMDLINE_PARSER_VERSION get_soma_version()
-#    endif
+#define CMDLINE_PARSER_VERSION get_soma_version()
+#endif
 
     enum enum_pseudo_random_number_generator { pseudo_random_number_generator__NULL =
             -1, pseudo_random_number_generator_arg_PCG32 =
@@ -369,7 +369,7 @@ extern "C" {
     extern const char *cmdline_parser_set_generation_algorithm_values[];
                                                                       /**< @brief Possible values for set-generation-algorithm. */
 
-#    ifdef __cplusplus
+#ifdef __cplusplus
 }
-#    endif                      /* __cplusplus */
+#endif                          /* __cplusplus */
 #endif                          /* CMDLINE_H */

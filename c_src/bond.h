@@ -16,8 +16,8 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef BOND_H
-#    define BOND_H
-#    include "soma_config.h"
+#define BOND_H
+#include "soma_config.h"
 /*!\file bond.h
   \brief Definition of Bond related code pieces.
 */

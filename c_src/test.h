@@ -19,9 +19,9 @@
 //! \file test.h
 //! \brief Source for various function to check the consistency of the simulation.
 #ifndef SOMA_TEST_H
-#    define SOMA_TEST_H
+#define SOMA_TEST_H
 
-#    include "soma_config.h"
+#include "soma_config.h"
 struct Phase;
 
 //! Test the read and write functionality for a given phase.

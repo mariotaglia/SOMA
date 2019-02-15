@@ -26,7 +26,7 @@
 
 #include"mpiroutines.h"
 #if ( ENABLE_MPI == 1 )
-#    include<mpi.h>
+#include<mpi.h>
 #endif                          //ENABLE_MPI
 #include<stdio.h>
 #include<stdlib.h>
@@ -183,15 +183,15 @@ int collective_global_update(struct Phase *const p)
 
     // Global number of polymers
     MPI_Allreduce(&(p->n_polymers), &(p->n_polymers_global), 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#    pragma acc update device(p->n_polymers_global)
+#pragma acc update device(p->n_polymers_global)
     // Total number of beads
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#    pragma acc update device(p->num_all_beads)
+#pragma acc update device(p->num_all_beads)
 
     //Beads per type
     MPI_Allreduce(p->num_bead_type_local, p->num_bead_type,
                   p->n_types, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#    pragma acc update device(p->num_bead_type[0:p->n_types])
+#pragma acc update device(p->num_bead_type[0:p->n_types])
 
     update_density_fields(p);
     return 0;

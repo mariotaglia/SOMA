@@ -34,14 +34,14 @@
 #include <limits.h>
 #include <stdbool.h>
 #if ( ENABLE_MPI == 1 )
-#    include <mpi.h>
+#include <mpi.h>
 #endif                          //ENABLE_MPI
 #include <stdio.h>
 #ifdef _OPENACC
-#    include <openacc.h>
+#include <openacc.h>
 #endif                          //_OPENACC
 #ifdef _OPENMP
-#    include <omp.h>
+#include <omp.h>
 #endif                          //_OPENMP
 #include <hdf5.h>
 #include "soma_config.h"
@@ -62,7 +62,7 @@ int print_version(const int rank)
             H5get_libversion(&majnum, &minnum, &relnum);
             fprintf(stdout, "HDF5 version is %u.%u.%u\n", majnum, minnum, relnum);
 #if ( ENABLE_MPI == 1 )
-#    ifdef MPI_MAX_LIBRARY_VERSION_STRING
+#ifdef MPI_MAX_LIBRARY_VERSION_STRING
             //MPI
             char mpi_version[MPI_MAX_LIBRARY_VERSION_STRING];
             int length;
@@ -70,9 +70,9 @@ int print_version(const int rank)
             int mpi_maj = 0, mpi_min = 0;
             MPI_Get_version(&mpi_maj, &mpi_min);
             fprintf(stdout, "MPI version: %s %d.%d\n", mpi_version, mpi_maj, mpi_min);
-#    else
+#else
             fprintf(stdout, "No MPI lib version available.\n");
-#    endif                      //mpi_max_library_version_string
+#endif                          //mpi_max_library_version_string
 #endif                          //( ENABLE_MPI == 1 )
         }
     return 0;
@@ -139,7 +139,7 @@ int set_openacc_devices(const struct Phase *const p)
                     "\t This simulation will run on the CPU.\n");
             ret += 1;
         }
-#    ifdef _OPENMP
+#ifdef _OPENMP
     omp_set_dynamic(0);
     //Fallback option set OMP ranks to 1
     unsigned int nthreads = 1;
@@ -157,14 +157,14 @@ int set_openacc_devices(const struct Phase *const p)
         }
     omp_set_num_threads(nthreads);
     printf("INFO: world rank %d runs %u CPU OMP threads.\n", p->info_MPI.world_rank, nthreads);
-#    else
+#else
     if (p->args.omp_threads_given && p->args.omp_threads_arg > 1)
         {
             fprintf(stderr,
                     "WARNING: world rank %d tried to use %d OMP threads, but the binary is compiled without OMP support.\n",
                     p->info_MPI.world_rank, p->args.omp_threads_arg);
         }
-#    endif                      //_OPENMP
+#endif                          //_OPENMP
 
 #endif                          //_OPENACC
     return ret;

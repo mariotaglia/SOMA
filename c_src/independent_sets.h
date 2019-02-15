@@ -16,8 +16,8 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef INDEPENDENT_SETS_H
-#    define INDEPENDENT_SETS_H
-#    include "soma_config.h"
+#define INDEPENDENT_SETS_H
+#include "soma_config.h"
 struct Phase;
 
 //! \file independent_sets.h

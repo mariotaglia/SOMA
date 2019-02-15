@@ -18,7 +18,7 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef SOMA_IO_H
-#    define SOMA_IO_H
+#define SOMA_IO_H
 /*! \file io.h
   \brief Header file for all functions, that handle with input and ouput
    operations of SOMA.
@@ -36,8 +36,8 @@
   \post Initialized \a p points to an fully initialized configuration.
   \return Error code. Returns not equal to zero if an error occured.
 */
-#    include "soma_config.h"
-#    include <hdf5.h>
+#include "soma_config.h"
+#include <hdf5.h>
 struct Phase;
 
 /*! Parser for old style coord.dat files

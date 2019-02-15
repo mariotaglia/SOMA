@@ -25,14 +25,14 @@
 */
 
 #ifndef SOMA_MC_H
-#    define SOMA_MC_H
+#define SOMA_MC_H
 
-#    include <stdbool.h>
+#include <stdbool.h>
 struct Phase;
-#    include "soma_config.h"
-#    include "rng.h"
-#    include "monomer.h"
-#    include "polymer.h"
+#include "soma_config.h"
+#include "rng.h"
+#include "monomer.h"
+#include "polymer.h"
 struct Polymer;
 //! Main Monte-Carlo function.
 //!
@@ -59,7 +59,7 @@ int mc_polymer_iteration(struct Phase *const p, const unsigned int nsteps, const
 //! \param dz Output pointer to dz.
 //! \param arg_rng_type Random number generator type.
 //! \param rng_state State of the random number generator.
-#    pragma acc routine(trial_move_cm) seq
+#pragma acc routine(trial_move_cm) seq
 void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_t * const dx,
                    soma_scalar_t * const dy, soma_scalar_t * const dz,
                    const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state);
@@ -73,7 +73,7 @@ void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_
 //! \param dz Proposed move in Z direction.
 //! \param iwtype Type of the particle to move.
 //! \return Calculated nonbonded energy difference. In case the of an error NAN is returned.
-#    pragma acc routine(calc_delta_nonbonded_energy) seq
+#pragma acc routine(calc_delta_nonbonded_energy) seq
 soma_scalar_t calc_delta_nonbonded_energy(const struct Phase *p, const Monomer * const monomer,
                                           const soma_scalar_t dx, const soma_scalar_t dy,
                                           const soma_scalar_t dz, const unsigned int iwtype);
@@ -108,7 +108,7 @@ int mc_set_iteration(struct Phase *const p, const unsigned int nsteps, const uns
   \param arg_rng_type Type of the Random number generator.
   \param rng_state State of the RNG.
 */
-#    pragma acc routine(trial_move) seq
+#pragma acc routine(trial_move) seq
 void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy,
                 soma_scalar_t * dz, const unsigned int iwtype,
                 const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state);
@@ -124,7 +124,7 @@ void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, so
 //! \param dz proposed z move
 //! \param iwtype Type of the monomer.
 //! \return energy difference of proposed move. In case the of an error NAN is returned.
-#    pragma acc routine(calc_delta_energy) seq
+#pragma acc routine(calc_delta_energy) seq
 soma_scalar_t calc_delta_energy(const struct Phase *p, const uint64_t ipoly, const Monomer * monomer,
                                 const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy,
                                 const soma_scalar_t dz, const unsigned int iwtype);
@@ -140,7 +140,7 @@ soma_scalar_t calc_delta_energy(const struct Phase *p, const uint64_t ipoly, con
 //! \param dy proposed y move
 //! \param dz proposed z move
 //! \return bonded energy difference of proposed move
-#    pragma acc routine(calc_delta_bonded_energy) seq
+#pragma acc routine(calc_delta_bonded_energy) seq
 soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * monomer,
                                        const uint64_t ipoly, const unsigned int ibead,
                                        const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz);
@@ -154,7 +154,7 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * mo
   \param rng_type enum which carries information about which RNG should by used
   \return true or false according to the Metropolis criteria
 */
-#    pragma acc routine(som_accept) seq
+#pragma acc routine(som_accept) seq
 int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator rng_type, soma_scalar_t delta_energy);
 
 /*! \brief Smart Monte-Carlo (SMC) move.  Calculate the displacement and the energy change from the forces.
@@ -175,7 +175,7 @@ int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator r
   \note only bonded forces are considered.  Calculation of other forces
   (e.g. external fields) can be added in this function.
 */
-#    pragma acc routine(trial_move_smc) seq
+#pragma acc routine(trial_move_smc) seq
 void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead,
                     soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz,
                     soma_scalar_t * smc_deltaE, const Monomer * mybead,
@@ -198,7 +198,7 @@ void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead
   \note coordinates (x,y,z) are passed as a parameter and not taken from
   the configuration to enable the computation of forces after and before the move with this same function.
 */
-#    pragma acc routine(add_bond_forces) seq
+#pragma acc routine(add_bond_forces) seq
 void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
                      soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz);
@@ -222,7 +222,7 @@ void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const
 //! filtered. But if the forbidden area is made up by boxes meeting
 //! edge to edge particle can and will pass through.
 //! \return True if move is allowed. False otherwise.
-#    pragma acc routine(possible_move_area51) seq
+#pragma acc routine(possible_move_area51) seq
 int possible_move_area51(const struct Phase *p, const soma_scalar_t oldx, const soma_scalar_t oldy,
                          const soma_scalar_t oldz, const soma_scalar_t dx, const soma_scalar_t dy,
                          const soma_scalar_t dz, const int nonexact);
@@ -265,7 +265,7 @@ int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, 
   \param *accepted_moves_set_ptr The pointer to the number of accepted_moves_set
   \return error_flags[0] indicating domain error
 */
-#    pragma acc routine(set_iteration_possible_move) seq
+#pragma acc routine(set_iteration_possible_move) seq
 int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, uint64_t chain_index,
                                 unsigned int iP, const enum enum_pseudo_random_number_generator my_rng_type,
                                 const int nonexact_area51, const unsigned int ibead, const unsigned int iwtype,

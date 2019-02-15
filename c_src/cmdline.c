@@ -10,7 +10,7 @@
 
 /* If we use autoconf.  */
 #ifdef HAVE_CONFIG_H
-#    include "config.h"
+#include "config.h"
 #endif
 
 #include <stdio.h>
@@ -18,7 +18,7 @@
 #include <string.h>
 
 #ifndef FIX_UNUSED
-#    define FIX_UNUSED(X) (void) (X)    /* avoid warnings for unused params */
+#define FIX_UNUSED(X) (void) (X)        /* avoid warnings for unused params */
 #endif
 
 #include <getopt.h>

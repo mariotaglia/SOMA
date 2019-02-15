@@ -16,10 +16,10 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef ANA_INFO_H
-#    define ANA_INFO_H
-#    include "soma_config.h"
-#    include <hdf5.h>
-#    include "soma_config.h"
+#define ANA_INFO_H
+#include "soma_config.h"
+#include <hdf5.h>
+#include "soma_config.h"
 struct Phase;
 
 //! \file ana_info.h

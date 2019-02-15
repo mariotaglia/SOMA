@@ -27,13 +27,13 @@
 #include <stdio.h>
 #include <assert.h>
 #if ( ENABLE_MPI == 1 )
-#    include <mpi.h>
+#include <mpi.h>
 #endif                          //ENABLE_MPI
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #ifdef _OPENMP
-#    include <omp.h>
+#include <omp.h>
 #endif                          //_OPENMP
 #include "mesh.h"
 #include "cmdline.h"
@@ -351,7 +351,7 @@ int read_old_geometry(struct Phase *p, const char *filename)
 }
 
 #if ( ENABLE_MPI == 1 )
-#    include <mpi.h>
+#include <mpi.h>
 #endif                          // ( ENABLE_MPI == 1 )
 #include "hdf5.h"
 

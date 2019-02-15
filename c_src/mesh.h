@@ -21,7 +21,7 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef SOMA_MESH_H
-#    define SOMA_MESH_H
+#define SOMA_MESH_H
 /*! \file mesh.h
   \brief Functions related to the mesh of the density fields.
 */
@@ -36,10 +36,10 @@
   \param z pointer to resulting z index
 */
 
-#    include "soma_config.h"
-#    include "phase.h"
+#include "soma_config.h"
+#include "phase.h"
 
-#    pragma acc routine(coord_to_cell_coordinate) seq
+#pragma acc routine(coord_to_cell_coordinate) seq
 static inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,
                                             const soma_scalar_t rz, int *x, int *y, int *z);
 inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,
@@ -77,11 +77,11 @@ inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t 
   \return memory index to access a field p.fields[type][index]
 */
 static inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z);
-#    pragma acc routine(cell_coordinate_to_index) seq
+#pragma acc routine(cell_coordinate_to_index) seq
 inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z)
 {
     int xt = x;
-#    if ( ENABLE_DOMAIN_DECOMPOSITION == 1 )
+#if ( ENABLE_DOMAIN_DECOMPOSITION == 1 )
     //For performance reasons compile the domain decomposition only if necessary
     if (p->args.N_domains_arg > 1)
         {
@@ -95,7 +95,7 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
                 }
             xt -= p->local_nx_low;
         }
-#    endif                      //ENABLE_MIC
+#endif                          //ENABLE_MIC
     //Unified data layout [type][x][y][z]
     return xt * p->ny * p->nz + y * p->nz + z;
 }
@@ -114,7 +114,7 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
  \param rz Z-coordinate of the position in question.
  \return Index for the field index referencing.
 */
-#    pragma acc routine(coord_to_index) seq
+#pragma acc routine(coord_to_index) seq
 static inline uint64_t coord_to_index(const struct Phase *const p, const soma_scalar_t rx, const soma_scalar_t ry,
                                       const soma_scalar_t rz);
 inline uint64_t coord_to_index(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,
@@ -132,7 +132,7 @@ inline uint64_t coord_to_index(const struct Phase *p, const soma_scalar_t rx, co
 //! \param cell cell index
 //! \param rtype type you request.
 //! \return Calculated unified index.
-#    pragma acc routine(cell_to_index_unified) seq
+#pragma acc routine(cell_to_index_unified) seq
 static inline uint64_t cell_to_index_unified(const struct Phase *const p, const uint64_t cell,
                                              const unsigned int rtype);
 inline uint64_t cell_to_index_unified(const struct Phase *const p, const uint64_t cell, const unsigned int rtype)
@@ -158,7 +158,7 @@ inline uint64_t cell_to_index_unified(const struct Phase *const p, const uint64_
  \param rtype Type of the accessed particle.
  \return Index for the field index referencing.
 */
-#    pragma acc routine(coord_to_index_unified) seq
+#pragma acc routine(coord_to_index_unified) seq
 static inline uint64_t coord_to_index_unified(const struct Phase *const p, const soma_scalar_t rx,
                                               const soma_scalar_t ry, const soma_scalar_t rz, unsigned int rtype);
 inline uint64_t coord_to_index_unified(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,

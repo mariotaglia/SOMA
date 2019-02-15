@@ -89,11 +89,11 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
     if (cellindex_old > p->n_cells_local * p->n_types || cellindex_new > p->n_cells_local * p->n_types)
         {
 #ifdef NAN
-#    ifdef _OPENACC
+#ifdef _OPENACC
             return 0 / 0;
-#    else                       //_OPENACC
+#else                           //_OPENACC
             return NAN;
-#    endif                      //_OPENACC
+#endif                          //_OPENACC
 #else
             return nan("");
 #endif                          //NAN

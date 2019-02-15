@@ -21,8 +21,8 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef SOMA_INIT_H
-#    define SOMA_INIT_H
-#    include "soma_config.h"
+#define SOMA_INIT_H
+#include "soma_config.h"
 /*! \file init.h
   \brief Header file functions required for initialization processes.
 */

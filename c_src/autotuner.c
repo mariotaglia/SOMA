@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stdio.h>
 #if ( ENABLE_MPI == 1 )
-#    include <mpi.h>
+#include <mpi.h>
 #endif                          //ENABLE_MPI
 #include <stdbool.h>
 #include <time.h>

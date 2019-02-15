@@ -24,7 +24,7 @@
 #include <string.h>
 #include <assert.h>
 #ifdef _OPENACC
-#    include <openacc.h>
+#include <openacc.h>
 #endif                          //_OPENACC
 #include "phase.h"
 
