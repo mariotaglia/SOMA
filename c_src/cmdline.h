@@ -37,13 +37,11 @@ extern "C" {
 
     enum enum_pseudo_random_number_generator { pseudo_random_number_generator__NULL =
             -1, pseudo_random_number_generator_arg_PCG32 =
-            0, pseudo_random_number_generator_arg_MT, pseudo_random_number_generator_arg_TT800
-    };
+            0, pseudo_random_number_generator_arg_MT, pseudo_random_number_generator_arg_TT800 };
     enum enum_move_type { move_type__NULL = -1, move_type_arg_TRIAL = 0, move_type_arg_SMART };
     enum enum_iteration_alg { iteration_alg__NULL = -1, iteration_alg_arg_POLYMER = 0, iteration_alg_arg_SET };
     enum enum_set_generation_algorithm { set_generation_algorithm__NULL = -1, set_generation_algorithm_arg_SIMPLE =
-            0, set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS
-    };
+            0, set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS };
 
 /** @brief Where the command line options are stored */
     struct som_args {
