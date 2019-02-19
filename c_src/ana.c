@@ -678,7 +678,7 @@ int extent_density_field(const struct Phase *const p, const void *const field_po
                         {
                             MPI_Gather(field_pointer + ghost_buffer_size * data_size +
                                        type * p->n_cells_local * data_size, buffer_size, mpi_type,
-                                       full_array + p->n_types * p->nx * p->ny * p->nz, buffer_size, mpi_type, 0,
+                                       full_array + type * p->nx * p->ny * p->nz*data_size, buffer_size, mpi_type, 0,
                                        inter_domain_communicator);
                         }
 #endif                          //ENABLE_MPI
