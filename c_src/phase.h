@@ -32,6 +32,8 @@ struct IndependetSets;
 #include "autotuner.h"
 #include "polymer.h"
 
+#include <sys/time.h>
+
 //! Value of Pi.
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -223,7 +225,7 @@ typedef struct Phase {
     //! \brief clock value close to the start of SOMA.
     //!
     //! Not exactly at the start, but at the beginnig of init_values().
-    time_t start_clock;
+    struct timeval start_clock;
     //! \brief Start time of this simulation.
     unsigned int start_time;
 

@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif                          //_OPENMP
@@ -1474,30 +1475,29 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps)
     static double last_sec = 0;
     if (last_time == 0)
         last_time = p->start_time;
-#if ( ENABLE_MPI == 1 )
     if (last_sec == 0)
-        last_sec = MPI_Wtime();
-#else
-    if (last_sec == 0)
-        last_sec = time(NULL);
-#endif                          //( ENABLE_MPI == 1 )
+        {
+        struct timeval last_tv;
+        gettimeofday(&last_tv,NULL);
+        last_sec = last_tv.tv_sec + last_tv.tv_usec*1e-6;
+        }
 
-    const time_t now = time(NULL);
+    struct timeval now;
+    gettimeofday(&now,NULL);
+
     if (last_print == 0)
-        last_print = now;
-    const unsigned int second = now - p->start_clock;
+        last_print = now.tv_sec;
+    const double second = now.tv_sec-p->start_clock.tv_sec + (now.tv_usec -  p->start_clock.tv_usec)*1e-6;
     const unsigned int steps_done = p->time - p->start_time;
-    const time_t end = p->start_clock + second * (Nsteps) / (soma_scalar_t) steps_done;
-#if ( ENABLE_MPI == 1 )
-    const double now_sec = MPI_Wtime();
-#else
-    const double now_sec = time(NULL);
-#endif                          //ENABLE_MPI
+    const time_t end = p->start_clock.tv_sec + second * (Nsteps) / (soma_scalar_t) steps_done;
+
+    const double now_sec = now.tv_sec + now.tv_usec*1e-6;
+
     const double sec = now_sec - last_sec;
     p->tps_elapsed_time += sec;
     p->tps_elapsed_steps += p->time - last_time;
 
-    if (p->args.screen_output_interval_arg > 0 && now - last_print >= p->args.screen_output_interval_arg)
+    if (p->args.screen_output_interval_arg > 0 && now.tv_sec - last_print >= p->args.screen_output_interval_arg)
         {
             const double tps = p->tps_elapsed_steps / p->tps_elapsed_time;
             p->tps_elapsed_time = 1. / tps;
@@ -1505,11 +1505,11 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps)
 
             if (p->info_MPI.sim_rank == 0)
                 {
-                    fprintf(stdout, "Rank %i:Running for %u [s] | TPS %g | steps-to-go: %u | ETA: %s",
+                    fprintf(stdout, "Rank %i:Running for %g [s] | TPS %g | steps-to-go: %u | ETA: %s",
                             p->info_MPI.world_rank, second, tps, Nsteps - steps_done, ctime(&end));
                     fflush(stdout);
                 }
-            last_print = now;
+            last_print = now.tv_sec;
             last_time = p->time;
             last_sec = now_sec;
         }
