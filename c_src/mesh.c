@@ -55,7 +55,7 @@ void communicate_density_fields(const struct Phase *const p)
                 {
 #ifndef ENABLE_MPI_CUDA
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
-                    MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM,
+                MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM,
                                   p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
 #else                           //ENABLE_MPI_CUDA
@@ -73,76 +73,63 @@ void communicate_density_fields(const struct Phase *const p)
                     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
-                    //Sum up all values of a single domain to the root domain
-                    if (p->info_MPI.domain_rank == 0)
-                        MPI_Reduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
-                                   MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
-                    else
-                        MPI_Reduce(p->fields_unified, NULL, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM, 0,
-                                   p->info_MPI.SOMA_comm_domain);
-                    if (p->info_MPI.domain_rank == 0)
+                    assert(p->left_tmp_buffer != NULL);
+                    assert(p->right_tmp_buffer != NULL);
+                    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
+                    const int left_rank = (((my_domain - 1) + p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
+                        p->info_MPI.domain_rank;
+                    const int right_rank = (((my_domain + 1) + p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
+                        p->info_MPI.domain_rank;
+                    MPI_Request req[4];
+                    MPI_Status stat[4];
+
+                    //Loop over type, because of the memory layout [type][x][y][z] -> x is not slowest moving dimension
+                    for (unsigned int type = 0; type < p->n_types; type++)
                         {
-                            assert(p->left_tmp_buffer != NULL);
-                            assert(p->right_tmp_buffer != NULL);
-                            const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
-                            const int left_rank =
-                                (((my_domain - 1) +
-                                  p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
-                                p->info_MPI.domain_rank;
-                            const int right_rank =
-                                (((my_domain + 1) +
-                                  p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
-                                p->info_MPI.domain_rank;
-                            MPI_Request req[4];
-                            MPI_Status stat[4];
+                        //Send buffer to right, recv from left
+                        MPI_Isend(p->fields_unified + (p->n_cells_local - ghost_buffer_size) +
+                                  type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 0,
+                                  p->info_MPI.SOMA_comm_sim, req + 0);
+                        MPI_Irecv(p->left_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, left_rank, 0,
+                                  p->info_MPI.SOMA_comm_sim, req + 1);
+                        //Send buffer to left recv from right
+                        MPI_Isend(p->fields_unified + type * p->n_cells_local,
+                                  ghost_buffer_size, MPI_UINT16_T, left_rank, 1, p->info_MPI.SOMA_comm_sim,
+                                  req + 2);
+                        MPI_Irecv(p->right_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, right_rank, 1,
+                                  p->info_MPI.SOMA_comm_sim, req + 3);
 
-                            //Loop over type, because of the memory layout [type][x][y][z] -> x is not slowest moving dimension
-                            for (unsigned int type = 0; type < p->n_types; type++)
-                                {
-                                    //Send buffer to right, recv from left
-                                    MPI_Isend(p->fields_unified + (p->n_cells_local - ghost_buffer_size) +
-                                              type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 0,
-                                              p->info_MPI.SOMA_comm_sim, req + 0);
-                                    MPI_Irecv(p->left_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, left_rank, 0,
-                                              p->info_MPI.SOMA_comm_sim, req + 1);
-                                    //Send buffer to left recv from right
-                                    MPI_Isend(p->fields_unified + type * p->n_cells_local,
-                                              ghost_buffer_size, MPI_UINT16_T, left_rank, 1, p->info_MPI.SOMA_comm_sim,
-                                              req + 2);
-                                    MPI_Irecv(p->right_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, right_rank, 1,
-                                              p->info_MPI.SOMA_comm_sim, req + 3);
+                        MPI_Waitall(4, req, stat);
 
-                                    MPI_Waitall(4, req, stat);
+                        //Add the recv values to main part
+//#pragma omp parallel for
+                        for (unsigned int i = 0; i < ghost_buffer_size; i++)
+                            {
+                            p->fields_unified[ghost_buffer_size + i + type * p->n_cells_local] +=
+                                p->left_tmp_buffer[i];
+                            p->fields_unified[p->n_cells_local - 2 * ghost_buffer_size + i +
+                                              type * p->n_cells_local] += p->right_tmp_buffer[i];
+                            }
 
-                                    //Add the recv values to main part
-                                    for (unsigned int i = 0; i < ghost_buffer_size; i++)
-                                        {
-                                            p->fields_unified[ghost_buffer_size + i + type * p->n_cells_local] +=
-                                                p->left_tmp_buffer[i];
-                                            p->fields_unified[p->n_cells_local - 2 * ghost_buffer_size + i +
-                                                              type * p->n_cells_local] += p->right_tmp_buffer[i];
-                                        }
+                        //Update the buffers of the neighbors
+                        MPI_Isend(p->fields_unified + (p->n_cells_local - 2 * ghost_buffer_size) +
+                                  type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 2,
+                                  p->info_MPI.SOMA_comm_sim, req + 0);
+                        MPI_Irecv(p->fields_unified + type * p->n_cells_local, ghost_buffer_size,
+                                  MPI_UINT16_T, left_rank, 2, p->info_MPI.SOMA_comm_sim, req + 1);
 
-                                    //Update the buffers of the neighbors
-                                    MPI_Isend(p->fields_unified + (p->n_cells_local - 2 * ghost_buffer_size) +
-                                              type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 2,
-                                              p->info_MPI.SOMA_comm_sim, req + 0);
-                                    MPI_Irecv(p->fields_unified + type * p->n_cells_local, ghost_buffer_size,
-                                              MPI_UINT16_T, left_rank, 2, p->info_MPI.SOMA_comm_sim, req + 1);
-
-                                    MPI_Isend(p->fields_unified + ghost_buffer_size + type * p->n_cells_local,
-                                              ghost_buffer_size, MPI_UINT16_T, left_rank, 3, p->info_MPI.SOMA_comm_sim,
-                                              req + 2);
-                                    MPI_Irecv(p->fields_unified + (p->n_cells_local - ghost_buffer_size) +
-                                              type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 3,
-                                              p->info_MPI.SOMA_comm_sim, req + 3);
-                                    MPI_Waitall(4, req, stat);
-                                }
+                        MPI_Isend(p->fields_unified + ghost_buffer_size + type * p->n_cells_local,
+                                  ghost_buffer_size, MPI_UINT16_T, left_rank, 3, p->info_MPI.SOMA_comm_sim,
+                                  req + 2);
+                        MPI_Irecv(p->fields_unified + (p->n_cells_local - ghost_buffer_size) +
+                                  type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 3,
+                                  p->info_MPI.SOMA_comm_sim, req + 3);
+                        MPI_Waitall(4, req, stat);
                         }
 
-                    //Update all domain ranks with the results of the root domain rank
-                    MPI_Bcast(p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, 0,
-                              p->info_MPI.SOMA_comm_domain);
+                    MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM,
+                                  p->info_MPI.SOMA_comm_domain);
+
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
 
                     //Avoid false loadbalance

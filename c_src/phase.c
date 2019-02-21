@@ -97,7 +97,7 @@ int init_phase(struct Phase *const p)
     p->left_tmp_buffer = NULL;
     p->right_tmp_buffer = NULL;
 
-    if (p->args.N_domains_arg > 1 && p->info_MPI.domain_rank == 0)
+    if (p->args.N_domains_arg > 1 )
         {
             p->left_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
             if (p->left_tmp_buffer == NULL)
