@@ -170,9 +170,12 @@ double mpi_divergence(struct Phase *const p)
 {
     if (p->args.load_balance_arg == 0)
         return 0;
-    const double start = MPI_Wtime();
+    struct timeval start_tv,end_tv;
+    gettimeofday(&start_tv,NULL);
+    const double start = start_tv.tv_sec + start_tv.tv_usec*1e-6;
     MPI_Barrier(p->info_MPI.SOMA_comm_domain);
-    const double end = MPI_Wtime();
+    gettimeofday(&end_tv,NULL);
+    const double end = end_tv.tv_sec + end_tv.tv_usec*1e-6;
     p->info_MPI.domain_divergence_sec += (end - start);
     p->info_MPI.domain_divergence_counter += 1;
     return end - start;
