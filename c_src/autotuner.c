@@ -70,9 +70,9 @@ int start_autotuner(Autotuner * a)
     a->value = a->trials[a->next_trial];
 
     struct timeval tv;
-    gettimeofday(&tv,NULL);
+    gettimeofday(&tv, NULL);
 
-    const double time = tv.tv_sec + tv.tv_usec*1e-6;
+    const double time = tv.tv_sec + tv.tv_usec * 1e-6;
     a->last_start = time;
     a->started = true;
 
@@ -85,8 +85,8 @@ int end_autotuner(Autotuner * a)
     if (a->equilibrated)
         return 0;
     struct timeval tv;
-    gettimeofday(&tv,NULL);
-    const double end = tv.tv_sec + tv.tv_usec*1e-6;
+    gettimeofday(&tv, NULL);
+    const double end = tv.tv_sec + tv.tv_usec * 1e-6;
 
     if (!a->started)
         {

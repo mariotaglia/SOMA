@@ -134,7 +134,7 @@ typedef int MPI_Datatype;
 //! \param data_size sizeof( datatype ) to get the number of bytes
 //! \return Errorcode.
 //! \todo The ouput is not yet parallel.
-int extent_density_field(const struct Phase *const p, const void *const field_pointer,
+int extent_density_field(const struct Phase *const p, void *const field_pointer,
                          const char *const field_name, hid_t hdf5_type,
                          const MPI_Datatype mpi_type, const size_t data_size);
 

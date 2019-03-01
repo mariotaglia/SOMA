@@ -641,7 +641,7 @@ int extent_density_field_old(const struct Phase *const p, const void *const fiel
     return 0;
 }
 
-int extent_density_field(const struct Phase *const p, const void *const field_pointer, const char *const field_name,
+int extent_density_field(const struct Phase *const p, void *const field_pointer, const char *const field_name,
                          hid_t hdf5_type, const MPI_Datatype mpi_type, const size_t data_size)
 {
     const char *const name = field_name;
@@ -678,7 +678,7 @@ int extent_density_field(const struct Phase *const p, const void *const field_po
                         {
                             MPI_Gather(field_pointer + ghost_buffer_size * data_size +
                                        type * p->n_cells_local * data_size, buffer_size, mpi_type,
-                                       full_array + type * p->nx * p->ny * p->nz*data_size, buffer_size, mpi_type, 0,
+                                       full_array + type * p->nx * p->ny * p->nz * data_size, buffer_size, mpi_type, 0,
                                        inter_domain_communicator);
                         }
 #endif                          //ENABLE_MPI

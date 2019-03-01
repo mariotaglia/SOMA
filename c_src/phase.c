@@ -36,7 +36,7 @@ int init_phase(struct Phase *const p)
     print_version(p->info_MPI.world_rank);
     p->present_on_device = false;
     p->start_time = p->time;
-    gettimeofday(&(p->start_clock),NULL);
+    gettimeofday(&(p->start_clock), NULL);
     p->n_accepts = 0;
     p->n_moves = 0;
     p->n_tries_cm = 0;
