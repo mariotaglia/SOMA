@@ -6,6 +6,7 @@ set(setup_scripts
 	GAUG_intern.sh
 	titan_python.sh
 	titan.sh
+	hlrn.sh
 	juwels.sh
 	juwels_cpu.sh)
 
