@@ -223,7 +223,7 @@ int test_area51_exact(const struct Phase *const p)
                             dx.x = b.x - a.x;
                             dx.y = b.y - a.y;
                             dx.z = b.z - a.z;
-                            const bool ok = possible_move_area51(p, a.x, a.y, a.z, dx.x, dx.y, dx.z, true);
+                            const bool ok = possible_move_area51(p, a.x, a.y, a.z, dx.x, dx.y, dx.z, false);
                             if (!ok)
                                 violations += 1;
                         }
