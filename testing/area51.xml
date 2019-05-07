@@ -25,22 +25,22 @@
     64
   </reference_Nbeads>
   <poly_arch>
-    1000 A{32}B{32}
+    27000 A{32}B{32}
   </poly_arch>
   <lxyz>
     1.8 1.8 1.8
   </lxyz>
   <nxyz>
-    11 11 11
+    33 33 33
   </nxyz>
   <area51>
-    <box> <point>0 0 0</point><point>1 11 11</point><value>1</value> </box>
-    <box> <point>0 0 0</point><point>11 1 11</point><value>1</value> </box>
-    <box> <point>0 0 0</point><point>11 11 1</point><value>1</value> </box>
+    <box> <point>0 0 0</point><point>1 33 33</point><value>1</value> </box>
+    <box> <point>0 0 0</point><point>33 1 33</point><value>1</value> </box>
+    <box> <point>0 0 0</point><point>33 33 1</point><value>1</value> </box>
   </area51>
   <external_field>
     <point_cloud>
-      0 0 0 -1 1
+      5 5 5 -1 1
       11 1 1 1 -1
     </point_cloud>
   </external_field>
