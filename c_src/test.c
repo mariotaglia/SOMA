@@ -225,7 +225,10 @@ int test_area51_exact(const struct Phase *const p)
                             dx.z = b.z - a.z;
                             const bool ok = possible_move_area51(p, a.x, a.y, a.z, dx.x, dx.y, dx.z, false);
                             if (!ok)
-                                violations += 1;
+                                {
+                                    //printf("violate %d %d %f %f %f\t%f %f %f\n", i, j, a.x, a.y, a.z, b.x, b.y, b.z);
+                                    violations += 1;
+                                }
                         }
                 }
         }
@@ -237,7 +240,9 @@ int test_area51_exact(const struct Phase *const p)
             if (violations == 0)
                 printf("INFO: At t= %d area51 exact test passed\n", p->time);
             else
-                printf("WARNING: At t= %d area51 exact test **FAILED** with %d violations.\n", p->time, violations);
+                printf
+                    ("WARNING: At t= %d area51 exact test **FAILED** with %d violations. If area51 contains 'steps' this is not necessarily a problem.\n",
+                     p->time, violations);
         }
     return violations;
 }
