@@ -350,7 +350,6 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
             //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
 #pragma omp parallel for reduction(+:n_accepts)
-
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_loc = 0;
@@ -394,11 +393,14 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                     smc_deltaE = 0.0;
                                     break;
                                 }
+
                             soma_scalar_t newx = mybead.x + dx;
                             soma_scalar_t newy = mybead.y + dy;
                             soma_scalar_t newz = mybead.z + dz;
+
                             const int move_allowed = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx, dy, dz,
                                                                           p->args.nonexact_area51_flag);
+
                             delta_energy = calc_delta_energy(p, npoly, &mybead, ibead, dx, dy, dz, iwtype);
 
                             if (delta_energy != delta_energy)   // isnan(delta_energy) ) not working with PGI OpenACC
@@ -809,7 +811,7 @@ inline int possible_move_area51(const Phase * p, const soma_scalar_t oldx, const
     if (!nonexact)
         {
             const soma_scalar_t r = sqrt(dx * dx + dy * dy + dz * dz);
-            const int num_samples = r / p->max_safe_jump;
+            const int num_samples = r / p->max_safe_jump + 1;
             if (num_samples > 0)
                 {
                     dx /= num_samples;

@@ -153,9 +153,7 @@ int main(int argc, char *argv[])
             const int test51 = test_area51_violation(p);
             MPI_ERROR_CHECK(test51, "Area51 test failed.");
 
-            const int test51_exact = test_area51_exact(p);
-            if (!p->args.nonexact_area51_flag)
-                MPI_ERROR_CHECK(test51_exact, "Area51 exact test failed.");
+            test_area51_exact(p);
 
             const int indepent_sets = test_independet_sets(p);
             MPI_ERROR_CHECK(indepent_sets, "Indepent Set test failed.");
@@ -217,9 +215,8 @@ int main(int argc, char *argv[])
         {
             const int test51 = test_area51_violation(p);
             MPI_ERROR_CHECK(test51, "Area51 test failed.");
-            const int test51_exact = test_area51_exact(p);
-            if (!p->args.nonexact_area51_flag)
-                MPI_ERROR_CHECK(test51_exact, "Area51 exact test failed.");
+
+	    test_area51_exact(p);
 
             const int chains_domain = test_chains_in_domain(p);
             MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
