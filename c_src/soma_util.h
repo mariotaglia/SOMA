@@ -37,6 +37,13 @@ enum Hamiltonian {
     SCMF1 = 1,                  //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
 };
 
+//! Enum to classify different cartesian directions
+enum CartesionDirection{
+    X = 0, //!< X direction
+    Y = 1, //!< Y direction
+    Z = 2, //!< Z direction
+    };
+
 //!  Function to extract the bond_type for poly_arch elements.
 //!
 //! \param info poly_arch element.
