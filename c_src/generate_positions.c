@@ -93,7 +93,7 @@ int set_neighbour(const unsigned int jbead, const Monomer * const neigh,
                     fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n", __FILE__, __LINE__, bond_type);
                     new.x = new.y = new.z = 0;  //Shut up compiler warning
                 }
-            move_allowed = !possible_move_area51(p, neigh->x, neigh->y, neigh->z, dx.x, dx.y, dx.z, true);
+            move_allowed = !possible_move_area51(p, neigh->x, neigh->y, neigh->z, dx.x, dx.y, dx.z, false);
     } while (move_allowed);
 
     poly->beads[jbead].x = new.x;

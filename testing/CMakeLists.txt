@@ -44,6 +44,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/homo.xml ${CMAKE_CURRENT_BINARY_DIR}/
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diblock.xml ${CMAKE_CURRENT_BINARY_DIR}/diblock.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scmf1.xml ${CMAKE_CURRENT_BINARY_DIR}/scmf1.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain.xml ${CMAKE_CURRENT_BINARY_DIR}/domain.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/area51.xml ${CMAKE_CURRENT_BINARY_DIR}/area51.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.xml ${CMAKE_CURRENT_BINARY_DIR}/mic.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic_time.xml ${CMAKE_CURRENT_BINARY_DIR}/mic_time.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diverse_polytype.xml ${CMAKE_CURRENT_BINARY_DIR}/diverse_polytype.xml COPYONLY)
@@ -105,6 +106,9 @@ if(ENABLE_MPI)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LoadBalance.sh.in ${CMAKE_CURRENT_BINARY_DIR}/LoadBalance.sh)
   add_test(NAME Load-Balance WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./LoadBalance.sh)
 endif(ENABLE_MPI)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/TestArea51.sh.in ${CMAKE_CURRENT_BINARY_DIR}/TestArea51.sh)
+add_test(NAME TestArea51 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./TestArea51.sh)
 
 
 #domain decomposition tests
