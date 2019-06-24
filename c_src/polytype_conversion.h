@@ -22,25 +22,25 @@
 #include "soma_config.h"
 #include "soma_util.h"
 
-//! \file polytype_conversion.h
-//! \brief File for all declarations of functions and structs for the on-the-fly conversion of polymer types.
-
-//! Lower level for the conversion. Contains the box region, where conversions happen.
-//! And describes which polymer types are converted to which others.
-typedef struct BoxConversion{
-    unsigned int  input_type; //!< polymer type which is converted
-    unsigned int output_type; //!< polymer type to which the chains types are converted
-    bool stop_iteration; //!< is this the last reaction of this cell?
-    }BoxConversion;
-
-
 //! Top level struct for polymer type conversions.
 //! controls the execution frequency. All other fields are only valid, if deltaMC != 0
 typedef struct PolyConversion{
     unsigned int deltaMC; //!< control execution frequency of the conversion
     uint16_t * array; //!< Array that contains the reaction start index of the conversion list.
+
+    unsigned int * input_type; //!< Array that contains the input poly type for each reaction (educt)
+    unsigned int * output_type;//!< Array that contains the output poly type for each reaction (product)
+    unsigned int * reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
     BoxConversion * reactions; //!< Array of reactions. The index is stored in the conversion array.
     }PolyConversion;
 
 
+//! Helper function to copy the pc data to the device
+int copyin_poly_conversion(struct PolyConversion* pc);
+
+//! Helper function delete the pc data from the device and copy it to the CPU memory
+int copyout_poly_conversion(struct PolyConversion* pc);
+
+//! Helper function to update the host with the pc data
+int update_self_poly_conversion(struct PolyConversion* pc);
 #endif//SOMA_POLYTYPE_CONVERSION_H

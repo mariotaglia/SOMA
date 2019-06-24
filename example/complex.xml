@@ -36,10 +36,11 @@
   </time>
   <harmonicvariablescale>
     1.25
-  </harmonicvariablescale>    
+  </harmonicvariablescale>
   <poly_arch>
     200 A1A2A1{2}('B'{2}A1('Qe'{2}){2}AB1){2}A1%2
     11 A{64}B{64}
+    11 B{64}A{64}
   </poly_arch>
     <reference_Nbeads>
     64
@@ -75,6 +76,20 @@
       <point>0 0 0</point><point>1 2 3</point><radius>2</radius><value>-0.5 0.5</value>
     </cylinder>
   </external_field>
+  <polyconversion>
+    <box>
+      <point>0 1 2</point><point>1 2 3</point><value>0</value>
+    </box>
+    <cylinder>
+      <point>0 0 0</point><point>1 2 3</point><radius>2</radius><value>2</value>
+    </cylinder>
+    <conversion_list>
+      1 2 0
+      2 1 1
+      1 2 11
+    </conversion_list>
+  </polyconversion>
+
   <hamiltonian>
     SCMF1
   </hamiltonian>
@@ -117,6 +132,6 @@
     </bonded_energy>
     </analysis>
     <cm_a>
-      0 1.0 20
-    </cm_a>    
+      0 1.0 1.0 20
+    </cm_a>
 </soma>
