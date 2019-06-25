@@ -1252,8 +1252,9 @@ class Configuration(SomaXML):
 
             if "polyconversion" in f:
                 del f["polyconversion"]
-            if not self.poly_conversion.array is None:
+            if self.poly_conversion.delta_mc[0] != 0 :
                 f.create_group("polyconversion")
+                f.create_dataset("polyconversion/deltaMC",data=self.poly_conversion.delta_mc)
                 f.create_dataset("/polyconversion/array",data=self.poly_conversion.array,dtype=numpy.uint8)
                 f.create_dataset("/polyconversion/input_type",data=self.poly_conversion.pc_list[:,0])
                 f.create_dataset("/polyconversion/output_type",data=self.poly_conversion.pc_list[:,1])
@@ -1548,9 +1549,10 @@ class Configuration(SomaXML):
         def __init__(self,root,nxyz,poly_arch):
             self.array = None
             self.pc_list = None
+            self.delta_mc = numpy.asarray( [0], dtype=numpy.uint32)
             child_list = []
             pc_list = []
-            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list"]
+            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC"]
             for element in root.iter("polyconversion"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1567,6 +1569,12 @@ class Configuration(SomaXML):
 
                 for sp in element.findall('sphere'):
                     child_list.append( Sphere(sp,1) )
+
+                for delta in element.findall("DeltaMC"):
+                    try:
+                        deltaMC = int(delta.text)
+                    except ValueError:
+                        raise RuntimeError("DeltaMC for poly conversion must be integer convertible but got: "+str(delta.text))
 
                 for pc in element.findall("conversion_list"):
                     for line in pc.text.split("\n"):
@@ -1591,7 +1599,7 @@ class Configuration(SomaXML):
                         if Ninput != Noutput:
                             RuntimeError("Invalid conserion attempt! Input type "+str(input_type)+" has "+str(Ninput)+" beads but output type "+str(output_type)+" has "+str(Noutput)+" types.")
 
-                        pc_list.append([input_type,output_type,end])
+                        pc_list.append([input_type,output_type,bool(end)])
 
             pbc = True
             if len(child_list) > 0:
@@ -1606,7 +1614,7 @@ class Configuration(SomaXML):
                         if xa >= 0 and xa < nxyz[0] and ya >= 0 and ya < nxyz[1] and za >= 0 and za < nxyz[2]:
                             array[xa][ya][za] = child.get( (x,y,z) )[0] +1 #+1 because zero indicates no reaction
 
-                pc_list = numpy.asarray(pc_list,dtype=int)
+                pc_list = numpy.asarray(pc_list,dtype=numpy.uint32)
                 if not pc_list[-1,2]:
                     raise RuntimeError("The poly type conversion list should finish with an end flag set. "+str(pc_list[-1,2])+" "+str(bool(pc_list[-1,2])))
 
@@ -1615,6 +1623,7 @@ class Configuration(SomaXML):
 
                 self.array = array
                 self.pc_list = pc_list
+                self.delta_mc = numpy.asarray([deltaMC],dtype=numpy.uint32)
 
 
 

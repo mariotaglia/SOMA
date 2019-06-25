@@ -39,6 +39,7 @@
 #include "mesh.h"
 #include "cmdline.h"
 #include "soma_config.h"
+#include "polytype_conversion.h"
 
 int read_old_config(struct Phase *p, char *const filename)
 {
@@ -816,6 +817,13 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
                 }
         }
 
+    status = write_poly_conversion_hdf5(p,file_id,plist_id);
+    if( status != 0)
+	{
+	fprintf(stderr,"ERROR: %s:%d writing the polytype conversion\n",__FILE__,__LINE__);
+	return status;
+	}
+
     H5Pclose(plist_id);
     if ((status = H5Fclose(file_id)) < 0)
         {
@@ -1457,6 +1465,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                     return status;
                 }
         }
+
+    status = read_poly_conversion_hdf5(p,file_id,plist_id);
+    if( status != 0 )
+	{
+	fprintf(stderr, "ERROR: %s:%d unable to read polytype conversion information.\n");
+	return status;
+	}
 
     if ((status = H5Fclose(file_id)) < 0)
         {

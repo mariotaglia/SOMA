@@ -77,6 +77,9 @@
     </cylinder>
   </external_field>
   <polyconversion>
+    <DeltaMC>
+      50
+    </DeltaMC>
     <box>
       <point>0 1 2</point><point>1 2 3</point><value>0</value>
     </box>

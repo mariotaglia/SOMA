@@ -30,6 +30,7 @@
 #include "init.h"
 #include "independent_sets.h"
 #include "mesh.h"
+#include "polytype_conversion.h"
 
 int init_phase(struct Phase *const p)
 {
@@ -342,6 +343,8 @@ int copyin_phase(struct Phase *const p)
         }
 #endif                          //_OPENACC
 
+    copyin_poly_conversion(p);
+
     p->present_on_device = true;
     return p->n_polymers * 0 + 1;
 }
@@ -404,6 +407,8 @@ int copyout_phase(struct Phase *const p)
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma acc exit data delete(p[0:1])
 #endif                          //_OPENACC
+
+    copyout_poly_conversion(p);
 
     p->present_on_device = false;
     return p->n_polymers * 0 + 1;
@@ -472,6 +477,8 @@ int free_phase(struct Phase *const p)
             free(p->umbrella_field);
         }
 
+    free_poly_conversion(p);
+
     close_ana(&(p->ana_info));
     return 0;
 }
@@ -523,6 +530,8 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
         }
 
     //SETS are not updated to host
+
+    update_self_poly_conversion(p);
 
     return p->n_polymers * 0 + 1;
 }

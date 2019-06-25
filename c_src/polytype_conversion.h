@@ -26,21 +26,41 @@
 //! controls the execution frequency. All other fields are only valid, if deltaMC != 0
 typedef struct PolyConversion{
     unsigned int deltaMC; //!< control execution frequency of the conversion
-    uint16_t * array; //!< Array that contains the reaction start index of the conversion list.
+    uint8_t * array; //!< Array that contains the reaction start index of the conversion list.
 
     unsigned int * input_type; //!< Array that contains the input poly type for each reaction (educt)
     unsigned int * output_type;//!< Array that contains the output poly type for each reaction (product)
     unsigned int * reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
-    BoxConversion * reactions; //!< Array of reactions. The index is stored in the conversion array.
+    unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
     }PolyConversion;
 
 
 //! Helper function to copy the pc data to the device
-int copyin_poly_conversion(struct PolyConversion* pc);
+int copyin_poly_conversion(struct Phase* p);
 
 //! Helper function delete the pc data from the device and copy it to the CPU memory
-int copyout_poly_conversion(struct PolyConversion* pc);
+int copyout_poly_conversion(struct Phase* p);
 
 //! Helper function to update the host with the pc data
-int update_self_poly_conversion(struct PolyConversion* pc);
+int update_self_poly_conversion(struct Phase* p);
+
+/*! Helper function to read the conversion array from the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
+int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const hid_t plist_id);
+
+/*! Helper function to write the polyconversion array to the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
+int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,const hid_t plist_id);
+
+
 #endif//SOMA_POLYTYPE_CONVERSION_H

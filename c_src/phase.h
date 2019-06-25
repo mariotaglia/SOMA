@@ -31,6 +31,7 @@ struct IndependetSets;
 #include "soma_util.h"
 #include "autotuner.h"
 #include "polymer.h"
+#include "polytype_conversion.h"
 
 #include <sys/time.h>
 
@@ -267,6 +268,7 @@ typedef struct Phase {
     soma_scalar_t period;       //!< period of the time-dependent external field
     unsigned int serie_length;  //!< number of time-dependent external field
 
+    struct PolyConversion pc; //!< struct containing the information for the poly type convsersion
 } Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
