@@ -36,13 +36,22 @@ typedef struct PolyConversion{
 
 
 //! Helper function to copy the pc data to the device
+//! \private
+//! \param p Fully CPU initialized Phase struct
+//! \return Errorcode
 int copyin_poly_conversion(struct Phase* p);
 
 //! Helper function delete the pc data from the device and copy it to the CPU memory
+//! \private
+//! \param p Fully CPU initialized Phase struct
+//! \return Errorcode
 int copyout_poly_conversion(struct Phase* p);
 
 //! Helper function to update the host with the pc data
-int update_self_poly_conversion(struct Phase* p);
+//! \private
+//! \param p Fully initialized Phase struct
+//! \return Errorcode
+int update_self_poly_conversion(const struct Phase* const p);
 
 /*! Helper function to read the conversion array from the config HDF5 file.
     \private
@@ -62,5 +71,11 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
 */
 int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,const hid_t plist_id);
 
+/*! Helper function to free the CPU memory resources of the pc struct. The function gets automatically called by free_phase().
+  \private
+  \param p Initialized Phase that is in the process of deallocating its resources.
+  \return Errorcode
+*/
+int free_poly_conversion(struct Phase* p);
 
 #endif//SOMA_POLYTYPE_CONVERSION_H

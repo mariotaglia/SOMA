@@ -71,6 +71,12 @@ int main(int argc, char *argv[])
 
     p->args.N_domains_arg = 1;
     p->args.domain_buffer_arg = 0;
+    p->pc.deltaMC=0;
+    p->pc.input_type = NULL;
+    p->pc.output_type = NULL;
+    p->pc.reaction_end = NULL;
+    p->pc.len_reactions = 0;
+
     p->args.long_chain_threshold_arg = 1;
     init_MPI(p);
 
