@@ -283,6 +283,7 @@ int read_old_config(struct Phase *p, char *const filename)
     p->harmonic_normb_variable_scale = 1;
     p->cm_a = NULL;             // Deactivate CM movement with the old file format.
     p->pc.deltaMC=0;
+    p->pc.array = NULL;
     p->pc.input_type = NULL;
     p->pc.output_type = NULL;
     p->pc.reaction_end = NULL;

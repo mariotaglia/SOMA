@@ -78,4 +78,11 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
 */
 int free_poly_conversion(struct Phase* p);
 
+/*! Convert polymer types according to the reaction description of the PolyConversion struct.
+  This updates the center of mass of the polymers.
+  \param p Phase struct describing the simulation
+  \return Errorcode
+*/
+int convert_polytypes(struct Phase* p);
+
 #endif//SOMA_POLYTYPE_CONVERSION_H
