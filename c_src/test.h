@@ -66,5 +66,8 @@ int test_independet_sets(const struct Phase *const p);
 int test_chains_in_domain(struct Phase *const p);
 
 //! Test polyconversion type setup
+//!
+//! \param p Phase to check
+//! \return Errorcode
 int test_poly_conversion(struct Phase*const p);
 #endif                          //SOMA_TEST_H

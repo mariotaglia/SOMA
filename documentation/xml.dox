@@ -317,6 +317,17 @@
       - \code <sin> \endcode is the array containing the prefactor of the sine series.
   \note Objects that leave the grid are mapped back via periodic boundary conditions.
 
-
-
+  - \code <polyconversion> \endcode allows to define zones where the type of a polymer can be switched.
+    If the center of mass is inside of one of the so defined zones its type is switched according to the switching rules.
+    The definition of these rules and how the switching rules are defined is implemented via 3 different kinds of subtags in the XML.
+      - \code <DeltaMC> \endcode defines the frequency where the RCMs are checked and the rules applied.
+      -\code <cylinder> <box> <sphere> <point_cloud> \endcode work exactly as with area51 or external field.
+       They define the zone where the switching rules are applied.
+       The value has only one entry and defines the switching rules for that reason.
+       To be precise: the value indicates the starting index for the <conversion_list>.
+       For example a 0 means to start reading at the beginning of that list.
+       The user may define multiple zones with different indices. If zones overlap, the last zone overwrites the previous index value.
+      - \code <conversion_list> \endcode defines the reactions.
+        There are always 3 numbers. The first defines the original polymer type the educt of the reaction. The second defines the product of the reaction. Both have to fulfill the restriction, that they enumerate valid polymer types. In addition, the number of beads between input and output must be the same.
+	The number is read as boolean and indicates if there is another reaction. If it is false (0), the next line is also applied for the currect reaction zone cell. Otherwise no further reactions are applied.
 */
