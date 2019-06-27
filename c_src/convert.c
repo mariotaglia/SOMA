@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
     p->args.N_domains_arg = 1;
     p->args.domain_buffer_arg = 0;
-    p->pc.deltaMC=0;
+    p->pc.deltaMC = 0;
     p->pc.array = NULL;
     p->pc.input_type = NULL;
     p->pc.output_type = NULL;

@@ -284,51 +284,59 @@ int test_chains_in_domain(struct Phase *const p)
     return violations;
 }
 
-int test_poly_conversion(struct Phase*const p)
-    {
-    if(p->pc.deltaMC == 0)
-	return 0;
-    for(unsigned int i=0; i < p->pc.len_reactions; i++)
-	{
-	const unsigned int in = p->pc.input_type[i];
-	const unsigned int out = p->pc.output_type[i];
-	if( in >= p->n_poly_type )
-	    {
-	    fprintf(stderr,"ERROR: %d polytype input %d %d %d exceeds the number of known polymer types.\n",p->info_MPI.sim_rank,i,in,p->n_poly_type);
-	    return -1;
-	    }
-	if( out >= p->n_poly_type )
-	    {
-	    fprintf(stderr,"ERROR: %d polytype output %d %d %d exceeds the number of known polymer types.\n",p->info_MPI.sim_rank,i,out,p->n_poly_type);
-	    return -1;
-	    }
+int test_poly_conversion(struct Phase *const p)
+{
+    if (p->pc.deltaMC == 0)
+        return 0;
+    for (unsigned int i = 0; i < p->pc.len_reactions; i++)
+        {
+            const unsigned int in = p->pc.input_type[i];
+            const unsigned int out = p->pc.output_type[i];
+            if (in >= p->n_poly_type)
+                {
+                    fprintf(stderr, "ERROR: %d polytype input %d %d %d exceeds the number of known polymer types.\n",
+                            p->info_MPI.sim_rank, i, in, p->n_poly_type);
+                    return -1;
+                }
+            if (out >= p->n_poly_type)
+                {
+                    fprintf(stderr, "ERROR: %d polytype output %d %d %d exceeds the number of known polymer types.\n",
+                            p->info_MPI.sim_rank, i, out, p->n_poly_type);
+                    return -1;
+                }
 
-	const unsigned int Nin = p->poly_arch[ p->poly_type_offset[in] ];
-	const unsigned int Nout = p->poly_arch[ p->poly_type_offset[out] ];
-	if( Nin != Nout )
-	    {
-	    fprintf(stderr,"ERROR: %d polytype conversion between to polymer types of different length. %i %d %d\n",p->info_MPI.sim_rank,i,Nin,Nout);
-	    return -2;
-	    }
-	}
-    if(p->pc.len_reactions > 0)
-	{
-	if( ! p->pc.reaction_end[ p->pc.len_reactions -1 ] )
-	    {
-	    fprintf(stderr,"ERROR: %d the last element of the reaction list for the polymer conversion should have the end flag set.\n",p->info_MPI.sim_rank);
-	    return -3;
-	    }
-	}
-    unsigned int maximum=0;
-    for(unsigned int i=0; i < p->n_cells_local; i++)
-	if( p->pc.array[i] > maximum )
-	    maximum = p->pc.array[i];
-    if( maximum > p->pc.len_reactions )
-	{
-	fprintf(stderr,"ERROR: %d the reaction array contains values that are invalid to the corresponding list. %d %d\n",p->info_MPI.sim_rank,maximum,p->pc.len_reactions);
-	return -4;
-	}
-    if(p->info_MPI.sim_rank == 0)
-	printf("INFO: At t = %d polytype conversion test passed.\n",p->time);
+            const unsigned int Nin = p->poly_arch[p->poly_type_offset[in]];
+            const unsigned int Nout = p->poly_arch[p->poly_type_offset[out]];
+            if (Nin != Nout)
+                {
+                    fprintf(stderr,
+                            "ERROR: %d polytype conversion between to polymer types of different length. %i %d %d\n",
+                            p->info_MPI.sim_rank, i, Nin, Nout);
+                    return -2;
+                }
+        }
+    if (p->pc.len_reactions > 0)
+        {
+            if (!p->pc.reaction_end[p->pc.len_reactions - 1])
+                {
+                    fprintf(stderr,
+                            "ERROR: %d the last element of the reaction list for the polymer conversion should have the end flag set.\n",
+                            p->info_MPI.sim_rank);
+                    return -3;
+                }
+        }
+    unsigned int maximum = 0;
+    for (unsigned int i = 0; i < p->n_cells_local; i++)
+        if (p->pc.array[i] > maximum)
+            maximum = p->pc.array[i];
+    if (maximum > p->pc.len_reactions)
+        {
+            fprintf(stderr,
+                    "ERROR: %d the reaction array contains values that are invalid to the corresponding list. %d %d\n",
+                    p->info_MPI.sim_rank, maximum, p->pc.len_reactions);
+            return -4;
+        }
+    if (p->info_MPI.sim_rank == 0)
+        printf("INFO: At t = %d polytype conversion test passed.\n", p->time);
     return 0;
-    }
+}

@@ -69,5 +69,5 @@ int test_chains_in_domain(struct Phase *const p);
 //!
 //! \param p Phase to check
 //! \return Errorcode
-int test_poly_conversion(struct Phase*const p);
+int test_poly_conversion(struct Phase *const p);
 #endif                          //SOMA_TEST_H
