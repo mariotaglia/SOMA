@@ -31,6 +31,7 @@ struct IndependetSets;
 #include "soma_util.h"
 #include "autotuner.h"
 #include "polymer.h"
+#include "polytype_conversion.h"
 
 #include <sys/time.h>
 
@@ -94,8 +95,6 @@ typedef struct Phase {
     soma_scalar_t *external_field_unified;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
     soma_scalar_t *umbrella_field;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
-    uint64_t *num_bead_type;    /*!< \brief stores the number of beads of a specific type */
-    uint64_t *num_bead_type_local;      /*!< \brief stores the number of beads of a specific type locally (for this mpi-core) */
 
     soma_scalar_t *A;           /*!< \brief stores the diffusion constants for each type */
     soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
@@ -267,6 +266,7 @@ typedef struct Phase {
     soma_scalar_t period;       //!< period of the time-dependent external field
     unsigned int serie_length;  //!< number of time-dependent external field
 
+    struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
 } Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.

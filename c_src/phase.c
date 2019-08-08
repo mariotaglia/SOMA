@@ -30,6 +30,7 @@
 #include "init.h"
 #include "independent_sets.h"
 #include "mesh.h"
+#include "polytype_conversion.h"
 
 int init_phase(struct Phase *const p)
 {
@@ -146,18 +147,6 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->num_bead_type = (uint64_t *) malloc(p->n_types * sizeof(uint64_t));
-    if (p->num_bead_type == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    p->num_bead_type_local = (uint64_t *) malloc(p->n_types * sizeof(uint64_t));
-    if (p->num_bead_type_local == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
     p->field_scaling_type = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
     if (p->field_scaling_type == NULL)
         {
@@ -169,19 +158,12 @@ int init_phase(struct Phase *const p)
 
     p->num_all_beads = 0;
     p->num_all_beads_local = 0;
-    for (unsigned int i = 0; i < p->n_types; i++)
-        p->num_bead_type_local[i] = 0;
+
     // Determine number of  different bead types
     for (uint64_t j = 0; j < p->n_polymers; j++)
         {                       /*Loop over polymers */
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[j].type]];
-            for (unsigned int k = 0; k < N; k++)
-                {               /*Loop over monomers */
-                    const unsigned int type =
-                        get_particle_type(p->poly_arch[p->poly_type_offset[p->polymers[j].type] + 1 + k]);
-                    p->num_bead_type_local[type] += 1;
-                    p->num_all_beads_local += 1;
-                }
+	    p->num_all_beads_local += N;
         }
 #if ( ENABLE_MPI == 1 )
     // Share p->num_all_beads
@@ -190,16 +172,6 @@ int init_phase(struct Phase *const p)
     p->num_all_beads = p->num_all_beads_local;
 #endif                          //ENABLE_MPI
 
-    // Share p->num_bead_type
-    for (unsigned int i = 0; i < p->n_types; i++)
-        {
-#if ( ENABLE_MPI == 1 )
-            MPI_Allreduce(&(p->num_bead_type_local[i]), &(p->num_bead_type[i]),
-                          1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#else
-            p->num_bead_type[i] = p->num_bead_type_local[i];
-#endif                          //ENABLE_MPI
-        }
     // Check if uint16_t density field is enough
     soma_scalar_t check_short = p->num_all_beads / p->n_cells;
 
@@ -313,8 +285,6 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
-#pragma acc enter data copyin(p->num_bead_type[0:p->n_types])
-#pragma acc enter data copyin(p->num_bead_type_local[0:p->n_types])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
 #pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
@@ -341,6 +311,8 @@ int copyin_phase(struct Phase *const p)
             copyin_polymer(p, poly);
         }
 #endif                          //_OPENACC
+
+    copyin_poly_conversion(p);
 
     p->present_on_device = true;
     return p->n_polymers * 0 + 1;
@@ -373,8 +345,6 @@ int copyout_phase(struct Phase *const p)
 #pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
 #pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
-#pragma acc exit data copyout(p->num_bead_type[0:p->n_types])
-#pragma acc exit data copyout(p->num_bead_type_local[0:p->n_types])
 #pragma acc exit data copyout(p->A[0:p->n_types])
 #pragma acc exit data copyout(p->R[0:p->n_types])
 #pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
@@ -405,6 +375,8 @@ int copyout_phase(struct Phase *const p)
 #pragma acc exit data delete(p[0:1])
 #endif                          //_OPENACC
 
+    copyout_poly_conversion(p);
+
     p->present_on_device = false;
     return p->n_polymers * 0 + 1;
 }
@@ -421,8 +393,6 @@ int free_phase(struct Phase *const p)
     free(p->fields_unified);
     free(p->old_fields_unified);
     free(p->fields_32);
-    free(p->num_bead_type);
-    free(p->num_bead_type_local);
     free(p->field_scaling_type);
     free(p->k_umbrella);
     free(p->A);
@@ -472,6 +442,8 @@ int free_phase(struct Phase *const p)
             free(p->umbrella_field);
         }
 
+    free_poly_conversion(p);
+
     close_ana(&(p->ana_info));
     return 0;
 }
@@ -509,8 +481,6 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
         }
 
 #pragma acc update self(p->tempfield[0:p->n_cells_local])
-#pragma acc update self(p->num_bead_type[0:p->n_types])
-#pragma acc update self(p->num_bead_type_local[0:p->n_types])
 #pragma acc update self(p->A[0:p->n_types])
 #pragma acc update self(p->R[0:p->n_types])
 #pragma acc update self(p->field_scaling_type[0:p->n_types])
@@ -523,6 +493,8 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
         }
 
     //SETS are not updated to host
+
+    update_self_poly_conversion(p);
 
     return p->n_polymers * 0 + 1;
 }

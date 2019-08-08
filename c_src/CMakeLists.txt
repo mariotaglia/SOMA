@@ -23,6 +23,7 @@ set(soma_source
   soma_util.c
   walltime.c
   test.c
+  polytype_conversion.c
   )
 
 configure_file(soma_config.h.in soma_config.h)

@@ -145,12 +145,7 @@ int push_polymer(struct Phase *const p, const Polymer * const poly)
     p->n_polymers += 1;
 
     const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-    for (unsigned int k = 0; k < N; k++)
-        {
-            const unsigned int type = get_particle_type(p->poly_arch[p->poly_type_offset[poly->type] + 1 + k]);
-            p->num_bead_type_local[type] += 1;
-            p->num_all_beads_local += 1;
-        }
+    p->num_all_beads_local += N;
     return 0;
 }
 
@@ -181,12 +176,7 @@ int pop_polymer(struct Phase *const p, const uint64_t poly_id, Polymer * const p
             memcpy(p->polymers + poly_id, p->polymers + p->n_polymers, sizeof(Polymer));
         }
     const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-    for (unsigned int k = 0; k < N; k++)
-        {
-            const unsigned int type = get_particle_type(p->poly_arch[p->poly_type_offset[poly->type] + 1 + k]);
-            p->num_bead_type_local[type] -= 1;
-            p->num_all_beads_local -= 1;
-        }
+    p->num_all_beads_local -= N;
 
     return 0;
 }

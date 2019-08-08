@@ -123,6 +123,9 @@ if(ENABLE_MIC)
   add_test(NAME mic WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python mic.py)
 endif(ENABLE_MIC)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/conversion.xml ${CMAKE_CURRENT_BINARY_DIR}/conversion.xml)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/conversion_test.py.in ${CMAKE_CURRENT_BINARY_DIR}/conversion_test.py)
+add_test(NAME PolytypeConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python conversion_test.py --additional-flags=${ACC_FLAG})
 
 #stat
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/statistics.py)

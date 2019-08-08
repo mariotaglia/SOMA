@@ -191,11 +191,6 @@ int collective_global_update(struct Phase *const p)
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->num_all_beads)
 
-    //Beads per type
-    MPI_Allreduce(p->num_bead_type_local, p->num_bead_type,
-                  p->n_types, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#pragma acc update device(p->num_bead_type[0:p->n_types])
-
     update_density_fields(p);
     return 0;
 }

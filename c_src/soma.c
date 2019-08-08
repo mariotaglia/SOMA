@@ -41,6 +41,7 @@
 #include "rng.h"
 #include "walltime.h"
 #include "generate_positions.h"
+#include "polytype_conversion.h"
 
 //! Main Function of the Executable SOMA
 //! \private
@@ -160,6 +161,9 @@ int main(int argc, char *argv[])
 
             const int chains_domain = test_chains_in_domain(p);
             MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
+
+            const int polytype_conversion = test_poly_conversion(p);
+            MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
     int stop_iteration = false;
     for (unsigned int i = 0; i < N_steps; i++)
@@ -173,6 +177,10 @@ int main(int argc, char *argv[])
                     exit(mc_error);
                 }
             screen_output(p, N_steps);
+
+            if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1)
+                convert_polytypes(p);
+
 #if ( ENABLE_MPI == 1 )
             if (p->args.load_balance_arg > 0
                 && i % p->args.load_balance_arg == (unsigned int)p->args.load_balance_arg - 1)
@@ -216,7 +224,7 @@ int main(int argc, char *argv[])
             const int test51 = test_area51_violation(p);
             MPI_ERROR_CHECK(test51, "Area51 test failed.");
 
-	    test_area51_exact(p);
+            test_area51_exact(p);
 
             const int chains_domain = test_chains_in_domain(p);
             MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");

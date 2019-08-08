@@ -39,6 +39,7 @@
 #include "mesh.h"
 #include "cmdline.h"
 #include "soma_config.h"
+#include "polytype_conversion.h"
 
 int read_old_config(struct Phase *p, char *const filename)
 {
@@ -281,6 +282,12 @@ int read_old_config(struct Phase *p, char *const filename)
 
     p->harmonic_normb_variable_scale = 1;
     p->cm_a = NULL;             // Deactivate CM movement with the old file format.
+    p->pc.deltaMC = 0;
+    p->pc.array = NULL;
+    p->pc.input_type = NULL;
+    p->pc.output_type = NULL;
+    p->pc.reaction_end = NULL;
+    p->pc.len_reactions = 0;
 
     return 0;
 }
@@ -814,6 +821,13 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
                     fprintf(stderr, "ERROR: %s:%d cannot write umbrella_field.\n", __FILE__, __LINE__);
                     return status;
                 }
+        }
+
+    status = write_poly_conversion_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d writing the polytype conversion\n", __FILE__, __LINE__);
+            return status;
         }
 
     H5Pclose(plist_id);
@@ -1456,6 +1470,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                     fprintf(stderr, "ERROR: failed to read umbrella_field %s:%d.\n", __FILE__, __LINE__);
                     return status;
                 }
+        }
+
+    status = read_poly_conversion_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to read polytype conversion information.\n", __FILE__, __LINE__);
+            return status;
         }
 
     if ((status = H5Fclose(file_id)) < 0)
