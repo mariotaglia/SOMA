@@ -7,6 +7,7 @@ set(setup_scripts
 	titan_python.sh
 	titan.sh
 	hlrn.sh
+	strand.sh
 	juwels.sh
 	juwels_cpu.sh)
 
