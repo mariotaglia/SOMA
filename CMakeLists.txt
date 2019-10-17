@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug" "RelWithDebInfo")
 endif()
 if( ${CMAKE_VERSION} VERSION_GREATER "3.7.0" )
-  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0") 
+  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0")
     cmake_policy(SET CMP0074 NEW)
   endif()
 endif()
@@ -29,6 +29,9 @@ else (SOMA_GIT_VERSION)
 endif (SOMA_GIT_VERSION)
 
 set(SOMA_SYSTEM_INFO "${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_C_COMPILER_ID}")
+
+#set extra flags from environment
+set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} $ENV{SOMA_C_FLAGS}" CACHE STRING "" FORCE)
 
 #Set proper release flags for PGI.
 if( "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
@@ -212,9 +215,51 @@ endif(ENABLE_OPENMP)
 add_subdirectory(c_src)
 add_subdirectory(setups)
 
-option(INSTALL_PYTHON "Install the python scripts. Not needed for pure server installations." ON)
+find_package(PythonInterp)
+
+if(PYTHONINTERP_FOUND)
+  set(install_python_text "Install the python scripts. Not needed for pure server installations.")
+  #check for numpy and h5py
+  set(find_numpy "
+from __future__ import print_function; import sys, os; sys.stdout = open(os.devnull, 'w');
+try: import numpy;
+except ImportError: print('OFF',file=sys.stderr,end='');
+else: print('ON',file=sys.stderr,end='');")
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${find_numpy}" ERROR_VARIABLE numpy_FOUND)
+  if(${numpy_FOUND})
+    message(STATUS "Numpy found")
+
+    set(find_h5py "
+from __future__ import print_function; import sys, os; sys.stdout = open(os.devnull, 'w');
+try: import h5py;
+except ImportError: print('OFF',file=sys.stderr,end='');
+else: print('ON',file=sys.stderr,end='');")
+    execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${find_h5py}" ERROR_VARIABLE h5py_FOUND)
+
+    if(${h5py_FOUND})
+      message(STATUS "h5py found")
+      option(INSTALL_PYTHON "${install_python_text}" ON)
+      set(SOMA_PYTHON_SHEBANG "#!${PYTHON_EXECUTABLE}")
+    else()
+      option(INSTALL_PYTHON "${install_python_text}" OFF)
+    endif()
+  else()
+    option(INSTALL_PYTHON "${install_python_text}" OFF)
+  endif()
+else()
+  option(INSTALL_PYTHON "${install_python_text}" OFF)
+endif(PYTHONINTERP_FOUND)
+
 if(INSTALL_PYTHON)
   add_subdirectory(python_src)
+  option(ENABLE_TESTING "Include the automated tests." ON)
+
+  #Note: testing is only possible if the python scripts are installed and valid h5py/numpy is found
+  if(ENABLE_TESTING)
+    include(CTest)
+    add_subdirectory(testing)
+    enable_testing()
+  endif(ENABLE_TESTING)
 endif(INSTALL_PYTHON)
 
 find_package(Doxygen)
@@ -225,10 +270,3 @@ endif(DOXYGEN_FOUND)
 if(ENABLE_DOXYGEN)
   add_subdirectory(documentation)
 endif(ENABLE_DOXYGEN)
-
-option(ENABLE_TESTING "Include the automated tests." ON)
-if(ENABLE_TESTING)
-  include(CTest)
-  add_subdirectory(testing)
-  enable_testing()
-endif(ENABLE_TESTING)

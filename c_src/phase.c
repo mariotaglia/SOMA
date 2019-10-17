@@ -163,7 +163,7 @@ int init_phase(struct Phase *const p)
     for (uint64_t j = 0; j < p->n_polymers; j++)
         {                       /*Loop over polymers */
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[j].type]];
-	    p->num_all_beads_local += N;
+            p->num_all_beads_local += N;
         }
 #if ( ENABLE_MPI == 1 )
     // Share p->num_all_beads
