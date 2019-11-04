@@ -9,6 +9,9 @@ v0.6.2 not-yet-released
 	of polymers and its test.        MM and LS
 	* enable extra SOMA_C_FLAGS as
 	environment added to C_FLAGS	LS
+	* fix problem of unintentionally updating with the
+	polyarch with reorderd poly IDs and ConfGen.py --update
+	WARNING: new default: no update of polyarch LS
 
 v0.6.1 23/1/19
 	* fix a problem with memory management for
