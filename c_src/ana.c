@@ -495,12 +495,14 @@ int extent_ana_by_field(const soma_scalar_t * const data, const uint64_t n_data,
             HDF5_ERROR_CHECK(status);
         }
     else
-        memspace = H5P_DEFAULT;
+        memspace = H5S_ALL;
 
     status = H5Dwrite(dset, H5T_SOMA_NATIVE_SCALAR, memspace, filespace, H5P_DEFAULT, data);
     HDF5_ERROR_CHECK(status);
 
     status = H5Sclose(filespace);
+    HDF5_ERROR_CHECK(status);
+    status = H5Sclose(memspace);
     HDF5_ERROR_CHECK(status);
     status = H5Dclose(dset);
     HDF5_ERROR_CHECK(status);
