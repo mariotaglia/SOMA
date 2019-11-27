@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
             const int test51 = test_area51_violation(p);
             MPI_ERROR_CHECK(test51, "Area51 test failed.");
 
-	    test_area51_exact(p);
+            test_area51_exact(p);
 
             const int chains_domain = test_chains_in_domain(p);
             MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");

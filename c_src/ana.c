@@ -502,8 +502,11 @@ int extent_ana_by_field(const soma_scalar_t * const data, const uint64_t n_data,
 
     status = H5Sclose(filespace);
     HDF5_ERROR_CHECK(status);
-    status = H5Sclose(memspace);
-    HDF5_ERROR_CHECK(status);
+    if (memspace != H5S_ALL)
+        {
+            status = H5Sclose(memspace);
+            HDF5_ERROR_CHECK(status);
+        }
     status = H5Dclose(dset);
     HDF5_ERROR_CHECK(status);
     return 0;
