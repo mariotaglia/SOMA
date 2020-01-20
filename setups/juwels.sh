@@ -2,6 +2,7 @@ module purge
 # ml use /gpfs/software/juwels/otherstages
 # ml Stages/2018b
 
+export export LD_PRELOAD=
 module load CUDA
 module load PGI
 module load MVAPICH2/2.3.2-GDR
