@@ -209,10 +209,13 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
                                     const soma_scalar_t x2 = p->polymers[ipoly].beads[jbead].x;
                                     const soma_scalar_t y2 = p->polymers[ipoly].beads[jbead].y;
                                     const soma_scalar_t z2 = p->polymers[ipoly].beads[jbead].z;
+                                    
+				   
+                                    const int mic_flag = p->args.bond_minimum_image_convention_flag;
 
-                                    const soma_scalar_t bx = x2 - x1;
-                                    const soma_scalar_t by = y2 - y1;
-                                    const soma_scalar_t bz = z2 - z1;
+				    const soma_scalar_t bx = calc_bond_length(x2,x1,p->Lx,mic_flag);
+				    const soma_scalar_t by = calc_bond_length(y2,y1,p->Ly,mic_flag);
+				    const soma_scalar_t bz = calc_bond_length(z2,z1,p->Lz,mic_flag);
 
                                     result[type * 6 + 0] += bx * bx;
                                     result[type * 6 + 1] += by * by;
@@ -495,13 +498,18 @@ int extent_ana_by_field(const soma_scalar_t * const data, const uint64_t n_data,
             HDF5_ERROR_CHECK(status);
         }
     else
-        memspace = H5P_DEFAULT;
+        memspace = H5S_ALL;
 
     status = H5Dwrite(dset, H5T_SOMA_NATIVE_SCALAR, memspace, filespace, H5P_DEFAULT, data);
     HDF5_ERROR_CHECK(status);
 
     status = H5Sclose(filespace);
     HDF5_ERROR_CHECK(status);
+    if (memspace != H5S_ALL)
+        {
+            status = H5Sclose(memspace);
+            HDF5_ERROR_CHECK(status);
+        }
     status = H5Dclose(dset);
     HDF5_ERROR_CHECK(status);
     return 0;
