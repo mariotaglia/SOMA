@@ -11,12 +11,16 @@ v0.7.0 not-yet-released
 v0.6.2 not-yet-released
 
 	* fix problem with exact area51 genration
-	of polymers and its test.        MM and LS
+	of polymers and its test.        		MM and LS
 	* enable extra SOMA_C_FLAGS as
-	environment added to C_FLAGS	LS
+	environment added to C_FLAGS			LS
 	* fix problem with calculation of the
 	bond-anisotropy for closed chains, while
-	using minimum image convention.	Leon Frangen
+	using minimum image convention.			Leon Frangen
+	* fix problem of unintentionally updating
+	with the polyarch with reorderd poly IDs
+	and ConfGen.py --update
+	WARNING: new default: no update of polyarch 	LS
 
 v0.6.1 23/1/19
 	* fix a problem with memory management for
