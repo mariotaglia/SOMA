@@ -38,7 +38,7 @@
 //! \param already_set Array indicating unset particels
 //! \param N Number of particles in molecule
 //! \return next index.
-int get_next_index(const bool * const already_set, const unsigned int N)
+int get_next_index(const bool *const already_set, const unsigned int N)
 {
     unsigned int i;
     for (i = 0; i < N; i++)
@@ -60,11 +60,9 @@ int get_next_index(const bool * const already_set, const unsigned int N)
 //! \param p System
 //! \return Errorcode
 int set_neighbour(const unsigned int jbead, const Monomer * const neigh,
-                  const unsigned int bond_type, bool * const already_set,
+                  const unsigned int bond_type, bool *const already_set,
                   Polymer * const poly, const struct Phase *const p)
 {
-    if (already_set[jbead])
-        return 0;
     Monomer dx;
     Monomer new;
     int move_allowed;
@@ -100,26 +98,6 @@ int set_neighbour(const unsigned int jbead, const Monomer * const neigh,
     poly->beads[jbead].y = new.y;
     poly->beads[jbead].z = new.z;
     already_set[jbead] = true;
-
-    //recursively add all connected neighbors
-    const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[poly->type] + jbead + 1]);
-
-    if (start > 0)
-        {
-            int i = start;
-            unsigned int end;
-            do
-                {
-                    const uint32_t info = p->poly_arch[i++];
-                    end = get_end(info);
-                    const unsigned int bond_type = get_bond_type(info);
-                    const int offset = get_offset(info);
-
-                    const int neighbour_id = jbead + offset;
-                    set_neighbour(neighbour_id, &(poly->beads[jbead]), bond_type, already_set, poly, p);
-
-            } while (end == 0);
-        }
     return 0;
 }
 
@@ -136,7 +114,17 @@ int generate_new_beads(struct Phase *const p)
         {
             Polymer *const poly = &(p->polymers[i]);
             const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-            bool *const already_set = (bool *) malloc(N * sizeof(bool));
+
+            unsigned int *chain = (unsigned int *)malloc(N * sizeof(unsigned int));
+            if (chain == NULL)
+                {
+                    fprintf(stderr, "ERROR: %s:%d Malloc problem.\n", __FILE__, __LINE__);
+                    return -1;
+                }
+            memset(chain, 0, N * sizeof(unsigned int));
+
+            int chain_index = 0;
+            bool *const already_set = (bool *)malloc(N * sizeof(bool));
             if (already_set == NULL)
                 {
                     fprintf(stderr, "ERROR: %s:%d Malloc problem.\n", __FILE__, __LINE__);
@@ -145,7 +133,8 @@ int generate_new_beads(struct Phase *const p)
             memset(already_set, false, N * sizeof(bool));
 
             int free_index;
-            while ((free_index = get_next_index(already_set, N)) >= 0)
+            free_index = get_next_index(already_set, N);
+            while (free_index >= 0)
                 {
                     //Set a free monomer
                     soma_scalar_t x, y, z;
@@ -176,36 +165,62 @@ int generate_new_beads(struct Phase *const p)
                     poly->beads[free_index].y = y;
                     poly->beads[free_index].z = z;
                     already_set[free_index] = true;
-                    //Set recursively all connected neighbors.
-                    const int start =
+                    chain[chain_index] = free_index;
+                    unsigned int total_set = 1;
+
+                    unsigned int old_bead = free_index;
+                    unsigned int new_bead;
+                    unsigned int bond_type;
+                    const int old_bead_bondlist_offset =
                         get_bondlist_offset(p->poly_arch[p->poly_type_offset[poly->type] + free_index + 1]);
-                    if (start > 0)
+                    if (old_bead_bondlist_offset != -1)
                         {
-                            int i = start;
-                            unsigned int end;
+                            int bondlist = old_bead_bondlist_offset;
+                            unsigned int end = 0;
                             do
                                 {
-                                    const int info = p->poly_arch[i++];
-                                    end = get_end(info);
-                                    const unsigned int bond_type = get_bond_type(info);
-                                    const int offset = get_offset(info);
-
-                                    const int neighbour_id = free_index + offset;
-                                    const unsigned int jbead = neighbour_id;
-
-                                    set_neighbour(jbead, &(poly->beads[free_index]), bond_type, already_set, poly, p);
-
-                            } while (end == 0);
+                                    do
+                                        {
+                                            if (end != 0)
+                                                {       //if all the bonds are already set, go back
+                                                    chain_index--;
+                                                    if (chain_index < 0)
+                                                        break;
+                                                    bondlist =
+                                                        get_bondlist_offset(p->poly_arch
+                                                                            [p->poly_type_offset[poly->type] +
+                                                                             chain[chain_index] + 1]);
+                                                    old_bead = chain[chain_index];
+                                                }
+                                            const int info = p->poly_arch[bondlist];
+                                            end = get_end(info);
+                                            bond_type = get_bond_type(info);
+                                            const int offset = get_offset(info);
+                                            new_bead = old_bead + offset;
+                                            bondlist++;
+                                    } while (already_set[new_bead]);    //find the first unset neigbour
+                                    chain_index++;
+                                    set_neighbour(new_bead, &(poly->beads[old_bead]), bond_type, already_set, poly, p);
+                                    already_set[new_bead] = true;
+                                    total_set++;
+                                    bondlist =
+                                        get_bondlist_offset(p->
+                                                            poly_arch[p->poly_type_offset[poly->type] + new_bead + 1]);
+                                    chain[chain_index] = new_bead;
+                                    old_bead = new_bead;
+                                    end = 0;
+                            } while (chain_index > 0);
                         }
+                    free_index = get_next_index(already_set, N);
                 }
-
             free(already_set);
-//transfer the particle positions after generation to GPU
+            free(chain);
+            //transfer the particle positions after generation to GPU
 #pragma acc update device(poly->beads[0:N])
             //Init MSD positions
             memcpy(poly->msd_beads, poly->beads, N * sizeof(Monomer));
 #pragma acc update device(poly->msd_beads[0:N])
-        }
+        }                       //loop over polymers
     update_density_fields(p);
     memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
     return 0;
