@@ -209,13 +209,12 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
                                     const soma_scalar_t x2 = p->polymers[ipoly].beads[jbead].x;
                                     const soma_scalar_t y2 = p->polymers[ipoly].beads[jbead].y;
                                     const soma_scalar_t z2 = p->polymers[ipoly].beads[jbead].z;
-                                    
-				   
+
                                     const int mic_flag = p->args.bond_minimum_image_convention_flag;
 
-				    const soma_scalar_t bx = calc_bond_length(x2,x1,p->Lx,mic_flag);
-				    const soma_scalar_t by = calc_bond_length(y2,y1,p->Ly,mic_flag);
-				    const soma_scalar_t bz = calc_bond_length(z2,z1,p->Lz,mic_flag);
+                                    const soma_scalar_t bx = calc_bond_length(x2, x1, p->Lx, mic_flag);
+                                    const soma_scalar_t by = calc_bond_length(y2, y1, p->Ly, mic_flag);
+                                    const soma_scalar_t bz = calc_bond_length(z2, z1, p->Lz, mic_flag);
 
                                     result[type * 6 + 0] += bx * bx;
                                     result[type * 6 + 1] += by * by;
