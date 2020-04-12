@@ -3,7 +3,7 @@ if(ENABLE_MPI_CUDA AND MPI_CUDA)
 endif()
 
 set(soma_source
-  ana.c
+        ana_original.c
   ana_info.c
   autotuner.c
   bond.c
@@ -23,15 +23,16 @@ set(soma_source
   soma_util.c
   walltime.c
   test.c
-  )
+        ana.c ana.h ana_malloc.c ana_malloc.h)
 
 configure_file(soma_config.h.in soma_config.h)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/soma_config.h DESTINATION include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(soma_header
-  ana.h
+        ana.h
   ana_info.h
+  ana_malloc.h
   autotuner.h
   bond.h
   cmdline.h
