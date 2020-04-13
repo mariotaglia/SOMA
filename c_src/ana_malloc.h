@@ -1,13 +1,28 @@
-//
-// Created by julian on 04/04/2020.
-//
+
+/* Copyright (C) 2016-2019 Ludwig Schneider
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifndef SOMA_ANA_MALLOC_H
 #define SOMA_ANA_MALLOC_H
 
 #include <stdint.h> // for uint64_t
 #include <stdbool.h>
-#include "phase.h"
+#include <mpi.h>
 
 // for the reduction we need of course two buffers: one for sending, and one for receiving.
 // every rank writes into the sendbuffer, and after the in-place-reduction, the root will have the result
@@ -33,7 +48,7 @@ double * get_re_vals();
 
 //create and free the buffer,
 //note that no pointer to the buffer is returned, instead, it's content is to be accessed with the getters above
-int ana_malloc(const struct Phase *p, const bool *needToDo);
+int ana_malloc(uint64_t n_poly_type, uint64_t n_types, uint64_t q_size_dynamical, uint64_t q_size_static, const bool *needToDo);
 void ana_free();
 
 // execute the reduction (in place,

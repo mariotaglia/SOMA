@@ -6,8 +6,8 @@
 #include <stdint.h>
 #include "phase.h"
 
-#ifndef SOMA_ANA_REWORK_H
-#define SOMA_ANA_REWORK_H
+#ifndef SOMA_ANA
+#define SOMA_ANA
 
 
 enum structure_factor_type { DYNAMICAL_STRUCTURE_FACTOR, STATIC_STRUCTURE_FACTOR };
@@ -32,4 +32,4 @@ int extent_density_field(const struct Phase *const p, const void *const field_po
 int extent_structure(const struct Phase *p, const soma_scalar_t * const data, const char *const name,
                      const hid_t file_id, const enum structure_factor_type sf_type);
 
-#endif //SOMA_ANA_REWORK_H
+#endif //SOMA_ANA

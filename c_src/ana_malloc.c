@@ -1,6 +1,21 @@
+/* Copyright (C) 2016-2019 Ludwig Schneider
 
-// Created by julian on 04/04/2020.
-//
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 
 #include "ana_malloc.h"
 #include "phase.h"
@@ -9,6 +24,7 @@
 #include <stdlib.h>
 #include <mpi.h>
 #include <assert.h>
+#include <stdio.h>
 
 _Static_assert(sizeof(uint64_t) == sizeof(double), "double needs to be 8 bytes for now.");
 _Static_assert(sizeof(uint64_t) == sizeof(soma_scalar_t), "for now, only builds with somascalar_t being double is supported");
@@ -42,7 +58,7 @@ void append_block(size_t *offset, int *block, size_t block_size, ssize_t *out_of
 // explanation: https://stackoverflow.com/questions/9229601/what-is-in-c-code
 #define BUILD_BUG_OR_ZERO(e) (sizeof(struct { int:-!!(e); }));
 
-#define BOTH_NEGATIVE_OR_BOTH_NONNEGATIVE(a, b) (!(a>=0) != !(b>=0))
+#define BOTH_NEGATIVE_OR_BOTH_NONNEGATIVE(a, b) (((a)<0) == ((b)<0))
 //casting to void == ignore the value.
 // This suppresses unused variable warning when intentionally not using x.
 #define UNUSED(x) (void)(x)
@@ -98,7 +114,7 @@ ssize_t static_sf_val = -1; size_t static_sf_val_size;
 void ana_reduce_func(void *inraw, void *inoutraw, int *len, MPI_Datatype *type){
 
     assert(*len==1); // in the context of this module, length must always be one.
-    assert(*type == ana_op); //this operation is not defined on any other datatype.
+    assert(*type == buff_mpi_dtype); //this operation is not defined on any other datatype.
     UNUSED(len); UNUSED(type); // make the compiler happy
 
     union elem *in = inraw;
@@ -300,11 +316,10 @@ void init_sizes(uint64_t n_poly_type , uint64_t n_types, unsigned int q_size_dyn
     static_sf_val_size = q_size_static*n_poly_type*n_types*n_types;
 }
 
-int ana_malloc(const struct Phase *p, const bool *needToDo){
+int ana_malloc(uint64_t n_poly_type, uint64_t n_types, uint64_t q_size_dynamical, uint64_t q_size_static, const bool *needToDo){
 
 
-
-    init_sizes(p->n_poly_type, p->n_types, p->ana_info.q_size_dynamical, p->ana_info.q_size_static);
+    init_sizes(n_poly_type, n_types, q_size_dynamical, q_size_static);
 
     size_t offset = 0; // indicates current position in the buffers (size in units of 8byte-doubles
     int block = 0; // how many arrays are in the buffers so far
@@ -332,6 +347,7 @@ int ana_malloc(const struct Phase *p, const bool *needToDo){
     if (needToDo[dvar]){
         append_block(&offset, &block, 1, &dvar_val,
                      block_counts, types, displs, MPI_DOUBLE);
+	fflush(stdin);
     }
 
     if (needToDo[Rg]){
@@ -383,10 +399,11 @@ int ana_malloc(const struct Phase *p, const bool *needToDo){
     }
 
     if (needToDo[static_structure]){
-        append_block(&offset, &block, dynamical_sf_val_size, &dynamical_sf_val,
+        append_block(&offset, &block, static_sf_val_size, &static_sf_val,
                      block_counts, types, displs, MPI_DOUBLE);
     }
-
+	
+    printf("Type-create-arg: %d, %d, %ld, %d\n", block, block_counts[0], displs[0], types[0]==MPI_DOUBLE);
     MPI_Type_create_struct(block, block_counts, displs, types, &buff_mpi_dtype);
     MPI_Type_commit(&buff_mpi_dtype);
 
@@ -397,12 +414,21 @@ int ana_malloc(const struct Phase *p, const bool *needToDo){
     }
 
     sendbuffer = malloc(offset * sizeof(double));
+    if (sendbuffer == NULL){
+	    
+    	fprintf(stderr, "ERROR: malloc failed. "
+                        "(line %d of file %s)" , __LINE__, __FILE__);
+	return -1;
+	 
+    }
     recvbuffer = malloc(offset * sizeof(double));
-    if (sendbuffer == NULL || recvbuffer == NULL){
-        // freeing a nullpointer is defined as a harmless no-op
-        free(sendbuffer);
-        free(recvbuffer);
-        return -1;
+    if (recvbuffer == NULL){
+	    
+    	fprintf(stderr, "ERROR: malloc failed. "
+                        "(line %d of file %s)" , __LINE__, __FILE__);
+	free(sendbuffer);
+	return -1;
+	 
     }
 
     return 0;
@@ -423,11 +449,20 @@ int ana_reduce(int root, MPI_Comm comm){
 }
 
 void ana_free(){
+    //free buffers, the datatypeset the global variables for the offset back to -1
     free(sendbuffer);
     free(recvbuffer);
     MPI_Type_free(&buff_mpi_dtype);
     sendbuffer = NULL;
     recvbuffer = NULL;
+    re_vals = -1; re_counter = -1;
+    dvar_val = -1;
+    rg_vals = -1; rg_counter = -1;
+    anisotropy_vals = -1; anisotropy_counter = -1;
+    msd_vals = -1; msd_counter = -1;
+    accepts = -1; moves = -1;
+    non_bonded_energy_val = -1; bonded_energy_val = -1;
+    dynamical_sf_val = -1; static_sf_val = -1;
 }
 
 // creates a block of size blocksize and mpi_type type on the global buffers
@@ -439,7 +474,7 @@ void append_block(size_t *offset, int *block, size_t block_size, ssize_t *out_of
         int *block_counts, MPI_Datatype *types, MPI_Aint *displs, MPI_Datatype type){
 
     *out_offset = *offset;
-    displs[*block] = block_size * sizeof(double);
+    displs[*block] = *offset* sizeof(double); // this currently relies on all datatypes in the buffer being the same length, later we will need an additional variable to track this.
     block_counts[*block] = block_size;
     types[*block] = type;
 
@@ -475,7 +510,7 @@ uint64_t * get_re_counter(){
 }
 
 double * get_dvar_val(){
-    return get_pointer_from_offset(re_vals, "dvar");
+    return get_pointer_from_offset(dvar_val, "dvar");
 }
 
 double * get_rg_vals(){
@@ -510,11 +545,11 @@ uint64_t * get_moves(){
     return get_pointer_from_offset(moves , "moves (for accratio)");
 }
 
-double * get_non_bonded_energy_val_size(){
+double * get_non_bonded_energy_val(){
     return get_pointer_from_offset(non_bonded_energy_val, "non-bonded energy");
 }
 
-double * get_bonded_energy_val_size(){
+double * get_bonded_energy_val(){
     return get_pointer_from_offset(bonded_energy_val, "bonded energy");
 }
 
@@ -525,6 +560,3 @@ double * get_dynamical_sf_val(){
 double * get_static_sf_val(){
     return get_pointer_from_offset(static_sf_val, "static structure factor");
 }
-
-
-

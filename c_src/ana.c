@@ -1,5 +1,30 @@
-// // Created by julian on 30/03/2020.
-//
+/* Copyright (C) 2016-2019 Ludwig Schneider
+   Copyright (C) 2016 Ulrich Welling
+   Copyright (C) 2016-2017 Marcel Langenberg
+   Copyright (C) 2016 Fabien Leonforte
+   Copyright (C) 2016 Juan Orozco
+   Copyright (C) 2016 Yongzhi Ren
+   Copyright (C) 2016 N. Harshavardhan Reddy
+
+ This file is part of SOMA.
+
+ SOMA is free software: you can redistribute it and/or modify
+ it under the terms of the GNU Lesser General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ SOMA is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public License
+ along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+//! \file ana.c
+//! \brief Implementation of ana.h
+
 
 #include "ana.h"
 #include <stdbool.h>
@@ -13,7 +38,7 @@
 #include "ana_malloc.h"
 #include "io.h"
 
-#define IS_TIME_FOR_OBS(delta) (delta != 0 && time%delta==0)
+#define IS_TIME_FOR_OBS(delta) ((delta) != 0 && time%(delta)==0)
 
 
 // given a timestep and ana_info, it creates a list of tasks to be done in this timestep
@@ -21,8 +46,8 @@ void find_tasks(const Ana_Info * const ana_info, unsigned int time, /*out*/ bool
 
     needToDo[Re] = IS_TIME_FOR_OBS(ana_info->delta_mc_Re);
     needToDo[dvar] = IS_TIME_FOR_OBS(ana_info->delta_mc_density_var);
-    needToDo[Rg] = IS_TIME_FOR_OBS(ana_info->delta_mc_b_anisotropy);
-    needToDo[b_anisotropy] = IS_TIME_FOR_OBS(ana_info->delta_mc_acc_ratio);
+    needToDo[Rg] = IS_TIME_FOR_OBS(ana_info->delta_mc_Rg);
+    needToDo[b_anisotropy] = IS_TIME_FOR_OBS(ana_info->delta_mc_b_anisotropy);
     needToDo[acc_ratio] = IS_TIME_FOR_OBS(ana_info->delta_mc_acc_ratio);
     needToDo[MSD] = IS_TIME_FOR_OBS(ana_info->delta_mc_MSD);
     needToDo[non_bonded_energy] = IS_TIME_FOR_OBS(ana_info->delta_mc_non_bonded_energy);
@@ -38,7 +63,7 @@ void find_tasks(const Ana_Info * const ana_info, unsigned int time, /*out*/ bool
 // given a list of tasks ("needToDo" from find_tasks) returns true if it will be necessary to call
 // update_self_phase
 // This List was created by looking at what calculations in analytics call "update self phase"
-bool deviceToHostCopyIsNecessary(bool *needToDo){
+bool deviceToHostCopyIsNecessary(const bool *needToDo){
     return needToDo[Re] || needToDo[dvar] || needToDo[Rg] || needToDo[b_anisotropy] ||
     needToDo[MSD] || needToDo[bonded_energy] || needToDo[dump];
 }
@@ -79,7 +104,7 @@ int analytics(struct Phase *const p)
     }
 
     //create necessary communication data structures
-    ana_malloc(p, needToDo);
+    ana_malloc(p->n_poly_type,p->n_types,p->ana_info.q_size_dynamical,p->ana_info.q_size_static, needToDo);
 
 
     //precomm calc
