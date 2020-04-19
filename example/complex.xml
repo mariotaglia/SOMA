@@ -133,6 +133,14 @@
     <bonded_energy>
       <DeltaMC> 5000</DeltaMC>
     </bonded_energy>
+    <dynamical_structure_factor>
+      <DeltaMC> 50000 </DeltaMC>
+      <q>0.1 1 5</q>
+    </dynamical_structure_factor>
+    <static_structure_factor>
+      <DeltaMC> 50000 </DeltaMC>
+      <q>0.1 1 5</q>
+    </static_structure_factor>
     </analysis>
     <cm_a>
       0 1.0 1.0 20
