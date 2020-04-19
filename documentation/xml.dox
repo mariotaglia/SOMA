@@ -330,4 +330,8 @@
       - \code <conversion_list> \endcode defines the reactions.
         There are always 3 numbers. The first defines the original polymer type the educt of the reaction. The second defines the product of the reaction. Both have to fulfill the restriction, that they enumerate valid polymer types. In addition, the number of beads between input and output must be the same.
 	The number is read as boolean and indicates if there is another reaction. If it is false (0), the next line is also applied for the currect reaction zone cell. Otherwise no further reactions are applied.
+
+  - \code <dynamical_structure_factor> (<static_structure_factor>) \endcode measures the dynamical structure factor (static structure factor) of each type of polymer and save if to ana file.
+     - \code <DeltaMC> \endcode defines the frequency where the RCMs are checked and the rules applied.
+     - \code <q> \endcode defines the norm of the scattering vector. With given norm q, the dynamical structure factor will be calculated with randomly generated q_x,q_y,q_z(three components of the scattering vector) uniformly distributed in spherical coordinate. This measurement will be repeated N times and the result is the average of the N values. The number of random scattering vector N is set to 32 as default and can be changed as command line argument when starting SOMA.
 */
