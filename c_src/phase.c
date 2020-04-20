@@ -147,15 +147,7 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->field_scaling_type = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
-    if (p->field_scaling_type == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
     // Set all values to zero
-
     p->num_all_beads = 0;
     p->num_all_beads_local = 0;
 
@@ -204,9 +196,13 @@ int init_phase(struct Phase *const p)
     MPI_Allreduce(MPI_IN_PLACE, &ncells, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #endif                          //ENABLE_MPI
 
+    p->n_accessible_cells = ncells;
     // Loop to calculate scaling parameter
+    // Note the *= the field is initialized with the density weights in read_hdf5_config.
+    // default value = 1.
     for (unsigned int i = 0; i < p->n_types; i++)
-        p->field_scaling_type[i] = (ncells / ((soma_scalar_t) p->num_all_beads));
+        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads));
+
     // Info for Ulrich: programm does take excluded volume into account now!
     p->n_accepts = 0;
     p->n_moves = 0;

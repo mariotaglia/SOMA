@@ -55,6 +55,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diverse_polytype.xml ${CMAKE_CURRENT_
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.xml ${CMAKE_CURRENT_BINARY_DIR}/async.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/structure_factor.xml ${CMAKE_CURRENT_BINARY_DIR}/structure_factor.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/external_field.xml ${CMAKE_CURRENT_BINARY_DIR}/external_field.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/weight.xml ${CMAKE_CURRENT_BINARY_DIR}/weight.xml COPYONLY)
 
 #quick
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/quick.sh.in ${CMAKE_CURRENT_BINARY_DIR}/quick.sh)
@@ -158,6 +159,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/conversion_test.py.in ${CMAKE_CURRENT
 if(DEFINED SOMA_PYTHON_SHEBANG)
   add_test(NAME PolytypeConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} conversion_test.py --additional-flags=${ACC_FLAG})
 endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/weight.py.in ${CMAKE_CURRENT_BINARY_DIR}/weight.py)
+if(DEFINED SOMA_PYTHON_SHEBANG)
+  add_test(NAME weight-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} weight.py --additional-flags=${ACC_FLAG})
+endif(DEFINED SOMA_PYTHON_SHEBANG)
 
 #stat
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/statistics.py)

@@ -113,6 +113,7 @@ typedef struct Phase {
     unsigned int time;          /*!< \brief MC steps into the simulation */
     uint64_t num_all_beads;     //!< Number of all monomer/beads in the global system
     uint64_t num_all_beads_local;       //!< Number of all monomer/beads on the local MPI core
+    uint64_t n_accessible_cells;        //!< Global number of cells of the grid that are accessible by particles (not-area51)
 
     unsigned int nx;            /*!< \brief x-spatial discretization */
     unsigned int ny;            /*!< \brief y-spatial discretization */
