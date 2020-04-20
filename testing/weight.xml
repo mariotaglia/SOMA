@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soma version="0.2.0">
+  <interactions>
+    <kappaN>
+      30
+    </kappaN>
+    <chiN>
+      A B 20
+    </chiN>
+    <bonds>
+      A A harmonic
+      A B harmonic
+      B B harmonic
+    </bonds>
+  </interactions>
+  <A>
+    <dt>
+      0.17
+    </dt>
+  </A>
+  <time>
+    0
+  </time>
+  <reference_Nbeads>
+    16
+  </reference_Nbeads>
+  <poly_arch>
+    300 A{16}
+    300 B{16}
+  </poly_arch>
+  <lxyz>
+    2 0.6 0.6
+  </lxyz>
+  <nxyz>
+    25 4 4
+  </nxyz>
+  <external_field>
+    <box>
+      <point>0 0 0</point><point>1 4 4</point><value>1 -1</value>
+    </box>
+    <box>
+      <point>7 0 0</point><point>8 4 4</point><value>-1 1</value>
+    </box>
+  </external_field>
+  <density_weights>
+    A 1.5
+  </density_weights>
+  <analysis>
+    <Re>
+      <DeltaMC> 5000 </DeltaMC>
+    </Re>
+    <Rg>
+      <DeltaMC> 5000 </DeltaMC>
+    </Rg>
+    <bond_anisotropy>
+      <DeltaMC> 5000 </DeltaMC>
+    </bond_anisotropy>
+    <MSD>
+      <DeltaMC> 5000 </DeltaMC>
+    </MSD>
+    <density_field>
+      <DeltaMC> 5000 </DeltaMC>
+      <compression> gzip </compression>
+    </density_field>
+    <non_bonded_energy>
+      <DeltaMC> 5000</DeltaMC>
+    </non_bonded_energy>
+    <bonded_energy>
+      <DeltaMC> 5000</DeltaMC>
+    </bonded_energy>
+  </analysis>
+  <hamiltonian>
+    SCMF1
+  </hamiltonian>
+</soma>

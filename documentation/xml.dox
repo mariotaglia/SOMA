@@ -334,4 +334,11 @@
   - \code <dynamical_structure_factor> (<static_structure_factor>) \endcode measures the dynamical structure factor (static structure factor) of each type of polymer and save if to ana file.
      - \code <DeltaMC> \endcode defines the frequency where the RCMs are checked and the rules applied.
      - \code <q> \endcode defines the norm of the scattering vector. With given norm q, the dynamical structure factor will be calculated with randomly generated q_x,q_y,q_z(three components of the scattering vector) uniformly distributed in spherical coordinate. This measurement will be repeated N times and the result is the average of the N values. The number of random scattering vector N is set to 32 as default and can be changed as command line argument when starting SOMA.
+
+ - \code <density_weights> \endcode Weight the beads differently as a function of their type. (Multiplication of \f$\phi_i\f$)
+   The default weight is 1 for each type. The weights are automatically normalized such that the sum of the weights equals the number of types in the system.
+   The normalization assures that the part of the hamiltonian that restrains the density fluctuations can compare to the total density to 1.
+   Weights of 0 are possible, but probably not recommended. All weights zero or negative weights are obviously not an option.
+   \warning It is recommended to use the the SCMF1 hamiltonian, since the SCFM0 expects a unit density implicitly in the  \f$ \chi N\f$-term.
+
 */

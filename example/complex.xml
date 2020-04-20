@@ -145,4 +145,7 @@
     <cm_a>
       0 1.0 1.0 20
     </cm_a>
+    <density_weights>
+      B 1.5
+    </density_weights>
 </soma>

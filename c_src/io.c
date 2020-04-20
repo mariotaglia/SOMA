@@ -289,6 +289,15 @@ int read_old_config(struct Phase *p, char *const filename)
     p->pc.reaction_end = NULL;
     p->pc.len_reactions = 0;
 
+    p->field_scaling_type = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
+    if (p->field_scaling_type == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    for (unsigned int i = 0; i < p->n_types; i++)
+        p->field_scaling_type[i] = 1;
+
     return 0;
 }
 
@@ -563,10 +572,22 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
     HDF5_ERROR_CHECK2(status, "/parameter/xn");
 
     //A data
-    hsize_t a_size = p->n_types;
+    hsize_t n_types_size = p->n_types;
     status =
-        write_hdf5(1, &a_size, file_id, "/parameter/A", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, p->A);
+        write_hdf5(1, &n_types_size, file_id, "/parameter/A", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
+                   p->A);
     HDF5_ERROR_CHECK2(status, "/parameter/A");
+
+    //Convert field_scaling_type to density weight for writing
+    for (unsigned int i = 0; i < p->n_types; i++)
+        p->field_scaling_type[i] /= (p->n_accessible_cells / (soma_scalar_t) p->num_all_beads);
+    status =
+        write_hdf5(1, &n_types_size, file_id, "/parameter/density_weights", H5T_SOMA_FILE_SCALAR,
+                   H5T_SOMA_NATIVE_SCALAR, plist_id, p->field_scaling_type);
+    HDF5_ERROR_CHECK2(status, "/parameter/density_weights");
+    //Convert the density weights back to field_scaling_type
+    for (unsigned int i = 0; i < p->n_types; i++)
+        p->field_scaling_type[i] *= (p->n_accessible_cells / (soma_scalar_t) p->num_all_beads);
 
     //time
     status = write_hdf5(1, &one, file_id, "/parameter/time", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &(p->time));
@@ -576,10 +597,10 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
                         H5T_STD_I32LE, H5T_NATIVE_INT, plist_id, &(p->hamiltonian));
     HDF5_ERROR_CHECK2(status, "parameter/hamiltonian");
 
-    a_size = p->n_types;
+    n_types_size = p->n_types;
     status =
-        write_hdf5(1, &a_size, file_id, "/parameter/k_umbrella", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
-                   p->k_umbrella);
+        write_hdf5(1, &n_types_size, file_id, "/parameter/k_umbrella", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR,
+                   plist_id, p->k_umbrella);
     HDF5_ERROR_CHECK2(status, "parameter/k_umbrella");
 
     //Nx Ny Nz
@@ -1477,6 +1498,23 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
             fprintf(stderr, "ERROR: %s:%d unable to read polytype conversion information.\n", __FILE__, __LINE__);
             return status;
         }
+
+    p->field_scaling_type = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
+    if (p->field_scaling_type == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    if (H5Lexists(file_id, "/parameter/density_weights", H5P_DEFAULT) > 0)
+        {
+            hid_t status =
+                read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                          p->field_scaling_type);
+            HDF5_ERROR_CHECK2(status, "/parameter/density_weights");
+        }
+    else
+        for (unsigned int i = 0; i < p->n_types; i++)
+            p->field_scaling_type[i] = 1;
 
     if ((status = H5Fclose(file_id)) < 0)
         {
