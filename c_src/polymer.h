@@ -25,17 +25,18 @@
 //! \brief Code related to the Polymer structures
 
 /*! \brief Polymer information */
+//! Instead of pointers this struct contains offset counters, that have to be applied to global arrays instead.
+//! To invalidate pointers (such as using NULL) the offsets are sets are set to UINT64_MAX
+//! To access for example the beads of this polymer use: p->ph->beads[ this->bead_offset + i]
 typedef struct Polymer {
-    //unsigned int N; /*!<\brief number of beads per chain */
-    Monomer *beads;             /*!<\brief pointer to beads */
-    Monomer *msd_beads;         //!< \brief bead positions used for MSD calculation. (Not on device.)
     unsigned int type;          //!< \brief Type of the polymer architecture.
     RNG_STATE poly_state;       //!< \brief Struct which contains all RNGs
     Monomer rcm;                //!< center of mass of the polymer
-    struct RNG_STATE *set_states;       //!< RNG states of independet sets. NULL if not used.
-    //! Array to store thr permutation of sets for set iteration. NULL if not used.
-    unsigned int *set_permutation;
-} Polymer;
+    uint64_t bead_offset;       //!< \brief offset to the bead pointer for this polymer.
+    uint64_t msd_bead_offset;   //!< \brief offset to the msd bead pointer for this polymer. (Typically not on device).
+    uint64_t set_states_offset; //!< offset to the set_states pointer for this polymer.
+    uint64_t set_permution_offset; //!< offset to the set_permutation pointer for this polymer.
+    } Polymer;
 
 //! \brief Deallocate memory of deep copy elements in Polymer.
 //!
