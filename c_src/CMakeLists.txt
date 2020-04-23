@@ -18,7 +18,9 @@ set(soma_source
   mpiroutines.c
   phase.c
   polymer.c
+  poly_heavy.c
   rng.c
+  rng_alternative.c
   soma_config.c
   soma_util.c
   walltime.c
@@ -46,7 +48,9 @@ set(soma_header
   mpiroutines.h
   phase.h
   polymer.h
+  poly_heavy.h
   rng.h
+  rng_alternative.h
   soma_util.h
   walltime.h
   test.h

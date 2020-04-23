@@ -142,8 +142,7 @@ int generate_new_beads(struct Phase *const p)
                     uint64_t idx;
                     do
                         {
-                            soma_scalar_t r =
-                                soma_rng_soma_scalar(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
+                            soma_scalar_t r = soma_rng_soma_scalar(&(poly->poly_state), p);
                             // 128 Tries to place the free bead in the local domain.
                             // If that fails (for example, because the local domain is only area51),
                             // place the bead anywhere. It will be sent later to the correct domain.
@@ -152,9 +151,9 @@ int generate_new_beads(struct Phase *const p)
                                 x = domain_offset + r * (p->Lx / p->args.N_domains_arg);
                             else
                                 x = r * p->Lx;
-                            r = soma_rng_soma_scalar(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
+                            r = soma_rng_soma_scalar(&(poly->poly_state), p);
                             y = r * p->Ly;
-                            r = soma_rng_soma_scalar(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
+                            r = soma_rng_soma_scalar(&(poly->poly_state), p);
                             z = r * p->Lz;
 
                             domain_counter += 1;

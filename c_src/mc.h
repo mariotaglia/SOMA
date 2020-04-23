@@ -61,8 +61,7 @@ int mc_polymer_iteration(struct Phase *const p, const unsigned int nsteps, const
 //! \param rng_state State of the random number generator.
 #pragma acc routine(trial_move_cm) seq
 void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_t * const dx,
-                   soma_scalar_t * const dy, soma_scalar_t * const dz,
-                   const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state);
+                   soma_scalar_t * const dy, soma_scalar_t * const dz, RNG_STATE * const rng_state);
 
 //! Calculate the nonbonded energy of a given particle compared to a proposed move.
 //!
@@ -110,8 +109,7 @@ int mc_set_iteration(struct Phase *const p, const unsigned int nsteps, const uns
 */
 #pragma acc routine(trial_move) seq
 void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy,
-                soma_scalar_t * dz, const unsigned int iwtype,
-                const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state);
+                soma_scalar_t * dz, const unsigned int iwtype, RNG_STATE * const rng_state);
 
 //! Calculate the energy difference for a trial move.
 //!
@@ -155,7 +153,7 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * mo
   \return true or false according to the Metropolis criteria
 */
 #pragma acc routine(som_accept) seq
-int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator rng_type, soma_scalar_t delta_energy);
+int som_accept(RNG_STATE * const rng, const struct Phase *p, soma_scalar_t delta_energy);
 
 /*! \brief Smart Monte-Carlo (SMC) move.  Calculate the displacement and the energy change from the forces.
 
@@ -179,8 +177,7 @@ int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator r
 void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead,
                     soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz,
                     soma_scalar_t * smc_deltaE, const Monomer * mybead,
-                    RNG_STATE * const myrngstate, const enum enum_pseudo_random_number_generator arg_rng_type,
-                    const unsigned int iwtype);
+                    RNG_STATE * const myrngstate, const unsigned int iwtype);
 
 /*! \brief Calculate forces acting on a monomer resulting from all of its bonds.
   \param p Initialized configuration.
@@ -237,8 +234,7 @@ int possible_move_area51(const struct Phase *p, const soma_scalar_t oldx, const 
   \return Error code. Returns either pgi error or domain error.
 */
 int set_iteration_single_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                               const enum enum_pseudo_random_number_generator my_rng_type, const int nonexact_area51,
-                               uint64_t chain_i);
+                               const int nonexact_area51, uint64_t chain_i);
 
 /*! \brief Set iteration function for all the chains starting from start_chain, private function
   \param p Initialized configuration.
@@ -250,8 +246,7 @@ int set_iteration_single_chain(struct Phase *const p, const unsigned int nsteps,
   \return Error code. Returns either pgi error or domain error.
 */
 int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                              const enum enum_pseudo_random_number_generator my_rng_type, const int nonexact_area51,
-                              const int start_chain);
+                              const int nonexact_area51, const int start_chain);
 
 /*! \brief Private function used together with set_iteration_multi_chain and set_iteration_single_chain
   \param p Initialized configuration
@@ -267,7 +262,6 @@ int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, 
 */
 #pragma acc routine(set_iteration_possible_move) seq
 int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, uint64_t chain_index,
-                                unsigned int iP, const enum enum_pseudo_random_number_generator my_rng_type,
-                                const int nonexact_area51, const unsigned int ibead, const unsigned int iwtype,
-                                unsigned int *accepted_moves_set_ptr);
+                                unsigned int iP, const int nonexact_area51, const unsigned int ibead,
+                                const unsigned int iwtype, unsigned int *accepted_moves_set_ptr);
 #endif                          //SOMA_MC_H

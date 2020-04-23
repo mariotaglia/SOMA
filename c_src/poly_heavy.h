@@ -23,6 +23,9 @@
 #ifndef POLYMER_HEAVY_H
 #define POLYMER_HEAVY_H
 
+#include "soma_config.h"
+#include "soma_util.h"
+
 /*!
   Struct to combine all heavy data pointer for the polymers of this rank.
   Each individual polymer contains offset values that clarify which area of the memory belongs to the respective polymer.

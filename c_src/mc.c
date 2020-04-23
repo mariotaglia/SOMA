@@ -33,39 +33,38 @@
 
 void trial_move(const Phase * p, const uint64_t ipoly, const int ibead,
                 soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, const unsigned int iwtype,
-                const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state)
+                RNG_STATE * const rng_state)
 {
     //Just to shut up the compiler warning:
     //Any decent compiler optimize it out
     soma_scalar_t scale = ibead + 0 * ipoly;
     scale = p->A[iwtype];
 
-    *dx = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
-    *dy = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
-    *dz = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
+    *dx = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
+    *dy = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
+    *dz = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
 }
 
 void trial_move_cm(const Phase * p, const uint64_t poly_type, soma_scalar_t * const dx, soma_scalar_t * const dy,
-                   soma_scalar_t * const dz, const enum enum_pseudo_random_number_generator arg_rng_type,
-                   RNG_STATE * const rng_state)
+                   soma_scalar_t * const dz, RNG_STATE * const rng_state)
 {
 #ifndef _OPENACC
     assert(p->cm_a);
 #endif                          //_OPENACC
     const soma_scalar_t scale = p->cm_a[poly_type];
 
-    *dx = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
-    *dy = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
-    *dz = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
+    *dx = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
+    *dy = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
+    *dz = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
 }
 
-int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator rng_type, soma_scalar_t delta_energy)
+int som_accept(RNG_STATE * const rng, Phase * const p, soma_scalar_t delta_energy)
 {
     // \todo kBT reqired
     const soma_scalar_t p_acc = exp(-1.0 * delta_energy);
 
     //Use lazy eval.
-    if ((p_acc > 1) || (p_acc > soma_rng_soma_scalar(rng, rng_type)))
+    if ((p_acc > 1) || (p_acc > soma_rng_soma_scalar(rng, p)))
         {
             return true;
         }
@@ -255,12 +254,9 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                     const unsigned int poly_type = mypoly->type;
                     if (p->cm_a[poly_type] > 0)
                         {
-                            enum enum_pseudo_random_number_generator arg_rng_type;
-                            arg_rng_type = p->args.pseudo_random_number_generator_arg;
-
                             //Generate a random displacement for the center of mass.
                             soma_scalar_t dx, dy, dz;
-                            trial_move_cm(p, poly_type, &dx, &dy, &dz, arg_rng_type, myrngstate);
+                            trial_move_cm(p, poly_type, &dx, &dy, &dz, myrngstate);
 
                             soma_scalar_t delta_energy = 0;
                             int move_allowed = 1;
@@ -291,7 +287,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                                     move_allowed = 0;
                                 }
                             //Accept Monte-Carlo call
-                            if (move_allowed && som_accept(myrngstate, arg_rng_type, delta_energy) == 1)
+                            if (move_allowed && som_accept(myrngstate, p, delta_energy) == 1)
                                 {
 #ifndef _OPENACC
                                     n_accepts += 1;
@@ -359,8 +355,6 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                     unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
                     RNG_STATE *myrngstate = &mypoly->poly_state;        // maybe local copy of rngstate
-                    enum enum_pseudo_random_number_generator arg_rng_type;
-                    arg_rng_type = p->args.pseudo_random_number_generator_arg;
 
                     // MC sweep for this chain
 #pragma acc loop seq
@@ -371,7 +365,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                             unsigned int ibead;
 
                             // pick a random bead.
-                            ibead = soma_rng_uint(myrngstate, arg_rng_type) % myN;
+                            ibead = soma_rng_uint(myrngstate, p) % myN;
                             const unsigned int iwtype =
                                 get_particle_type(p->poly_arch[p->poly_type_offset[mypoly->type] + 1 + ibead]);
 
@@ -383,10 +377,10 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                             switch (p->args.move_type_arg)
                                 {
                                 case move_type_arg_TRIAL:
-                                    trial_move(p, npoly, ibead, &dx, &dy, &dz, iwtype, arg_rng_type, myrngstate);       // normal MC move
+                                    trial_move(p, npoly, ibead, &dx, &dy, &dz, iwtype, myrngstate);     // normal MC move
                                     break;
                                 case move_type_arg_SMART:
-                                    trial_move_smc(p, npoly, ibead, &dx, &dy, &dz, &smc_deltaE, &mybead, myrngstate, arg_rng_type, iwtype);     // force biased move
+                                    trial_move_smc(p, npoly, ibead, &dx, &dy, &dz, &smc_deltaE, &mybead, myrngstate, iwtype);   // force biased move
                                     break;
                                 case move_type__NULL:
                                 default:
@@ -412,7 +406,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                     delta_energy += smc_deltaE;
 
                                     // MC roll to accept / reject
-                                    if (som_accept(myrngstate, arg_rng_type, delta_energy) == 1)
+                                    if (som_accept(myrngstate, p, delta_energy) == 1)
                                         {
                                             mybead_ptr->x = newx;
                                             mybead_ptr->y = newy;
@@ -446,8 +440,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 }
 
 int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                              const enum enum_pseudo_random_number_generator my_rng_type, const int nonexact_area51,
-                              const int start_chain)
+                              const int nonexact_area51, const int start_chain)
 {
 
     int error_flags[2] = { 0 }; // [0] domain error, [1] pgi_bug
@@ -487,7 +480,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
 #pragma acc loop seq
                     for (unsigned int i = 0; i < n_sets; i++)
                         {
-                            const unsigned int d = soma_rng_uint(&(mypoly->poly_state), my_rng_type) % (i + 1);
+                            const unsigned int d = soma_rng_uint(&(mypoly->poly_state), p) % (i + 1);
                             set_permutation[i] = set_permutation[d];
                             set_permutation[d] = i;
                         }
@@ -504,7 +497,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                                     const unsigned int ibead = sets[set_id * max_member + iP];
                                     const unsigned int iwtype =
                                         get_particle_type(poly_arch[poly_type_offset[poly_type] + 1 + ibead]);
-                                    int error_0 = set_iteration_possible_move(p, set_states, npoly, iP, my_rng_type,
+                                    int error_0 = set_iteration_possible_move(p, set_states, npoly, iP,
                                                                               nonexact_area51, ibead, iwtype,
                                                                               &accepted_moves_set);
                                     error_flags[0] = error_0;
@@ -539,8 +532,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
 }
 
 int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                               const enum enum_pseudo_random_number_generator my_rng_type, const int nonexact_area51,
-                               uint64_t chain_i)
+                               const int nonexact_area51, uint64_t chain_i)
 {
     int error_flags[2] = { 0 }; // [0] domain error, [1] pgi_bug
 #pragma acc enter data copyin(error_flags[0:2])
@@ -562,7 +554,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
 
             for (unsigned int i = 0; i < n_sets; i++)
                 {
-                    const unsigned int d = soma_rng_uint(&((&p->polymers[chain_i])->poly_state), my_rng_type) % (i + 1);
+                    const unsigned int d = soma_rng_uint(&((&p->polymers[chain_i])->poly_state), p) % (i + 1);
                     set_permutation[i] = set_permutation[d];
                     set_permutation[d] = i;
                 }
@@ -589,9 +581,8 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                             const unsigned int ibead = sets[set_id * max_member + iP];
                             const unsigned int iwtype =
                                 get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + ibead]);
-                            int error_0 =
-                                set_iteration_possible_move(p, set_states, chain_i, iP, my_rng_type, nonexact_area51,
-                                                            ibead, iwtype, &accepted_moves_set);
+                            int error_0 = set_iteration_possible_move(p, set_states, chain_i, iP, nonexact_area51,
+                                                                      ibead, iwtype, &accepted_moves_set);
                             error_flags[0] = error_0;
                         }
 
@@ -623,7 +614,6 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
 
 int mc_set_iteration(Phase * const p, const unsigned int nsteps, const unsigned int tuning_parameter)
 {
-    const enum enum_pseudo_random_number_generator my_rng_type = p->args.pseudo_random_number_generator_arg;
     const int nonexact_area51 = p->args.nonexact_area51_flag + 0 * tuning_parameter;    //&Shutup compiler warning.
 
     //test the order of the polymers and reorder the polymers according to their length if needed
@@ -671,11 +661,11 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps, const unsigned 
     unsigned int num_long_chain = (unsigned int)p->num_long_chain;
     for (unsigned int index = 0; index < num_long_chain; index++)
         {
-            ret = set_iteration_single_chain(p, nsteps, tuning_parameter, my_rng_type, nonexact_area51, index);
+            ret = set_iteration_single_chain(p, nsteps, tuning_parameter, nonexact_area51, index);
         }
     if (num_long_chain != p->n_polymers)
         {
-            ret = set_iteration_multi_chain(p, nsteps, tuning_parameter, my_rng_type, nonexact_area51, num_long_chain);
+            ret = set_iteration_multi_chain(p, nsteps, tuning_parameter, nonexact_area51, num_long_chain);
         }
     p->time += 1;
 #pragma acc wait
@@ -686,8 +676,7 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps, const unsigned 
 
 void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy,
                     soma_scalar_t * dz, soma_scalar_t * smc_deltaE, const Monomer * mybead,
-                    RNG_STATE * const myrngstate, const enum enum_pseudo_random_number_generator arg_rng_type,
-                    const unsigned int iwtype)
+                    RNG_STATE * const myrngstate, const unsigned int iwtype)
 {
     soma_scalar_t x = mybead->x;
     soma_scalar_t y = mybead->y;
@@ -705,7 +694,7 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
 
     /* generate a normal distributed random vector */
     soma_scalar_t rx, ry, rz;
-    soma_normal_vector(myrngstate, arg_rng_type, &rx, &ry, &rz);
+    soma_normal_vector(myrngstate, p, &rx, &ry, &rz);
 
     /* combine the random offset with the forces, to obtain Brownian motion */
     *dx = A * fx + rx * R;
@@ -836,8 +825,7 @@ inline int possible_move_area51(const Phase * p, const soma_scalar_t oldx, const
 }
 
 int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, uint64_t chain_index, unsigned int iP,
-                                const enum enum_pseudo_random_number_generator my_rng_type, const int nonexact_area51,
-                                const unsigned int ibead, const unsigned int iwtype,
+                                const int nonexact_area51, const unsigned int ibead, const unsigned int iwtype,
                                 unsigned int *accepted_moves_set_ptr)
 {
 
@@ -852,11 +840,11 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, u
     switch (p->args.move_type_arg)
         {
         case move_type_arg_TRIAL:
-            trial_move(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, iwtype, my_rng_type, &my_state);     // normal MC move
+            trial_move(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, iwtype, &my_state);  // normal MC move
             smc_deltaE = 0.0;
             break;
         case move_type_arg_SMART:
-            trial_move_smc(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state, my_rng_type, iwtype);   // force biased move
+            trial_move_smc(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state, iwtype);        // force biased move
             break;
         case move_type__NULL:
         default:
@@ -874,7 +862,7 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, u
     if (move_allowed)
         {
             // MC roll to accept / reject
-            if (som_accept(&my_state, my_rng_type, delta_energy) == 1)
+            if (som_accept(&my_state, p, delta_energy) == 1)
                 {
                     Monomer newx;
                     newx.x = mybead.x + dx.x;

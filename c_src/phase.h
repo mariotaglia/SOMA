@@ -32,7 +32,8 @@ struct IndependetSets;
 #include "autotuner.h"
 #include "polymer.h"
 #include "polytype_conversion.h"
-#include "polymer_heavy.h"
+#include "poly_heavy.h"
+#include "rng_alternative.h"
 
 #include <sys/time.h>
 
@@ -270,6 +271,7 @@ typedef struct Phase {
 
     struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
     struct PolyHeavy ph;        //!< struct containing the pointer to the heavy memory of the polymers.
+    struct RNG_HEAVY rh;        //!< struct containing the pointer to the heavy memory of alternative PRNGs, if needed.
 } Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.

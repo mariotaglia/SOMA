@@ -1088,11 +1088,11 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma acc loop seq
                     for (unsigned int random_i = 0; random_i < index_random_q; random_i++)
                         {
-                            rng1 = soma_rng_uint(s, arg_rng_type);
-                            rng2 = soma_rng_uint(s, arg_rng_type);
+                            rng1 = soma_rng_uint(s, p);
+                            rng2 = soma_rng_uint(s, p);
                         }
-                    rng1 = (uint32_t) soma_rng_uint(s, arg_rng_type) / (soma_scalar_t) soma_rng_uint_max();
-                    rng2 = (uint32_t) soma_rng_uint(s, arg_rng_type) / (soma_scalar_t) soma_rng_uint_max();
+                    rng1 = (uint32_t) soma_rng_uint(s, p) / (soma_scalar_t) soma_rng_uint_max();
+                    rng2 = (uint32_t) soma_rng_uint(s, p) / (soma_scalar_t) soma_rng_uint_max();
                     soma_scalar_t theta = 2 * M_PI * rng1;
                     soma_scalar_t phi = acos(1 - 2 * rng2);
                     soma_scalar_t unit_q_x = sin(phi) * cos(theta);
