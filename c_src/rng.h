@@ -49,7 +49,7 @@ typedef struct PCG_STATE {
 //! Defualt is PCG32. For every other *alternative* RNG the state only stores an offset to the global array of RNGs. See  rng_alternative.h for details.
 typedef struct RNG_STATE {
     PCG_STATE default_state;    //!<\brief PCG32
-    uint64_t alternative_rng_offset;    //!< offset to read in the global memory (Depending on the switch in phase indicating the RNG to be used, this offsets to different
+    uint64_t alternative_rng_offset;    //!< offset to read in the global memory (Depending on the switch in phase indicating the RNG to be used, this offsets to different. UINT64_MAX if invalid
 } RNG_STATE;
 
 //! Wrapper for seeding the global random number generation.
@@ -138,66 +138,13 @@ int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const sta
 //! \return Number of written bytes. If < 0 Errorcode.
 int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, const unsigned char *const buffer);
 
-//! Function to initialize an RNG_STATE
+//! Function to seed the PRNG properly
 //!
-//! \param state State to initialize
-//! \param seed Seed used for initialization
-//! \param stream Stream used for initialization
-//! \param rng_type Type of the RNG to use
-//! \return Errorcode
-int init_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
-                   const enum enum_pseudo_random_number_generator rng_type);
-
-//! Function to allocate memory for the RNG_STATE if necessary, and enter data for device
-//!
-//! \param state RNG_STATE to init
-//! \param rng_type Type of the PRNG in use
-//! \return Errorcode
-int allocate_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type);
-
-//! Function to enter copyin memory for the RNG_STATE
-//!
-//! \param state RNG_STATE to copyin
-//! \param rng_type Type of the PRNG in use
-//! \return Errorcode
-int copyin_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type);
-
-//! Free a memory of the RNG_STATE, and exit data for device
-//!
-//! \param state RNG_STATE to free
-//! \param rng_type Type of the PRNG in use
-//! \return Errorcode
-int deallocate_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type);
-
-//! Function to exit copyout memory for the RNG_STATE
-//!
-//! \param state RNG_STATE to copyout
-//! \param rng_type Type of the PRNG in use
-//! \return Errorcode
-int copyout_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type);
-
-//! Seed the RNG state
-//!
-//! \param seed New seed of the RNG
-//! \param stream Stream for the PCG32 generator
-//! \param state RNG_STATE to seed
-//! \param rng_type Type of the PRNG in use
-//! \return Errorcode
+//! \param state RNG state to seed
+//! \param seed seed for the rng
+//! \param stream PCG32 is streamable for the many independent RNGs
+//! \param p Phase the system belongs to
 int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
-                   const enum enum_pseudo_random_number_generator rng_type);
-
-//! Update the RNG state to the Device
-//!
-//! \param state RNG_STATE to update
-//! \param rng_type Type of the PRNG in use
-//! \return Errorcode
-int update_device_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type);
-
-//! Update the RNG state to the Self
-//!
-//! \param state RNG_STATE to update
-//! \param rng_type Type of the PRNG in use
-//! \return Errorcode
-int update_self_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type);
+                   const Phase * const p);
 
 #endif                          //SOMA_RNG_H

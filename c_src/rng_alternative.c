@@ -26,8 +26,179 @@
 
 /*Random number generator Mersenne-Twister*/
 
+#include <stdlimits.h>
 #include "rng_alternative.h"
 #include "rng.h"
+
+uint64_t get_new_alternative_rng_offset(struct Phase *p)
+{
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            /*intentionally falls through */
+        case:
+ pseudo_random_number_generator_arg_TT800:
+            if (p->rh.used - 1 >= p->rh.length)
+                reallocate_rng_heavy(p);
+            p->rh.used += 1;
+            return p->rh.used - 1;
+        }
+    return UINT64_MAX;
+}
+
+int copyin_rng_heavy(struct Phase *p)
+{
+    if (p->rh.allocated_device)
+        return update_device_rng_heavy(p);
+
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            assert(p->rh.mt_state != NULL);
+#pragma acc enter data copyin(p->rh.mt_state[0:p->rh.length])
+        case:
+ pseudo_random_number_generator_arg_TT800:
+            assert(p->rh.tt800_state != NULL);
+#pragma acc enter data copyin(p->rh.tt800_state[0:p->rh.length])
+            break;
+        }
+    p->rh.allocated_device = true;
+    return 0;
+}
+
+int copyout_rng_heavy(struct Phase *p)
+{
+    assert(p->rh.allocated_device);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            assert(p->rh.mt_state != NULL);
+#pragma acc exit data copyout(p->rh.mt_state[0:p->rh.length])
+        case:
+ pseudo_random_number_generator_arg_TT800:
+            assert(p->rh.tt800_state != NULL);
+#pragma acc exit data copyout(p->rh.tt800_state[0:p->rh.length])
+            break;
+        }
+    p->rh.allocated_device = false;
+    return 0;
+}
+
+int update_self_rng_heavy(struct Phase *p)
+{
+    assert(p->rh.allocated_device);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            assert(p->rh.mt_state != NULL);
+#pragma acc update self(p->rh.mt_state[0:p->rh.used])
+        case:
+ pseudo_random_number_generator_arg_TT800:
+            assert(p->rh.tt800_state != NULL);
+#pragma acc update self(p->rh.tt800_state[0:p->rh.length])
+            break;
+        }
+    return 0;
+}
+
+int update_device_rng_heavy(struct Phase *p)
+{
+    assert(p->rh.allocated_device);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            assert(p->rh.mt_state != NULL);
+#pragma acc update device(p->rh.mt_state[0:p->rh.used])
+        case:
+ pseudo_random_number_generator_arg_TT800:
+            assert(p->rh.tt800_state != NULL);
+#pragma acc update device(p->rh.tt800_state[0:p->rh.length])
+            break;
+        }
+    return 0;
+}
+
+int reallocate_rng_heavy(struct Phase *p)
+{
+    if (p->allocated_device)
+        copyout_rng_heavy(p);
+    const uint64_t new_length = p->rh.length * 1.05 + 1;
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            ;
+            MERSENNE_TWISTER_STATE *tmp_mt =
+                (MERSENNE_TWISTER_STATE *) malloc(new_length * sizeof(MERSENNE_TWISTER_STATE));
+            MALLOC_ERROR_CHECK(tmp_mt, new_length * sizeof(MERSENNE_TWISTER_STATE));
+            memcpy(p->rh.mt_state, tmp_mt, p->rh.used * sizeof(MERSENNE_TWISTER_STATE));
+            free(p->rh.mt_state);
+            p->rh.mt_state = tmp_mt;
+            p->rh.length = new_length;
+            break;
+        case:
+ pseudo_random_number_generator_arg_TT800:
+            ;
+            TT800_STATE *tmp_tt800 = (TT800_STATE *) malloc(new_length * sizeof(TT800_STATE));
+            MALLOC_ERROR_CHECK(tmp_tt800, new_length * sizeof(TT800_STATE));
+            memcpy(p->rh.t800_state, tmp_tt800, p->rh.used * sizeof(TT800_STATE));
+            free(p->rh.tt800_state);
+            p->rh.tt800_state = tmp_tt800;
+            p->rh.length = new_length;
+            break;
+        }
+    copyin_rng_heavy(p);
+    return 0;
+}
+
+int init_rng_heavy(struct Phase *p, const uint64_t target_length)
+{
+    // Indepent of RNG set to NULL to be free resistant
+    p->rh.mt_state = NULL;
+    p->rh.tt800_state = NULL;
+    p->allocated_device = false;
+
+    // Trick to force reallocate_rng_heavy() to do the initial initialization
+    // used to 0, because that is the memcpy length
+    p->rh.used = 0;
+    // length to target to get this length of states
+    p->rh.length = target_length;
+    return reallocate_rng_heavy(p);
+}
+
+int free_rng_heavy(struct Phase *p)
+{
+    free(p->rh.mt_state);
+    p->rh.mt_state = NULL;
+    free(p->tt800_state);
+    p->rh.tt800_state = NULL;
+    p->rh.used = 0;
+    p->rh.length = 0;
+    return 0;
+}
 
 int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng)
 {

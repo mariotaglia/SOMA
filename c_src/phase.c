@@ -52,14 +52,11 @@ int init_phase(struct Phase *const p)
     n_polymer_offset -= p->n_polymers;
 #endif                          //ENABLE_MPI
 
+    init_rng_heavy(p, p->n_polymers);
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            p->polymers[i].set_states = NULL;
-            p->polymers[i].set_permutation = NULL;
-
-            allocate_rng_state(&(p->polymers[i].poly_state), p->args.pseudo_random_number_generator_arg);
-            seed_rng_state(&(p->polymers[i].poly_state), p->args.rng_seed_arg,
-                           i + n_polymer_offset, p->args.pseudo_random_number_generator_arg);
+            p->polymers[i].poly_state.alternative_rng_offset = get_new_alternative_rng_offset(p);
+            seed_rng_state(&(p->polymers[i].poly_state), p->args.rng_seed_arg, i + n_polymer_offset, p);
         }
 
     // Max safe move distance
@@ -309,6 +306,7 @@ int copyin_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
+    copyin_rng_heavy(p);
 
     p->present_on_device = true;
     return p->n_polymers * 0 + 1;
@@ -372,6 +370,7 @@ int copyout_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyout_poly_conversion(p);
+    copyout_rng_heavy(p);
 
     p->present_on_device = false;
     return p->n_polymers * 0 + 1;
@@ -439,6 +438,7 @@ int free_phase(struct Phase *const p)
         }
 
     free_poly_conversion(p);
+    free_rng_heavy(p);
 
     close_ana(&(p->ana_info));
     return 0;
@@ -491,6 +491,7 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
     //SETS are not updated to host
 
     update_self_poly_conversion(p);
+    update_self_rng_heavy(p);
 
     return p->n_polymers * 0 + 1;
 }

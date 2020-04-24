@@ -246,9 +246,8 @@ int reseed(struct Phase *const p, const unsigned int seed)
     //Reset PRNG to initial state
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            seed_rng_state(&(p->polymers[i].poly_state), seed,
-                           i + n_polymer_offset, p->args.pseudo_random_number_generator_arg);
-            update_device_rng_state(&(p->polymers[i].poly_state), p->args.pseudo_random_number_generator_arg);
+            seed_rng_state(&(p->polymers[i].poly_state), seed, i + n_polymer_offset, p);
         }
+    update_device_rng_heavy(p);
     return 0;
 }

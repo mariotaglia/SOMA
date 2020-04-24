@@ -218,103 +218,8 @@ int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, 
     return position;
 }
 
-int init_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
-                   const enum enum_pseudo_random_number_generator rng_type)
-{
-    allocate_rng_state(state, rng_type);
-    seed_rng_state(state, seed, stream, rng_type);
-    copyin_rng_state(state, rng_type);
-    return 0;
-}
-
-int allocate_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type)
-{
-    state->mt_state = NULL;
-    state->tt800_state = NULL;
-    switch (rng_type)
-        {
-        case pseudo_random_number_generator__NULL:
-            break;
-        case pseudo_random_number_generator_arg_PCG32:
-            break;
-        case pseudo_random_number_generator_arg_MT:;
-            MERSENNE_TWISTER_STATE *mt_state_tmp = (MERSENNE_TWISTER_STATE *) malloc(sizeof(MERSENNE_TWISTER_STATE));
-            if (mt_state_tmp == NULL)
-                {
-                    fprintf(stderr, "ERROR: By malloc MERSENNE_TWISTER_STATE , %s %d ", __FILE__, __LINE__);
-                    return -1;
-                }
-            state->mt_state = mt_state_tmp;
-            break;
-        case pseudo_random_number_generator_arg_TT800:;
-            MTTSTATE *tt800_state_tmp = (MTTSTATE *) malloc(sizeof(MTTSTATE));
-            if (tt800_state_tmp == NULL)
-                {
-                    fprintf(stderr, "ERROR: By malloc TT800 %s %d", __FILE__, __LINE__);
-                    return -1;
-                }
-            state->tt800_state = tt800_state_tmp;
-            break;
-        }                       //end switch
-    return 0;
-}
-
-int deallocate_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type)
-{
-    switch (rng_type)
-        {
-        case pseudo_random_number_generator__NULL:
-            break;
-        case pseudo_random_number_generator_arg_PCG32:
-            break;
-        case pseudo_random_number_generator_arg_MT:;
-            free(state->mt_state);
-            break;
-        case pseudo_random_number_generator_arg_TT800:;
-            free(state->tt800_state);
-            break;
-        }                       //end switch
-    return 0;
-}
-
-int copyin_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type)
-{
-    switch (rng_type)
-        {
-        case pseudo_random_number_generator__NULL:
-            break;
-        case pseudo_random_number_generator_arg_PCG32:
-            break;
-        case pseudo_random_number_generator_arg_MT:;
-#pragma acc enter data copyin(state->mt_state[0:1])
-            break;
-        case pseudo_random_number_generator_arg_TT800:;
-#pragma acc enter data copyin(state->tt800_state[0:1])
-            break;
-        }                       //end switch
-    return 0 * state->default_state.state;
-}
-
-int copyout_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type)
-{
-    switch (rng_type)
-        {
-        case pseudo_random_number_generator__NULL:
-            break;
-        case pseudo_random_number_generator_arg_PCG32:
-            break;
-        case pseudo_random_number_generator_arg_MT:;
-#pragma acc exit data copyout(state->mt_state[0:1])
-            break;
-        case pseudo_random_number_generator_arg_TT800:;
-#pragma acc exit data copyout(state->tt800_state[0:1])
-            break;
-        }                       //end switch
-    return 0 * state->default_state.state;
-}
-
 int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
-                   const enum enum_pseudo_random_number_generator rng_type)
+                   const Phase * const p)
 {
     soma_seed_rng(&(state->default_state), seed, stream);
     switch (rng_type)
@@ -324,49 +229,11 @@ int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const
         case pseudo_random_number_generator_arg_PCG32:
             break;
         case pseudo_random_number_generator_arg_MT:;
-            soma_seed_rng_mt(&(state->default_state), state->mt_state);
+            soma_seed_rng_mt(&(state->default_state), p->rh.mt_state + state->alternative_rng_offset);
             break;
         case pseudo_random_number_generator_arg_TT800:;
-            soma_seed_rng_tt800(&(state->default_state), state->tt800_state);
+            soma_seed_rng_tt800(&(state->default_state), p->rh.tt800_state + state->alternative_rng_offset);
             break;
         }                       //end switch
     return 0;
-}
-
-int update_device_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type)
-{
-#pragma acc update device(state->default_state[0:1])
-    switch (rng_type)
-        {
-        case pseudo_random_number_generator__NULL:
-            break;
-        case pseudo_random_number_generator_arg_PCG32:
-            break;
-        case pseudo_random_number_generator_arg_MT:;
-#pragma acc update device(state->mt_state[0:1])
-            break;
-        case pseudo_random_number_generator_arg_TT800:;
-#pragma acc update device(state->tt800_state)
-            break;
-        }                       //end switch
-    return 0 * state->default_state.state;
-}
-
-int update_self_rng_state(struct RNG_STATE *const state, const enum enum_pseudo_random_number_generator rng_type)
-{
-#pragma acc update self(state->default_state[0:1])
-    switch (rng_type)
-        {
-        case pseudo_random_number_generator__NULL:
-            break;
-        case pseudo_random_number_generator_arg_PCG32:
-            break;
-        case pseudo_random_number_generator_arg_MT:;
-#pragma acc update self(state->mt_state[0:1])
-            break;
-        case pseudo_random_number_generator_arg_TT800:;
-#pragma acc update self(state->tt800_state)
-            break;
-        }                       //end switch
-    return 0 * state->default_state.state;
 }

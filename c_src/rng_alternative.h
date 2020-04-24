@@ -103,12 +103,17 @@ int update_self_rng_heavy(struct Phase *p);
 //! \return Errorcode
 int reallocate_rng_heavy(struct Phase *p);
 
+//! Initialize the alternative RNG arrays
+//!
+//! \param p Initializing phase
+//! \return Errorcode
+int init_rng_heavy(struct Phase *p, const uint64_t target_length);
+
 //!\brief Set the seed of Mersenne-Twister with the PCG32
 //!
 //!\param rng
 //!\param mt_rng
 //!\return uint32
-#pragma acc routine(soma_seed_rng_mt) seq
 int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng);
 // !Mersenne Twister with state of 624 integers
 // \return  as uint in range [0:soma_rng_uint_max_mt)
@@ -129,7 +134,6 @@ unsigned int soma_rng_uint_max_mt();
 //! \param rng  struct which contains all information about PCG32
 //! \param mt_rng  is the struct which contains the internal state of the random number generator
 //! \return int
-#pragma acc routine(soma_seed_rng_tt800) seq
 int soma_seed_rng_tt800(PCG_STATE * rng, MTTSTATE * mt_rng);
 
 //!\brief Function which uses the reduced Mersenne-Twister TT800
