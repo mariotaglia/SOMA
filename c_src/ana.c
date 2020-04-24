@@ -1068,7 +1068,6 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             return -1;
         }
     memset(tmp, 0, n_random_q * p->n_polymers * q_size * p->n_types * p->n_types * sizeof(soma_scalar_t));
-    enum enum_pseudo_random_number_generator arg_rng_type = p->args.pseudo_random_number_generator_arg;
 
 #pragma acc enter data copyin(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
 #pragma acc enter data copyin(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types]) async

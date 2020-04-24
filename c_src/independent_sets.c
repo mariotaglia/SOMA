@@ -337,7 +337,7 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
                 }
 
             //Init every state in the polymer
-            const unsigned int seed = pcg32_random(&(poly_tmp->poly_state));
+            const unsigned int seed = pcg32_random(&(poly_tmp->poly_state.default_state));
             for (unsigned int j = 0; j < p->max_set_members; j++)
                 {
                     struct RNG_STATE *const state = &(poly_tmp->set_states[j]);

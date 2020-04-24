@@ -20,9 +20,11 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #ifndef POLYMER_HEAVY_H
 #define POLYMER_HEAVY_H
 
+struct Phase;
 #include "soma_config.h"
 #include "soma_util.h"
 

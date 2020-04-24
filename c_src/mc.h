@@ -153,7 +153,7 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * mo
   \return true or false according to the Metropolis criteria
 */
 #pragma acc routine(som_accept) seq
-int som_accept(RNG_STATE * const rng, const struct Phase *p, soma_scalar_t delta_energy);
+int som_accept(RNG_STATE * const rng, const struct Phase *const p, soma_scalar_t delta_energy);
 
 /*! \brief Smart Monte-Carlo (SMC) move.  Calculate the displacement and the energy change from the forces.
 

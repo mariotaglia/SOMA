@@ -26,13 +26,15 @@
   PCG32 is the default RNG generation engine, if a different one is used, the definitions for the alternative are in this file.
 */
 
-#ifdef SOMA_RNG_MERSENNE_TWISTER_H
+#ifndef SOMA_ALTERNATIVE_RNG_H
+#define SOMA_ALTERNATIVE_RNG_H
 
+struct Phase;
 #include <stdint.h>
 #include <stdbool.h>
-
 #include "soma_config.h"
 #include "soma_util.h"
+#include "rng.h"
 
 //! \brief Number of internal states of the Mersenne-Twister
 #define MTMAX_num_int_state 624
@@ -69,37 +71,37 @@ typedef struct RNG_HEAVY {
 //! \param p Initalized Phase
 //! The function reallocates memory automatically if necessary
 //! \return offset for the global
-uint64_t get_new_alternative_rng_offset(Phase * p);
+uint64_t get_new_alternative_rng_offset(struct Phase *p);
 
 //! Copyin memory for the alternative RNGs
 //!
 //! \param p Initalized Phase
 //! \return Errorcode
-int copyin_rng_heavy(Phase * p);
+int copyin_rng_heavy(struct Phase *p);
 
 //! Copyout memory for alternative rng_offsets
 //!
 //! \param p Initalized Phase
 //! \return Errorcode
-int copyout_rng_heavy(Phase * p);
+int copyout_rng_heavy(struct Phase *p);
 
 //! Update device memory for RNG heavy
 //!
 //! \param p Initalized Phase
 //! \return Errorcode
-int update_device_rng_heavy(Phase * p);
+int update_device_rng_heavy(struct Phase *p);
 
 //! Update self memory for RNG heavy
 //!
 //! \param p Initalized Phase
 //! \return Errorcode
-int update_self_rng_heavy(Phase * p);
+int update_self_rng_heavy(struct Phase *p);
 
 //! Reallocate the size of the alternative RNG arrays
 //!
 //! \param p Initialized phase
 //! \return Errorcode
-int reallocate_rng_heavy(Phase * p);
+int reallocate_rng_heavy(struct Phase *p);
 
 //!\brief Set the seed of Mersenne-Twister with the PCG32
 //!
@@ -136,4 +138,4 @@ int soma_seed_rng_tt800(PCG_STATE * rng, MTTSTATE * mt_rng);
 #pragma acc routine(soma_rng_tt800) seq
 unsigned int soma_rng_tt800(MTTSTATE * mt_rng);
 
-#endif                          //SOMA_RNG_MERSENNE_TWISTER_H
+#endif                          //SOMA_RNG_ALTERNATIVE_H

@@ -32,14 +32,13 @@
 #include <stdint.h>
 #include "cmdline.h"
 struct Phase;
-struct RNG_STATE;
 
 /*! \file rng.h
   \brief Definition of pseudo random number generation wrappers for soma.
 */
 
 //! \brief State of the random number generator (PCG)
-typedef struct {
+typedef struct PCG_STATE {
     uint64_t state;             //!<\brief internal state of the PCG generator
     uint64_t inc;               //!<\brief stream of the PCG generator
 } PCG_STATE;
@@ -68,7 +67,7 @@ int soma_seed_rng(PCG_STATE * rng, uint64_t seed, uint64_t stream);
 //! \param rng_type Type of the used PRNG
 //! \return prng as uint in range [0:soma_rng_uint_max)
 #pragma acc routine(soma_rng_uint) seq
-unsigned int soma_rng_uint(RNG_STATE * state, struct Phase *const p);
+unsigned int soma_rng_uint(RNG_STATE * state, const struct Phase *const p);
 
 //! Status function to get the max random number.
 //!
@@ -94,6 +93,11 @@ soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, const struct Phase *const p)
 #pragma acc routine(soma_normal_vector) seq
 void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scalar_t * x,
                         soma_scalar_t * y, soma_scalar_t * z);
+//! Function to advances the PCG32 by 1 step and returns a random number
+//!
+//! \param rng PCG32 state to advance
+//! \return random number
+uint32_t pcg32_random(PCG_STATE * rng);
 
 //! Function that generates 3D vector (x,y,z), with a distribution that just has the 2nd and 4th moment of a gaussian
 //! \param rng struct which contains all information about the internal states of the rngs

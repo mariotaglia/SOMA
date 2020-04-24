@@ -25,6 +25,10 @@
 //! \brief Implementation of rng_alternative.h
 
 /*Random number generator Mersenne-Twister*/
+
+#include "rng_alternative.h"
+#include "rng.h"
+
 int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng)
 {
     mt_rng->internal_index = MTMAX_num_int_state + 1;

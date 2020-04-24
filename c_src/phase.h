@@ -34,7 +34,6 @@ struct IndependetSets;
 #include "polytype_conversion.h"
 #include "poly_heavy.h"
 #include "rng_alternative.h"
-
 #include <sys/time.h>
 
 //! Value of Pi.
@@ -270,7 +269,7 @@ typedef struct Phase {
     unsigned int serie_length;  //!< number of time-dependent external field
 
     struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
-    struct PolyHeavy ph;        //!< struct containing the pointer to the heavy memory of the polymers.
+    struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.
     struct RNG_HEAVY rh;        //!< struct containing the pointer to the heavy memory of alternative PRNGs, if needed.
 } Phase;
 

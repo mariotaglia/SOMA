@@ -29,7 +29,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "phase.h"
-#include "alternative_rng.h"
+#include "rng_alternative.h"
 
 #pragma acc routine(pcg32_random) seq
 /*! Random number generator PCG32
@@ -64,15 +64,15 @@ unsigned int soma_rng_uint_max()
     return 4294967295U;
 }
 
-unsigned int soma_rng_uint(RNG_STATE * state, Phase * const p)
+unsigned int soma_rng_uint(RNG_STATE * state, const Phase * const p)
 {
-    switch (p > args.pseudo_random_number_generator_arg)
+    switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
             return (unsigned int)pcg32_random(&(state->default_state));
             break;
         case pseudo_random_number_generator_arg_PCG32:
-            return (unsigned int)pcg32_random(&(state->_state));
+            return (unsigned int)pcg32_random(&(state->default_state));
             break;
         case pseudo_random_number_generator_arg_MT:
             return (unsigned int)soma_mersenne_twister(p->rh->mt_state + state->alternative_rng_offset);

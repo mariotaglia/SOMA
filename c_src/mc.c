@@ -58,7 +58,7 @@ void trial_move_cm(const Phase * p, const uint64_t poly_type, soma_scalar_t * co
     *dz = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
 }
 
-int som_accept(RNG_STATE * const rng, Phase * const p, soma_scalar_t delta_energy)
+int som_accept(RNG_STATE * const rng, const Phase * const p, soma_scalar_t delta_energy)
 {
     // \todo kBT reqired
     const soma_scalar_t p_acc = exp(-1.0 * delta_energy);
