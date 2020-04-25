@@ -145,6 +145,6 @@ int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, 
 //! \param stream PCG32 is streamable for the many independent RNGs
 //! \param p Phase the system belongs to
 int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
-                   const Phase * const p);
+                   const struct Phase *const p);
 
 #endif                          //SOMA_RNG_H

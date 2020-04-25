@@ -26,7 +26,11 @@
 
 /*Random number generator Mersenne-Twister*/
 
-#include <stdlimits.h>
+#include <limits.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
+#include "phase.h"
 #include "rng_alternative.h"
 #include "rng.h"
 
@@ -40,8 +44,7 @@ uint64_t get_new_alternative_rng_offset(struct Phase *p)
             break;
         case pseudo_random_number_generator_arg_MT:
             /*intentionally falls through */
-        case:
- pseudo_random_number_generator_arg_TT800:
+        case pseudo_random_number_generator_arg_TT800:
             if (p->rh.used - 1 >= p->rh.length)
                 reallocate_rng_heavy(p);
             p->rh.used += 1;
@@ -64,8 +67,7 @@ int copyin_rng_heavy(struct Phase *p)
         case pseudo_random_number_generator_arg_MT:
             assert(p->rh.mt_state != NULL);
 #pragma acc enter data copyin(p->rh.mt_state[0:p->rh.length])
-        case:
- pseudo_random_number_generator_arg_TT800:
+        case pseudo_random_number_generator_arg_TT800:
             assert(p->rh.tt800_state != NULL);
 #pragma acc enter data copyin(p->rh.tt800_state[0:p->rh.length])
             break;
@@ -86,8 +88,7 @@ int copyout_rng_heavy(struct Phase *p)
         case pseudo_random_number_generator_arg_MT:
             assert(p->rh.mt_state != NULL);
 #pragma acc exit data copyout(p->rh.mt_state[0:p->rh.length])
-        case:
- pseudo_random_number_generator_arg_TT800:
+        case pseudo_random_number_generator_arg_TT800:
             assert(p->rh.tt800_state != NULL);
 #pragma acc exit data copyout(p->rh.tt800_state[0:p->rh.length])
             break;
@@ -108,8 +109,7 @@ int update_self_rng_heavy(struct Phase *p)
         case pseudo_random_number_generator_arg_MT:
             assert(p->rh.mt_state != NULL);
 #pragma acc update self(p->rh.mt_state[0:p->rh.used])
-        case:
- pseudo_random_number_generator_arg_TT800:
+        case pseudo_random_number_generator_arg_TT800:
             assert(p->rh.tt800_state != NULL);
 #pragma acc update self(p->rh.tt800_state[0:p->rh.length])
             break;
@@ -129,8 +129,7 @@ int update_device_rng_heavy(struct Phase *p)
         case pseudo_random_number_generator_arg_MT:
             assert(p->rh.mt_state != NULL);
 #pragma acc update device(p->rh.mt_state[0:p->rh.used])
-        case:
- pseudo_random_number_generator_arg_TT800:
+        case pseudo_random_number_generator_arg_TT800:
             assert(p->rh.tt800_state != NULL);
 #pragma acc update device(p->rh.tt800_state[0:p->rh.length])
             break;
@@ -140,7 +139,7 @@ int update_device_rng_heavy(struct Phase *p)
 
 int reallocate_rng_heavy(struct Phase *p)
 {
-    if (p->allocated_device)
+    if (p->rh.allocated_device)
         copyout_rng_heavy(p);
     const uint64_t new_length = p->rh.length * 1.05 + 1;
     switch (p->args.pseudo_random_number_generator_arg)
@@ -159,12 +158,11 @@ int reallocate_rng_heavy(struct Phase *p)
             p->rh.mt_state = tmp_mt;
             p->rh.length = new_length;
             break;
-        case:
- pseudo_random_number_generator_arg_TT800:
+        case pseudo_random_number_generator_arg_TT800:
             ;
-            TT800_STATE *tmp_tt800 = (TT800_STATE *) malloc(new_length * sizeof(TT800_STATE));
-            MALLOC_ERROR_CHECK(tmp_tt800, new_length * sizeof(TT800_STATE));
-            memcpy(p->rh.t800_state, tmp_tt800, p->rh.used * sizeof(TT800_STATE));
+            MTTSTATE *tmp_tt800 = (MTTSTATE *) malloc(new_length * sizeof(MTTSTATE));
+            MALLOC_ERROR_CHECK(tmp_tt800, new_length * sizeof(MTTSTATE));
+            memcpy(p->rh.tt800_state, tmp_tt800, p->rh.used * sizeof(MTTSTATE));
             free(p->rh.tt800_state);
             p->rh.tt800_state = tmp_tt800;
             p->rh.length = new_length;
@@ -179,7 +177,7 @@ int init_rng_heavy(struct Phase *p, const uint64_t target_length)
     // Indepent of RNG set to NULL to be free resistant
     p->rh.mt_state = NULL;
     p->rh.tt800_state = NULL;
-    p->allocated_device = false;
+    p->rh.allocated_device = false;
 
     // Trick to force reallocate_rng_heavy() to do the initial initialization
     // used to 0, because that is the memcpy length
@@ -193,7 +191,7 @@ int free_rng_heavy(struct Phase *p)
 {
     free(p->rh.mt_state);
     p->rh.mt_state = NULL;
-    free(p->tt800_state);
+    free(p->rh.tt800_state);
     p->rh.tt800_state = NULL;
     p->rh.used = 0;
     p->rh.length = 0;

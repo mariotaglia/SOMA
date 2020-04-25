@@ -341,7 +341,7 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
             for (unsigned int j = 0; j < p->max_set_members; j++)
                 {
                     struct RNG_STATE *const state = &(poly_tmp->set_states[j]);
-                    state.alternative_rng_offset = get_new_alternative_rng_offset(p);
+                    state->alternative_rng_offset = get_new_alternative_rng_offset(p);
                     seed_rng_state(state, seed, j, p);
                 }
         }

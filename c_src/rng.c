@@ -75,10 +75,10 @@ unsigned int soma_rng_uint(RNG_STATE * state, const Phase * const p)
             return (unsigned int)pcg32_random(&(state->default_state));
             break;
         case pseudo_random_number_generator_arg_MT:
-            return (unsigned int)soma_mersenne_twister(p->rh->mt_state + state->alternative_rng_offset);
+            return (unsigned int)soma_mersenne_twister(p->rh.mt_state + state->alternative_rng_offset);
             break;
         case pseudo_random_number_generator_arg_TT800:
-            return (unsigned int)soma_rng_tt800(p->rh->tt800_state + state->alternative_rng_offset);
+            return (unsigned int)soma_rng_tt800(p->rh.tt800_state + state->alternative_rng_offset);
             break;
         }
     return -1;
@@ -219,10 +219,10 @@ int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, 
 }
 
 int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
-                   const Phase * const p)
+                   const struct Phase *const p)
 {
     soma_seed_rng(&(state->default_state), seed, stream);
-    switch (rng_type)
+    switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
             break;

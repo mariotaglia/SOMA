@@ -109,6 +109,12 @@ int reallocate_rng_heavy(struct Phase *p);
 //! \return Errorcode
 int init_rng_heavy(struct Phase *p, const uint64_t target_length);
 
+//! Deallocate all memory of the RNG Heay struct
+//!
+//! \param p Phase where the rng shall be deallocated
+//! \return Errorcode
+int free_rng_heavy(struct Phase *p);
+
 //!\brief Set the seed of Mersenne-Twister with the PCG32
 //!
 //!\param rng
