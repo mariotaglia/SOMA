@@ -750,7 +750,7 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
             return -1;
         }
     memset(monomer_data, 0, p->beads_number_total * sizeof(Monomer));
-    memcpy(monomer_data, beads, p->beads_number_total * sizeof(Monomer));
+    memcpy(monomer_data, p->ph.beads, p->beads_number_total * sizeof(Monomer));
 
     /* for(unsigned int j=0; j < p->polymers[i].N; j++) */
     /*    { */
@@ -1286,13 +1286,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         }
     p->beads_number_total=beads_number_total;
 
-     beads = (Monomer *) malloc(beads_number_total * sizeof(Monomer));
+     p->ph.beads = (Monomer *) malloc(beads_number_total * sizeof(Monomer));
      if (beads == NULL)
        {
 	 fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
 	 return -1;
        }
-     msd_beads = (Monomer *) malloc(beads_number_total * sizeof(Monomer));
+     p->ph.msd_beads = (Monomer *) malloc(beads_number_total * sizeof(Monomer));
      if (msd_beads == NULL)
        {
 	 fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -1328,8 +1328,8 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                     return status;
                 }
 
-	    memcpy(beads,monomer_data);
-	    memcpy(msd_beads,monomer_data);
+	    memcpy(p->ph.beads,monomer_data);
+	    memcpy(p->ph.msd_beads,monomer_data);
 	    
             free(monomer_data);
 
