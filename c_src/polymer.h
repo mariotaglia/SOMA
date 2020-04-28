@@ -27,7 +27,7 @@
 /*! \brief Polymer information */
 //! Instead of pointers this struct contains offset counters, that have to be applied to global arrays instead.
 //! To invalidate pointers (such as using NULL) the offsets are sets are set to UINT64_MAX
-//! To access for example the beads of this polymer use: p->ph->beads[ this->bead_offset + i]
+//! To access for example the beads of this polymer use: p->ph.beads[ this->bead_offset + i]
 typedef struct Polymer {
     unsigned int type;          //!< \brief Type of the polymer architecture.
     RNG_STATE poly_state;       //!< \brief Struct which contains all RNGs
