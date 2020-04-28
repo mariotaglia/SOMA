@@ -730,9 +730,9 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
             return status;
         }
 
-    hsize_t hsize_beads_dataspace[1] = { p->beads_number_total};
+    hsize_t hsize_beads_dataspace[1] = { p->num_all_beads_local};
     hid_t beads_dataspace = H5Screate_simple(1, hsize_beads_dataspace, NULL);
-    hsize_t hsize_beads_memspace[1] = { p->beads_number_total };
+    hsize_t hsize_beads_memspace[1] = { p->num_all_beads_local };
     hid_t beads_memspace = H5Screate_simple(1, hsize_beads_memspace, NULL);
 
     hid_t monomer_filetype = get_monomer_filetype();
@@ -747,14 +747,14 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
     hid_t monomer_memtype = get_monomer_memtype();
 
     //Monomer monomer_data[p->n_polymers][max_n_beads];
-    Monomer *const monomer_data = (Monomer * const)malloc(p->beads_number_total * sizeof(Monomer));
+    Monomer *const monomer_data = (Monomer * const)malloc(p->num_all_beads_local * sizeof(Monomer));
     if (monomer_data == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
             return -1;
         }
-    memset(monomer_data, 0, p->beads_number_total * sizeof(Monomer));
-    memcpy(monomer_data, p->ph.beads, p->beads_number_total * sizeof(Monomer));
+    memset(monomer_data, 0, p->num_all_beads_local * sizeof(Monomer));
+    memcpy(monomer_data, p->ph.beads, p->num_all_beads_all * sizeof(Monomer));
 
     /* for(unsigned int j=0; j < p->polymers[i].N; j++) */
     /*    { */
@@ -1068,7 +1068,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/n_polymers", H5T_NATIVE_UINT64, plist_id, &(p->n_polymers_global));
     HDF5_ERROR_CHECK2(status, "/parameter/n_polymers");
 
-    //Distribute the polymers to the different cores.
+    /*   //Distribute the polymers to the different cores.
     uint64_t n_polymers = p->n_polymers_global / p->info_MPI.sim_size;
     if ((unsigned int)p->info_MPI.sim_rank < p->n_polymers_global % p->info_MPI.sim_size)
         n_polymers += 1;
@@ -1083,7 +1083,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     if (p->info_MPI.sim_rank == p->info_MPI.sim_size - 1)
         assert(p->n_polymers + n_polymer_offset == p->n_polymers_global);
-
+    */
     status = read_hdf5(file_id, "/parameter/reference_Nbeads", H5T_NATIVE_UINT, plist_id, &(p->reference_Nbeads));
     HDF5_ERROR_CHECK2(status, "/parameter/reference_Nbeads");
 
@@ -1219,6 +1219,44 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                 }
             p->harmonic_normb_variable_scale = 1.;
         }
+    //temporary load poly type to calculate polymer distribution
+    poly_type_tmp = (unsigned int *) malloc(p->n_polymers_global * sizeof(unsigned int));
+    if (poly_type_tmp == NULL)
+      {
+	fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+	return -1;
+      }
+    status = read_hdf5(file_id, "/poly_type", H5T_NATIVE_UINT, plist_id, poly_type_tmp);
+    HDF5_ERROR_CHECK2(status, "poly_type");
+
+    //Distribute the polymers to the different cores according to bead length.      
+    uint64_t ave_beads_number=p->num_all_beads / p->info_MPI.sim_size;
+    uint64_t remaining_beads=p->num_all_beads;
+    unsigned int  num_poly_rank[p->info_MPI.sim_size];
+    unsigned int current_length=0;
+    unsigned int last_poly=0;
+    for(uint64_t index=0;index<p->info_MPI.sim_size-1;index++){
+      current_length=0;
+      unsigned int poly_i=0;
+      while(current_length<ave_beads_number){
+	current_length+=p->poly_arch[p->poly_type_offset[poly_type_tmp[last_poly+poly_i]]];
+	poly_i++;
+      }
+      last_poly += poly_i;
+      num_poly_rank[index]=poly_i;
+      remaining_beads -=  current_length;
+      ave_beads_number=remaining_beads/(p->info_MPI.sim_size-index);
+      }
+    num_poly_rank[p->info_MPI.sim_size-1]=p->n_polymers_global-last_poly;
+    p->n_polymers = num_poly_rank[p->info_MPI.sim_rank];
+    p->n_polymers_storage = p->n_polymers;
+    free(poly_type_tmp);
+    uint64_t n_polymer_offset = 0;                                                   
+#if ( ENABLE_MPI == 1 )                                                              
+    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.         
+    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);                                              
+    n_polymer_offset -= p->n_polymers;                                               
+#endif                          //ENABLE_MPI                                         
 
     //Allocate memory for almost everything of PHASE
     //Polymers (only the local copies).
@@ -1277,31 +1315,28 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
             p->polymers[i].type = poly_type[i];
         }
     free(poly_type);
-
-
-    p->beads_number=(uint32_t *) malloc(p->n_polymers * sizeof(uint32_t));
+    
     uint32_t beads_number_total=0;
 
     //Allocate space for monomers
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            p->beads_number[i] = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
-	    beads_number_total=+p->beads_number[i];
+            beads_number_total+= p->poly_arch[p->poly_type_offset[p->polymers[i].type]];	    
         }
-    p->beads_number_total=beads_number_total;
+    p->num_all_beads_local=beads_number_total;
 
     //determine n_poylmer_bead_offset with poly_arch info                            
     uint64_t n_polymer_bead_offset = 0;
     for(uint64_t poly_i=0;poly_i<n_polymer_offset;poly_i++){
       n_polymer_bead_offset+=p->poly_arch[p->poly_type_offset[p->polymers[poly_i].type]];
     }
-     p->ph.beads = (Monomer *) malloc(beads_number_total * sizeof(Monomer));
+     p->ph.beads = (Monomer *) malloc(p->num_all_beads_local * sizeof(Monomer));
      if (beads == NULL)
        {
 	 fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
 	 return -1;
        }
-     p->ph.msd_beads = (Monomer *) malloc(beads_number_total * sizeof(Monomer));
+     p->ph.msd_beads = (Monomer *) malloc(p->num_all_beads_local * sizeof(Monomer));
      if (msd_beads == NULL)
        {
 	 fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -1313,14 +1348,14 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
             //Get the data for the polymers
 
-            Monomer *const monomer_data = (Monomer * const)malloc(p->beads_number_total * sizeof(Monomer));
+            Monomer *const monomer_data = (Monomer * const)malloc(p->num_all_beads_local * sizeof(Monomer));
             if (monomer_data == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
                     return -1;
                 }
 
-            hsize_t hsize_beads_memspace[1] = { p->beads_number_total };
+            hsize_t hsize_beads_memspace[1] = { p->num_all_beads_local };
             hid_t beads_memspace = H5Screate_simple(1, hsize_beads_memspace, NULL);
             hid_t beads_dataset = H5Dopen2(file_id, "/beads", H5P_DEFAULT);
             hid_t beads_dataspace = H5Dget_space(beads_dataset);
