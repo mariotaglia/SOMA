@@ -22,6 +22,7 @@ set(soma_source
   rng.c
   rng_alternative.c
   soma_config.c
+  soma_memory.c
   soma_util.c
   walltime.c
   test.c
@@ -51,6 +52,7 @@ set(soma_header
   poly_heavy.h
   rng.h
   rng_alternative.h
+  soma_memory.h
   soma_util.h
   walltime.h
   test.h

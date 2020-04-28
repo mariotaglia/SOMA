@@ -398,15 +398,18 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                                             const int mono_j = mono + offset;
                                             const int mic_flag = p->args.bond_minimum_image_convention_flag;
                                             const soma_scalar_t dx = calc_bond_length(p->ph.beads[mono + bead_offset].x,
-                                                                                      p->ph.beads[mono_j + bead_offset].x,
+                                                                                      p->ph.beads[mono_j +
+                                                                                                  bead_offset].x,
                                                                                       p->Lx,
                                                                                       mic_flag);
                                             const soma_scalar_t dy = calc_bond_length(p->ph.beads[mono + bead_offset].y,
-                                                                                      p->ph.beads[mono_j + bead_offset].y,
+                                                                                      p->ph.beads[mono_j +
+                                                                                                  bead_offset].y,
                                                                                       p->Ly,
                                                                                       mic_flag);
                                             const soma_scalar_t dz = calc_bond_length(p->ph.beads[mono + bead_offset].z,
-                                                                                      p->ph.beads[mono_j + bead_offset].z,
+                                                                                      p->ph.beads[mono_j +
+                                                                                                  bead_offset].z,
                                                                                       p->Lz,
                                                                                       mic_flag);
 

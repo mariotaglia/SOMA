@@ -198,7 +198,8 @@ int generate_new_beads(struct Phase *const p)
                                             bondlist++;
                                     } while (already_set[new_bead]);    //find the first unset neigbour
                                     chain_index++;
-                                    set_neighbour(new_bead, &(p->ph.beads[old_bead + poly->bead_offset]), bond_type, already_set, poly, p);
+                                    set_neighbour(new_bead, &(p->ph.beads[old_bead + poly->bead_offset]), bond_type,
+                                                  already_set, poly, p);
                                     already_set[new_bead] = true;
                                     total_set++;
                                     bondlist =

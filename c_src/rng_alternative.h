@@ -66,55 +66,6 @@ typedef struct RNG_HEAVY {
     bool allocated_device;      //!< \brief indicator if the memory is present on device.
 } RNG_HEAVY;
 
-//! Register a new alternative RNG state.
-//!
-//! \param p Initalized Phase
-//! The function reallocates memory automatically if necessary
-//! \return offset for the global
-uint64_t get_new_alternative_rng_offset(struct Phase *p);
-
-//! Copyin memory for the alternative RNGs
-//!
-//! \param p Initalized Phase
-//! \return Errorcode
-int copyin_rng_heavy(struct Phase *p);
-
-//! Copyout memory for alternative rng_offsets
-//!
-//! \param p Initalized Phase
-//! \return Errorcode
-int copyout_rng_heavy(struct Phase *p);
-
-//! Update device memory for RNG heavy
-//!
-//! \param p Initalized Phase
-//! \return Errorcode
-int update_device_rng_heavy(struct Phase *p);
-
-//! Update self memory for RNG heavy
-//!
-//! \param p Initalized Phase
-//! \return Errorcode
-int update_self_rng_heavy(struct Phase *p);
-
-//! Reallocate the size of the alternative RNG arrays
-//!
-//! \param p Initialized phase
-//! \return Errorcode
-int reallocate_rng_heavy(struct Phase *p);
-
-//! Initialize the alternative RNG arrays
-//!
-//! \param p Initializing phase
-//! \return Errorcode
-int init_rng_heavy(struct Phase *p, const uint64_t target_length);
-
-//! Deallocate all memory of the RNG Heay struct
-//!
-//! \param p Phase where the rng shall be deallocated
-//! \return Errorcode
-int free_rng_heavy(struct Phase *p);
-
 //!\brief Set the seed of Mersenne-Twister with the PCG32
 //!
 //!\param rng
