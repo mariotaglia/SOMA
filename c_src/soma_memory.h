@@ -62,9 +62,10 @@ int free_soma_memory(struct SomaMemory *state);
 //! Register a new element in SomaMemory.
 //!
 //! \param state initialized state
+//! \param n number of allocated slots on the array (used is increased by n)
 //! The function reallocates memory automatically if necessary
 //! \return offset for the global ptr
-uint64_t get_new_soma_memory_offset(struct SomaMemory *state);
+uint64_t get_new_soma_memory_offset(struct SomaMemory *state, const uint64_t n);
 
 //! Copyin memory for SomaMemory
 //!
@@ -94,7 +95,8 @@ int update_self_soma_memory(struct SomaMemory *state);
 //!
 //! \private
 //! \param state State to reallocate
+//! \param min_increase minimum number by which the array is increased. must be > 1
 //! \return Errorcode
-int reallocate_soma_memory(struct SomaMemory *state);
+int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase);
 
 #endif                          //SOMA_MEMORY_H

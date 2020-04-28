@@ -248,6 +248,6 @@ int reseed(struct Phase *const p, const unsigned int seed)
         {
             seed_rng_state(&(p->polymers[i].poly_state), seed, i + n_polymer_offset, p);
         }
-    update_device_rng_heavy(p);
+
     return 0;
 }

@@ -41,12 +41,16 @@ int init_soma_memory(struct SomaMemory *state, const uint64_t length, const size
     state->device_present = false;
     state->typelength = typelength;
 
-    // Trick to force reallocate_soma_memory() to do the initial initialization
-    // used to 0, because that is the memcpy length
-    state->used = 0;
-    // length to target to get this length of states
-    state->length = length;
-    return reallocate_soma_memory(state);
+    state->length = 0;
+    if (length > 0)
+        {
+            // Trick to force reallocate_soma_memory() to do the initial initialization
+            // used to 0, because that is the memcpy length
+            // length to target to get this length of states
+            return reallocate_soma_memory(state, length);
+        }
+
+    return 0;
 }
 
 int free_soma_memory(struct SomaMemory *state)
@@ -63,8 +67,9 @@ int free_soma_memory(struct SomaMemory *state)
     return error;
 }
 
-int reallocate_soma_memory(struct SomaMemory *state)
+int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase)
 {
+    assert(min_increase > 0);
     bool needs_copyin = false;
     int error = 0;
     if (state->device_present)
@@ -75,7 +80,7 @@ int reallocate_soma_memory(struct SomaMemory *state)
 
     assert(state->typelength > 0);
 
-    const uint64_t new_length = state->length * 1.05 + 1;
+    const uint64_t new_length = state->length * 1.05 + min_increase;
     void *tmp = malloc(new_length * state->typelength);
     MALLOC_ERROR_CHECK(tmp, new_length * state->typelength);
     memcpy(state->ptr, tmp, state->used * state->typelength);
@@ -90,48 +95,61 @@ int reallocate_soma_memory(struct SomaMemory *state)
 
 int copyin_soma_memory(struct SomaMemory *state)
 {
-    if (state->device_present)
-        return update_device_soma_memory(state);
+    if (state->length > 0)
+        {
+            if (state->device_present)
+                return update_device_soma_memory(state);
 
-    assert(state->ptr != NULL);
-    assert(state->typelength > 0);
+            assert(state->ptr != NULL);
+            assert(state->typelength > 0);
 #pragma acc enter data copyin(state->ptr[0:state->length*state->typelength])
-    state->device_present = true;
+            state->device_present = true;
+        }
     return 0;
 }
 
 int copyout_soma_memory(struct SomaMemory *state)
 {
-    assert(state->device_present);
-    assert(state->ptr != NULL);
-    assert(state->typelength > 0);
+    if (state->length > 0)
+        {
+            assert(state->device_present);
+            assert(state->ptr != NULL);
+            assert(state->typelength > 0);
 #pragma acc exit data copyout(state->ptr[0:state->length*state->typelength])
-    state->device_present = false;
+            state->device_present = false;
+        }
     return 0;
 }
 
 int update_self_soma_memory(struct SomaMemory *state)
 {
-    assert(state->device_present);
-    assert(state->ptr != NULL);
-    assert(state->typelength > 0);
+    if (state->length > 0)
+        {
+            assert(state->device_present);
+            assert(state->ptr != NULL);
+            assert(state->typelength > 0);
 #pragma acc update self(state->ptr[0:state->used*state->typelength])
-    return 0 + state->length * 0;       //Silence compiler warning
+        }
+    return 0;
 }
 
 int update_device_rng_heavy(struct SomaMemory *state)
 {
-    assert(state->device_present);
-    assert(state->ptr != NULL);
-    assert(state->typelength > 0);
+    if (state->length > 0)
+        {
+            assert(state->device_present);
+            assert(state->ptr != NULL);
+            assert(state->typelength > 0);
 #pragma acc update device(state->ptr[0:state->used*state->typelength])
-    return 0 + state->length * 0;       //Silence compiler warning
+        }
+    return 0;                   //Silence compiler warning
 }
 
-uint64_t get_new_soma_memory_offset(struct SomaMemory *state)
+uint64_t get_new_soma_memory_offset(struct SomaMemory *state, const uint64_t n)
 {
-    if (state->used - 1 >= state->length)
-        if (reallocate_soma_memory(state) != 0)
+    assert(n > 0);
+    if (state->used + n >= state->length)
+        if (reallocate_soma_memory(state, n + 1) != 0)
             return UINT64_MAX;
     state->used += 1;
     return state->used - 1;

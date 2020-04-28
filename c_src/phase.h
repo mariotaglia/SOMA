@@ -295,7 +295,7 @@ int copyin_phase(struct Phase *const p);
   \param rng_update_flag The flag deciding whether rng_state will be updated
   \return Errorcode
  */
-int update_self_phase(const Phase * const p, int rng_update_flag);
+int update_self_phase(Phase * const p, int rng_update_flag);
 
 //! Copy all data out from the DEVICE
 //! \param p Pointer to phase to copy out

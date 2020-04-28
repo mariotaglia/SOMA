@@ -97,7 +97,7 @@ unsigned int soma_rng_uint_max_mt()
     return 0x80000000;
 }
 
-int soma_seed_rng_tt800(PCG_STATE * rng, MTTSTATE * tt800_rng)
+int soma_seed_rng_tt800(PCG_STATE * rng, TT800STATE * tt800_rng)
 {
 
     tt800_rng->internal_index = MTMAX_num_int_state + 1;
@@ -112,7 +112,7 @@ int soma_seed_rng_tt800(PCG_STATE * rng, MTTSTATE * tt800_rng)
 }
 
 #pragma acc routine(soma_tt800) seq
-unsigned int soma_rng_tt800(MTTSTATE * itt800_rng)
+unsigned int soma_rng_tt800(TT800STATE * itt800_rng)
 {
 
     uint32_t M = 7;

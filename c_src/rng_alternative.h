@@ -35,6 +35,7 @@ struct Phase;
 #include "soma_config.h"
 #include "soma_util.h"
 #include "rng.h"
+#include "soma_memory.h"
 
 //! \brief Number of internal states of the Mersenne-Twister
 #define MTMAX_num_int_state 624
@@ -48,22 +49,19 @@ typedef struct MERSENNE_TWISTER_STATE {
 //! \brief Number of internal states of the TT800
 #define TT_num_int_state 27
 //! \brief State of the random number generator (TT800)
-typedef struct MTTSTATE {
+typedef struct TT800STATE {
     uint32_t A[2];              //!<\brief "Static" mask for bitwise operations
     uint32_t internal_index;    //!<\brief Internal index of the TT800
     uint32_t internal_state[TT_num_int_state];  //!<\brief Internal state of the TT800
-} MTTSTATE;
+} TT800STATE;
 
 //! Struct to hold the global arrays of heany data for alternative PRNGs
 //!
 //! Each Phase has one of these structs. And in case an alternative RNG is used, this struct contains the memory for the states.
 //! If the memory is not used the pointers are initialized to NULL
 typedef struct RNG_HEAVY {
-    MERSENNE_TWISTER_STATE *mt_state;   //!< \brief array for all local Mersenne-Twister States
-    MTTSTATE *tt800_state;      //!< \brief array for all local TT800 States
-    uint64_t length;            //!< \brief length the arrays are initialized to
-    uint64_t used;              //!< \brief number states already in use length !< used
-    bool allocated_device;      //!< \brief indicator if the memory is present on device.
+    SomaMemory mt;              //! Array and meta data for MersenneTwister states
+    SomaMemory tt800;           //! Array abd meta data for TT800 states
 } RNG_HEAVY;
 
 //!\brief Set the seed of Mersenne-Twister with the PCG32
@@ -91,12 +89,12 @@ unsigned int soma_rng_uint_max_mt();
 //! \param rng  struct which contains all information about PCG32
 //! \param mt_rng  is the struct which contains the internal state of the random number generator
 //! \return int
-int soma_seed_rng_tt800(PCG_STATE * rng, MTTSTATE * mt_rng);
+int soma_seed_rng_tt800(PCG_STATE * rng, TT800STATE * mt_rng);
 
 //!\brief Function which uses the reduced Mersenne-Twister TT800
 //!\param mt_rng is the struct which contains the internal state of the random number generator
 //!\return uint32
 #pragma acc routine(soma_rng_tt800) seq
-unsigned int soma_rng_tt800(MTTSTATE * mt_rng);
+unsigned int soma_rng_tt800(TT800STATE * mt_rng);
 
 #endif                          //SOMA_RNG_ALTERNATIVE_H

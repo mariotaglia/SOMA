@@ -75,10 +75,16 @@ unsigned int soma_rng_uint(RNG_STATE * state, const Phase * const p)
             return (unsigned int)pcg32_random(&(state->default_state));
             break;
         case pseudo_random_number_generator_arg_MT:
-            return (unsigned int)soma_mersenne_twister(p->rh.mt_state + state->alternative_rng_offset);
+            ;
+            MERSENNE_TWISTER_STATE *mt_state = p->rh.mt.ptr;
+            mt_state += state->alternative_rng_offset;
+            return (unsigned int)soma_mersenne_twister(mt_state);
             break;
         case pseudo_random_number_generator_arg_TT800:
-            return (unsigned int)soma_rng_tt800(p->rh.tt800_state + state->alternative_rng_offset);
+            ;
+            TT800STATE *tt800_state = p->rh.tt800.ptr;
+            tt800_state += state->alternative_rng_offset;
+            return (unsigned int)soma_rng_tt800(tt800_state);
             break;
         }
     return -1;
@@ -162,7 +168,7 @@ unsigned int rng_state_serial_length(const struct Phase *const p)
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_MT)
         length += sizeof(MERSENNE_TWISTER_STATE);
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_TT800)
-        length += sizeof(MTTSTATE);
+        length += sizeof(TT800STATE);
     return length;
 }
 
@@ -181,8 +187,8 @@ int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const sta
 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_TT800)
         {
-            memcpy(buffer + position, state->tt800_state, sizeof(MTTSTATE));
-            position += sizeof(MTTSTATE);
+            memcpy(buffer + position, state->tt800_state, sizeof(TT800STATE));
+            position += sizeof(TT800STATE);
         }
     return position;
 }
@@ -208,11 +214,11 @@ int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, 
 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_TT800)
         {
-            state->tt800_state = (MTTSTATE *) malloc(sizeof(MTTSTATE));
-            MALLOC_ERROR_CHECK(state->tt800_state, sizeof(MTTSTATE));
+            state->tt800_state = (TT800STATE *) malloc(sizeof(TT800STATE));
+            MALLOC_ERROR_CHECK(state->tt800_state, sizeof(TT800STATE));
 
-            memcpy(state->tt800_state, buffer + position, sizeof(MTTSTATE));
-            position += sizeof(MTTSTATE);
+            memcpy(state->tt800_state, buffer + position, sizeof(TT800STATE));
+            position += sizeof(TT800STATE);
         }
 
     return position;
@@ -229,10 +235,12 @@ int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const
         case pseudo_random_number_generator_arg_PCG32:
             break;
         case pseudo_random_number_generator_arg_MT:;
-            soma_seed_rng_mt(&(state->default_state), p->rh.mt_state + state->alternative_rng_offset);
+            MERSENNE_TWISTER_STATE *mt_state = p->rh.mt.ptr;
+            soma_seed_rng_mt(&(state->default_state), mt_state + state->alternative_rng_offset);
             break;
         case pseudo_random_number_generator_arg_TT800:;
-            soma_seed_rng_tt800(&(state->default_state), p->rh.tt800_state + state->alternative_rng_offset);
+            TT800STATE *tt800_state = p->rh.tt800.ptr;
+            soma_seed_rng_tt800(&(state->default_state), tt800_state + state->alternative_rng_offset);
             break;
         }                       //end switch
     return 0;

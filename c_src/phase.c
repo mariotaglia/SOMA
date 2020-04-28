@@ -52,10 +52,39 @@ int init_phase(struct Phase *const p)
     n_polymer_offset -= p->n_polymers;
 #endif                          //ENABLE_MPI
 
-    init_rng_heavy(p, p->n_polymers);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            /* intentionally falls through */
+        case pseudo_random_number_generator_arg_PCG32:
+            init_soma_memory(&(p->rh.mt), 0, 0);
+            init_soma_memory(&(p->rh.tt800), 0, 0);
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            init_soma_memory(&(p->rh.mt), p->n_polymers, sizeof(MERSENNE_TWISTER_STATE));
+            init_soma_memory(&(p->rh.tt800), 0, 0);
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            init_soma_memory(&(p->rh.mt), 0, 0);
+            init_soma_memory(&(p->rh.tt800), p->n_polymers, sizeof(TT800STATE));
+            break;
+        }
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            p->polymers[i].poly_state.alternative_rng_offset = get_new_alternative_rng_offset(p);
+            switch (p->args.pseudo_random_number_generator_arg)
+                {
+                case pseudo_random_number_generator__NULL:
+                    /* intentionally falls through */
+                case pseudo_random_number_generator_arg_PCG32:
+                    p->polymers[i].poly_state.alternative_rng_offset = UINT64_MAX;
+                    break;
+                case pseudo_random_number_generator_arg_MT:
+                    p->polymers[i].poly_state.alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.mt), 1);
+                    break;
+                case pseudo_random_number_generator_arg_TT800:
+                    p->polymers[i].poly_state.alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.tt800), 1);
+                    break;
+                }
             seed_rng_state(&(p->polymers[i].poly_state), p->args.rng_seed_arg, i + n_polymer_offset, p);
         }
 
@@ -306,7 +335,8 @@ int copyin_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
-    copyin_rng_heavy(p);
+    copyin_soma_memory(&(p->rh.mt));
+    copyin_soma_memory(&(p->rh.tt800));
 
     p->present_on_device = true;
     return p->n_polymers * 0 + 1;
@@ -370,7 +400,8 @@ int copyout_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyout_poly_conversion(p);
-    copyout_rng_heavy(p);
+    copyout_soma_memory(&(p->rh.mt));
+    copyout_soma_memory(&(p->rh.tt800));
 
     p->present_on_device = false;
     return p->n_polymers * 0 + 1;
@@ -438,13 +469,14 @@ int free_phase(struct Phase *const p)
         }
 
     free_poly_conversion(p);
-    free_rng_heavy(p);
+    free_soma_memory(&(p->rh.mt));
+    free_soma_memory(&(p->rh.tt800));
 
     close_ana(&(p->ana_info));
     return 0;
 }
 
-int update_self_phase(const Phase * const p, int rng_update_flag)
+int update_self_phase(Phase * const p, int rng_update_flag)
 {
     static unsigned int last_time_call = 0;
     if (last_time_call == 0 || p->time > last_time_call)
@@ -491,7 +523,11 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
     //SETS are not updated to host
 
     update_self_poly_conversion(p);
-    update_self_rng_heavy(p);
+    if (rng_update_flag)
+        {
+            update_self_soma_memory(&(p->rh.mt));
+            update_self_soma_memory(&(p->rh.tt800));
+        }
 
     return p->n_polymers * 0 + 1;
 }
