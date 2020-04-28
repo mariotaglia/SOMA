@@ -27,6 +27,7 @@
 struct Phase;
 #include "soma_config.h"
 #include "soma_util.h"
+#include "soma_memory.h"
 
 /*!
   Struct to combine all heavy data pointer for the polymers of this rank.
@@ -39,10 +40,10 @@ struct Phase;
   Pointers that are not used, because the current execution mode doesn't need them are set to NULL.
  */
 typedef struct PolymerHeavy {
-    Monomer *beads;             //!< \brief position information of all polymers on the rank
-    Monomer *msd_beads;         //!< \brief bead positions for the MSD calculation. (typically not present on device.) (It may even be considered to only initialize the Analyze server with this info.
-    struct RNG_STATE *set_states;       //! \brief memory space to store all RNG_STATES
-    unsigned int *set_permutation;      //! space to store the indiviual permutations for the different sets.
+    SomaMemory beads;           //! Memory handle struct for the beads data
+    SomaMemory msd_beads;       //! Memory handle struct for the msd_beads data (typically not present on device)
+    SomaMemory set_states;      //! Memory handle struct for set states memory
+    SomaMemory set_permutation; //! Memory handle struct for the set permutation info
 } PolyermerHeavy;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
