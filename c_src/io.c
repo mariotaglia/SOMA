@@ -731,7 +731,7 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
             return status;
         }
 
-    hsize_t hsize_beads_dataspace[1] = { p->num_all_beads_local};
+    hsize_t hsize_beads_dataspace[1] = { p->num_all_beads };
     hid_t beads_dataspace = H5Screate_simple(1, hsize_beads_dataspace, NULL);
     hsize_t hsize_beads_memspace[1] = { p->num_all_beads_local };
     hid_t beads_memspace = H5Screate_simple(1, hsize_beads_memspace, NULL);
@@ -1069,22 +1069,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/n_polymers", H5T_NATIVE_UINT64, plist_id, &(p->n_polymers_global));
     HDF5_ERROR_CHECK2(status, "/parameter/n_polymers");
 
-    /*   //Distribute the polymers to the different cores.
-    uint64_t n_polymers = p->n_polymers_global / p->info_MPI.sim_size;
-    if ((unsigned int)p->info_MPI.sim_rank < p->n_polymers_global % p->info_MPI.sim_size)
-        n_polymers += 1;
-    p->n_polymers = n_polymers;
-    p->n_polymers_storage = p->n_polymers;
-    uint64_t n_polymer_offset = 0;
-#if ( ENABLE_MPI == 1 )
-    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
-    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-    n_polymer_offset -= p->n_polymers;
-#endif                          //ENABLE_MPI
-
-    if (p->info_MPI.sim_rank == p->info_MPI.sim_size - 1)
-        assert(p->n_polymers + n_polymer_offset == p->n_polymers_global);
-    */
     status = read_hdf5(file_id, "/parameter/reference_Nbeads", H5T_NATIVE_UINT, plist_id, &(p->reference_Nbeads));
     HDF5_ERROR_CHECK2(status, "/parameter/reference_Nbeads");
 
@@ -1221,43 +1205,45 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
             p->harmonic_normb_variable_scale = 1.;
         }
     //temporary load poly type to calculate polymer distribution
-    poly_type_tmp = (unsigned int *) malloc(p->n_polymers_global * sizeof(unsigned int));
+    poly_type_tmp = (unsigned int *)malloc(p->n_polymers_global * sizeof(unsigned int));
     if (poly_type_tmp == NULL)
-      {
-	fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-	return -1;
-      }
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
     status = read_hdf5(file_id, "/poly_type", H5T_NATIVE_UINT, plist_id, poly_type_tmp);
     HDF5_ERROR_CHECK2(status, "poly_type");
 
     //Distribute the polymers to the different cores according to bead length.      
-    uint64_t ave_beads_number=p->num_all_beads / p->info_MPI.sim_size;
-    uint64_t remaining_beads=p->num_all_beads;
-    unsigned int  num_poly_rank[p->info_MPI.sim_size];
-    unsigned int current_length=0;
-    unsigned int last_poly=0;
-    for(uint64_t index=0;index<p->info_MPI.sim_size-1;index++){
-      current_length=0;
-      unsigned int poly_i=0;
-      while(current_length<ave_beads_number){
-	current_length+=p->poly_arch[p->poly_type_offset[poly_type_tmp[last_poly+poly_i]]];
-	poly_i++;
-      }
-      last_poly += poly_i;
-      num_poly_rank[index]=poly_i;
-      remaining_beads -=  current_length;
-      ave_beads_number=remaining_beads/(p->info_MPI.sim_size-index);
-      }
-    num_poly_rank[p->info_MPI.sim_size-1]=p->n_polymers_global-last_poly;
+    uint64_t ave_beads_number = p->num_all_beads / p->info_MPI.sim_size;
+    uint64_t remaining_beads = p->num_all_beads;
+    unsigned int num_poly_rank[p->info_MPI.sim_size];
+    unsigned int current_length = 0;
+    unsigned int last_poly = 0;
+    for (uint64_t index = 0; index < p->info_MPI.sim_size - 1; index++)
+        {
+            current_length = 0;
+            unsigned int poly_i = 0;
+            while (current_length < ave_beads_number)
+                {
+                    current_length += p->poly_arch[p->poly_type_offset[poly_type_tmp[last_poly + poly_i]]];
+                    poly_i++;
+                }
+            last_poly += poly_i;
+            num_poly_rank[index] = poly_i;
+            remaining_beads -= current_length;
+            ave_beads_number = remaining_beads / (p->info_MPI.sim_size - index);
+        }
+    num_poly_rank[p->info_MPI.sim_size - 1] = p->n_polymers_global - last_poly;
     p->n_polymers = num_poly_rank[p->info_MPI.sim_rank];
     p->n_polymers_storage = p->n_polymers;
     free(poly_type_tmp);
-    uint64_t n_polymer_offset = 0;                                                   
-#if ( ENABLE_MPI == 1 )                                                              
+    uint64_t n_polymer_offset = 0;
+#if ( ENABLE_MPI == 1 )
     //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.         
-    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);                                              
-    n_polymer_offset -= p->n_polymers;                                               
-#endif                          //ENABLE_MPI                                         
+    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+    n_polymer_offset -= p->n_polymers;
+#endif                          //ENABLE_MPI
 
     //Allocate memory for almost everything of PHASE
     //Polymers (only the local copies).
@@ -1317,31 +1303,32 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         }
     free(poly_type);
 
-    
     uint32_t beads_number_total = 0;
     //Allocate space for monomers
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            beads_number_total+= p->poly_arch[p->poly_type_offset[p->polymers[i].type]];	        }
-    p->num_all_beads_local=beads_number_total;
+            beads_number_total += p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+        }
+    p->num_all_beads_local = beads_number_total;
 
     //determine n_poylmer_bead_offset with poly_arch info
     uint64_t n_polymer_bead_offset = 0;
-    for(uint64_t poly_i=0;poly_i<n_polymer_offset;poly_i++){
-      n_polymer_bead_offset+=p->poly_arch[p->poly_type_offset[p->polymers[poly_i].type]];
-    }
-     p->ph.beads = (Monomer *) malloc(p->num_all_beads_local * sizeof(Monomer));
-     if (beads == NULL)
-       {
-	 fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-	 return -1;
-       }
-     p->ph.msd_beads = (Monomer *) malloc(p->num_all_beads_local * sizeof(Monomer));
-     if (msd_beads == NULL)
-       {
-	 fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-	 return -1;
-       }
+    for (uint64_t poly_i = 0; poly_i < n_polymer_offset; poly_i++)
+        {
+            n_polymer_bead_offset += p->poly_arch[p->poly_type_offset[p->polymers[poly_i].type]];
+        }
+    p->ph.beads = (Monomer *) malloc(p->num_all_beads_local * sizeof(Monomer));
+    if (beads == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    p->ph.msd_beads = (Monomer *) malloc(p->num_all_beads_local * sizeof(Monomer));
+    if (msd_beads == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
     if (H5Lexists(file_id, "/beads", H5P_DEFAULT) > 0)
         {
