@@ -121,7 +121,7 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
 //! \pre Allocation of buffer with return value of poly_state_serial_length() minimum.
 //! \note Ownership and allocation status is unchanged.
 //! \return Number of written bytes. If < 0 Errorcode.
-int serialize_polymer(const struct Phase *const p, const Polymer * const poly, unsigned char *const buffer);
+int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigned char *const buffer);
 
 //! Deserialize an Polymer from a raw memory buffer.
 //!
@@ -133,15 +133,7 @@ int serialize_polymer(const struct Phase *const p, const Polymer * const poly, u
 //! , because deep copy data is allocated.
 //! \post You are owner of the Polymer including deep copy data.
 //! \return Number of written bytes. If < 0 Errorcode.
-int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const unsigned char *const buffer);
-
-//! Update the Self Memory of a given polymer
-//!
-//! \param p System
-//! \param poly Polymer to update
-//! \param rng_update_flag The flag deciding whether rng_state will be updated
-//! \return Errorcode
-int update_self_polymer(const struct Phase *const p, Polymer * const poly, const int rng_update_flag);
+int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsigned char *const buffer);
 
 //! Update the center of mass of the polymer from its monomer positions.
 //!

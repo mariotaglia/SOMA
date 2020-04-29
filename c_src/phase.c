@@ -71,6 +71,8 @@ int init_phase(struct Phase *const p)
         }
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
+            p->polymers[i].set_states_offset = UINT64_MAX;
+            p->polymers[i].set_permutation_offset = UINT64_MAX;
             switch (p->args.pseudo_random_number_generator_arg)
                 {
                 case pseudo_random_number_generator__NULL:
