@@ -172,7 +172,7 @@ unsigned int rng_state_serial_length(const struct Phase *const p)
     return length;
 }
 
-int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const state, unsigned char *const buffer)
+int serialize_rng_state(struct Phase *const p, const RNG_STATE * const state, unsigned char *const buffer)
 {
     unsigned int position = 0;
     //default state
@@ -181,43 +181,42 @@ int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const sta
 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_MT)
         {
-            memcpy(buffer + position, state->mt_state, sizeof(MERSENNE_TWISTER_STATE));
+            memcpy(buffer + position, ((MERSENNE_TWISTER_STATE *) p->rh.mt.ptr) + state->alternative_rng_offset,
+                   sizeof(MERSENNE_TWISTER_STATE));
             position += sizeof(MERSENNE_TWISTER_STATE);
         }
 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_TT800)
         {
-            memcpy(buffer + position, state->tt800_state, sizeof(TT800STATE));
+            memcpy(buffer + position, ((TT800STATE *) p->rh.tt800.ptr) + state->alternative_rng_offset,
+                   sizeof(TT800STATE));
             position += sizeof(TT800STATE);
         }
     return position;
 }
 
-int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, const unsigned char *const buffer)
+int deserialize_rng_state(struct Phase *const p, RNG_STATE * const state, const unsigned char *const buffer)
 {
     unsigned int position = 0;
     //default state
     memcpy(&(state->default_state), buffer + position, sizeof(PCG_STATE));
     position += sizeof(PCG_STATE);
 
-    state->mt_state = NULL;
-    state->tt800_state = NULL;
+    state->alternative_rng_offset = UINT64_MAX;
 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_MT)
         {
-            state->mt_state = (MERSENNE_TWISTER_STATE *) malloc(sizeof(MERSENNE_TWISTER_STATE));
-            MALLOC_ERROR_CHECK(state->mt_state, sizeof(MERSENNE_TWISTER_STATE));
-
-            memcpy(state->mt_state, buffer + position, sizeof(MERSENNE_TWISTER_STATE));
+            state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.mt), 1);
+            memcpy(((MERSENNE_TWISTER_STATE *) p->rh.mt.ptr) + state->alternative_rng_offset, buffer + position,
+                   sizeof(MERSENNE_TWISTER_STATE));
             position += sizeof(MERSENNE_TWISTER_STATE);
         }
 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_TT800)
         {
-            state->tt800_state = (TT800STATE *) malloc(sizeof(TT800STATE));
-            MALLOC_ERROR_CHECK(state->tt800_state, sizeof(TT800STATE));
-
-            memcpy(state->tt800_state, buffer + position, sizeof(TT800STATE));
+            state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.tt800), 1);
+            memcpy(((TT800STATE *) p->rh.tt800.ptr) + state->alternative_rng_offset, buffer + position,
+                   sizeof(TT800STATE));
             position += sizeof(TT800STATE);
         }
 

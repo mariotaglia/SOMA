@@ -125,7 +125,7 @@ unsigned int rng_state_serial_length(const struct Phase *const p);
 //! \pre Allocation of buffer with return value of rng_state_serial_length() minimum.
 //! \note Ownership and allocation status is unchanged.
 //! \return Number of written bytes. If < 0 Errorcode.
-int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const state, unsigned char *const buffer);
+int serialize_rng_state(struct Phase *const p, const RNG_STATE * const state, unsigned char *const buffer);
 
 //! Deserialize an RNG_STATE from a raw memory buffer.
 //!
@@ -136,7 +136,7 @@ int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const sta
 //! copy data allocated. Otherwise, you create memory leaks.
 //! \post You are owner of the state including deep copy data, because deep copy data is allocated.
 //! \return Number of written bytes. If < 0 Errorcode.
-int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, const unsigned char *const buffer);
+int deserialize_rng_state(struct Phase *const p, RNG_STATE * const state, const unsigned char *const buffer);
 
 //! Function to seed the PRNG properly
 //!
