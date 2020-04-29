@@ -319,19 +319,19 @@ int independent_set_fixed(struct Phase *const p)
 
 int allo_init_memory_for_Polystates(struct Phase *const p)
 {
-    init_soma_memory( &(p->ph.set_states), p->n_polymers * p->max_n_sets,sizeof(RNG_STATE));
-    init_soma_memory( &(p->ph.set_permutation), p->n_polymers * p->max_n_sets,sizeof(unsigned int));
-    switch(p->args.pseudo_random_number_generator_arg)
+    init_soma_memory(&(p->ph.set_states), p->n_polymers * p->max_n_sets, sizeof(RNG_STATE));
+    init_soma_memory(&(p->ph.set_permutation), p->n_polymers * p->max_n_sets, sizeof(unsigned int));
+    switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
             break;
         case pseudo_random_number_generator_arg_PCG32:
             break;
         case pseudo_random_number_generator_arg_MT:
-            reallocate_soma_memory( &(p->rh.mt),p->n_polymers*p->max_n_sets);
+            reallocate_soma_memory(&(p->rh.mt), p->n_polymers * p->max_n_sets);
             break;
         case pseudo_random_number_generator_arg_TT800:
-            reallocate_soma_memory( &(p->rh.tt800),p->n_polymers*p->max_n_sets);
+            reallocate_soma_memory(&(p->rh.tt800), p->n_polymers * p->max_n_sets);
             break;
         }
 
@@ -339,22 +339,22 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
         {
             Polymer *const poly_tmp = p->polymers + i;
 
-            poly_tmp->set_states_offset = get_new_soma_memory_offset( &(p->ph.set_states), p->max_n_sets);
-            poly_tmp->set_permutation_offset = get_new_soma_memory_offset( &(p->ph.set_permutation), p->max_n_sets);
+            poly_tmp->set_states_offset = get_new_soma_memory_offset(&(p->ph.set_states), p->max_n_sets);
+            poly_tmp->set_permutation_offset = get_new_soma_memory_offset(&(p->ph.set_permutation), p->max_n_sets);
 
             //Init every state in the polymer
             const unsigned int seed = pcg32_random(&(poly_tmp->poly_state.default_state));
             for (unsigned int j = 0; j < p->max_set_members; j++)
                 {
-                    struct RNG_STATE * state = p->ph.set_states.ptr;
+                    struct RNG_STATE *state = p->ph.set_states.ptr;
                     state += j;
                     seed_rng_state(state, seed, j, p);
                 }
         }
-    copyin_soma_memory( &(p->ph.set_states) );
-    copyin_soma_memory( &(p->ph.set_permutation) );
-    update_device_soma_memory( &(p->rh.mt) );
-    update_device_soma_memory( &(p->rh.tt800) );
+    copyin_soma_memory(&(p->ph.set_states));
+    copyin_soma_memory(&(p->ph.set_permutation));
+    update_device_soma_memory(&(p->rh.mt));
+    update_device_soma_memory(&(p->rh.tt800));
     return 0;
 }
 

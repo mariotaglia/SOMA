@@ -35,7 +35,7 @@ typedef struct Polymer {
     uint64_t bead_offset;       //!< \brief offset to the bead pointer for this polymer.
     uint64_t msd_bead_offset;   //!< \brief offset to the msd bead pointer for this polymer. (Typically not on device).
     uint64_t set_states_offset; //!< offset to the set_states pointer for this polymer.
-    uint64_t set_permutation_offset;      //!< offset to the set_permutation pointer for this polymer.
+    uint64_t set_permutation_offset;    //!< offset to the set_permutation pointer for this polymer.
 } Polymer;
 
 //! \brief Deallocate memory of deep copy elements in Polymer.
