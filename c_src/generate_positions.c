@@ -67,6 +67,8 @@ int set_neighbour(const unsigned int jbead, const Monomer * const neigh,
     Monomer new;
     int move_allowed;
 
+    Monomer *beads = p->ph.beads.ptr;
+    beads += poly->bead_offset;
     do
         {
             soma_scalar_t scale = 1.;
@@ -93,9 +95,9 @@ int set_neighbour(const unsigned int jbead, const Monomer * const neigh,
             move_allowed = !possible_move_area51(p, neigh->x, neigh->y, neigh->z, dx.x, dx.y, dx.z, false);
     } while (move_allowed);
 
-    p->ph.beads[jbead + poly->bead_offset].x = new.x;
-    p->ph.beads[jbead + poly->bead_offset].y = new.y;
-    p->ph.beads[jbead + poly->bead_offset].z = new.z;
+    beads[jbead].x = new.x;
+    beads[jbead].y = new.y;
+    beads[jbead].z = new.z;
     already_set[jbead] = true;
     return 0;
 }
@@ -113,6 +115,8 @@ int generate_new_beads(struct Phase *const p)
         {
             Polymer *const poly = &(p->polymers[i]);
             const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
+            Monomer *beads = p->ph.beads.ptr;
+            beads += poly->bead_offset;
 
             unsigned int *chain = (unsigned int *)malloc(N * sizeof(unsigned int));
             if (chain == NULL)
@@ -159,9 +163,9 @@ int generate_new_beads(struct Phase *const p)
                             idx = coord_to_index(p, x, y, z);   // > p->n_cells_local if position is out of the domain
                     } while (p->area51 != NULL && (idx >= p->n_cells_local || p->area51[idx] == 1));
 
-                    p->ph.beads[free_index + poly->bead_offset].x = x;
-                    p->ph.beads[free_index + poly->bead_offset].y = y;
-                    p->ph.beads[free_index + poly->bead_offset].z = z;
+                    beads[free_index].x = x;
+                    beads[free_index].y = y;
+                    beads[free_index].z = z;
                     already_set[free_index] = true;
                     chain[chain_index] = free_index;
                     unsigned int total_set = 1;
@@ -198,8 +202,7 @@ int generate_new_beads(struct Phase *const p)
                                             bondlist++;
                                     } while (already_set[new_bead]);    //find the first unset neigbour
                                     chain_index++;
-                                    set_neighbour(new_bead, &(p->ph.beads[old_bead + poly->bead_offset]), bond_type,
-                                                  already_set, poly, p);
+                                    set_neighbour(new_bead, &(beads[old_bead]), bond_type, already_set, poly, p);
                                     already_set[new_bead] = true;
                                     total_set++;
                                     bondlist =
@@ -215,10 +218,10 @@ int generate_new_beads(struct Phase *const p)
             free(already_set);
             free(chain);
             //transfer the particle positions after generation to GPU
-#pragma acc update device(p->ph.beads[0+poly->bead_offset:N+poly->bead_offset])
-            //Init MSD positions
-            memcpy(&p->ph.msd_beads[poly->bead_offset], &p->ph.beads[poly->bead_offset], N * sizeof(Monomer));
-#pragma acc update device(p->ph.msd_beads[0+poly->bead_offset:N+poly->bead_offset])
+            update_device_soma_memory(&(p->ph.beads));
+            //We assume that the msd_beads and the beads use the same memory offsets
+            memcpy(p->ph.msd_beads.ptr, p->ph.beads.ptr, p->ph.beads.used * p->ph.beads.typelength);
+            update_device_soma_memory(&(p->ph.msd_beads));
         }                       //loop over polymers
     update_density_fields(p);
     memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
