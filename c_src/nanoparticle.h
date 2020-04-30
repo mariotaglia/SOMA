@@ -1,5 +1,3 @@
-/// p->nanoparticle pointer to nanoparticle position (similar to polymer[bead].x.y.z)pointer to nanoparticle position (similar to polymer[bead].x.y.z)o/* Copyright (C) 2016-2019 Ludwig Schneider
-
 /* This file is part of SOMA.
 
  SOMA is free software: you can redistribute it and/or modify
@@ -15,14 +13,11 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
-//#ifndef POLYMER_H
-//#define POLYMER_H
 #include "soma_config.h"
-#include "rng.h"
+//#include "rng.h"
 #include "phase.h"
 //! \file nanpoarticle.h
 //! \brief Code related to the nanoparticles
-
 /*! \brief nanpoarticle information */
 typedef struct Nanoparticle {
     soma_scalar_t x;            /*!<\brief pointer to x position */
@@ -39,25 +34,32 @@ typedef struct Nanoparticle {
   \return error value
 */
 int init_nanoparticle(struct Phase *p);
-/*! \brief Calculate the density field contribution of ALL nanoparticles into p->nanoparticle_field
+/*! \brief Calc p->nanoparticle_field containing all nanoparticle densities
   \param p Initialized configuration.
   \return error value
 */
-int calc_np_field(struct Phase *p);
 int calc_np_field_total(struct Phase *p);
-
 /*! \brief Calculate the density field of nanoparticle np, saved into its struct
   \param p Initialized configuration.
   \param np nanoparticle.
   \return error value
 */
-
 int calc_my_np_field(struct Phase *p, Nanoparticle * np);
-/*! \brief Map the density of a box nanoparticle to the discrete density field
+/*! \brief Add density field of nanoparticle np to p->nanoparticle_field
   \param p Initialized configuration.
-  \param np nanoparticle.
+  \param np Nanoparticle.
   \return error value
 */
 int add_my_np_field(struct Phase *p, Nanoparticle * np);
-
+/*! \brief Map density field of box nanoparticle to discrete grid
+  \param p Initialized configuration.
+  \param np Nanoparticle.
+  \return error value
+*/
 int box_to_grid(struct Phase *p, Nanoparticle * np);
+/*! \brief switch area51 at nps location to given value
+  \param p Initialized configuration.
+  \param switch_value value
+  \return error value
+*/
+int nanoparticle_area51_switch(struct Phase *p, int switch_value);

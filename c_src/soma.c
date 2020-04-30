@@ -130,6 +130,9 @@ int main(int argc, char *argv[])
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
+    init_nanoparticle(p);
+    calc_np_field_total(p);
+    nanoparticle_area51_switch(p, 1);
     if (!p->bead_data_read)
         {
 
@@ -145,8 +148,6 @@ int main(int argc, char *argv[])
     const int init_domain_chains_status = send_domain_chains(p, true);
     MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
 #endif                          //ENABLE_MPI
-    init_nanoparticle(p);
-    calc_np_field_total(p);
     if (!p->args.skip_tests_flag)
         {
             const int test_p = test_particle_types(p);
@@ -166,6 +167,7 @@ int main(int argc, char *argv[])
             const int polytype_conversion = test_poly_conversion(p);
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
+    nanoparticle_area51_switch(p, 0);
     int stop_iteration = false;
     for (unsigned int i = 0; i < N_steps; i++)
         {

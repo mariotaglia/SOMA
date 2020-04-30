@@ -1,5 +1,3 @@
-/// p->nanoparticle pointer to nanoparticle position (similar to polymer[bead].x.y.z)pointer to nanoparticle position (similar to polymer[bead].x.y.z)o/* Copyright (C) 2016-2019 Ludwig Schneider
-
 /* This file is part of SOMA.
 
  SOMA is free software: you can redistribute it and/or modify
@@ -15,27 +13,11 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
-//#ifndef POLYMER_H
-//#define POLYMER_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "soma_config.h"
-#include "rng.h"
 #include "phase.h"
-
-//! \file nanpoarticle.h
-//! \brief Code related to the nanoparticles
-
-/*! \brief nanpoarticle information */
-/* typedef struct Nanoparticle { */
-/*   soma_scalar_t x;             /\*!<\brief pointer to x position *\/ */
-/*   soma_scalar_t y;             /\*!<\brief pointer to y position *\/ */
-/*   soma_scalar_t z;             /\*!<\brief pointer to z position *\/ */
-/*   soma_scalar_t radius;  /\*!<\brief Radius of nanoparticle *\/ */
-/*   //  RNG_STATE nanoparticle_state;       //!< \brief Struct which contains all RNGs */
-/*   //  struct RNG_STATE *set_states;       //!< RNG states of independet sets. NULL if not used. */
-/* } Nanoparticle; */
 
 int init_nanoparticle(struct Phase *p)
 {
@@ -45,10 +27,10 @@ int init_nanoparticle(struct Phase *p)
             fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
             return -4;
         }
-    p->nanoparticles[0].x = 0.5;        //test wall
+    p->nanoparticles[0].x = 2;  //test wall
     p->nanoparticles[0].y = 0.5;
     p->nanoparticles[0].z = 0.5;
-    p->nanoparticles[0].radius = 0.25;
+    p->nanoparticles[0].radius = 0.2;
     p->nanoparticles[0].field = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
     if (p->nanoparticles[0].field == NULL)
         {
@@ -77,7 +59,7 @@ int calc_my_np_field(struct Phase *p, Nanoparticle * np)
 }
 
 int box_to_grid(struct Phase *p, Nanoparticle * np)
-{                               //map box nanoparticle to discrete mesh
+{
     soma_scalar_t *xfield = calloc(p->nx, sizeof(soma_scalar_t));
     soma_scalar_t dl = p->Lx / p->nx;
     soma_scalar_t xlo = (np->x - np->radius);
@@ -107,10 +89,26 @@ int box_to_grid(struct Phase *p, Nanoparticle * np)
 
 int add_my_np_field(struct Phase *p, Nanoparticle * np)
 {
-    for (uint64_t x = 0; x < p->nx; x++)
-        for (uint64_t y = 0; y < p->ny; y++)
-            for (uint64_t z = 0; z < p->nz; z++)
-                p->nanoparticle_field[x * p->ny * p->nz + y * p->nz + z] +=
-                    np->field[x * p->ny * p->nz + y * p->nz + z];
+    /* WARNING this is only for the case of 1 nano particle. otherwise addition to existing field */
+    memcpy(p->nanoparticle_field, np->field, p->n_cells * sizeof(soma_scalar_t));
     return 0;
+}
+
+int nanoparticle_area51_switch(struct Phase *p, int switch_value)
+{
+
+    if (p->area51 == NULL)
+        {
+            /* WARNING: no domain decomposition in this case */
+            printf("No area51 found.. creating for initial nanoparticles\n WARNING: This wont work with domain decomposition\n");
+            p->area51 = (uint8_t *) malloc(p->n_cells * sizeof(uint8_t));
+        }
+    if (p->area51 == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    for (uint64_t cell = 0; cell < p->n_cells; cell++)
+        if (p->nanoparticle_field[cell] > 1e-8)
+            p->area51[cell] = switch_value;
 }
