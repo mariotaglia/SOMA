@@ -100,7 +100,8 @@ int nanoparticle_area51_switch(struct Phase *p, int switch_value)
     if (p->area51 == NULL)
         {
             /* WARNING: no domain decomposition in this case */
-            printf("No area51 found.. creating for initial nanoparticles\n WARNING: This wont work with domain decomposition\n");
+            printf
+                ("No area51 found.. creating for initial nanoparticles\n WARNING: This wont work with domain decomposition\n");
             p->area51 = (uint8_t *) malloc(p->n_cells * sizeof(uint8_t));
         }
     if (p->area51 == NULL)
