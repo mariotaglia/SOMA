@@ -252,7 +252,7 @@ void update_omega_fields(const struct Phase *const p)
         case SCMF1:
             update_omega_fields_scmf1(p);
             break;
-        case SCMF2;
+            case SCMF2;
             update_omega_fields_scmf2(p);
             break;
         default:
@@ -300,21 +300,23 @@ void self_omega_field(const struct Phase *const p)
 #pragma omp parallel for
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
                 {
-                    switch(p->hamiltonian){
-                        case SCMF0://Intentionally falls through
+                    switch (p->hamiltonian)
+                        {
+                        case SCMF0:    //Intentionally falls through
                         case SCMF1:
 
                             p->omega_field_unified[cell + T_types * p->n_cells_local] =
                                 inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (p->tempfield[cell] - 1.0));
                             break;
                         case SCMF2:;
-                            const soma_scalar_t field = p->fields_unified[cell]; 
+                            const soma_scalar_t field = p->fields_unified[cell];
                             const soma_scalar_t wn = p->wn[(T_types * p->n_types + T_types) * p->n_types + T_types];
                             const soma_scalar_t xn = p->xn[T_types * p->n_types + T_types];
-                            p->omega_field_unified[cell + T_types * p->n_cells_local] = inverse_refbeads * ((wn * field + xn) * field);
+                            p->omega_field_unified[cell + T_types * p->n_cells_local] =
+                                inverse_refbeads * ((wn * field + xn) * field);
                             break;
-                    //Should be finee................................................................................................................................................................................. 
-                    }
+                            //Should be finee................................................................................................................................................................................. 
+                        }
                     /* the external field is defined such that the energy of a
                        chain of refbeads in this field is x k_B T, thus the
                        normalization per bead */
@@ -408,7 +410,6 @@ void add_triple_omega_fields_scmf2(const struct Phase *const p)
 
     // XN part
 
-
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
         {                       /*Loop over all fields according to monotype */
             for (unsigned int S_types = T_types; S_types < p->n_types; S_types++)
@@ -419,13 +420,18 @@ void add_triple_omega_fields_scmf2(const struct Phase *const p)
 #pragma omp parallel for
                             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
                                 {
-                                    const soma_scalar_t norm = inverse_refbeads * p->wn[(T_types * p->n_types + S_types) * p->n_types + R_types];
+                                    const soma_scalar_t norm =
+                                        inverse_refbeads * p->wn[(T_types * p->n_types + S_types) * p->n_types +
+                                                                 R_types];
                                     const soma_scalar_t rhoS =
-                                        p->fields_unified[cell + S_types * p->n_cells_local] * p->field_scaling_type[S_types];
+                                        p->fields_unified[cell +
+                                                          S_types * p->n_cells_local] * p->field_scaling_type[S_types];
                                     const soma_scalar_t rhoT =
-                                        p->fields_unified[cell + T_types * p->n_cells_local] * p->field_scaling_type[T_types];
+                                        p->fields_unified[cell +
+                                                          T_types * p->n_cells_local] * p->field_scaling_type[T_types];
                                     const soma_scalar_t rhoR =
-                                        p->fields_unified[cell + R_types * p->n_cells_local] * p->field_scaling_type[R_types];
+                                        p->fields_unified[cell +
+                                                          R_types * p->n_cells_local] * p->field_scaling_type[R_types];
                                     p->omega_field_unified[cell + S_types * p->n_cells_local] += norm * rhoT * rhoR;
                                     p->omega_field_unified[cell + T_types * p->n_cells_local] += norm * rhoS * rhoR;
                                     p->omega_field_unified[cell + R_types * p->n_cells_local] += norm * rhoS * rhoT;

@@ -576,7 +576,8 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
             //Number of types
             hsize_t wn_dim[3] = { p->n_types, p->n_types, p->n_types };
             status =
-                write_hdf5(3, wn_dim, file_id, "/parameter/wn", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, p->wn);
+                write_hdf5(3, wn_dim, file_id, "/parameter/wn", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
+                           p->wn);
             HDF5_ERROR_CHECK2(status, "/parameter/wn");
         }
 
@@ -1125,7 +1126,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/xn", H5T_SOMA_NATIVE_SCALAR, plist_id, p->xn);
     HDF5_ERROR_CHECK2(status, "/parameter/xn");
 
-    if(p->hamiltonian == SCMF2)
+    if (p->hamiltonian == SCMF2)
         {
             p->wn = NULL;
             if (H5Lexists(file_id, "/parameter/wn", H5P_DEFAULT) > 0)
@@ -1140,13 +1141,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                     status = read_hdf5(file_id, "/parameter/wn", H5T_SOMA_NATIVE_SCALAR, plist_id, p->wn);
                     HDF5_ERROR_CHECK2(status, "/parameter/wn");
                 }
-            else 
+            else
                 {
-                    fprintf(stderr, "ERROR: Hamiltonian SCMF2 requires parameter/wn array in file.  %s:%d\n", __FILE__, __LINE__);
+                    fprintf(stderr, "ERROR: Hamiltonian SCMF2 requires parameter/wn array in file.  %s:%d\n", __FILE__,
+                            __LINE__);
                     return -1;
                 }
         }
-
 
     //A array for the diffusivity of the particles
     p->A = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
@@ -1539,9 +1540,8 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         }
     if (H5Lexists(file_id, "/parameter/density_weights", H5P_DEFAULT) > 0)
         {
-            hid_t status =
-                read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
-                          p->field_scaling_type);
+            hid_t status = read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                                     p->field_scaling_type);
             HDF5_ERROR_CHECK2(status, "/parameter/density_weights");
         }
     else
