@@ -1126,9 +1126,9 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/xn", H5T_SOMA_NATIVE_SCALAR, plist_id, p->xn);
     HDF5_ERROR_CHECK2(status, "/parameter/xn");
 
+    p->wn = NULL;
     if (p->hamiltonian == SCMF2)
         {
-            p->wn = NULL;
             if (H5Lexists(file_id, "/parameter/wn", H5P_DEFAULT) > 0)
                 {
                     p->wn = (soma_scalar_t * const)malloc(p->n_types * p->n_types * p->n_types * sizeof(soma_scalar_t));

@@ -252,7 +252,7 @@ void update_omega_fields(const struct Phase *const p)
         case SCMF1:
             update_omega_fields_scmf1(p);
             break;
-            case SCMF2;
+        case SCMF2:
             update_omega_fields_scmf2(p);
             break;
         default:
