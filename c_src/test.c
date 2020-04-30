@@ -30,55 +30,6 @@
 #include "mc.h"
 #include "independent_sets.h"
 
-int test_read_write_hdf5(const struct Phase *const p)
-{
-    int status;
-    unsigned int syserror;
-    if ((status = write_config_hdf5(p, "/tmp/p1.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-#if ( ENABLE_MPI == 1 )
-    MPI_Barrier(p->info_MPI.SOMA_comm_sim);
-#endif                          //ENABLE_MPI
-
-    struct Phase phase2;
-    struct Phase *const p2 = &phase2;
-    p2->info_MPI = p->info_MPI;
-    if ((status = read_config_hdf5(p2, "/tmp/p1.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-    init_phase(p2);
-
-    if ((status = write_config_hdf5(p2, "/tmp/p2.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-    free_phase(p2);
-
-    //Maybe the system() approach is not the best. But I think for testing purposes this is fine.
-    if ((status = system("h5diff /tmp/p1.h5 /tmp/p2.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-    //Clean up files
-    syserror = system("rm -f /tmp/p1.h5");
-    if (syserror != 0)
-        fprintf(stderr, "ERROR: removing p1.h5 failed\n");
-    syserror = system("rm -f /tmp/p2.h5");
-    if (syserror != 0)
-        fprintf(stderr, "ERROR: removing p2.h5 failed\n");
-
-    if (p->info_MPI.world_rank == 0)
-        printf("INFO: At t= %d read_write_hdf5 test passed\n", p->time);
-    return 0;
-}
-
 int test_particle_types(const struct Phase *const p)
 {
     for (uint64_t i = 0; i < p->n_poly_type; i++)
@@ -108,25 +59,22 @@ int test_area51_violation(const struct Phase *const p)
 {
     if (p->area51 != NULL)
         {
-
             for (uint64_t i = 0; i < p->n_polymers; i++)
                 {
                     const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+                    Monomer *beads = p->ph.beads.ptr;
+                    beads += p->polymers[i].bead_offset;
                     for (unsigned int j = 0; j < N; j++)
                         {
-                            const uint64_t index = coord_to_index(p, p->polymers[i].beads[j].x,
-                                                                  p->polymers[i].beads[j].y,
-                                                                  p->polymers[i].beads[j].z);
+                            const uint64_t index = coord_to_index(p, beads[j].x, beads[j].y, beads[j].z);
                             if (index >= p->n_cells_local)
                                 {
                                     fprintf(stderr, "ERROR: domain Error %d %d. Particle out of domain %s:%d\n", (int)i,
                                             j, __FILE__, __LINE__);
                                     int x, y, z;
-                                    coord_to_cell_coordinate(p, p->polymers[i].beads[j].x, p->polymers[i].beads[j].y,
-                                                             p->polymers[i].beads[j].z, &x, &y, &z);
+                                    coord_to_cell_coordinate(p, beads[j].x, beads[j].y, beads[j].z, &x, &y, &z);
                                     fprintf(stderr, "\t %d %f %f %f\t %d %d %d\t %d %d\t %f %f %f\n",
-                                            p->info_MPI.world_rank, p->polymers[i].beads[j].x,
-                                            p->polymers[i].beads[j].y, p->polymers[i].beads[j].z, x, y, z,
+                                            p->info_MPI.world_rank, beads[j].x, beads[j].y, beads[j].z, x, y, z,
                                             p->local_nx_low, p->local_nx_high, p->polymers[i].rcm.x,
                                             p->polymers[i].rcm.y, p->polymers[i].rcm.z);
                                     return index;
@@ -215,10 +163,12 @@ int test_area51_exact(const struct Phase *const p)
             for (uint64_t i = 0; i < p->n_polymers; i++)
                 {
                     const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+                    Monomer *beads = p->ph.beads.ptr;
+                    beads += p->polymers[i].bead_offset;
                     for (unsigned int j = 0; j < N - 1; j++)
                         {
-                            const Monomer a = p->polymers[i].beads[j];
-                            const Monomer b = p->polymers[i].beads[j + 1];
+                            const Monomer a = beads[j];
+                            const Monomer b = beads[j + 1];
                             Monomer dx;
                             dx.x = b.x - a.x;
                             dx.y = b.y - a.y;
