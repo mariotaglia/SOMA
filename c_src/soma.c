@@ -145,7 +145,8 @@ int main(int argc, char *argv[])
     const int init_domain_chains_status = send_domain_chains(p, true);
     MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
 #endif                          //ENABLE_MPI
-
+    init_nanoparticle(p);
+    calc_np_field_total(p);
     if (!p->args.skip_tests_flag)
         {
             const int test_p = test_particle_types(p);

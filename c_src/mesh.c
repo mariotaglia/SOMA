@@ -222,7 +222,7 @@ int update_density_fields(const struct Phase *const p)
 #pragma acc parallel loop present(p[0:1])
 #pragma omp parallel for
     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
-        p->tempfield[cell] = rescale_density * p->fields_unified[cell];
+        p->tempfield[cell] = rescale_density * p->fields_unified[cell] + p->nanoparticle_field[cell];
 
     for (unsigned int T_types = 1; T_types < p->n_types; T_types++)
         {
