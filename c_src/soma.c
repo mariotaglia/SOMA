@@ -168,6 +168,7 @@ int main(int argc, char *argv[])
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
     nanoparticle_area51_switch(p, 0);
+    test_nanoparticle(p, &p->nanoparticles[0]);
     int stop_iteration = false;
     for (unsigned int i = 0; i < N_steps; i++)
         {

@@ -27,10 +27,11 @@ int init_nanoparticle(struct Phase *p)
             fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
             return -4;
         }
-    p->nanoparticles[0].x = 2;  //test wall
+    p->nanoparticles[0].x = 0.5;        //test wall
     p->nanoparticles[0].y = 0.5;
     p->nanoparticles[0].z = 0.5;
-    p->nanoparticles[0].radius = 0.2;
+    p->nanoparticles[0].radius = 0.1;
+    p->nanoparticles[0].interaction = 50;
     p->nanoparticles[0].field = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
     if (p->nanoparticles[0].field == NULL)
         {
@@ -49,6 +50,7 @@ int calc_np_field_total(struct Phase *p)
             calc_my_np_field(p, &p->nanoparticles[0]);
             add_my_np_field(p, &p->nanoparticles[0]);
         }
+    memcpy(p->umbrella_field, p->nanoparticle_field, p->n_cells * sizeof(soma_scalar_t)); //for debug purposes
     return 0;
 }
 
@@ -75,7 +77,7 @@ int box_to_grid(struct Phase *p, Nanoparticle * np)
                     if ((soma_scalar_t) x * dl >= xlo && (soma_scalar_t) (x + 1) * dl <= xhi)
                         xfield[x] = 1;
                     if ((soma_scalar_t) x * dl < xlo && (soma_scalar_t) (x + 1) * dl > xlo)
-                        xfield[x] = 1 - fmod(xlo, dl) / dl;
+                        xfield[x] = 1.0 - (fmod(xlo, dl)) / dl;
                     if ((soma_scalar_t) (x + 1) * dl > xhi && (soma_scalar_t) (x) * dl < xhi)
                         xfield[x] = fmod(xhi, dl) / dl;
                 }
@@ -83,7 +85,7 @@ int box_to_grid(struct Phase *p, Nanoparticle * np)
     for (uint64_t x = 0; x < p->nx; x++)        //lazy 1d copy
         for (uint64_t y = 0; y < p->ny; y++)
             for (uint64_t z = 0; z < p->nz; z++)
-                np->field[x * p->ny * p->nz + y * p->nz + z] = xfield[x];
+                np->field[x * p->ny * p->nz + y * p->nz + z] = xfield[x] * np->interaction;
     return 0;
 }
 
@@ -112,4 +114,52 @@ int nanoparticle_area51_switch(struct Phase *p, int switch_value)
     for (uint64_t cell = 0; cell < p->n_cells; cell++)
         if (p->nanoparticle_field[cell] > 1e-8)
             p->area51[cell] = switch_value;
+}
+
+int move_nanoparticle(struct Phase *p, Nanoparticle * np, soma_scalar_t displacement)
+{
+    p->nanoparticles[0].x += displacement;
+    calc_np_field_total(p);
+}
+
+int resize_nanoparticle(struct Phase *p, Nanoparticle * np, soma_scalar_t factor)
+{
+    p->nanoparticles[0].radius *= factor;
+    calc_np_field_total(p);
+}
+
+int test_nanoparticle(struct Phase *p, Nanoparticle * np)
+{
+    int test = 0;
+    for (int i = 0; i < 5; i++)
+        {
+            move_nanoparticle(p, np, 0.01);
+            resize_nanoparticle(p, np, 1.01);
+            soma_scalar_t ref_vol = np->radius * 2 * np->interaction;
+            soma_scalar_t ref_com = np->x;
+            soma_scalar_t vol = 0;
+            soma_scalar_t com = 0;
+
+            for (uint64_t x = 0; x < p->nx; x++)
+                vol += np->field[x * p->ny * p->nz] * p->Lx / p->nx;
+            if (vol - ref_vol > 1e-6)
+                test += 1;
+
+            /* for (uint64_t x = 0; x < p->nx; x++){ */
+            /*   com+=x*p->Lx/p->nx*np->field[x * p->ny * p->nz ]/(vol)*p->Lx/p->nx;    */
+            /* } */
+            if (com - ref_com > 1e-6)
+                test += 1;
+
+        }
+    for (int i = 0; i < 5; i++)
+        {
+            move_nanoparticle(p, np, -0.01);
+            resize_nanoparticle(p, np, 1.0 / 1.01);
+        }
+    if (test == 0)
+        printf("Nanoparticle test passed.\n");
+    else
+        printf("Nanoparticle test failed.\n");
+    return test;
 }

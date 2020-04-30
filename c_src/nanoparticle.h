@@ -24,6 +24,7 @@ typedef struct Nanoparticle {
     soma_scalar_t y;            /*!<\brief pointer to y position */
     soma_scalar_t z;            /*!<\brief pointer to z position */
     soma_scalar_t radius;       /*!<\brief Radius of nanoparticle */
+    soma_scalar_t interaction;  /*!<\brief Interaction strength of nanoparticle */
     soma_scalar_t *field;       /*!<\brief Density field created by THIS nanoparticle */
     //  RNG_STATE nanoparticle_state;       //!< \brief Struct which contains all RNGs
     //  struct RNG_STATE *set_states;       //!< RNG states of independet sets. NULL if not used.
@@ -59,7 +60,28 @@ int add_my_np_field(struct Phase *p, Nanoparticle * np);
 int box_to_grid(struct Phase *p, Nanoparticle * np);
 /*! \brief switch area51 at nps location to given value
   \param p Initialized configuration.
+  \param np Nanoparticle.
   \param switch_value value
   \return error value
 */
 int nanoparticle_area51_switch(struct Phase *p, int switch_value);
+/*! \brief move np and update field
+  \param p Initialized configuration.
+  \param np Nanoparticle.
+  \param displacement displacement
+  \return error value
+*/
+int move_nanoparticle(struct Phase *p, Nanoparticle * np, soma_scalar_t displacement);
+/*! \brief resize np and update field
+  \param p Initialized configuration.
+  \param np Nanoparticle.
+  \param factor resize factor
+  \return error value
+*/
+int resize_nanoparticle(struct Phase *p, Nanoparticle * np, soma_scalar_t factor);
+/*! \brief test np
+  \param p Initialized configuration.
+  \param np Nanoparticle.
+  \return error value, 0 if pass
+*/
+int test_nanoparticle(struct Phase *p, Nanoparticle * np);
