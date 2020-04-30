@@ -263,6 +263,7 @@ int copyin_phase(struct Phase *const p)
 #ifdef _OPENACC
 #pragma acc enter data copyin(p[0:1])
 #pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
+#pragma acc enter data copyin(p->wn[0:p->n_types*p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
 #pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc enter data copyin(p->old_fields_unified[0:p->n_types*p->n_cells_local])
@@ -324,6 +325,7 @@ int copyout_phase(struct Phase *const p)
 #ifdef _OPENACC
 
 #pragma acc exit data copyout(p->xn[0:p->n_types*p->n_types])
+#pragma acc exit data copyout(p->wn[0:p->n_types*p->n_types*p->n_types])
 #pragma acc exit data copyout(p->fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc exit data copyout(p->old_fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc exit data copyout(p->fields_32[0:p->n_types*p->n_cells_local])
@@ -422,6 +424,7 @@ int free_phase(struct Phase *const p)
     free(p->poly_arch);
 
     free(p->xn);
+    free(p->wn);
 
     if (p->area51 != NULL)
         {
@@ -454,6 +457,7 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
 
     // Not pointer members are expected to not change on device
 #pragma acc update self(p->xn[0:p->n_types*p->n_types])
+#pragma acc update self(p->wn[0:p->n_types*p->n_types*p->n_types])
 
     for (uint64_t i = 0; i < p->n_polymers; i++)
         update_self_polymer(p, p->polymers + i, rng_update_flag);

@@ -47,7 +47,7 @@ NUMBER_SOMA_BOND_TYPES = 3
 hamiltonDict = {}
 hamiltonDict["SCMF0".upper()] = 0
 hamiltonDict["SCMF1".upper()] = 1
-
+hamiltonDict["SCMF2".upper()] = 2
 
 ## Class to Store for every Monomer name the corresponding type number and the corresponding half-bond identifier.
 class Types:

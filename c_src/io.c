@@ -571,6 +571,15 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
         write_hdf5(2, xn_dim, file_id, "/parameter/xn", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, p->xn);
     HDF5_ERROR_CHECK2(status, "/parameter/xn");
 
+    if (p->wn != NULL)
+        {
+            //Number of types
+            hsize_t wn_dim[3] = { p->n_types, p->n_types, p->n_types };
+            status =
+                write_hdf5(3, wn_dim, file_id, "/parameter/wn", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, p->wn);
+            HDF5_ERROR_CHECK2(status, "/parameter/wn");
+        }
+
     //A data
     hsize_t n_types_size = p->n_types;
     status =
@@ -1097,6 +1106,15 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/n_types", H5T_NATIVE_UINT, plist_id, &(p->n_types));
     HDF5_ERROR_CHECK2(status, "/parameter/n_types");
 
+    // read nx ny nz
+    p->hamiltonian = SCMF0;
+    //Don't break old configurations.
+    if (H5Lexists(file_id, "/parameter/hamiltonian", H5P_DEFAULT) > 0)
+        {
+            status = read_hdf5(file_id, "/parameter/hamiltonian", H5T_NATIVE_INT, plist_id, &(p->hamiltonian));
+            HDF5_ERROR_CHECK2(status, "/parameter/hamiltonian");
+        }
+
     p->xn = (soma_scalar_t * const)malloc(p->n_types * p->n_types * sizeof(soma_scalar_t));
     if (p->xn == NULL)
         {
@@ -1106,6 +1124,29 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     status = read_hdf5(file_id, "/parameter/xn", H5T_SOMA_NATIVE_SCALAR, plist_id, p->xn);
     HDF5_ERROR_CHECK2(status, "/parameter/xn");
+
+    if(p->hamiltonian == SCMF2)
+        {
+            p->wn = NULL;
+            if (H5Lexists(file_id, "/parameter/wn", H5P_DEFAULT) > 0)
+                {
+                    p->wn = (soma_scalar_t * const)malloc(p->n_types * p->n_types * p->n_types * sizeof(soma_scalar_t));
+                    if (p->wn == NULL)
+                        {
+                            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+                            return -1;
+                        }
+
+                    status = read_hdf5(file_id, "/parameter/wn", H5T_SOMA_NATIVE_SCALAR, plist_id, p->wn);
+                    HDF5_ERROR_CHECK2(status, "/parameter/wn");
+                }
+            else 
+                {
+                    fprintf(stderr, "ERROR: Hamiltonian SCMF2 requires parameter/wn array in file.  %s:%d\n", __FILE__, __LINE__);
+                    return -1;
+                }
+        }
+
 
     //A array for the diffusivity of the particles
     p->A = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
@@ -1122,15 +1163,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     // read p->time
     status = read_hdf5(file_id, "/parameter/time", H5T_NATIVE_UINT, plist_id, &(p->time));
     HDF5_ERROR_CHECK2(status, "/parameter/time");
-
-    // read nx ny nz
-    p->hamiltonian = SCMF0;
-    //Don't break old configurations.
-    if (H5Lexists(file_id, "/parameter/hamiltonian", H5P_DEFAULT) > 0)
-        {
-            status = read_hdf5(file_id, "/parameter/hamiltonian", H5T_NATIVE_INT, plist_id, &(p->hamiltonian));
-            HDF5_ERROR_CHECK2(status, "/parameter/hamiltonian");
-        }
 
     p->k_umbrella = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
     if (p->k_umbrella == NULL)
