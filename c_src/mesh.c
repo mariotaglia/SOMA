@@ -252,6 +252,9 @@ void update_omega_fields(const struct Phase *const p)
         case SCMF1:
             update_omega_fields_scmf1(p);
             break;
+        case SCMF2;
+            update_omega_fields_scmf2(p);
+            break;
         default:
             fprintf(stderr, "ERROR: %s:%d Unkown hamiltonian specified %d.\n", __FILE__, __LINE__, p->hamiltonian);
         }
@@ -383,6 +386,41 @@ void add_pair_omega_fields_scmf1(const struct Phase *const p)
         }
 }
 
+//! Add the pair AND triple interactions to the omega fields via the SCMF2 hamiltonian.
+//! \private Helper function
+//! \param p Phase of the system to add the omega fields
+void add_triple_omega_fields_scmf2(const struct Phase *const p)
+{
+    const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
+
+    // XN part
+
+    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
+        {                       /*Loop over all fields according to monotype */
+            for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
+                {
+                    for (unsigned int R_types = S_types + 1; R_types < p->n_types; R_types++)
+                        {
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for
+                            for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
+                                {
+                                    const soma_scalar_t norm = inverse_refbeads * p->xn[(T_types * p->n_types + S_types) * p->n_types + R_types];
+                                    const soma_scalar_t rhoS =
+                                        p->fields_unified[cell + S_types * p->n_cells_local] * p->field_scaling_type[S_types];
+                                    const soma_scalar_t rhoT =
+                                        p->fields_unified[cell + T_types * p->n_cells_local] * p->field_scaling_type[T_types];
+                                    const soma_scalar_t rhoR =
+                                        p->fields_unified[cell + R_types * p->n_cells_local] * p->field_scaling_type[R_types];
+                                    p->omega_field_unified[cell + T_types * p->n_cells_local] += norm * rhoS;
+                                    p->omega_field_unified[cell + T_types * p->n_cells_local] += norm * rhoT;
+                                    p->omega_field_unified[cell + S_types * p->n_cells_local] += norm * rhoR;
+                                }
+                        }
+                }
+        }
+}
+
 void update_omega_fields_scmf0(const struct Phase *const p)
 {
     self_omega_field(p);
@@ -393,4 +431,11 @@ void update_omega_fields_scmf1(const struct Phase *const p)
 {
     self_omega_field(p);
     add_pair_omega_fields_scmf1(p);
+}
+
+void update_omega_fields_scmf2(const struct Phase *const p)
+{
+    self_omega_field(p);
+    add_pair_omega_fields_scmf1(p);
+    add_triple_omega_fields_scmf2(p);
 }

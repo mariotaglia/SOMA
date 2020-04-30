@@ -35,6 +35,7 @@ struct Info_MPI;
 enum Hamiltonian {
     SCMF0 = 0,                  //!< Original SCMF hamiltonian. For details refer doc of update_omega_fields_scmf0().
     SCMF1 = 1,                  //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
+    SCMF2 = 2,                  //!< Third lternative SCMF hamiltonian, including third order interactions. For details refer doc of update_omega_fields_scmf1().
 };
 
 //! Enum to classify different cartesian directions
