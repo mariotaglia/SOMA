@@ -50,7 +50,7 @@ int calc_np_field_total(struct Phase *p)
             calc_my_np_field(p, &p->nanoparticles[0]);
             add_my_np_field(p, &p->nanoparticles[0]);
         }
-    memcpy(p->umbrella_field, p->nanoparticle_field, p->n_cells * sizeof(soma_scalar_t)); //for debug purposes
+    memcpy(p->umbrella_field, p->nanoparticle_field, p->n_cells * sizeof(soma_scalar_t));       //for debug purposes
     return 0;
 }
 
@@ -66,21 +66,28 @@ int box_to_grid(struct Phase *p, Nanoparticle * np)
     soma_scalar_t dl = p->Lx / p->nx;
     soma_scalar_t xlo = (np->x - np->radius);
     soma_scalar_t xhi = (np->x + np->radius);
-    if (2 * np->radius < dl)
-        {
-            xfield[(int)(np->x / dl)] = 2 * np->radius / dl;
-        }
+    while (xlo < 0)
+        xlo += p->Lx;
+    while (xhi < 0)
+        xhi += p->Lx;
+    xlo = fmod(xlo, p->Lx);
+    xhi = fmod(xhi, p->Lx);
+    int clo = floor(xlo / dl);
+    int chi = floor(xhi / dl);
+    clo = clo % (p->nx);
+    chi = chi % (p->nx);
+    if (clo == chi)
+        xfield[clo] = 2 * np->radius / dl;
     else
         {
-            for (uint64_t x = 0; x < p->nx; x++)
-                {
-                    if ((soma_scalar_t) x * dl >= xlo && (soma_scalar_t) (x + 1) * dl <= xhi)
-                        xfield[x] = 1;
-                    if ((soma_scalar_t) x * dl < xlo && (soma_scalar_t) (x + 1) * dl > xlo)
-                        xfield[x] = 1.0 - (fmod(xlo, dl)) / dl;
-                    if ((soma_scalar_t) (x + 1) * dl > xhi && (soma_scalar_t) (x) * dl < xhi)
-                        xfield[x] = fmod(xhi, dl) / dl;
-                }
+            if (clo < chi)
+                for (int i = clo + 1; i < chi; i++)
+                    xfield[i] = 1;
+            else
+                for (int i = clo + 1; i <= (int)(chi + p->nx); i = (i + 1))
+                    xfield[i % p->nx] = 1;
+            xfield[clo] = ((clo + 1.0) * dl - xlo) / dl;
+            xfield[chi] = (xhi - chi * dl) / dl;
         }
     for (uint64_t x = 0; x < p->nx; x++)        //lazy 1d copy
         for (uint64_t y = 0; y < p->ny; y++)
@@ -131,10 +138,10 @@ int resize_nanoparticle(struct Phase *p, Nanoparticle * np, soma_scalar_t factor
 int test_nanoparticle(struct Phase *p, Nanoparticle * np)
 {
     int test = 0;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < p->nx * 10; i++)
         {
-            move_nanoparticle(p, np, 0.01);
-            resize_nanoparticle(p, np, 1.01);
+            move_nanoparticle(p, np, -p->Lx / p->nx / 5);
+            resize_nanoparticle(p, np, 1.001);
             soma_scalar_t ref_vol = np->radius * 2 * np->interaction;
             soma_scalar_t ref_com = np->x;
             soma_scalar_t vol = 0;
@@ -142,20 +149,17 @@ int test_nanoparticle(struct Phase *p, Nanoparticle * np)
 
             for (uint64_t x = 0; x < p->nx; x++)
                 vol += np->field[x * p->ny * p->nz] * p->Lx / p->nx;
-            if (vol - ref_vol > 1e-6)
-                test += 1;
 
-            /* for (uint64_t x = 0; x < p->nx; x++){ */
-            /*   com+=x*p->Lx/p->nx*np->field[x * p->ny * p->nz ]/(vol)*p->Lx/p->nx;    */
-            /* } */
-            if (com - ref_com > 1e-6)
-                test += 1;
+            if (vol - ref_vol > 1e-6)
+                {
+                    test += 1;
+                }
 
         }
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < p->nx * 10; i++)
         {
-            move_nanoparticle(p, np, -0.01);
-            resize_nanoparticle(p, np, 1.0 / 1.01);
+            move_nanoparticle(p, np, p->Lx / p->nx / 5);
+            resize_nanoparticle(p, np, 1.0 / 1.001);
         }
     if (test == 0)
         printf("Nanoparticle test passed.\n");
