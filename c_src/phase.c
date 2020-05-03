@@ -153,7 +153,6 @@ int init_phase(struct Phase *const p)
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
             return -1;
         }
-    p->n_nanoparticles = 1;
 
     // Set all values to zero
     p->num_all_beads = 0;

@@ -130,7 +130,6 @@ int main(int argc, char *argv[])
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
-    init_nanoparticle(p);
     calc_np_field_total(p);
     nanoparticle_area51_switch(p, 1);
     if (!p->bead_data_read)

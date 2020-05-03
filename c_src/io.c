@@ -1515,7 +1515,28 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         for (unsigned int i = 0; i < p->n_types; i++)
             p->field_scaling_type[i] = 1;
 
-    if ((status = H5Fclose(file_id)) < 0)
+    if (H5Lexists(file_id, "/parameter/n_nanoparticle", H5P_DEFAULT) > 0)
+        {
+            hid_t status = read_hdf5(file_id, "/parameter/n_nanoparticle", H5T_NATIVE_UINT64, plist_id,
+                                     &p->n_nanoparticle);
+            HDF5_ERROR_CHECK2(status, "/parameter/n_nanoparticle");
+        }
+    else
+        p->n_nanoparticle = 0;
+    if (H5Lexists(file_id, "/nanoparticle", H5P_DEFAULT) > 0 && p->n_nanoparticle > 0)
+        {
+            p->nanoparticles = (Nanoparticle *) malloc(p->n_nanoparticle * sizeof(Nanoparticle));
+            if (p->nanoparticles == NULL)
+                {
+                    fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
+                    return -4;
+                }
+
+            hid_t status = read_hdf5(file_id, "/nanoparticle", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                                     p->nanoparticles);
+            HDF5_ERROR_CHECK2(status, "/nanoparticle");
+        }
+    else if ((status = H5Fclose(file_id)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);

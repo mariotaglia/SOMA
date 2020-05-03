@@ -74,7 +74,7 @@ typedef struct Phase {
     uint64_t n_polymers_global; /*!< \brief \#polymers in the global configuration. */
     Polymer *polymers;          /*!< \brief pointer to array of polymers */
     Nanoparticle *nanoparticles;
-    uint64_t n_nanoparticles;
+    uint64_t n_nanoparticle;
     //uint16_t **fields; /*!< \brief n_types fields in 3D, mimics the DENSITY NOT normalized to 1, this has to be done in the omega_field calculation*/
     uint16_t *fields_unified;   /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of fields */
     uint16_t *old_fields_unified;       /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of old fields for density variance calculations */
