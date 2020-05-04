@@ -40,19 +40,6 @@
 #include <hdf5.h>
 struct Phase;
 
-/*! Parser for old style coord.dat files
-  \param p System where read data is stored.
-  \param filename Filename to read in.
-  \return Errorcode
-*/
-int read_old_config(struct Phase *p, char *const filename);
-
-/*! Read in old geometry files.
- * \param p Phase which is going to get the field added.
- * \param filename Filename containing the info.
- * \return Errorcode
- */
-int read_old_geometry(struct Phase *p, const char *filename);
 /*!\brief Writes the current configuration to the disk.
   \param p Pointer to a fully initialized configuration.
   \param filename Relative or absolute path the configuration file to
@@ -70,7 +57,7 @@ int write_config(const struct Phase *const p, const char *const filename);
 //! \param filename Filename of the the ouput file.
 //! \warning This function overwrites the file if it exists.
 //! \return Errorcode.
-int write_config_hdf5(const struct Phase *const p, const char *filename);
+int write_config_hdf5(struct Phase *const p, const char *filename);
 //! \brief Reads a configuration to disk in hdf5 format using parallel I/O
 //!
 //! \param p state of the system

@@ -12,6 +12,7 @@ set(soma_source
   independent_sets.c
   init.c
   io.c
+  io_old.c
   mc.c
   mesh.c
   monomer.c
@@ -43,6 +44,7 @@ set(soma_header
   independent_sets.h
   init.h
   io.h
+  io_old.h
   mc.h
   mesh.h
   monomer.h
