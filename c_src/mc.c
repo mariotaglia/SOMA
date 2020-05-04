@@ -98,11 +98,17 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
             return nan("");
 #endif                          //NAN
         }
-    const soma_scalar_t energy_old = p->omega_field_unified[cellindex_old];
-    // New non-bonded interaction
-    const soma_scalar_t energy_new = p->omega_field_unified[cellindex_new];
-    const soma_scalar_t energy = energy_new - energy_old;
-    return energy;
+      update_omega_fields(p);
+      const soma_scalar_t energy_old = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new];
+  p->fields_unified[cellindex_old]-=1;
+  p->fields_unified[cellindex_new]+=1;
+  p->tempfield[cellindex_old%p->n_cells]+=1.0*p->field_scaling_type[0];
+  p->tempfield[cellindex_new%p->n_cells]-=1.0*p->field_scaling_type[0];
+  update_omega_fields(p);    
+  const soma_scalar_t energy_new = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new];
+  const soma_scalar_t energy = energy_new - energy_old;
+  update_density_fields(p);    
+  return energy;
 }
 
 soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly, const Monomer * const monomer,
@@ -195,19 +201,7 @@ int monte_carlo_propagation(Phase * const p, unsigned int nsteps)
     update_omega_fields(p);
     int ret;
     start_autotuner(&(p->mc_autotuner));
-    switch (p->args.iteration_alg_arg)
-        {
-        case iteration_alg_arg_POLYMER:
-            ret = mc_polymer_iteration(p, nsteps, p->mc_autotuner.value);
-            break;
-        case iteration_alg_arg_SET:
-            ret = mc_set_iteration(p, nsteps, p->mc_autotuner.value);
-            break;
-        case iteration_alg__NULL:
-        default:
-            fprintf(stderr, "ERROR: Unknown iteration algorithm selected.\n");
-            ret = 1;
-        }
+    ret = mc_polymer_iteration(p, nsteps, p->mc_autotuner.value);
     end_autotuner(&(p->mc_autotuner));
     if (ret != 0)
         return ret;
@@ -339,34 +333,17 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
     step = 0;
 
     int error_flags[1] = { 0 }; //error_flag[0] indicates domain errors
-#pragma acc enter data copyin(error_flags[0:1])
 
-    // Loop over the MC scweeps
-    for (step = 0; step < nsteps; step++)
-        {
             uint64_t n_polymers = p->n_polymers;
             unsigned int n_accepts = 0;
-
-            //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
-#pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
-#pragma omp parallel for reduction(+:n_accepts)
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_loc = 0;
-
-                    // Rebuild bond information for this chain from bonds, or stay with linear right now?
                     Polymer *mypoly = &p->polymers[npoly];
-
-                    unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
-                    RNG_STATE *myrngstate = &mypoly->poly_state;        // maybe local copy of rngstate
+                    unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];                    RNG_STATE *myrngstate = &mypoly->poly_state;        // maybe local copy of rngstate
                     enum enum_pseudo_random_number_generator arg_rng_type;
                     arg_rng_type = p->args.pseudo_random_number_generator_arg;
-
                     // MC sweep for this chain
-#pragma acc loop seq
-                    for (unsigned int nmc = 0; nmc < myN; nmc++)
-                        {
-
                             soma_scalar_t dx = 0, dy = 0, dz = 0, delta_energy = 0;
                             unsigned int ibead;
 
@@ -417,21 +394,16 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                             mybead_ptr->x = newx;
                                             mybead_ptr->y = newy;
                                             mybead_ptr->z = newz;
-#ifndef _OPENACC
                                             accepted_moves_loc += 1;
-#endif                          //_OPENACC
                                         }
                                 }
-                        }
-#ifndef _OPENACC
                     n_accepts += accepted_moves_loc;
-#endif                          //_OPENACC
                 }
 
             p->time += 1;
             p->n_moves += p->num_all_beads_local;
             p->n_accepts += n_accepts;
-        }
+
 
 #pragma acc exit data copyout(error_flags[0:1])
     if (error_flags[0] != 0)
