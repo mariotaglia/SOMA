@@ -488,10 +488,15 @@ int update_self_phase(Phase * const p, int rng_update_flag)
 
     // Not pointer members are expected to not change on device
 #pragma acc update self(p->xn[0:p->n_types*p->n_types])
+#pragma acc update self(p->polymers[0:p->n_polymers])
 
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        update_self_polymer(p, p->polymers + i, rng_update_flag);
-
+    update_self_soma_memory( &(p->ph.beads) );
+    update_self_soma_memory( &(p->ph.msd_beads) );
+    if(rng_update_flag)
+        {
+        update_self_soma_memory( &(p->ph.set_states) );
+        update_self_soma_memory( &(p->ph.set_permutation) );
+        }
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #pragma acc update self(p->old_fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc update self(p->fields_32[0:p->n_types*p->n_cells_local])
