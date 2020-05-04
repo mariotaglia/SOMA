@@ -32,6 +32,7 @@
 #include "mpiroutines.h"
 #include "init.h"
 #include "test.h"
+#include "io_old.h"
 
 //! \file convert.c
 //! \brief Implementation of CONVERT executable.
