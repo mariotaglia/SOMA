@@ -18,7 +18,7 @@
 #include <string.h>
 #include "soma_config.h"
 #include "phase.h"
-
+#include "mesh.h"
 int calc_np_field_total(struct Phase *p)
 {
     soma_scalar_t *tempfield = calloc(p->nx, sizeof(soma_scalar_t));
@@ -53,8 +53,11 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
         xhi += p->Lx;
     xlo = fmod(xlo, p->Lx);
     xhi = fmod(xhi, p->Lx);
-    int clo = floor(xlo / dl);
-    int chi = floor(xhi / dl);
+
+    int y, z;
+    int chi, clo;
+    coord_to_cell_coordinate(p, xlo, 0, 0, &clo, &y, &z);
+    coord_to_cell_coordinate(p, xhi, 0, 0, &chi, &y, &z);
     clo = clo % (p->nx);
     chi = chi % (p->nx);
     if (clo == chi)
@@ -124,14 +127,15 @@ int test_nanoparticle(struct Phase *p, Nanoparticle * np)
             memset(tempfield, 0.0, p->nx * sizeof(soma_scalar_t));
 
             move_nanoparticle(np, -p->Lx / p->nx / 5);
-            resize_nanoparticle(np, 1.001);
 
+            resize_nanoparticle(np, 1.001);
             calc_my_np_field(p, np, tempfield);
+
             soma_scalar_t ref_vol = np->radius * 2 * np->interaction;
             soma_scalar_t vol = 0;
 
             for (uint64_t x = 0; x < p->nx; x++)
-                vol += tempfield[x * p->ny * p->nz] * p->Lx / p->nx;
+                vol += tempfield[x] * p->Lx / p->nx;
 
             if (vol - ref_vol > 1e-6)
                 {

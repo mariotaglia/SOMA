@@ -60,7 +60,6 @@ inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t 
         py = p->Ly + py;
     if (pz < 0)
         pz = p->Lz + pz;
-
     // Calculate index
     *x = (int)(px * p->iLx * p->nx);
     *y = (int)(py * p->iLy * p->ny);
