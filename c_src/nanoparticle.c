@@ -54,13 +54,8 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
         xhi += p->Lx;
     xlo = fmod(xlo, p->Lx);
     xhi = fmod(xhi, p->Lx);
-
-    int y, z;
-    int chi, clo;
-    coord_to_cell_coordinate(p, xlo, 0, 0, &clo, &y, &z);
-    coord_to_cell_coordinate(p, xhi, 0, 0, &chi, &y, &z);
-    clo = clo % (p->nx);
-    chi = chi % (p->nx);
+    int clo = floor(xlo / dl);
+    int chi = floor(xhi / dl);
     if (clo == chi)
         tempfield[clo] = 2 * np->radius / dl;
     else

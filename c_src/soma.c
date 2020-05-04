@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
                                 p->info_MPI.world_rank);
                     break;
                 }
-        }
+	 }
 #if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);
     if (missed_chains != 0)
