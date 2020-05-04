@@ -287,6 +287,7 @@ int copyin_phase(struct Phase *const p)
         {
 #pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
+#pragma acc enter data copyin(p->nanoparticle_field[p->n_cells])
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
