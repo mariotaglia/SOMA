@@ -124,6 +124,8 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
     soma_scalar_t delta_energy = 0;
     // loop over bonds of this bead
     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[p->polymers[ipoly].type] + ibead + 1]);
+    Monomer *beads = p->ph.beads.ptr;
+    beads += p->polymers[ipoly].bead_offset;
 
     if (start > 0)
         {
@@ -152,15 +154,15 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
                             //has to come before any declaration
                             ;
                             const soma_scalar_t old_rx =
-                                calc_bond_length(monomer->x, p->polymers[ipoly].beads[jbead].x, p->Lx,
+                                calc_bond_length(monomer->x, beads[jbead].x, p->Lx,
                                                  p->args.bond_minimum_image_convention_flag);
                             const soma_scalar_t new_rx = old_rx + dx;
                             const soma_scalar_t old_ry =
-                                calc_bond_length(monomer->y, p->polymers[ipoly].beads[jbead].y, p->Ly,
+                                calc_bond_length(monomer->y, beads[jbead].y, p->Ly,
                                                  p->args.bond_minimum_image_convention_flag);
                             const soma_scalar_t new_ry = old_ry + dy;
                             const soma_scalar_t old_rz =
-                                calc_bond_length(monomer->z, p->polymers[ipoly].beads[jbead].z, p->Lz,
+                                calc_bond_length(monomer->z, beads[jbead].z, p->Lz,
                                                  p->args.bond_minimum_image_convention_flag);
                             const soma_scalar_t new_rz = old_rz + dz;
 
@@ -252,6 +254,9 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                     RNG_STATE rng_state_local = mypoly->poly_state;
                     RNG_STATE *myrngstate = &rng_state_local;
                     const unsigned int poly_type = mypoly->type;
+                    Monomer *beads = p->ph.beads.ptr;
+                    beads += mypoly->bead_offset;
+
                     if (p->cm_a[poly_type] > 0)
                         {
                             //Generate a random displacement for the center of mass.
@@ -266,7 +271,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
 #pragma acc loop vector seq
                             for (unsigned int ibead = 0; ibead < myN; ibead++)
                                 {
-                                    const Monomer mybead = mypoly->beads[ibead];
+                                    const Monomer mybead = beads[ibead];
                                     const unsigned int iwtype =
                                         get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + ibead]);
 
@@ -298,8 +303,8 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
 #pragma acc loop seq
                                     for (unsigned int ibead = 0; ibead < myN; ibead++)
                                         {
-                                            Monomer mybead = mypoly->beads[ibead];
-                                            Monomer *const mybead_ptr = &mypoly->beads[ibead];
+                                            Monomer mybead = beads[ibead];
+                                            Monomer *const mybead_ptr = &(beads[ibead]);
 
                                             mybead.x += dx;
                                             mybead.y += dy;
@@ -352,6 +357,8 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                     // Rebuild bond information for this chain from bonds, or stay with linear right now?
                     Polymer *mypoly = &p->polymers[npoly];
+                    Monomer *beads = p->ph.beads.ptr;
+                    beads += mypoly->bead_offset;
 
                     unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
                     RNG_STATE *myrngstate = &mypoly->poly_state;        // maybe local copy of rngstate
@@ -369,8 +376,8 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                             const unsigned int iwtype =
                                 get_particle_type(p->poly_arch[p->poly_type_offset[mypoly->type] + 1 + ibead]);
 
-                            Monomer mybead = mypoly->beads[ibead];
-                            Monomer *mybead_ptr = &mypoly->beads[ibead];
+                            Monomer mybead = beads[ibead];
+                            Monomer *mybead_ptr = &(beads[ibead]);
 
                             // roll normal MC trial move or force biased MC move
                             soma_scalar_t smc_deltaE = 0.0;
@@ -472,8 +479,10 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                     const unsigned int *const set_length = mySets.set_length;
                     const unsigned int *const sets = mySets.sets;
                     const unsigned int max_member = mySets.max_member;
-                    RNG_STATE *const set_states = mypoly->set_states;
-                    unsigned int *const set_permutation = mypoly->set_permutation;
+                    RNG_STATE *set_states = p->ph.set_states.ptr;
+                    set_states += mypoly->set_states_offset;
+                    unsigned int *set_permutation = p->ph.set_permutation.ptr;
+                    set_permutation += mypoly->set_permutation_offset;
 
                     //Generate random permutation of the sets
                     //http://www.wikipedia.or.ke/index.php/Permutation
@@ -547,7 +556,8 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
             const unsigned int n_sets = mySets.n_sets;
             const unsigned int *const set_length_tmp = mySets.set_length;
             const unsigned int max_member = mySets.max_member;
-            unsigned int *const set_permutation = (&p->polymers[chain_i])->set_permutation;
+            unsigned int *set_permutation = p->ph.set_permutation.ptr;
+            set_permutation += p->polymers[chain_i].set_permutation_offset;
 
             //Generate random permutation of the sets
             //http://www.wikipedia.or.ke/index.php/Permutation
@@ -574,7 +584,8 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                             const unsigned int poly_type = mypoly->type;
                             const IndependetSets mySets = p->sets[poly_type];
                             const unsigned int *const sets = mySets.sets;
-                            RNG_STATE *const set_states = mypoly->set_states;
+                            RNG_STATE *set_states = p->ph.set_states.ptr;
+                            set_states += mypoly->set_states_offset;
 
                             const unsigned int myN = p->poly_arch[p->poly_type_offset[mypoly->type]];
                             accepted_moves_poly += 0 * myN;     // Shutup compiler warning
@@ -725,6 +736,8 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                      soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz)
 {
     soma_scalar_t v1x = 0.0, v1y = 0.0, v1z = 0.0;
+    Monomer *beads = p->ph.beads.ptr;
+    beads += p->polymers[ipoly].bead_offset;
 
     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[p->polymers[ipoly].type] + ibead + 1]);
 
@@ -752,11 +765,11 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                             //Empty statement, because a statement after a label
                             //has to come before any declaration
                             ;
-                            soma_scalar_t v1x_tmp = calc_bond_length(p->polymers[ipoly].beads[jbead].x, x, p->Lx,
+                            soma_scalar_t v1x_tmp = calc_bond_length(beads[jbead].x, x, p->Lx,
                                                                      p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t v1y_tmp = calc_bond_length(p->polymers[ipoly].beads[jbead].y, y, p->Ly,
+                            soma_scalar_t v1y_tmp = calc_bond_length(beads[jbead].y, y, p->Ly,
                                                                      p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t v1z_tmp = calc_bond_length(p->polymers[ipoly].beads[jbead].z, z, p->Lz,
+                            soma_scalar_t v1z_tmp = calc_bond_length(beads[jbead].z, z, p->Lz,
                                                                      p->args.bond_minimum_image_convention_flag);
                             v1x += v1x_tmp * 2.0 * p->harmonic_normb * scale;
                             v1y += v1y_tmp * 2.0 * p->harmonic_normb * scale;
@@ -833,7 +846,9 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, u
     Polymer *this_poly = &p->polymers[chain_index];
     //local copy of rngstate. For fast updates of state in register.
     RNG_STATE my_state = set_states[iP];
-    Monomer mybead = this_poly->beads[ibead];
+    Monomer *beads = p->ph.beads.ptr;
+    beads += this_poly->bead_offset;
+    Monomer mybead = beads[ibead];
     Monomer dx;
     dx.x = dx.y = dx.z = 0;
     soma_scalar_t smc_deltaE = 0;
@@ -868,14 +883,14 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, u
                     newx.x = mybead.x + dx.x;
                     newx.y = mybead.y + dx.y;
                     newx.z = mybead.z + dx.z;
-                    this_poly->beads[ibead] = newx;
+                    beads[ibead] = newx;
 #ifndef _OPENACC
                     accepted_moves_set += 1;
 #endif                          //_OPENACC
                 }
         }
     //Copy the RNGstate back to global memory
-    this_poly->set_states[iP] = my_state;
+    set_states[iP] = my_state;
     p->polymers[chain_index] = *this_poly;
     *accepted_moves_set_ptr = accepted_moves_set;
     return error;
