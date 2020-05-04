@@ -157,4 +157,11 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 int extent_structure(const struct Phase *p, const soma_scalar_t * const data, const char *const name,
                      const hid_t file_id, const enum structure_factor_type sf_type);
 
+//! \brief Average density field over time
+//!
+//! \param p Pointer to the state of the system.
+//! \param data Pointer to the data to ouput.
+//! \param time time over which is averaged
+//! \return Errorcode
+int average_field(const struct Phase *p, soma_scalar_t* destination,soma_scalar_t time);
 #endif                          //SOMA_ANA_H
