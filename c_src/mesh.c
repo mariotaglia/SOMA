@@ -313,9 +313,9 @@ void self_omega_field(const struct Phase *const p)
                     if (p->umbrella_field != NULL)
                         {
                             p->omega_field_unified[cell + T_types * p->n_cells_local] +=
-                                -inverse_refbeads * p->field_scaling_type[T_types] * p->k_umbrella[T_types] *
+                                -inverse_refbeads *  p->k_umbrella[T_types] *
                                 (p->umbrella_field[cell + T_types * p->n_cells_local] -
-                                 p->fields_unified[cell + T_types * p->n_cells_local]);
+                                 p->field_scaling_type[T_types] *p->fields_unified[cell + T_types * p->n_cells_local]);
                         }
                 }
         }
