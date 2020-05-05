@@ -767,7 +767,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
         {
             my_num_poly = 0;
             my_num_beads = 0;
-            while (my_num_beads < av_beads_per_rank && poly_offset + my_num_beads < p->n_polymers_global)
+            while (my_num_beads < av_beads_per_rank && poly_offset + my_num_poly < p->n_polymers_global)
                 {
                     const unsigned int N = p->poly_arch[p->poly_type_offset[poly_type_tmp[poly_offset + my_num_poly]]];
                     my_num_beads += N;
@@ -776,8 +776,6 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             bead_offset += my_num_beads;
             poly_offset += my_num_poly;
 
-            printf("read rank %d %d %d\n",p->info_MPI.sim_rank,bead_offset,p->num_all_beads);
-            fflush(stdout);
             assert(bead_offset <= p->num_all_beads);
             av_beads_per_rank = (p->num_all_beads - bead_offset) / (p->info_MPI.sim_size - sim_rank);
         }
