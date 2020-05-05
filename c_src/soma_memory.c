@@ -151,6 +151,6 @@ uint64_t get_new_soma_memory_offset(struct SomaMemory *state, const uint64_t n)
     if (state->used + n >= state->length)
         if (reallocate_soma_memory(state, n + 1) != 0)
             return UINT64_MAX;
-    state->used += 1;
-    return state->used - 1;
+    state->used += n;
+    return state->used - n;
 }

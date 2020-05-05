@@ -26,8 +26,8 @@ import h5py
 def get_particle_type(info_bl):
     return ConfGen.get_particle_type(info_bl)
 
-def get_xyz(f,ipoly,ibead):
-    tu = f['beads'][ipoly][ibead]
+def get_xyz(f,i):
+    tu = f['beads'][i]
     return (tu[0],tu[1],tu[2])
 
 def get_type(f,ipoly,ibead):
@@ -151,18 +151,19 @@ def check_particle_data(pdata,h5,epsilon=1e-25):
     for i in range(len(pdata)):
         line = pdata[i].strip()
         if len(line) > 0 and line[0] != '#':
-            ipoly = i/NmonoA
+            ipoly = i//NmonoA
             ibead = i%NmonoA
+
             line = line.split()
             xyz = (line[0],line[1],line[2])
             norm =0
-            for i in range(3):
-                norm += abs(float(xyz[i])-get_xyz(h5,ipoly,ibead)[i])
+            for j in range(3):
+                norm += abs(float(xyz[j])-get_xyz(h5,i)[j])
             if norm > epsilon:
-                print("Particle data mismatch x,y,z: "+str((xyz,get_xyz(h5,ipoly,ibead),ipoly,ibead)))
+                print("Particle data mismatch x,y,z: "+str((xyz,get_xyz(h5,i),ipoly,ibead)))
                 ret += 1
             if int(line[3])-1 != get_type(h5,ipoly,ibead):
-                print("Mismatch type (maybe unsupported polymer mixture): "+str((line[3],get_type(h5,ipoly,ibead),ipoly,ibead)))
+                print("Mismatch type (maybe unsupported polymer mixture): "+str((line[3],get_type(h5,ipoly,ibead),ipoly)))
                 ret += 1
 
     return ret

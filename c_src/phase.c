@@ -338,8 +338,19 @@ int copyin_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
-    copyin_soma_memory(&(p->rh.mt));
-    copyin_soma_memory(&(p->rh.tt800));
+    switch(p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            copyin_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            copyin_soma_memory(&(p->rh.tt800));
+            break;
+        }
     copyin_polymer_heavy(p);
 
     p->present_on_device = true;
@@ -404,8 +415,19 @@ int copyout_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyout_poly_conversion(p);
-    copyout_soma_memory(&(p->rh.mt));
-    copyout_soma_memory(&(p->rh.tt800));
+        switch(p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            copyout_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            copyout_soma_memory(&(p->rh.tt800));
+            break;
+        }
     copyout_polymer_heavy(p);
 
     p->present_on_device = false;
@@ -459,8 +481,19 @@ int free_phase(struct Phase *const p)
         free(p->umbrella_field);
 
     free_poly_conversion(p);
-    free_soma_memory(&(p->rh.mt));
-    free_soma_memory(&(p->rh.tt800));
+    switch(p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            free_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            free_soma_memory(&(p->rh.tt800));
+            break;
+        }
     free_polymer_heavy(p);
 
     close_ana(&(p->ana_info));
@@ -515,8 +548,19 @@ int update_self_phase(Phase * const p, int rng_update_flag)
     update_self_poly_conversion(p);
     if (rng_update_flag)
         {
-            update_self_soma_memory(&(p->rh.mt));
-            update_self_soma_memory(&(p->rh.tt800));
+        switch(p->args.pseudo_random_number_generator_arg)
+            {
+            case pseudo_random_number_generator__NULL:
+                break;
+            case pseudo_random_number_generator_arg_PCG32:
+                break;
+            case pseudo_random_number_generator_arg_MT:
+                update_self_soma_memory(&(p->rh.mt));
+                break;
+            case pseudo_random_number_generator_arg_TT800:
+                update_self_soma_memory(&(p->rh.tt800));
+                break;
+            }
         }
 
     return p->n_polymers * 0 + 1;

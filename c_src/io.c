@@ -293,12 +293,13 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
         }
     //Transfer intenal bead data to SOMA data format
     uint64_t bead_mem_counter = 0;
-    for (uint64_t i; i < p->n_polymers; i++)
+
+    for (uint64_t i=0; i < p->n_polymers; i++)
         {
             Monomer *beads = p->ph.beads.ptr;
             beads += p->polymers[i].bead_offset;
-
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+
             for (unsigned int j = 0; j < N; j++)
                 {
                     assert(bead_mem_counter < p->num_all_beads_local);
@@ -745,6 +746,12 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
         }
     status = read_hdf5(file_id, "/poly_type", H5T_NATIVE_UINT, plist_id, poly_type_tmp);
     HDF5_ERROR_CHECK2(status, "poly_type tmp global read");
+    p->num_all_beads = 0;
+    for(uint64_t i = 0; i< p->n_polymers_global; i++)
+        {
+        const unsigned int N = p->poly_arch[ p->poly_type_offset[ poly_type_tmp[i] ] ];
+        p->num_all_beads += N;
+        }
 
     //Distribute the polymers to the different cores according to bead length.
     uint64_t av_beads_per_rank = p->num_all_beads / p->info_MPI.sim_size;
@@ -769,6 +776,8 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             bead_offset += my_num_beads;
             poly_offset += my_num_poly;
 
+            printf("read rank %d %d %d\n",p->info_MPI.sim_rank,bead_offset,p->num_all_beads);
+            fflush(stdout);
             assert(bead_offset <= p->num_all_beads);
             av_beads_per_rank = (p->num_all_beads - bead_offset) / (p->info_MPI.sim_size - sim_rank);
         }
@@ -860,7 +869,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
 
             //Transfer the memory of the temporary array into the polymer structs.
             uint64_t bead_mem_counter = 0;
-            for (uint64_t i; i < p->n_polymers; i++)
+            for (uint64_t i=0; i < p->n_polymers; i++)
                 {
                     Monomer *beads = p->ph.beads.ptr;
                     beads += p->polymers[i].bead_offset;
