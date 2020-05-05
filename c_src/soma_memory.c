@@ -133,7 +133,7 @@ int update_self_soma_memory(struct SomaMemory *state)
     return 0;
 }
 
-int update_device_rng_heavy(struct SomaMemory *state)
+int update_device_soma_memory(struct SomaMemory *state)
 {
     if (state->length > 0)
         {

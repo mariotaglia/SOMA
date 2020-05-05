@@ -31,6 +31,7 @@
 #include "independent_sets.h"
 #include "mesh.h"
 #include "polytype_conversion.h"
+#include "poly_heavy.h"
 
 int init_phase(struct Phase *const p)
 {
@@ -339,6 +340,7 @@ int copyin_phase(struct Phase *const p)
     copyin_poly_conversion(p);
     copyin_soma_memory(&(p->rh.mt));
     copyin_soma_memory(&(p->rh.tt800));
+    copyin_polymer_heavy(p);
 
     p->present_on_device = true;
     return p->n_polymers * 0 + 1;
@@ -404,6 +406,7 @@ int copyout_phase(struct Phase *const p)
     copyout_poly_conversion(p);
     copyout_soma_memory(&(p->rh.mt));
     copyout_soma_memory(&(p->rh.tt800));
+    copyout_polymer_heavy(p);
 
     p->present_on_device = false;
     return p->n_polymers * 0 + 1;
@@ -441,38 +444,24 @@ int free_phase(struct Phase *const p)
             free(p->sets);
         }
 
-    /* free polymers */
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            free_polymer(p, poly);
-        }
-
     free(p->polymers);
-
     free(p->poly_type_offset);
     free(p->poly_arch);
-
     free(p->xn);
 
     if (p->area51 != NULL)
-        {
-            free(p->area51);
-        }
+        free(p->area51);
 
     if (p->external_field_unified != NULL)
-        {
-            free(p->external_field_unified);
-        }
+        free(p->external_field_unified);
 
     if (p->umbrella_field != NULL)
-        {
-            free(p->umbrella_field);
-        }
+        free(p->umbrella_field);
 
     free_poly_conversion(p);
     free_soma_memory(&(p->rh.mt));
     free_soma_memory(&(p->rh.tt800));
+    free_polymer_heavy(p);
 
     close_ana(&(p->ana_info));
     return 0;
@@ -490,13 +479,7 @@ int update_self_phase(Phase * const p, int rng_update_flag)
 #pragma acc update self(p->xn[0:p->n_types*p->n_types])
 #pragma acc update self(p->polymers[0:p->n_polymers])
 
-    update_self_soma_memory(&(p->ph.beads));
-    update_self_soma_memory(&(p->ph.msd_beads));
-    if (rng_update_flag)
-        {
-            update_self_soma_memory(&(p->ph.set_states));
-            update_self_soma_memory(&(p->ph.set_permutation));
-        }
+    update_self_polymer_heavy(p, rng_update_flag);
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #pragma acc update self(p->old_fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc update self(p->fields_32[0:p->n_types*p->n_cells_local])

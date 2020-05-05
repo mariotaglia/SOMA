@@ -38,27 +38,6 @@ typedef struct Polymer {
     uint64_t set_permutation_offset;    //!< offset to the set_permutation pointer for this polymer.
 } Polymer;
 
-//! \brief Deallocate memory of deep copy elements in Polymer.
-//!
-//! \param p initialized system.
-//! \param poly Polymer to deallocate.
-//! \return Errorcode.
-int free_polymer(const struct Phase *const p, Polymer * const poly);
-
-//! Copyin deep copy to device memory of a polymer.
-//!
-//! \param p System
-//! \param poly Polymer to copyin.
-//! \return Errorcode.
-int copyin_polymer(struct Phase *const p, Polymer * const poly);
-
-//! Copyout deep copy from device memory of a polymer.
-//!
-//! \param p System
-//! \param poly Polymer to copyout.
-//! \return Errorcode.
-int copyout_polymer(struct Phase *const p, Polymer * const poly);
-
 //! If more memory space for polymers is requested than available,
 //! this functionallocates more space.
 //!

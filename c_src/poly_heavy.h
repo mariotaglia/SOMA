@@ -25,6 +25,7 @@
 #define POLYMER_HEAVY_H
 
 struct Phase;
+#include <stdbool.h>
 #include "soma_config.h"
 #include "soma_util.h"
 #include "soma_memory.h"
@@ -45,13 +46,6 @@ typedef struct PolymerHeavy {
     SomaMemory set_states;      //! Memory handle struct for set states memory
     SomaMemory set_permutation; //! Memory handle struct for the set permutation info
 } PolyermerHeavy;
-
-/*! \brief Initializes the values additional after the input init by the read*() functions.
-
-  \param p Phase that contains a PolymerHeavy to initialize
-  \return error code.
-*/
-int init_polymer_heavy(struct Phase *const p);
 
 /*! \brief Frees all resources of the PolymerHeavy struct
 
@@ -79,13 +73,13 @@ int copyout_polymer_heavy(struct Phase *const p);
   \param p Phase that contains a PolymerHeavy to update
   \return error code.
 */
-int update_device_polymer_heavy(struct Phase *const p);
+int update_device_polymer_heavy(struct Phase *const p, const bool rng_flag);
 
 /*! \brief Updates the self memory with the current device memory of the polymer heavcy strcut.
 
   \param p Phase that contains a PolymerHeavy to update
   \return error code.
 */
-int update_self_polymer_heavy(struct Phase *const p);
+int update_self_polymer_heavy(struct Phase *const p, const bool rng_flag);
 
 #endif                          // POLYMER_HEAVY_H
