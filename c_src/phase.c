@@ -338,7 +338,7 @@ int copyin_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
-    switch(p->args.pseudo_random_number_generator_arg)
+    switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
             break;
@@ -415,7 +415,7 @@ int copyout_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyout_poly_conversion(p);
-        switch(p->args.pseudo_random_number_generator_arg)
+    switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
             break;
@@ -481,7 +481,7 @@ int free_phase(struct Phase *const p)
         free(p->umbrella_field);
 
     free_poly_conversion(p);
-    switch(p->args.pseudo_random_number_generator_arg)
+    switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
             break;
@@ -548,19 +548,19 @@ int update_self_phase(Phase * const p, int rng_update_flag)
     update_self_poly_conversion(p);
     if (rng_update_flag)
         {
-        switch(p->args.pseudo_random_number_generator_arg)
-            {
-            case pseudo_random_number_generator__NULL:
-                break;
-            case pseudo_random_number_generator_arg_PCG32:
-                break;
-            case pseudo_random_number_generator_arg_MT:
-                update_self_soma_memory(&(p->rh.mt));
-                break;
-            case pseudo_random_number_generator_arg_TT800:
-                update_self_soma_memory(&(p->rh.tt800));
-                break;
-            }
+            switch (p->args.pseudo_random_number_generator_arg)
+                {
+                case pseudo_random_number_generator__NULL:
+                    break;
+                case pseudo_random_number_generator_arg_PCG32:
+                    break;
+                case pseudo_random_number_generator_arg_MT:
+                    update_self_soma_memory(&(p->rh.mt));
+                    break;
+                case pseudo_random_number_generator_arg_TT800:
+                    update_self_soma_memory(&(p->rh.tt800));
+                    break;
+                }
         }
 
     return p->n_polymers * 0 + 1;

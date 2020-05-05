@@ -83,7 +83,7 @@ int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase
     const uint64_t new_length = state->length * 1.05 + min_increase;
     void *tmp = malloc(new_length * state->typelength);
     MALLOC_ERROR_CHECK(tmp, new_length * state->typelength);
-    if(state->used > 0)
+    if (state->used > 0)
         memcpy(tmp, state->ptr, state->used * state->typelength);
     free(state->ptr);
     state->ptr = tmp;

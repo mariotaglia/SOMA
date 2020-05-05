@@ -27,6 +27,7 @@
 #include "soma_util.h"
 #include "phase.h"
 #include "soma_memory.h"
+#include "rng.h"
 
 //! Sort the indecies of the set_length in sort_array with the highest at pos=0.
 //!
@@ -346,8 +347,22 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
             const unsigned int seed = pcg32_random(&(poly_tmp->poly_state.default_state));
             for (unsigned int j = 0; j < p->max_set_members; j++)
                 {
-                    struct RNG_STATE *state = p->ph.set_states.ptr;
-                    state += j;
+                    RNG_STATE *state = p->ph.set_states.ptr;
+                    state += poly_tmp->set_states_offset + j;
+                    switch (p->args.pseudo_random_number_generator_arg)
+                        {
+                        case pseudo_random_number_generator__NULL:
+                            /* intentionally falls through */
+                        case pseudo_random_number_generator_arg_PCG32:
+                            state->alternative_rng_offset = UINT64_MAX;
+                            break;
+                        case pseudo_random_number_generator_arg_MT:
+                            state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.mt), 1);
+                            break;
+                        case pseudo_random_number_generator_arg_TT800:
+                            state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.tt800), 1);
+                            break;
+                        }
                     seed_rng_state(state, seed, j, p);
                 }
         }
