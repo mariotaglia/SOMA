@@ -366,10 +366,6 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
                     seed_rng_state(state, seed, j, p);
                 }
         }
-    copyin_soma_memory(&(p->ph.set_states));
-    copyin_soma_memory(&(p->ph.set_permutation));
-    update_device_soma_memory(&(p->rh.mt));
-    update_device_soma_memory(&(p->rh.tt800));
     return 0;
 }
 
