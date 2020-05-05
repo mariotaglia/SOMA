@@ -176,9 +176,9 @@ int update_density_fields(const struct Phase *const p)
     for (uint64_t i = 0; i < n_polymers; i++)
         {                       /*Loop over polymers */
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
-#pragma acc loop vector
             Monomer *beads = p->ph.beads.ptr;
             beads += p->polymers[i].bead_offset;
+#pragma acc loop vector
             for (unsigned int j = 0; j < N; j++)
                 {               /*Loop over monomers */
                     const unsigned int monotype =

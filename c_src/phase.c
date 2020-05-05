@@ -330,11 +330,6 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
         }
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            copyin_polymer(p, poly);
-        }
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
@@ -403,11 +398,6 @@ int copyout_phase(struct Phase *const p)
 #pragma acc exit data copyout(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
 #pragma acc exit data copyout(p->sets[0:p->n_poly_type])
-        }
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            copyout_polymer(p, poly);
         }
 #pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
