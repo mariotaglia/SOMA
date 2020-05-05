@@ -478,6 +478,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                     const unsigned int max_member = mySets.max_member;
                     RNG_STATE *set_states = p->ph.set_states.ptr;
                     set_states += mypoly->set_states_offset;
+
                     unsigned int *set_permutation = p->ph.set_permutation.ptr;
                     set_permutation += mypoly->set_permutation_offset;
 

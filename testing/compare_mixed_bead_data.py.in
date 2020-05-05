@@ -28,8 +28,8 @@ def get_bead_data(filename):
         Npoly = f["/parameter/n_polymers"][0]
         poly_type = f["/poly_type"][:]
         poly_arch = f["/parameter/poly_arch"][:]
-        poly_type_offset = f["/poly_type_offset"][:]
-    Ns = np.zeros( Npoly,dtype=int )
+        poly_type_offset = f["/parameter/poly_type_offset"][:]
+    Ns = numpy.zeros( Npoly,dtype=int )
     for i in range(Npoly):
         Ns[i] = poly_arch[ poly_type_offset[ poly_type[i] ]]
 

@@ -181,11 +181,11 @@ def main(argv):
     print("Ignoring free comment line: \""+dat[2].strip()+"\"")
     ret += check_fourth_line(dat[3],h5)
     ret += check_particle_data(dat[4:],h5)
+    h5.close()
 
     if ret != 0:
-        print("ERROR: "+str(ret)+" mismatches detected.")
+        raise RuntimeError("ERROR: "+str(ret)+" mismatches detected.")
 
-    h5.close()
     return ret
 
 

@@ -789,8 +789,8 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             my_num_beads = p->num_all_beads - bead_offset;
         }
 
-    printf("DEBUG %s:%d (remove) sim rank: %d bead_offset: %d poly_offset: %d num_beads: %d num_poly: %d\n", __FILE__,
-           __LINE__, p->info_MPI.sim_rank, (int)bead_offset, (int)poly_offset, (int)my_num_beads, (int)my_num_poly);
+    /* printf("DEBUG %s:%d (remove) sim rank: %d bead_offset: %d poly_offset: %d num_beads: %d num_poly: %d\n", __FILE__, */
+    /*        __LINE__, p->info_MPI.sim_rank, (int)bead_offset, (int)poly_offset, (int)my_num_beads, (int)my_num_poly); */
 
     p->n_polymers = my_num_poly;
     p->n_polymers_storage = p->n_polymers;

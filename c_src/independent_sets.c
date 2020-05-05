@@ -319,7 +319,7 @@ int independent_set_fixed(struct Phase *const p)
 
 int allo_init_memory_for_Polystates(struct Phase *const p)
 {
-    init_soma_memory(&(p->ph.set_states), p->n_polymers * p->max_n_sets, sizeof(RNG_STATE));
+    init_soma_memory(&(p->ph.set_states), p->n_polymers * p->max_set_members, sizeof(RNG_STATE));
     init_soma_memory(&(p->ph.set_permutation), p->n_polymers * p->max_n_sets, sizeof(unsigned int));
     switch (p->args.pseudo_random_number_generator_arg)
         {
@@ -339,7 +339,7 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
         {
             Polymer *const poly_tmp = p->polymers + i;
 
-            poly_tmp->set_states_offset = get_new_soma_memory_offset(&(p->ph.set_states), p->max_n_sets);
+            poly_tmp->set_states_offset = get_new_soma_memory_offset(&(p->ph.set_states), p->max_set_members);
             poly_tmp->set_permutation_offset = get_new_soma_memory_offset(&(p->ph.set_permutation), p->max_n_sets);
 
             //Init every state in the polymer
