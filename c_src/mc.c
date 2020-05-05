@@ -153,17 +153,14 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
                             //Empty statement, because a statement after a label
                             //has to come before any declaration
                             ;
-                            const soma_scalar_t old_rx =
-                                calc_bond_length(monomer->x, beads[jbead].x, p->Lx,
-                                                 p->args.bond_minimum_image_convention_flag);
+                            const soma_scalar_t old_rx = calc_bond_length(monomer->x, beads[jbead].x, p->Lx,
+                                                                          p->args.bond_minimum_image_convention_flag);
                             const soma_scalar_t new_rx = old_rx + dx;
-                            const soma_scalar_t old_ry =
-                                calc_bond_length(monomer->y, beads[jbead].y, p->Ly,
-                                                 p->args.bond_minimum_image_convention_flag);
+                            const soma_scalar_t old_ry = calc_bond_length(monomer->y, beads[jbead].y, p->Ly,
+                                                                          p->args.bond_minimum_image_convention_flag);
                             const soma_scalar_t new_ry = old_ry + dy;
-                            const soma_scalar_t old_rz =
-                                calc_bond_length(monomer->z, beads[jbead].z, p->Lz,
-                                                 p->args.bond_minimum_image_convention_flag);
+                            const soma_scalar_t old_rz = calc_bond_length(monomer->z, beads[jbead].z, p->Lz,
+                                                                          p->args.bond_minimum_image_convention_flag);
                             const soma_scalar_t new_rz = old_rz + dz;
 
                             const soma_scalar_t old_r2 = old_rx * old_rx + old_ry * old_ry + old_rz * old_rz;
