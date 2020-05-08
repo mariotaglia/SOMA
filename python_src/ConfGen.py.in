@@ -734,12 +734,14 @@ class Interaction:
             return None
         N   = self.knownTypes.n_types_equiv
         tmp = numpy.zeros((N,N,N),dtype=soma_type.get_soma_scalar_type())
-        tmp = tmp+float('inf')
         for i in range(N):
             for j in range(N):
                 for k in range(N):
                     s = tuple(sorted([i,j,k]))
-                    tmp[i,j,k] = self._wn_dict[s]
+                    try:
+                        tmp[i,j,k] = self._wn_dict[s]
+                    except KeyError:
+                        print(" The third order interaction parameter for", s, "is missing. Please add parameter to xml file, will be set to zero otherwise.")
         print ("Third order hamiltonian has the following interaction tensor:\n",tmp)
         return tmp
 
