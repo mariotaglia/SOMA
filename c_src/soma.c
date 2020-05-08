@@ -167,8 +167,9 @@ int main(int argc, char *argv[])
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
     nanoparticle_area51_switch(p, 0);
-    test_nanoparticle(p, &p->nanoparticles[0]);
+    //    test_nanoparticle(p, &p->nanoparticles[0]);
     int stop_iteration = false;
+
     for (unsigned int i = 0; i < N_steps; i++)
         {
             analytics(p);
@@ -213,12 +214,17 @@ int main(int argc, char *argv[])
                                 p->info_MPI.world_rank);
                     break;
                 }
-	 }
+	    }
+	 
 #if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);
     if (missed_chains != 0)
         exit(missed_chains);
 #endif                          //ENABLE_MPI
+    
+#pragma acc update device(p->umbrella_field[p->n_types*p->n_cells])
+#pragma acc update device(p->xn[p->n_types])
+#pragma acc update device(p->k_umbrella[p->n_types])
 
     const int write = write_config_hdf5(p, p->args.final_file_arg);
     MPI_ERROR_CHECK(write, "Cannot write final configuration.");

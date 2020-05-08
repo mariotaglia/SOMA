@@ -355,6 +355,7 @@ void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const n
                                     non_bonded_energy[type] +=
                                         p->omega_field_unified[cell + type * p->n_cells_local]
                                         * p->fields_unified[cell + type * p->n_cells_local];
+
                                 }
                 }
         }
@@ -364,6 +365,7 @@ void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const n
     else
         MPI_Reduce(non_bonded_energy, NULL, p->n_types, MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
 #endif                          //ENABLE_MPI
+
 }
 
 void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonded_energy)
@@ -1361,6 +1363,7 @@ int extent_structure(const struct Phase *p, const soma_scalar_t * const data, co
     return 0;
 }
 int average_field(const struct Phase *p, soma_scalar_t* destination,soma_scalar_t time){
+#pragma acc update self(p->fields_unified[p->n_types*p->n_cells])
       for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
 	for (uint64_t cell = 0; cell < p->n_cells; cell++)
 	  if(p->area51==NULL||(p->area51!=NULL&&p->area51[cell]==0)){
