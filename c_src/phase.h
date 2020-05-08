@@ -69,6 +69,7 @@ typedef struct Phase {
      */
 
     soma_scalar_t *xn;
+    soma_scalar_t *wn;
     uint64_t n_polymers;        /*!< \brief \#polymers in the configuration. (Local on the MPI node.) */
     uint64_t n_polymers_storage;        /*!< \brief Storage space for polymers. */
     uint64_t n_polymers_global; /*!< \brief \#polymers in the global configuration. */

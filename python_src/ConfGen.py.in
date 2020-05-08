@@ -47,7 +47,7 @@ NUMBER_SOMA_BOND_TYPES = 3
 hamiltonDict = {}
 hamiltonDict["SCMF0".upper()] = 0
 hamiltonDict["SCMF1".upper()] = 1
-
+hamiltonDict["SCMF2".upper()] = 2
 
 ## Class to Store for every Monomer name the corresponding type number and the corresponding half-bond identifier.
 class Types:
@@ -63,7 +63,8 @@ class Types:
         self.n_types_equiv = 0
         self._lock = False
 
-        assert type(equivalence_str) is str
+        if type(equivalence_str) is not str:
+            raise RuntimeError("Types.__init__ got argument of incompatible type for equivalence_str")
         for line in equivalence_str.split("\n"):
             line = line.strip()
             if len(line) > 0 and line[0] != '#':
@@ -72,7 +73,9 @@ class Types:
                 while i < len(line):
                     if line[i] == Molecule.string_open:
                         close = line.find(Molecule.string_close,i+1)
-                        assert close > 0
+                        if close <= 0:
+                            raise RuntimeError("Cannot find the closing string ("+str(Molecule.string_close)+") in Curly-Smiles description")
+
                         split.append( line[i:close] )
                         i = close
                     elif not line[i].isspace():
@@ -94,13 +97,13 @@ class Types:
     ## Update the dictionary with the given type name.
     ##
     ## @param name Name of the type.
-    ## Only adds an unknown type, if instance is unlocked. Otherwise an AssertionError is raised.
+    ## Only adds an unknown type, if instance is unlocked. Otherwise a RuntimeError excetion is raised.
     ## @private
     def _update(self,name):
-        assert type(name) is str
+        if type(name) is not str: raise RuntimeError("Types._update called with incompatible type")
         name = name.strip("' ")
         if self._lock:
-            assert (name in self._internal_dict_exact.keys()), "Trying to add a type, but Types is locked. "+name
+            if name not in self._internal_dict_exact.keys(): raise RuntimeError("Trying to add a type, but Types is locked. (if scft2, are xns set?) "+name)
 
         if name not in self._internal_dict_exact.keys():
             self.n_types_exact += 1
@@ -180,9 +183,10 @@ class MoleculeSet:
             ## Number of molecules in this set.
             self.N = int(split[0])
         except ValueError:
-            assert False,"The first part of a MoleculeSet string must be integer convertible."
+            raise RuntimeError("The first part of a MoleculeSet string must be integer convertible.")
 
-        assert (not self.N < 0),"The number Molecules in a set has to be greater than 0."
+        # There is acutally no reason to enforce this.
+        #if self.N == 0: raise RuntimeError("The number Molecules in a set has to be greater than 0."+str(self.N))
 
         ## Molecule architecture description
         self.mol = Molecule(split[1],inter)
@@ -236,7 +240,7 @@ class Molecule:
                     pump_str += self.curl_open+"1"+self.curl_close
                 elif i < len(inputstr):
                     close = inputstr.find(self.curl_close,i+1)
-                    assert (close>=0),"Unclosed curls in inputstr."
+                    if close < 0 : raise RuntimeError("Unclosed curls in inputstr.")
                     pump_str += inputstr[i:close+1]
                     i = close+1
                 continue
@@ -248,11 +252,11 @@ class Molecule:
             #string name monomer
             if inputstr[i]== self.string_open:
                 close = inputstr.find(self.string_close,i+1)
-                assert (close>=0),"Unclosed string in inputstr."
+                if close < 0: raise RuntimeError("Unclosed string in inputstr.")
                 pump_str += inputstr[i:close+1]
                 i = close+1
             else:
-                assert (inputstr[i].isalpha()),"Expected letter, but got "+str((inputstr[i],i))
+                if not inputstr[i].isalpha(): raise RuntimeError("Expected letter, but got "+str((inputstr[i],i)))
                 pump_str += self.string_open+inputstr[i]+self.string_close
                 i+=1
 
@@ -269,7 +273,7 @@ class Molecule:
             #curls
             if i < len(inputstr) and inputstr[i] == self.curl_open:
                 close = inputstr.find(self.curl_close,i+1)
-                assert (close>=0),"Unclosed curls in inputstr."
+                if close <0: raise RuntimeError("Unclosed curls in inputstr.")
                 pump_str += inputstr[i:close+1]
                 i = close+1
             else:
@@ -305,7 +309,7 @@ class Molecule:
                     j = len(no_curls_str)-2
                     string = ""
                     while level > 0:
-                        assert j>=0
+                        if j <= 0: raise RuntimeError("Internal error, please report.")
                         if no_curls_str[j] == self.branch_close:
                             level += 1
                         if no_curls_str[j] == self.branch_open:
@@ -314,18 +318,18 @@ class Molecule:
                         j -= 1
 
                     start = j+1
-                    assert start > 0
+                    if start <= 0: raise RuntimeError("Internal error, please report.")
                     end = len(no_curls_str)-1
-                    assert end > 0
+                    if end <= 0 : raise RuntimeError("Internal error, please report.")
                     for i in range(1,N):
                         no_curls_str += no_curls_str[start:end+1]
                 else:
                     end = close
-                    assert end > 0
+                    if end <= 0 : raise RuntimeError("Internal error, please report.")
                     start = inputstr[:end].rfind(self.string_close)
-                    assert start > 0,str(start)
+                    if start <= 0 : raise RuntimeError("Internal error, please report."+str(start))
                     start = inputstr[:start].rfind(self.string_open)
-                    assert start >= 0
+                    if start < 0 : raise RuntimeError("Internal error, please report.")
                     for i in range(N):
                         no_curls_str += inputstr[start:end]
 
@@ -350,7 +354,7 @@ class Molecule:
             if i < 0:break
             start = i
             end = inputstr.find(self.string_close,start+1)
-            assert end >=0
+            if end < 0: raise RuntimeError("Cannot find expected string close in CurlySmiles")
 
             name = inputstr[start+1:end]
 
@@ -453,7 +457,6 @@ class Molecule:
                 tag_end = inputstr.find(self.tag_close,i+1,next_mono)
                 tag = int(inputstr[tag_start+1:tag_end])
                 if tag != 0:
-                    assert tag>0
                     tag_list[mono].append(tag)
                 tag_start = tag_end
                 i = tag_end
@@ -602,7 +605,7 @@ class Interaction:
                 while i < len(line) and len(split) != 2:
                     if line[i] == Molecule.string_open:
                         close = line.find(Molecule.string_close,i+1)
-                        assert close > 0
+                        if close <= 0: raise RuntimeError("Cannot find expected close in CurlySmiles."+line)
                         split.append( line[i:close] )
                         i = close
                     elif not line[i].isspace():
@@ -610,9 +613,25 @@ class Interaction:
                     i += 1
                 split += line[i:].split()
 
-                assert len(split) == 3
-                assert (self.knownTypes.get_equiv(split[0]) != self.knownTypes.get_equiv(split[1])), "chiN may only be defined for non identical types."
+                if len(split) != 3 : raise RuntimeError("Entry for the chiN interaction should have exactyl 3 columns. got."+str(split))
+                if self.knownTypes.get_equiv(split[0]) == self.knownTypes.get_equiv(split[1]): raise RuntimeError("chiN may only be defined for non identical types.")
                 self._set_interaction(split[0],split[1],float(split[2]))
+
+        ## Dictionary for third order interaction parameters
+        string = " "
+        for element in interaction.iter("wn"): #self.root.iter('wn'):
+            string += element.text.upper()
+        self._wn_dict = {}
+        for line in string.split("\n"):
+            line = line.strip()
+            if len(line) > 0 and line[0] != '#':
+                line = line.split()
+                if (len(line) != 4): RuntimeError("A entry should be composed of three types and a value, but got "+str(line)+" enries.")
+                a = self.knownTypes.get_equiv(line[0])
+                b = self.knownTypes.get_equiv(line[1])
+                c = self.knownTypes.get_equiv(line[2])
+                s = tuple(sorted( [a,b,c] ))
+                self._wn_dict[s] = float(line[3])
 
         ## Dictonary that stores the offset in the poly_arch array for every "type" of bondlist of a monomer.
         self._bond_dict = {}
@@ -628,7 +647,7 @@ class Interaction:
                 while i < len(line) and len(split) != 2:
                     if line[i] == Molecule.string_open:
                         close = line.find(Molecule.string_close,i+1)
-                        assert close > 0
+                        if close <= 0 : raise RuntimeError("Cannot find closing string")
                         split.append( line[i:close] )
                         i = close
                     elif not line[i].isspace():
@@ -636,7 +655,7 @@ class Interaction:
                     i += 1
                 split += line[i:].split()
 
-                assert len(split) == 3
+                if len(split) != 3: raise RuntimeError("Cannot find the 3 components, necessary to set a bond.")
                 self._set_bond(split[0],split[1],split[2] )
 
         for t in range(self.knownTypes.n_types_equiv):
@@ -711,6 +730,23 @@ class Interaction:
             for j in range(self.knownTypes.n_types_equiv):
                 matrix[i][j] = self.get_interaction(i,j)
         return matrix
+
+    ## Create matrix with interactions for third order hamiltonian (scmf2)
+    def create_scmf2_interaction_matrix(self):
+        if len(self._wn_dict) == 0:
+            return None
+        N   = self.knownTypes.n_types_equiv
+        tmp = numpy.zeros((N,N,N),dtype=soma_type.get_soma_scalar_type())
+        for i in range(N):
+            for j in range(N):
+                for k in range(N):
+                    s = tuple(sorted([i,j,k]))
+                    try:
+                        tmp[i,j,k] = self._wn_dict[s]
+                    except KeyError:
+                        print(" The third order interaction parameter for", s, "is missing. Please add parameter to xml file, will be set to zero otherwise.")
+        print ("Third order hamiltonian has the following interaction tensor:\n",tmp)
+        return tmp
 
 ## See C funtion documentation
 def get_info(offset,bond_type,end):
@@ -866,7 +902,7 @@ class GridObject(object):
     ## @return tuple
     def get_point(self,string):
         string = string.strip().split()
-        assert len(string) == 3
+        if len(string) != 3: raise RuntimeError("Each XML point must contain 3 entries (X,Y,Z)")
         tu = tuple()
         for i in range(3):
             tu += (int(string[i]),)
@@ -880,7 +916,8 @@ class GridObject(object):
         tu = tuple()
         for i in range(len(string)):
             tu += (float(string[i]),)
-        assert len(tu) == self.n_types
+        if len(tu) != self.n_types: raise RuntimeError("The number of values must equal the number of types in the system.")
+
         return tu
 
     ## Get the norm of a vector.
@@ -896,8 +933,8 @@ class GridObject(object):
     ## @param b tuple containing argument 2
     ## @return dot product of the two 3-dim vectors.
     def get_dot(self,a,b):
-        assert len(a) == 3
-        assert len(b) == 3
+        if len(a) != 3: raise RuntimeError("Dot product defined here for only 3D iterateables.")
+        if len(b) != 3: raise RuntimeError("Dot product defined here for only 3D iterateables.")
         return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
 ## Class to store random elements grid points and corresponding values.
@@ -914,7 +951,7 @@ class PointCloud(GridObject):
             line = line.strip()
             if len(line) > 0 and line[0] != '#':
                 line = line.split()
-                assert len(line) == 3+self.n_types
+                if len(line) != 3 +self.n_types: raise RuntimeError("Point cloud elements must contain 3+Ntypes values. X Y Z F_i F_j ...")
                 index = tuple()
                 value = tuple()
                 for i in range(3+self.n_types):
@@ -937,7 +974,7 @@ class Box(GridObject):
             if not child.tag in knownTags:
                 print("WARNING: unknown tag ("+child.tag+") found in Box xml. Value will be ignored. Typo?")
 
-        assert len(element.findall('point')) == 2
+        if len(element.findall("point")) != 2 : raise RuntimeError("A Box element must contain exactly 2 points")
         cl = []
         for point in element.findall('point'):
             cl.append( self.get_point(point.text) )
@@ -962,7 +999,7 @@ class Cylinder(GridObject):
             if not child.tag in knownTags:
                 print("WARNING: unknown tag ("+child.tag+") found in Cylinder xml. Value will be ignored. Typo?")
 
-        assert len(element.findall('point')) == 2
+        if len(element.findall('point')) != 2: raise RuntimeError("A Cylinder element must contain exactly 2 points.")
         cl = []
         for point in element.findall('point'):
             cl.append( self.get_point(point.text) )
@@ -1021,7 +1058,7 @@ class Sphere(GridObject):
             if not child.tag in knownTags:
                 print("WARNING: unknown tag ("+child.tag+") found in Sphere xml. Value will be ignored. Typo?")
 
-        assert len(element.findall('point')) == 1
+        if  len(element.findall('point')) != 1: raise RuntimeError("A Sphere element must contain exactly one point")
         center = self.get_point(element.find('point').text)
         value = self.get_value( element.find('value').text )
         radius = float(element.find('radius').text.strip())
@@ -1059,6 +1096,7 @@ class SomaXML:
     knownTags += ["structure_q"]
     knownTags += ["polyconversion"]
     knownTags += ["density_weights"]
+    knownTags += ["wn"]
 
 ## Class to create a hdf5 configuration file generated by an input xml file.
 class Configuration(SomaXML):
@@ -1076,37 +1114,37 @@ class Configuration(SomaXML):
         self.args = arguments
         ## Root of the xml tree.
         self.root = self.tree.getroot()
-        assert self.root.tag == "soma","You are not parsing a SOMA input file."
+        if self.root.tag != "soma": raise RuntimeError("You are not parsing a SOMA input file.")
         for child in self.root:
             if not child.tag in self.knownTags:
                 print("WARNING: unknown tag ("+child.tag+") found in SOMA xml. Value will be ignored. Typo?")
 
         ## Types instance of the Configuration
         self.types = self.create_types()
-        assert self.types
+        if not self.types : raise RuntimeError("Error constructing the Types from XML.")
 
         ##Interaction instance of the Configuration
         self.interaction = self.create_interaction()
-        assert self.interaction
+        if not self.interaction: raise RuntimeError("Error constructing the Interactions from XML.")
 
         # After init do not allow more types to be added.
         self.types.lock_type()
 
         ## Number of refence Beads
         self.reference_Nbeads = self.create_reference_Nbeads()
-        assert type(self.reference_Nbeads) is numpy.ndarray
+        if type(self.reference_Nbeads) is not numpy.ndarray: raise RuntimeError("Error parsing the reference_Nbeads")
 
         ## mobility A array of the Configuration
         self.A = self.create_A()
-        assert type(self.A) is numpy.ndarray
+        if type(self.A) is not numpy.ndarray: raise RuntimeError("Error parsing the A")
 
         ## umbrella constant for the configuration
         self.k_umbrella = self.create_k_umbrella()
-        assert type(self.k_umbrella) is numpy.ndarray
+        if type(self.k_umbrella) is not numpy.ndarray: raise RuntimeError("Error parsing the k_umbrella")
 
         ## Time of the configuration
         self.time = self.create_time()
-        assert type(self.time) is numpy.ndarray
+        if type(self.time) is not numpy.ndarray: raise RuntimeError("Error parsing the time")
 
         ## harmonic_harmonic_normb_variable_scale of the configuration
         self.harmonic_normb_variable_scale = self.create_harmonic_normb_variable_scale()
@@ -1142,6 +1180,9 @@ class Configuration(SomaXML):
 
         ## Interaction matrix
         self.xn = self.interaction.get_interaction_matrix()
+
+        ## Get interaction matrix for scmf2
+        self.wn = self.interaction.create_scmf2_interaction_matrix()
 
         ## Box dimension in units of Re
         self.lxyz = self.create_lxyz()
@@ -1214,6 +1255,8 @@ class Configuration(SomaXML):
                 create_list += [("/parameter/cm_a",self.cm_a)]
             if type(self.harmonic_normb_variable_scale) is numpy.ndarray:
                 create_list += [("/parameter/harmonic_normb_variable_scale",self.harmonic_normb_variable_scale)]
+            if type(self.wn) is numpy.ndarray:
+                create_list += [("/parameter/wn)", self.wn)]
 
 
             for element in create_list:
@@ -1247,7 +1290,7 @@ class Configuration(SomaXML):
                             f["external_field"].attrs[child.tag] = array
                             if index==0:
                                 tmp_size=array.size
-                                assert (tmp_size == array.size),"Error prefactors must have the same length."
+                                if tmp_size != array.size: raise RuntimeError("Error prefactors must have the same length.")
 
                     f["external_field"].attrs["serie_length"] = tmp_size
             if "/umbrella_field" in f:
@@ -1279,7 +1322,7 @@ class Configuration(SomaXML):
             ensure_list += [("/parameter/n_poly_type",self.n_poly_type)]
             for e in ensure_list:
                 data = f[e[0]][0:]
-                assert ((data == e[1]).all()),"Error "+e[0]+" property is not identical, but has to be constant."
+                if ((data != e[1]).all()): raise RuntimeError("Error "+e[0]+" property is not identical, but has to be constant.")
 
             if force_polyarch:
                 #check polymer N of old and new
@@ -1299,7 +1342,7 @@ class Configuration(SomaXML):
                         N_covered += ms.N
                         break
                     new_N = self.poly_arch.poly_arch[ self.poly_arch.poly_type_offset[new_type]]
-                    assert (old_N == new_N), "Error you changed N of a polymer. This is impossible. "+str((old_N,new_N,poly))
+                    if (old_N != new_N): raise RuntimeError("Error you changed N of a polymer. This is impossible. "+str((old_N,new_N,poly)))
                     poly += 1
 
                 #check poly_arch
@@ -1310,7 +1353,7 @@ class Configuration(SomaXML):
                     for p_id in range(self.n_poly_type[0]):
                         h5_N = f['/parameter/poly_arch'][ f['/parameter/poly_type_offset'][p_id] ]
                         xml_N = self.poly_arch.poly_arch[ self.poly_arch.poly_type_offset[p_id]]
-                        assert (h5_N == xml_N),"Polymer type "+str(p_id)+" has N= "+str(h5_N)+" in existing file, but "+str(xml_N)+" in the new xml-file. This is incompatible."
+                        if (h5_N != xml_N): raise RuntimeError("Polymer type "+str(p_id)+" has N= "+str(h5_N)+" in existing file, but "+str(xml_N)+" in the new xml-file. This is incompatible.")
             else: #use old polyarch from file if not forced
                 self.n_types = f["/parameter/n_types"][:]
                 self.poly_arch.poly_type_offset = f["/parameter/poly_type_offset"][:]
@@ -1328,7 +1371,7 @@ class Configuration(SomaXML):
     ## Create the Interaction instance.
     ## @return Interaction instance
     def create_interaction(self):
-        assert len(self.root.findall('interactions')) == 1
+        if len(self.root.findall('interactions')) != 1: raise RuntimeError("Interaction must be defined exactly once.")
         interaction = Interaction(self.root.find('interactions'),self.types)
         return interaction
 
@@ -1365,12 +1408,12 @@ class Configuration(SomaXML):
             line = line.strip()
             if len(line) > 0 and line[0] != '#':
                 line = line.split()
-                assert (len(line) == 2),("A entry should be composed by 'type_name value', but got "+str(line))
+                if (len(line) != 2): raise RuntimeError("An entry should be composed by 'type_name value', but got "+str(line))
                 a_dict[self.types.get_equiv(line[0])] = float(line[1])
         if not dt_found:
-            assert(len(a_dict) == self.types.n_types_equiv),"Each particle type needs a mobility if no dt is specified."
+            if (len(a_dict) != self.types.n_types_equiv): raise RuntimeError("Each particle type needs a mobility if no dt is specified.")
         else:
-            assert(len(a_dict) <= self.types.n_types_equiv),"You can not specify more mobilities, than types available."
+            if (len(a_dict) > self.types.n_types_equiv): raise RuntimeError("You can not specify more mobilities, than types available.")
         for i in a_dict.keys():
             a_array[i] = a_dict[i]
 
@@ -1389,7 +1432,7 @@ class Configuration(SomaXML):
             line = line.strip()
             if len(line) > 0 and line[0] != '#':
                 line = line.split()
-                assert (len(line) == 2),("A entry should be composed by 'type_name value', but got "+str(line))
+                if (len(line) != 2): raise RuntimeError("A entry should be composed by 'type_name value', but got "+str(line))
                 k_dict[self.types.get_equiv(line[0])] = float(line[1])
 
         for i in k_dict.keys():
@@ -1411,7 +1454,7 @@ class Configuration(SomaXML):
             line = line.strip()
             if len(line) > 0 and line[0] != '#':
                 line = line.split()
-                assert (len(line) == 2),("A entry should be composed by 'type_name value', but got "+str(line))
+                if (len(line) != 2): raise RuntimeError(("A entry should be composed by 'type_name value', but got "+str(line)))
                 dw_dict[self.types.get_equiv(line[0])] = float(line[1])
 
         for i in dw_dict.keys():
@@ -1426,8 +1469,7 @@ class Configuration(SomaXML):
         old_sum = density_weights.sum()
         density_weights *= (density_weights.size/old_sum)
 
-        assert abs(density_weights.sum() - self.types.n_types_equiv) < 1e-8, "Check density weight sum"+str(density_weights)
-        print(density_weights)
+        if abs(density_weights.sum() - self.types.n_types_equiv) > 1e-8: raise RuntimeError("Check density weight sum"+str(density_weights))
         return density_weights
 
 
@@ -1511,7 +1553,7 @@ class Configuration(SomaXML):
             if len(ms_input) > 0 and ms_input[0] != '#':
                 ms_list.append(MoleculeSet(ms_input,self.interaction))
 
-                assert (len(ms_list) > 0),"You have to specify polymer architectures."
+                if (len(ms_list) <= 0): raise RuntimeError("You have to specify polymer architectures.")
         return ms_list
 
     ## Create the PolyArch instance.
@@ -1528,11 +1570,11 @@ class Configuration(SomaXML):
         string = string.strip()
 
         string = string.split()
-        assert len(string) == 3
+        if len(string) != 3: raise RuntimeError("A box must have 3 dimensions.")
         tmp = numpy.zeros((3,),dtype=soma_type.get_soma_scalar_type())
         for i in range(3):
             tmp[i] = float(string[i])
-            assert tmp[i] > 0
+            if tmp[i] <= 0: raise RuntimeError("The box dimensions must larger zero",tmp[i])
         return tmp
 
     ## Create the grid dimensions.
@@ -1544,11 +1586,11 @@ class Configuration(SomaXML):
         string = string.strip()
 
         string = string.split()
-        assert len(string) == 3
+        if len(string) != 3: raise RuntimeError("The box discretization must be with 3 entries.")
         tmp = numpy.zeros((3,),dtype=numpy.uint32)
         for i in range(3):
             tmp[i] = int(string[i])
-            assert tmp[i] > 0
+            if tmp[i] <= 0: raise RuntimeError("Each discretization of the box must be positive > 0")
         return tmp
 
     ## Create the area51 (forbidden area)
@@ -1781,9 +1823,11 @@ class Configuration(SomaXML):
             string += element.text.upper()
         string = string.strip()
         if len(string) > 0:
-            assert (string in hamiltonDict.keys()),"ERROR: unkown hamiltonian "+str(string)+" requested. Options are: "+str(hamiltonDict.keys())
+            if  (string not in hamiltonDict.keys()): raise RuntimeError("ERROR: unkown hamiltonian "+str(string)+" requested. Options are: "+str(hamiltonDict.keys()))
             tmp[0] = hamiltonDict[string]
         return tmp
+
+
 
 
 #Late import of the module to compensate circular imports.

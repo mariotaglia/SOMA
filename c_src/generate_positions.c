@@ -204,8 +204,8 @@ int generate_new_beads(struct Phase *const p)
                                     already_set[new_bead] = true;
                                     total_set++;
                                     bondlist =
-                                        get_bondlist_offset(p->
-                                                            poly_arch[p->poly_type_offset[poly->type] + new_bead + 1]);
+                                        get_bondlist_offset(p->poly_arch
+                                                            [p->poly_type_offset[poly->type] + new_bead + 1]);
                                     chain[chain_index] = new_bead;
                                     old_bead = new_bead;
                                     end = 0;
