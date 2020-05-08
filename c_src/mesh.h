@@ -210,21 +210,12 @@ void update_omega_fields_scmf0(const struct Phase *const p);
 //! \note In case of the use of the density_weights every \f$\phi_i\f$ is multiplied with its weight \f$w_i\f$.
 void update_omega_fields_scmf1(const struct Phase *const p);
 
-<<<<<<< HEAD
-
 //! Function to calculate the omega fields to hamiltonian scmf2.
 //!
 //! \param p Phase configuration to update.
-//! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}} \frac{k_i}{2} \left(\phi_i(r)-s_i(r)\right)^2+ \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} \left(\sum_{i} ^{n_{types}} \phi_i(r) - 1\right)^2 + \sum_{i}^{n_{types}} \phi_i(r)N_{ref}  \left(\frac{\chi_{i,j}}{2} \phi_j(r) + \frac{w_{i,j,k}}{3} \phi_j(r) \phi_k(r)) \right) \f]
-//! \f[ \omega_k(c) = \frac{N_{ref}}{k_BT\rho_0 \Delta L^3}\frac{\partial H(c)}{\partial \phi_k} = \sum_i^{n_{types}} k_i\left(\phi_i(c)-s_i(c)\right)+ f_k(c) + \kappa \left(\sum_i^{n_{types}} \phi_i(c)-1\right) + \sum_{i}^{n_{types}} \phi_i(c) \left(\frac{\chi_{i,k}}{2} + \frac{w_{i,k,j}}{3} \phi_j(c) \right) \f]
-=======
-//! Function to calculate the omega fields for hamiltonian scmf2.
-//!
-//! \param p Phase configuration to update.
-//! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}} \frac{k_i}{2} \left(\phi_i(r)-s_i(r)\right)^2+ \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} \left(\sum_{i} ^{n_{types}} \phi_i(r) - 1\right)^2 + \sum_{i< j}^{n_{types}} \chi_{i,j}N_{ref} \phi_i(r) \phi_j(r) \f]
-//! \f[ \omega_k(c) = \frac{N_{ref}}{k_BT\rho_0 \Delta L^3}\frac{\partial H(c)}{\partial \phi_k} = \sum_i^{n_{types}} k_i\left(\phi_i(c)-s_i(c)\right)+ f_k(c) + \kappa \left(\sum_i^{n_{types}} \phi_i(c)-1\right) + \sum_{i< k}^{n_{types}} \chi_{i,k} \phi_i(c)   \f]
+//! \f[ \frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}} \frac{k_i}{2} \left(\phi_i(r)-s_i(r)\right)^2+ \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} \left(\sum_{i} ^{n_{types}} \phi_i(r) - 1\right)^2 + \sum_{i,j,k}^{n_{types}} \phi_i(r)N_{ref}  \left(\frac{\chi_{i,j}}{2} \phi_j(r) + \frac{w_{i,j,k}}{3} \phi_j(r) \phi_k(r)) \right) \f]
+//! \f[ \omega_k(c) = \frac{N_{ref}}{k_BT\rho_0 \Delta L^3}\frac{\partial H(c)}{\partial \phi_k} = \sum_i^{n_{types}} k_i\left(\phi_i(c)-s_i(c)\right)+ f_k(c) + \kappa \left(\sum_i^{n_{types}} \phi_i(c)-1\right) + \sum_{i,k,j}^{n_{types}} \phi_i(c) \left(\frac{\chi_{i,k}}{2} + \frac{w_{i,k,j}}{3} \phi_j(c) \right) \f]
 //! \note In case of the use of the density_weights every \f$\phi_i\f$ is multiplied with its weight \f$w_i\f$.
->>>>>>> c68a73f3032bacfe5a1808cdcfa304634ed43fa7
 void update_omega_fields_scmf2(const struct Phase *const p);
 
 #endif                          //SOMA_MESH_H
