@@ -358,6 +358,7 @@ void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const n
 
                                 }
                 }
+
         }
 #if ( ENABLE_MPI == 1 )
     if (p->info_MPI.sim_rank == 0)

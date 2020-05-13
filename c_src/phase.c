@@ -207,17 +207,18 @@ int init_phase(struct Phase *const p)
     // Loop to calculate scaling parameter
     // Note the *= the field is initialized with the density weights in read_hdf5_config.
     // default value = 1.
-    soma_scalar_t mass_nanoparticles_total = 0;
+    soma_scalar_t vol_nanoparticles_total = 0;
     if (p->nanoparticles)
         {
             for (uint64_t i = 0; i < p->n_nanoparticle; i++)
                 {
-                    mass_nanoparticles_total += p->nanoparticles[i].radius * p->nanoparticles[i].interaction * 2;
+		  vol_nanoparticles_total+=p->nanoparticles[i].radius*2*p->nx/p->Lx*p->ny/p->Ly*p->nz/p->Lz;
                 }
         }
 
     for (unsigned int i = 0; i < p->n_types; i++)
-        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads + mass_nanoparticles_total));
+      p->field_scaling_type[i] *= (ncells-vol_nanoparticles_total) / (soma_scalar_t) p->num_all_beads;
+
 
     // Info for Ulrich: programm does take excluded volume into account now!
     p->n_accepts = 0;

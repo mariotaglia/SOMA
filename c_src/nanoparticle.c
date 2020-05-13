@@ -29,8 +29,8 @@ int calc_np_field_total(struct Phase *p)
             add_my_np_field(p, &p->nanoparticles[inp], tempfield);
         }
 
-       if (p->umbrella_field)
-           memcpy(p->umbrella_field, p->nanoparticle_field, p->n_cells * sizeof(soma_scalar_t));   //for debug purposes
+    //       if (p->umbrella_field)
+    //           memcpy(p->umbrella_field, p->nanoparticle_field, p->n_cells * sizeof(soma_scalar_t));   //for debug purposes
     free(tempfield);
 #pragma acc update device(p->nanoparticle_field[p->n_cells])
     return 0;
