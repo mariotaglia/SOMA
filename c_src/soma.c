@@ -167,8 +167,12 @@ int main(int argc, char *argv[])
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
     nanoparticle_area51_switch(p, 0);
-    test_nanoparticle(p, &p->nanoparticles[0]);
+    //    test_nanoparticle(p, &p->nanoparticles[0]);
     int stop_iteration = false;
+    soma_scalar_t * avg_e_b=calloc(NUMBER_SOMA_BOND_TYPES , sizeof(soma_scalar_t));
+    soma_scalar_t * avg_e_nb=calloc(p->n_types, sizeof(soma_scalar_t));
+    soma_scalar_t e_b=0;
+    soma_scalar_t e_nb=0;
     for (unsigned int i = 0; i < N_steps; i++)
         {
             analytics(p);
@@ -213,12 +217,29 @@ int main(int argc, char *argv[])
                                 p->info_MPI.world_rank);
                     break;
                 }
-	 }
+	    if(i>=N_steps-N_steps/10){
+#pragma acc update self(p->fields_unified[p->n_types*p->n_cells])
+#pragma acc update self(p->omega_field_unified[p->n_types*p->n_cells])
+	      average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/10));
+	      calc_non_bonded_energy( p, avg_e_b);
+	      calc_bonded_energy( p, avg_e_nb);
+	      e_b+=avg_e_b[0]/(N_steps-(N_steps-N_steps/10));
+	      e_nb+=avg_e_nb[0]/(N_steps-(N_steps-N_steps/10));
+
+	    }
+	    
+	}      
 #if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);
     if (missed_chains != 0)
         exit(missed_chains);
 #endif                          //ENABLE_MPI
+    
+    p->xn[0]=e_b;
+    p->k_umbrella[0]=e_nb;
+#pragma acc update device(p->umbrella_field[p->n_types*p->n_cells])
+#pragma acc update device(p->xn[p->n_types])
+#pragma acc update device(p->k_umbrella[p->n_types])
 
     const int write = write_config_hdf5(p, p->args.final_file_arg);
     MPI_ERROR_CHECK(write, "Cannot write final configuration.");

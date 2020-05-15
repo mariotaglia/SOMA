@@ -29,8 +29,8 @@ int calc_np_field_total(struct Phase *p)
             add_my_np_field(p, &p->nanoparticles[inp], tempfield);
         }
 
-    if (p->umbrella_field)
-        memcpy(p->umbrella_field, p->nanoparticle_field, p->n_cells * sizeof(soma_scalar_t));   //for debug purposes
+    //       if (p->umbrella_field)
+    //           memcpy(p->umbrella_field, p->nanoparticle_field, p->n_cells * sizeof(soma_scalar_t));   //for debug purposes
     free(tempfield);
 #pragma acc update device(p->nanoparticle_field[p->n_cells])
     return 0;
@@ -69,6 +69,8 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
             tempfield[clo] = ((clo + 1.0) * dl - xlo) / dl;
             tempfield[chi] = (xhi - chi * dl) / dl;
         }
+    /* for (uint64_t x = 0; x < p->nx; x++) */
+    /*   printf("%lf\n",tempfield[x]); */
     return 0;
 }
 
