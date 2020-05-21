@@ -72,6 +72,7 @@ void communicate_density_fields(const struct Phase *const p)
                 {
                     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
+#ifndef ENABLE_MPI_CUDA
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
                     //Sum up all values of a single domain to the root domain
                     if (p->info_MPI.domain_rank == 0)
@@ -148,6 +149,10 @@ void communicate_density_fields(const struct Phase *const p)
                     //Avoid false loadbalance
                     MPI_Barrier(p->info_MPI.SOMA_comm_domain);
                 }
+#else                           //ENABLE_MPI_CUDA
+            //Include MPI on GPUs part here !
+
+#endif                          //ENABLE_MPI_CUDA
         }
 #endif                          //ENABLE_MPI
 }
