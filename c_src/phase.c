@@ -376,7 +376,6 @@ int copyout_phase(struct Phase *const p)
 #pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz]
 #endif                          //ENABLE_MPI_CUDA
 
-
 #pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma acc exit data delete(p[0:1])
