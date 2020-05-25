@@ -60,8 +60,8 @@ typedef struct TT800STATE {
 //! Each Phase has one of these structs. And in case an alternative RNG is used, this struct contains the memory for the states.
 //! If the memory is not used the pointers are initialized to NULL
 typedef struct RNG_HEAVY {
-    SomaMemory mt;              //! Array and meta data for MersenneTwister states
-    SomaMemory tt800;           //! Array abd meta data for TT800 states
+    SomaMemory mt;              //!< Array and meta data for MersenneTwister states
+    SomaMemory tt800;           //!< Array abd meta data for TT800 states
 } RNG_HEAVY;
 
 //!\brief Set the seed of Mersenne-Twister with the PCG32

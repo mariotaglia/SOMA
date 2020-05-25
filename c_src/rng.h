@@ -64,7 +64,7 @@ int soma_seed_rng(PCG_STATE * rng, uint64_t seed, uint64_t stream);
 //!
 //! \pre rng has been seeded.
 //! \param state RNG_STATE to use and modify for PRNG
-//! \param rng_type Type of the used PRNG
+//! \param p Phase construct of the simulated system
 //! \return prng as uint in range [0:soma_rng_uint_max)
 #pragma acc routine(soma_rng_uint) seq
 unsigned int soma_rng_uint(RNG_STATE * state, const struct Phase *const p);
@@ -76,8 +76,8 @@ unsigned int soma_rng_uint(RNG_STATE * state, const struct Phase *const p);
 unsigned int soma_rng_uint_max(void);
 
 //! Wrapper function for float random numbers.
-//! \param rng_type enum which carries information about the selected random number generator
 //! \param rng struct which contains all information about the internal states of the rngs
+//! \param p Phase struct of the simulated system
 //! \pre rng has been seeded.
 //! \return prng in range [0,1)
 #pragma acc routine(soma_rng_soma_scalar) seq
@@ -85,7 +85,7 @@ soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, const struct Phase *const p)
 
 //! Function that adds a 3D gaussian vector to the vector (x,y,z)
 //! \param rng struct which contains all information about the internal states of the rngs
-//! \param rng_type enum which carries information about the selected random number generator
+//! \param p Phase struct of the simulated system
 //! \param x coordinate of the vector
 //! \param y coordinate of the vector
 //! \param z coordinate of the vector
@@ -101,7 +101,7 @@ uint32_t pcg32_random(PCG_STATE * rng);
 
 //! Function that generates 3D vector (x,y,z), with a distribution that just has the 2nd and 4th moment of a gaussian
 //! \param rng struct which contains all information about the internal states of the rngs
-//! \param rng_type enum which carries information about the selected random number generator
+//! \param p Phase struct of the simulated system
 //! \param x coordinate of the vector
 //! \param y coordinate of the vector
 //! \param z coordinate of the vector
@@ -144,6 +144,7 @@ int deserialize_rng_state(struct Phase *const p, RNG_STATE * const state, const 
 //! \param seed seed for the rng
 //! \param stream PCG32 is streamable for the many independent RNGs
 //! \param p Phase the system belongs to
+//! \return Errorcode
 int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
                    const struct Phase *const p);
 

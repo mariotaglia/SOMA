@@ -97,7 +97,7 @@ soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, const struct Phase *const p)
 
 /*! generate 3D vector, 2 times Box-Mueller Transform, discards one value
   \param rng RNG State
-  \param rng_type Type of the PRNG
+  \param p Phase construct of the acutal system
   \param x result for X
   \param y result for Y
   \param z result for Z
@@ -139,7 +139,7 @@ void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scala
 
 /*! generate 3D vector, with a distribution that just has the 2nd and 4th moment of a gaussian
   \param rng RNG State
-  \param rng_type Type of the PRNG
+  \param p Phase construct of the simulated system
   \param x result for X
   \param y result for Y
   \param z result for Z
