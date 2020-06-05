@@ -56,21 +56,22 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     xhi = fmod(xhi, p->Lx);
     int clo = floor(xlo / dl);
     int chi = floor(xhi / dl);
-    if (clo == chi)
-        tempfield[clo] = 2 * np->radius / dl;
+    soma_scalar_t d=fmod(np->x,dl)/dl;
+    soma_scalar_t dd2=(d-0.5)*(d-0.5);
+    soma_scalar_t f=(0.78-0.48*dd2)/(1-1.336*dd2);
+    if(fabs(d<1e-5))
+       f=1.0;      
+    np->interaction=f;
+    if (clo < chi)
+      for (int i = clo + 1; i < chi; i++)
+	tempfield[i] = 1* 1.2;
     else
-        {
-            if (clo < chi)
-                for (int i = clo + 1; i < chi; i++)
-                    tempfield[i] = 1;
-            else
-                for (int i = clo + 1; i <= (int)(chi + p->nx); i = (i + 1))
-                    tempfield[i % p->nx] = 1;
-            tempfield[clo] = ((clo + 1.0) * dl - xlo) / dl;
-            tempfield[chi] = (xhi - chi * dl) / dl;
-        }
-    /* for (uint64_t x = 0; x < p->nx; x++) */
-    /*   printf("%lf\n",tempfield[x]); */
+      for (int i = clo + 1; i <= (int)(chi + p->nx); i = (i + 1))
+	tempfield[i % p->nx] = 1* 1.2;
+    tempfield[clo] = ((clo + 1.0) * dl - xlo) / dl* 1.2*np->interaction;
+    tempfield[chi] = (xhi - chi * dl) / dl* 1.2*np->interaction;
+    if(tempfield[chi]<1e-6)
+      tempfield[chi-1]*=np->interaction;
     return 0;
 }
 
@@ -79,7 +80,7 @@ int add_my_np_field(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfiel
     for (uint64_t x = 0; x < p->nx; x++)
         for (uint64_t y = 0; y < p->ny; y++)
             for (uint64_t z = 0; z < p->nz; z++)
-                p->nanoparticle_field[x * p->ny * p->nz + y * p->nz + z] += tempfield[x] * np->interaction;
+	      p->nanoparticle_field[x * p->ny * p->nz + y * p->nz + z] += tempfield[x] ;
     return 0;
 }
 
