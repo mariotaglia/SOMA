@@ -158,8 +158,9 @@ int update_density_fields(const struct Phase *const p)
     if (last_time_call == 0 || p->time > last_time_call)
         last_time_call = p->time;
     else                        //Quick exit, because the property has already been calculated for the time step.
-        return 0;
-
+      return 0;
+      
+    
     int error_flags[1] = { 0 }; //error_flag[0] indicates domain errors
 #pragma acc enter data copyin(error_flags[0:1])
 
@@ -243,7 +244,9 @@ void update_omega_fields(const struct Phase *const p)
     if (last_time_call == 0 || p->time > last_time_call)
         last_time_call = p->time;
     else                        //Quick exit, because the property has already been calculated for the time step.
-        return;
+      return 0;
+
+    
     switch (p->hamiltonian)
         {
         case SCMF0:
@@ -319,6 +322,7 @@ void self_omega_field(const struct Phase *const p)
                         }
                 }
         }
+    
 }
 
 //! Add the pair interactions to the omega fields via the SCMF0 hamiltonian.

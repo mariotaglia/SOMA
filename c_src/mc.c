@@ -84,6 +84,7 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
     const soma_scalar_t xold = monomer->x;
     const soma_scalar_t yold = monomer->y;
     const soma_scalar_t zold = monomer->z;
+    const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
     const uint64_t cellindex_old = coord_to_index_unified(p, xold, yold, zold, iwtype);
     const uint64_t cellindex_new = coord_to_index_unified(p, xold + dx, yold + dy, zold + dz, iwtype);
     if (cellindex_old > p->n_cells_local * p->n_types || cellindex_new > p->n_cells_local * p->n_types)
@@ -98,16 +99,26 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
             return nan("");
 #endif                          //NAN
         }
-      update_omega_fields(p);
+    //      
       const soma_scalar_t energy_old = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new];
+
+  
   p->fields_unified[cellindex_old]-=1;
   p->fields_unified[cellindex_new]+=1;
-  p->tempfield[cellindex_old%p->n_cells]+=1.0*p->field_scaling_type[0];
-  p->tempfield[cellindex_new%p->n_cells]-=1.0*p->field_scaling_type[0];
-  update_omega_fields(p);    
+  p->tempfield[cellindex_old%p->n_cells]-=1.0*p->field_scaling_type[0];
+  p->tempfield[cellindex_new%p->n_cells]+=1.0*p->field_scaling_type[0];
+  p->omega_field_unified[cellindex_old]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_old] - 1.0));
+  p->omega_field_unified[cellindex_new]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_new] - 1.0));
+  
   const soma_scalar_t energy_new = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new];
   const soma_scalar_t energy = energy_new - energy_old;
-  update_density_fields(p);    
+  p->fields_unified[cellindex_old]+=1;
+  p->fields_unified[cellindex_new]-=1;
+  p->tempfield[cellindex_old%p->n_cells]+=1.0*p->field_scaling_type[0];
+  p->tempfield[cellindex_new%p->n_cells]-=1.0*p->field_scaling_type[0];
+  p->omega_field_unified[cellindex_old]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_old] - 1.0));
+  p->omega_field_unified[cellindex_new]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_new] - 1.0));
+  
   return energy;
 }
 
@@ -121,6 +132,7 @@ soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly, const Mon
     // non-bonded energy + bonded energy
     soma_scalar_t energy = delta_nonbonded_energy;
     energy += delta_bonded_energy;
+
     return energy;
 }
 
@@ -304,6 +316,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                                             mybead.z += dz;
                                             *mybead_ptr = mybead;
                                         }
+                                    
                                 }
 
                             //Copy back the modified RNG state.
@@ -391,10 +404,20 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                     // MC roll to accept / reject
                                     if (som_accept(myrngstate, arg_rng_type, delta_energy) == 1)
                                         {
+                                          
+                                            const uint64_t cellindex_old = coord_to_index_unified(p,mybead_ptr->x,mybead_ptr->y ,mybead_ptr->z , iwtype);
+                                            const uint64_t cellindex_new = coord_to_index_unified(p,newx, newy, newz, iwtype);
+                                            p->fields_unified[cellindex_old]-=1;
+                                            p->fields_unified[cellindex_new]+=1;
+                                            p->tempfield[cellindex_old%p->n_cells]-=1.0*p->field_scaling_type[0];
+                                            p->tempfield[cellindex_new%p->n_cells]+=1.0*p->field_scaling_type[0];
                                             mybead_ptr->x = newx;
                                             mybead_ptr->y = newy;
                                             mybead_ptr->z = newz;
                                             accepted_moves_loc += 1;
+                                            p->omega_field_unified[cellindex_old]= (p->xn[0] * (p->tempfield[cellindex_old] - 1.0))/p->reference_Nbeads;
+                                            p->omega_field_unified[cellindex_new]= (p->xn[0] * (p->tempfield[cellindex_new] - 1.0))/p->reference_Nbeads;
+
                                         }
                                 }
                     n_accepts += accepted_moves_loc;

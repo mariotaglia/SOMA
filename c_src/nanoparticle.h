@@ -14,8 +14,10 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "soma_config.h"
-//#include "rng.h"
+#include "rng.h"
 #include "phase.h"
+#include "mc.h"
+
 //! \file nanpoarticle.h
 //! \brief Code related to the nanoparticles
 /*! \brief nanpoarticle information */
@@ -25,7 +27,7 @@ typedef struct Nanoparticle {
     soma_scalar_t z;            /*!<\brief pointer to z position */
     soma_scalar_t radius;       /*!<\brief Radius of nanoparticle */
     soma_scalar_t interaction;  /*!<\brief Interaction strength of nanoparticle */
-    //  RNG_STATE nanoparticle_state;       //!< \brief Struct which contains all RNGs
+    RNG_STATE nanoparticle_rng_state;       //!< \brief Struct which contains all RNGs
     //  struct RNG_STATE *set_states;       //!< RNG states of independet sets. NULL if not used.
 } Nanoparticle;
 
@@ -79,3 +81,13 @@ int resize_nanoparticle(Nanoparticle * np, soma_scalar_t factor);
   \return error value, 0 if pass
 */
 int test_nanoparticle(struct Phase *p, Nanoparticle * np);
+/*! \brief init nanoparticle rng state
+  \param p Initialized configuration.
+  \param np Nanoparticle.
+  \return error value, 0 if pass
+*/
+
+int init_nanoparticle_rng(struct Phase *p, Nanoparticle *np);
+
+
+int nanoparticle_mc_move(struct Phase *p, Nanoparticle *np);

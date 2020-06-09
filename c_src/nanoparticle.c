@@ -19,6 +19,8 @@
 #include "soma_config.h"
 #include "phase.h"
 #include "mesh.h"
+#include "mc.h"
+
 int calc_np_field_total(struct Phase *p)
 {
     soma_scalar_t *tempfield = calloc(p->nx, sizeof(soma_scalar_t));
@@ -44,7 +46,7 @@ int calc_my_np_field(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfie
 
 int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
 {
-
+  
     soma_scalar_t dl = p->Lx / p->nx;
     soma_scalar_t xlo = (np->x - np->radius);
     soma_scalar_t xhi = (np->x + np->radius);
@@ -59,8 +61,8 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     soma_scalar_t d=fmod(np->x,dl)/dl;
     soma_scalar_t dd2=(d-0.5)*(d-0.5);
     soma_scalar_t f=(0.78-0.48*dd2)/(1-1.336*dd2);
-    if(fabs(d<1e-5))
-       f=1.0;      
+    /* if(fabs(d<1e-5)) */
+    /*    f=1.0;       */
     np->interaction=f;
     if (clo < chi)
       for (int i = clo + 1; i < chi; i++)
@@ -77,10 +79,14 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
 
 int add_my_np_field(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
 {
-    for (uint64_t x = 0; x < p->nx; x++)
+  for (uint64_t x = 0; x < p->nx; x++){
+
+    //    printf("%i\t%lf\n",x,tempfield[x]);
         for (uint64_t y = 0; y < p->ny; y++)
             for (uint64_t z = 0; z < p->nz; z++)
 	      p->nanoparticle_field[x * p->ny * p->nz + y * p->nz + z] += tempfield[x] ;
+        //            printf("%lf\n", p->nanoparticle_field[x * p->ny * p->nz]);
+  }
     return 0;
 }
 
@@ -153,4 +159,51 @@ int test_nanoparticle(struct Phase *p, Nanoparticle * np)
         printf("Nanoparticle test failed.\n");
     free(tempfield);
     return test;
+}
+int init_nanoparticle_rng(struct Phase *p, Nanoparticle *np)
+{
+  allocate_rng_state(&(np->nanoparticle_rng_state), p->args.pseudo_random_number_generator_arg);
+  seed_rng_state(&(np->nanoparticle_rng_state), p->args.rng_seed_arg,
+                 0, p->args.pseudo_random_number_generator_arg);
+  return 0;
+}
+int nanoparticle_mc_move(struct Phase *p, Nanoparticle *np){
+  int accept=0;
+  soma_scalar_t scale=0.01;
+  soma_scalar_t delta_energy=0.0;
+  soma_scalar_t e0=0.0;
+  soma_scalar_t e1=0.0;
+
+  calc_np_field_total(p);
+  for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
+    p->tempfield[cell] = p->field_scaling_type[0] * p->fields_unified[cell] + p->nanoparticle_field[cell];
+  self_omega_field(p);
+  calc_non_bonded_energy( p, &e0);
+
+  soma_scalar_t dx = scale * (soma_rng_soma_scalar(&np->nanoparticle_rng_state, p->args.pseudo_random_number_generator_arg) - 0.5);
+  np->x+=dx;
+  
+  calc_np_field_total(p);
+  for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
+    p->tempfield[cell] = p->field_scaling_type[0] * p->fields_unified[cell] + p->nanoparticle_field[cell];
+  self_omega_field(p);
+  //  printf("%lf\n",p->omega_field_unified[38 * p->ny * p->nz ]);
+  calc_non_bonded_energy( p, &e1);
+  delta_energy=e1-e0;
+  if(som_accept(&np->nanoparticle_rng_state, p->args.pseudo_random_number_generator_arg, delta_energy)==1)
+    {
+      accept=1;
+    }
+  else
+    {
+      np->x-=dx;
+      calc_np_field_total(p);
+      for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
+        p->tempfield[cell] = p->field_scaling_type[0] * p->fields_unified[cell] + p->nanoparticle_field[cell];
+      self_omega_field(p);
+      
+
+    }
+  printf("%i\t%lf\n",accept,delta_energy);
+  return accept;
 }
