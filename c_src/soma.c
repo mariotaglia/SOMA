@@ -175,18 +175,18 @@ int main(int argc, char *argv[])
     soma_scalar_t e_nb=0;
     int mc_accepts=0;
 
-    FILE *f = fopen("npx", "w");
-    if (f == NULL)
-      {
-        printf("Error opening file!\n");
-        exit(1);
-      }
-    FILE *g = fopen("enb", "w");
-    if (g == NULL)
-      {
-        printf("Error opening file!\n");
-        exit(1);
-      }
+    /* FILE *f = fopen("npx", "w"); */
+    /* if (f == NULL) */
+    /*   { */
+    /*     printf("Error opening file!\n"); */
+    /*     exit(1); */
+    /*   } */
+    /* FILE *g = fopen("enb", "w"); */
+    /* if (g == NULL) */
+    /*   { */
+    /*     printf("Error opening file!\n"); */
+    /*     exit(1); */
+    /*   } */
 
 
     for (unsigned int i = 0; i < N_steps; i++)
@@ -199,13 +199,13 @@ int main(int argc, char *argv[])
                             p->info_MPI.world_rank);
                     exit(mc_error);
                 }
-            if(i%2==0){
-              mc_accepts+=nanoparticle_mc_move(p,&p->nanoparticles[0]);
-              fprintf(f, "%lf\n", p->nanoparticles[0].x);
-              calc_non_bonded_energy( p, avg_e_nb);
-              fprintf(g, "%lf\n", avg_e_nb[0]);
-
-            }
+            /* if(i%2==0){ */
+            /*   mc_accepts+=nanoparticle_mc_move(p,&p->nanoparticles[0]); */
+            /*   fprintf(f, "%lf\n", p->nanoparticles[0].x); */
+            /*   calc_non_bonded_energy( p, avg_e_nb); */
+            /*   fprintf(g, "%lf\n", avg_e_nb[0]); */
+            /* } */
+            
             screen_output(p, N_steps);
 
             if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1)
@@ -241,18 +241,23 @@ int main(int argc, char *argv[])
                     break;
                 }
 
-/* 	    if(i>=N_steps-N_steps/10){ */
-/* #pragma acc update self(p->fields_unified[p->n_types*p->n_cells]) */
-/* #pragma acc update self(p->omega_field_unified[p->n_types*p->n_cells]) */
-/* 	      average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/10)); */
-/* 	      calc_non_bonded_energy( p, avg_e_b); */
-/* 	      calc_bonded_energy( p, avg_e_nb); */
-/* 	      e_b+=avg_e_b[0]/(N_steps-(N_steps-N_steps/10)); */
-/* 	      e_nb+=avg_e_nb[0]/(N_steps-(N_steps-N_steps/10)); */
-/* 	    } */
+	    if(i>=N_steps-N_steps/10){
+#pragma acc update self(p->fields_unified[p->n_types*p->n_cells])
+#pragma acc update self(p->omega_field_unified[p->n_types*p->n_cells])
+	      average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/10));
+	      calc_non_bonded_energy( p, avg_e_b);
+	      calc_bonded_energy( p, avg_e_nb);
+	      e_b+=avg_e_b[0]/(N_steps-(N_steps-N_steps/10));
+	      e_nb+=avg_e_nb[0]/(N_steps-(N_steps-N_steps/10));
+	    }
 	    
 	}
-    printf("%i\n",mc_accepts);
+    p->xn[0]=e_b;
+    p->k_umbrella[0]=e_nb;
+#pragma acc update device(p->xn[p->n_types])
+#pragma acc update device(p->k_umbrella[p->n_types])
+
+
 #if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);
     if (missed_chains != 0)

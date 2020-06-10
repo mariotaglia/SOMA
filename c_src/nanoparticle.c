@@ -46,7 +46,7 @@ int calc_my_np_field(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfie
 
 int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
 {
-  
+
     soma_scalar_t dl = p->Lx / p->nx;
     soma_scalar_t xlo = (np->x - np->radius);
     soma_scalar_t xhi = (np->x + np->radius);
@@ -60,10 +60,8 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     int chi = floor(xhi / dl);
     soma_scalar_t d=fmod(np->x,dl)/dl;
     soma_scalar_t dd2=(d-0.5)*(d-0.5);
-    soma_scalar_t f=(0.78-0.48*dd2)/(1-1.336*dd2);
     /* if(fabs(d<1e-5)) */
     /*    f=1.0;       */
-    np->interaction=f;
     if (clo < chi)
       for (int i = clo + 1; i < chi; i++)
 	tempfield[i] = 1* 1.2;
@@ -74,6 +72,17 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     tempfield[chi] = (xhi - chi * dl) / dl* 1.2*np->interaction;
     if(tempfield[chi]<1e-6)
       tempfield[chi-1]*=np->interaction;
+    
+    FILE *f = fopen("wall", "w");
+    if (f == NULL)
+      {
+        printf("Error opening file!\n");
+        exit(1);
+      }
+    for(int i =0;i<p->nx;i++)
+      fprintf(f,"%lf\n",tempfield[i]);
+    fclose(f);
+    
     return 0;
 }
 
