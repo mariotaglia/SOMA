@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
     calc_np_field_total(p);
     if (!p->bead_data_read)
         {
-            nanoparticle_area51_switch(p, 1);
+          nanoparticle_area51_switch(p, 1);
             if (p->info_MPI.sim_rank == 0)
                 printf("INFO: Generating new bead initial data. "
                        "If your configuration contains rings " "equilibration might take long.\n");
@@ -187,7 +187,9 @@ int main(int argc, char *argv[])
     /*     printf("Error opening file!\n"); */
     /*     exit(1); */
     /*   } */
-
+    for(int i=0;i<p->n_cells;i++)
+      if(fabs(p->umbrella_field[i])>1e-4)
+        printf("%lf\n",p->umbrella_field[i]);
 
     for (unsigned int i = 0; i < N_steps; i++)
         {
@@ -208,38 +210,38 @@ int main(int argc, char *argv[])
             
             screen_output(p, N_steps);
 
-            if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1)
-                convert_polytypes(p);
+            /* if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1) */
+            /*     convert_polytypes(p); */
 
-#if ( ENABLE_MPI == 1 )
-            if (p->args.load_balance_arg > 0
-                && i % p->args.load_balance_arg == (unsigned int)p->args.load_balance_arg - 1)
-                load_balance_mpi_ranks(p);
-            if (p->args.N_domains_arg > 1 && p->args.rcm_update_arg > 0
-                && i % p->args.rcm_update_arg == (unsigned int)p->args.rcm_update_arg - 1)
-                {
-                    const int missed_chains = send_domain_chains(p, false);
-                    if (missed_chains != 0)
-                        exit(missed_chains);
-                }
-#endif                          //ENABLE_MPI
+/* #if ( ENABLE_MPI == 1 ) */
+/*             if (p->args.load_balance_arg > 0 */
+/*                 && i % p->args.load_balance_arg == (unsigned int)p->args.load_balance_arg - 1) */
+/*                 load_balance_mpi_ranks(p); */
+/*             if (p->args.N_domains_arg > 1 && p->args.rcm_update_arg > 0 */
+/*                 && i % p->args.rcm_update_arg == (unsigned int)p->args.rcm_update_arg - 1) */
+/*                 { */
+/*                     const int missed_chains = send_domain_chains(p, false); */
+/*                     if (missed_chains != 0) */
+/*                         exit(missed_chains); */
+/*                 } */
+/* #endif                          //ENABLE_MPI */
 
-            stop_iteration = check_walltime_stop();
-#if ( ENABLE_MPI == 1 )
-            if (!p->args.no_sync_signal_flag)
-                {
-                    //Sync all mpi cores
-                    MPI_Allreduce(MPI_IN_PLACE, &stop_iteration, 1, MPI_INT, MPI_SUM, p->info_MPI.SOMA_comm_world);
-                }
-#endif                          //ENABLE_MPI
+/*             stop_iteration = check_walltime_stop(); */
+/* #if ( ENABLE_MPI == 1 ) */
+/*             if (!p->args.no_sync_signal_flag) */
+/*                 { */
+/*                     //Sync all mpi cores */
+/*                     MPI_Allreduce(MPI_IN_PLACE, &stop_iteration, 1, MPI_INT, MPI_SUM, p->info_MPI.SOMA_comm_world); */
+/*                 } */
+/* #endif                          //ENABLE_MPI */
 
-            if (stop_iteration)
-                {
-                    if (p->info_MPI.world_rank == 0)
-                        fprintf(stdout, "Environment to stop iteration at time %d catched by rank %d.\n", p->time,
-                                p->info_MPI.world_rank);
-                    break;
-                }
+            /* if (stop_iteration) */
+            /*     { */
+            /*         if (p->info_MPI.world_rank == 0) */
+            /*             fprintf(stdout, "Environment to stop iteration at time %d catched by rank %d.\n", p->time, */
+            /*                     p->info_MPI.world_rank); */
+            /*         break; */
+            /*     } */
 
 	    if(i>=N_steps-N_steps/10){
 #pragma acc update self(p->fields_unified[p->n_types*p->n_cells])

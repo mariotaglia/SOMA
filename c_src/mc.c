@@ -33,16 +33,43 @@
 
 void trial_move(const Phase * p, const uint64_t ipoly, const int ibead,
                 soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, const unsigned int iwtype,
-                const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state)
+                const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const myrngstate)
 {
-    //Just to shut up the compiler warning:
-    //Any decent compiler optimize it out
-    soma_scalar_t scale = ibead + 0 * ipoly;
-    scale = p->A[iwtype];
 
-    *dx = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
-    *dy = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
-    *dz = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5);
+
+/* void trial_move(const Phase * p, const uint64_t ipoly, const int ibead, */
+/*                 soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, const unsigned int iwtype, */
+/*                 const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state) */
+/* { */
+
+
+
+  
+    /* R calculated from A according to: Rossky, Doll and Friedman, J.Chem.Phys 69(10)1978 */
+    const soma_scalar_t A = p->A[iwtype];
+    const soma_scalar_t R = p->R[iwtype];
+
+    /* calculate forces in current position */
+
+    /* generate a normal distributed random vector */
+    soma_scalar_t rx, ry, rz;
+    soma_normal_vector(myrngstate, arg_rng_type, &rx, &ry, &rz);
+
+    /* combine the random offset with the forces, to obtain Brownian motion */
+    *dx =  rx * R;
+    *dy =  ry * R;
+    *dz =  rz * R;
+
+
+  
+    /* //Just to shut up the compiler warning: */
+    /* //Any decent compiler optimize it out */
+    /* soma_scalar_t scale = ibead + 0 * ipoly; */
+    /* scale = p->A[iwtype]; */
+
+    /* *dx = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5); */
+    /* *dy = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5); */
+    /* *dz = scale * (soma_rng_soma_scalar(rng_state, arg_rng_type) - 0.5); */
 }
 
 void trial_move_cm(const Phase * p, const uint64_t poly_type, soma_scalar_t * const dx, soma_scalar_t * const dy,
@@ -85,8 +112,10 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
     const soma_scalar_t yold = monomer->y;
     const soma_scalar_t zold = monomer->z;
     const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
-    const uint64_t cellindex_old = coord_to_index_unified(p, xold, yold, zold, iwtype);
-    const uint64_t cellindex_new = coord_to_index_unified(p, xold + dx, yold + dy, zold + dz, iwtype);
+    const soma_scalar_t rescale_density=p->field_scaling_type[0];
+    const soma_scalar_t rho_c0=1.0/rescale_density;    
+    const uint64_t cellindex_old = coord_to_index_unified(p, xold, yold, zold, iwtype)%p->n_cells;
+    const uint64_t cellindex_new = coord_to_index_unified(p, xold + dx, yold + dy, zold + dz, iwtype)%p->n_cells;
     if (cellindex_old > p->n_cells_local * p->n_types || cellindex_new > p->n_cells_local * p->n_types)
         {
 #ifdef NAN
@@ -100,26 +129,37 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
 #endif                          //NAN
         }
     //      
-      const soma_scalar_t energy_old = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new];
+    /* const soma_scalar_t energy_old = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new]; */
+    
+    /* p->fields_unified[cellindex_old]-=1; */
+    /* p->fields_unified[cellindex_new]+=1; */
+    /* p->tempfield[cellindex_old]=  rescale_density * ((soma_scalar_t)p->fields_unified[cellindex_old]) + p->nanoparticle_field[cellindex_old]; */
+    /* p->tempfield[cellindex_new]=  rescale_density * ((soma_scalar_t)p->fields_unified[cellindex_new] )+ p->nanoparticle_field[cellindex_new]; */
+    /* p->omega_field_unified[cellindex_old]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_old] - 1.0)); */
+    /* p->omega_field_unified[cellindex_new]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_new] - 1.0)); */
+    
+    /* const soma_scalar_t energy_new = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new]; */
+    
+    /* const soma_scalar_t energy = (energy_new - energy_old)/2.0; */
+    
+    /* p->fields_unified[cellindex_old]+=1; */
+    /* p->fields_unified[cellindex_new]-=1; */
+    /* p->tempfield[cellindex_old]=  rescale_density * ((soma_scalar_t)p->fields_unified[cellindex_old] )+ p->nanoparticle_field[cellindex_old]; */
+    /* p->tempfield[cellindex_new]=  rescale_density * ((soma_scalar_t)p->fields_unified[cellindex_new] )+ p->nanoparticle_field[cellindex_new]; */
+    /* p->omega_field_unified[cellindex_old]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_old] - 1.0)); */
+    /* p->omega_field_unified[cellindex_new]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_new] - 1.0)); */
 
-  
-  p->fields_unified[cellindex_old]-=1;
-  p->fields_unified[cellindex_new]+=1;
-  p->tempfield[cellindex_old%p->n_cells]-=1.0*p->field_scaling_type[0];
-  p->tempfield[cellindex_new%p->n_cells]+=1.0*p->field_scaling_type[0];
-  p->omega_field_unified[cellindex_old]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_old] - 1.0));
-  p->omega_field_unified[cellindex_new]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_new] - 1.0));
-  
-  const soma_scalar_t energy_new = p->omega_field_unified[cellindex_old]*p->fields_unified[cellindex_old]+p->omega_field_unified[cellindex_new]*p->fields_unified[cellindex_new];
-  const soma_scalar_t energy = energy_new - energy_old;
-  p->fields_unified[cellindex_old]+=1;
-  p->fields_unified[cellindex_new]-=1;
-  p->tempfield[cellindex_old%p->n_cells]+=1.0*p->field_scaling_type[0];
-  p->tempfield[cellindex_new%p->n_cells]-=1.0*p->field_scaling_type[0];
-  p->omega_field_unified[cellindex_old]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_old] - 1.0));
-  p->omega_field_unified[cellindex_new]=inverse_refbeads * (p->xn[0] * (p->tempfield[cellindex_new] - 1.0));
-  
-  return energy;
+    const soma_scalar_t energy_old=
+      (rho_c0*p->xn[0]*inverse_refbeads*((p->fields_unified[cellindex_old])/rho_c0+p->nanoparticle_field[cellindex_old]-1)*((p->fields_unified[cellindex_old])/rho_c0+p->nanoparticle_field[cellindex_old]-1)+
+      rho_c0*p->xn[0]*inverse_refbeads*((p->fields_unified[cellindex_new])/rho_c0+p->nanoparticle_field[cellindex_new]-1)*((p->fields_unified[cellindex_new])/rho_c0+p->nanoparticle_field[cellindex_new]-1))/2.0;
+      
+    const soma_scalar_t energy_new=
+ (     rho_c0*p->xn[0]*inverse_refbeads*((p->fields_unified[cellindex_old]-1)/rho_c0+p->nanoparticle_field[cellindex_old]-1)*((p->fields_unified[cellindex_old]-1)/rho_c0+p->nanoparticle_field[cellindex_old]-1)+
+       rho_c0*p->xn[0]*inverse_refbeads*((p->fields_unified[cellindex_new]+1)/rho_c0+p->nanoparticle_field[cellindex_new]-1)*((p->fields_unified[cellindex_new]+1)/rho_c0+p->nanoparticle_field[cellindex_new]-1))/2.0;
+
+    const soma_scalar_t energy = (energy_new - energy_old);
+
+    return energy;
 }
 
 soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly, const Monomer * const monomer,
@@ -229,8 +269,8 @@ int monte_carlo_propagation(Phase * const p, unsigned int nsteps)
             restart_autotuner(&(p->mc_autotuner));
             restart_autotuner(&(p->cm_mc_autotuner));
         }
+    //    update_density_fields(p);
 
-    update_density_fields(p);
     return ret;
 }
 
@@ -364,11 +404,10 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                             ibead = soma_rng_uint(myrngstate, arg_rng_type) % myN;
                             const unsigned int iwtype =
                                 get_particle_type(p->poly_arch[p->poly_type_offset[mypoly->type] + 1 + ibead]);
-
                             Monomer mybead = mypoly->beads[ibead];
                             Monomer *mybead_ptr = &mypoly->beads[ibead];
 
-                            // roll normal MC trial move or force biased MC move
+                            /* roll normal MC trial move or force biased MC move */
                             soma_scalar_t smc_deltaE = 0.0;
                             switch (p->args.move_type_arg)
                                 {
@@ -383,16 +422,13 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                     smc_deltaE = 0.0;
                                     break;
                                 }
-
                             soma_scalar_t newx = mybead.x + dx;
                             soma_scalar_t newy = mybead.y + dy;
                             soma_scalar_t newz = mybead.z + dz;
-
                             const int move_allowed = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx, dy, dz,
                                                                           p->args.nonexact_area51_flag);
-
                             delta_energy = calc_delta_energy(p, npoly, &mybead, ibead, dx, dy, dz, iwtype);
-
+                   
                             if (delta_energy != delta_energy)   // isnan(delta_energy) ) not working with PGI OpenACC
                                 {
                                     error_flags[0] = npoly + 1;

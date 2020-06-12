@@ -208,7 +208,6 @@ int init_phase(struct Phase *const p)
     // Note the *= the field is initialized with the density weights in read_hdf5_config.
     // default value = 1.
     soma_scalar_t vol_nanoparticles_total = 0;
-    printf("%lf\n",p->field_scaling_type[0]);
     if (p->nanoparticles)
         {
             for (uint64_t i = 0; i < p->n_nanoparticle; i++)
@@ -218,8 +217,7 @@ int init_phase(struct Phase *const p)
         }
 
     for (unsigned int i = 0; i < p->n_types; i++)
-      p->field_scaling_type[i] *= (ncells-vol_nanoparticles_total) / (soma_scalar_t) p->num_all_beads;
-    printf("%lf\n",p->field_scaling_type[0]);
+      p->field_scaling_type[i] *= (ncells-vol_nanoparticles_total) / ((soma_scalar_t) p->num_all_beads);
 
     // Info for Ulrich: programm does take excluded volume into account now!
     p->n_accepts = 0;
