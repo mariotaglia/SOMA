@@ -244,7 +244,7 @@ void update_omega_fields(const struct Phase *const p)
     if (last_time_call == 0 || p->time > last_time_call)
         last_time_call = p->time;
     else                        //Quick exit, because the property has already been calculated for the time step.
-      return 0;
+      return ;
 
     
     switch (p->hamiltonian)
@@ -397,4 +397,146 @@ void update_omega_fields_scmf1(const struct Phase *const p)
 {
     self_omega_field(p);
     add_pair_omega_fields_scmf1(p);
+}
+
+void update_omega_fields_cell(const struct Phase *const p,uint64_t cell)
+{
+
+    switch (p->hamiltonian)
+        {
+        case SCMF0:
+          update_omega_fields_scmf0_cell(p,cell);
+            break;
+        case SCMF1:
+          update_omega_fields_scmf1_cell(p,cell);
+            break;
+        default:
+            fprintf(stderr, "ERROR: %s:%d Unkown hamiltonian specified %d.\n", __FILE__, __LINE__, p->hamiltonian);
+        }
+}
+
+//! Set the self interaction terms to the omega fields. This
+//! includes the intercation with the external field and the umbrella
+//! potential.
+//! \private Helper function
+//! \param p Phase of the system to init the omega fields
+void self_omega_field_cell(const struct Phase *const p,uint64_t cell)
+{
+    // soma_scalar_t density=0;
+    // for(int c=0;c<(p->n_types * p->n_cells_local);c++)
+    //   density+=p->fields_unified[c];
+    // density=density/(p->Lx*p->Ly*p->Lz);
+
+    /*Densityfields are shorts and unscaled according to bead_type */
+    /*Tempfields save the complete densities and remain as type soma_scalar_t -> used for insothermal Compressibility */
+
+    const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
+    //Add cos and sin series with time dependency
+    soma_scalar_t external_field_time = 0;
+
+    if (p->time == 0 || p->serie_length == 0)
+        {                       //to fix serie_length seg fault
+            external_field_time = 1;
+        }
+    else
+        {
+            for (unsigned int serie_index = 0; serie_index < p->serie_length; serie_index++)
+                {
+                    external_field_time +=
+                        p->cos_serie[serie_index] * cos(2 * M_PI * serie_index / p->period * p->time);
+                    external_field_time +=
+                        p->sin_serie[serie_index] * sin(2 * M_PI * serie_index / p->period * p->time);
+                }
+        }
+    // Compressibility part + external fields
+    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
+      {
+          p->omega_field_unified[cell + T_types * p->n_cells_local] =
+            inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (p->tempfield[cell] - 1.0));
+          
+          /* the external field is defined such that the energy of a
+             chain of refbeads in this field is x k_B T, thus the
+             normalization per bead */
+          if (p->external_field_unified != NULL)
+            {
+              p->omega_field_unified[cell + T_types * p->n_cells_local] +=
+                inverse_refbeads * p->external_field_unified[cell +
+                                                             T_types * p->n_cells_local] *
+                external_field_time;
+            }
+          //umbrella part
+          if (p->umbrella_field != NULL)
+            {
+              p->omega_field_unified[cell + T_types * p->n_cells_local] +=
+                -inverse_refbeads *  p->k_umbrella[T_types] *
+                (p->umbrella_field[cell + T_types * p->n_cells_local] -
+                 p->field_scaling_type[T_types] *p->fields_unified[cell + T_types * p->n_cells_local]);
+            }
+                
+        }
+    
+}
+
+//! Add the pair interactions to the omega fields via the SCMF0 hamiltonian.
+//! \private Helper function
+//! \param p Phase of the system to add the omega fields
+void add_pair_omega_fields_scmf0_cell(const struct Phase *const p,uint64_t cell)
+{
+    const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
+
+    // XN part
+
+    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
+      {                       /*Loop over all fields according to monotype */
+        for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
+          {
+            // precalculate the normalization for this type combination
+            soma_scalar_t dnorm = -0.5 * inverse_refbeads * p->xn[T_types * p->n_types + S_types];
+            soma_scalar_t interaction =
+              dnorm * (p->field_scaling_type[T_types] *
+                       p->fields_unified[cell + T_types * p->n_cells_local] -
+                       p->field_scaling_type[S_types] * p->fields_unified[cell +
+                                                                          S_types *
+                                                                          p->n_cells_local]);
+            p->omega_field_unified[cell + T_types * p->n_cells_local] += interaction;
+            p->omega_field_unified[cell + S_types * p->n_cells_local] -= interaction;
+          }
+      }
+}
+
+//! Add the pair interactions to the omega fields via the SCMF1 hamiltonian.
+//! \private Helper function
+//! \param p Phase of the system to add the omega fields
+void add_pair_omega_fields_scmf1_cell(const struct Phase *const p,uint64_t cell)
+{
+    const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
+
+    // XN part
+
+    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
+      {                       /*Loop over all fields according to monotype */
+        for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
+          {
+            const soma_scalar_t normT = inverse_refbeads * p->xn[T_types * p->n_types + S_types];
+            const soma_scalar_t rhoS =
+              p->fields_unified[cell + S_types * p->n_cells_local] * p->field_scaling_type[S_types];
+            const soma_scalar_t normS = inverse_refbeads * p->xn[S_types * p->n_types + T_types];
+            const soma_scalar_t rhoT =
+              p->fields_unified[cell + T_types * p->n_cells_local] * p->field_scaling_type[T_types];
+            p->omega_field_unified[cell + T_types * p->n_cells_local] += normT * rhoS;
+            p->omega_field_unified[cell + S_types * p->n_cells_local] += normS * rhoT;
+                }
+        }
+}
+
+void update_omega_fields_scmf0_cell(const struct Phase *const p,uint64_t cell)
+{
+  self_omega_field_cell(p,cell);
+  add_pair_omega_fields_scmf0_cell(p,cell);
+}
+
+void update_omega_fields_scmf1_cell(const struct Phase *const p,uint64_t cell)
+{
+  self_omega_field_cell(p,cell);
+  add_pair_omega_fields_scmf1_cell(p,cell);
 }

@@ -187,13 +187,12 @@ int main(int argc, char *argv[])
     /*     printf("Error opening file!\n"); */
     /*     exit(1); */
     /*   } */
-    for(int i=0;i<p->n_cells;i++)
-      if(fabs(p->umbrella_field[i])>1e-4)
-        printf("%lf\n",p->umbrella_field[i]);
-
+    update_density_fields(p);
+    update_omega_fields(p);
     for (unsigned int i = 0; i < N_steps; i++)
-        {
-            analytics(p);
+      {
+            /* analytics(p); */
+
             const int mc_error = monte_carlo_propagation(p, 1);
             if (mc_error != 0)
                 {
@@ -201,30 +200,12 @@ int main(int argc, char *argv[])
                             p->info_MPI.world_rank);
                     exit(mc_error);
                 }
-            /* if(i%2==0){ */
-            /*   mc_accepts+=nanoparticle_mc_move(p,&p->nanoparticles[0]); */
-            /*   fprintf(f, "%lf\n", p->nanoparticles[0].x); */
-            /*   calc_non_bonded_energy( p, avg_e_nb); */
-            /*   fprintf(g, "%lf\n", avg_e_nb[0]); */
-            /* } */
-            
+
             screen_output(p, N_steps);
 
             /* if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1) */
             /*     convert_polytypes(p); */
 
-/* #if ( ENABLE_MPI == 1 ) */
-/*             if (p->args.load_balance_arg > 0 */
-/*                 && i % p->args.load_balance_arg == (unsigned int)p->args.load_balance_arg - 1) */
-/*                 load_balance_mpi_ranks(p); */
-/*             if (p->args.N_domains_arg > 1 && p->args.rcm_update_arg > 0 */
-/*                 && i % p->args.rcm_update_arg == (unsigned int)p->args.rcm_update_arg - 1) */
-/*                 { */
-/*                     const int missed_chains = send_domain_chains(p, false); */
-/*                     if (missed_chains != 0) */
-/*                         exit(missed_chains); */
-/*                 } */
-/* #endif                          //ENABLE_MPI */
 
 /*             stop_iteration = check_walltime_stop(); */
 /* #if ( ENABLE_MPI == 1 ) */
@@ -254,6 +235,8 @@ int main(int argc, char *argv[])
 	    }
 	    
 	}
+
+        
     p->xn[0]=e_b;
     p->k_umbrella[0]=e_nb;
 #pragma acc update device(p->xn[p->n_types])

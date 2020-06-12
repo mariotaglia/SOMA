@@ -164,4 +164,6 @@ int extent_structure(const struct Phase *p, const soma_scalar_t * const data, co
 //! \param time time over which is averaged
 //! \return Errorcode
 int average_field(const struct Phase *p, soma_scalar_t* destination,soma_scalar_t time);
+soma_scalar_t calc_non_bonded_energy_exact(const struct Phase *p);
+
 #endif                          //SOMA_ANA_H

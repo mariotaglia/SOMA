@@ -209,4 +209,27 @@ void update_omega_fields_scmf0(const struct Phase *const p);
 //! \note In case of the use of the density_weights every \f$\phi_i\f$ is multiplied with its weight \f$w_i\f$.
 void update_omega_fields_scmf1(const struct Phase *const p);
 
+void update_omega_fields_cell(const struct Phase *const p,uint64_t cell);
+
+//! Set the self interaction terms to the omega fields. This
+//! includes the intercation with the external field and the umbrella
+//! potential.
+//! \private Helper function
+//! \param p Phase of the system to init the omega fields
+void self_omega_field_cell(const struct Phase *const p,uint64_t cell);
+
+//! Add the pair interactions to the omega fields via the SCMF0 hamiltonian.
+//! \private Helper function
+//! \param p Phase of the system to add the omega fields
+void add_pair_omega_fields_scmf0_cell(const struct Phase *const p,uint64_t cell);
+
+//! Add the pair interactions to the omega fields via the SCMF1 hamiltonian.
+//! \private Helper function
+//! \param p Phase of the system to add the omega fields
+void add_pair_omega_fields_scmf1_cell(const struct Phase *const p,uint64_t cell);
+
+void update_omega_fields_scmf0_cell(const struct Phase *const p,uint64_t cell);
+
+void update_omega_fields_scmf1_cell(const struct Phase *const p,uint64_t cell);
+
 #endif                          //SOMA_MESH_H

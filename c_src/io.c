@@ -649,7 +649,7 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
                                 H5T_SOMA_NATIVE_SCALAR, plist_id, p->cm_a);
             HDF5_ERROR_CHECK2(status, "/parameter/cm_a");
         }
-    if(p->n_nanoparticle!=NULL){
+    if(&p->n_nanoparticle!=NULL){
       status =
         write_hdf5(1, &one, file_id, "/parameter/n_nanoparticle", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &(p->n_nanoparticle));
       HDF5_ERROR_CHECK2(status, "/parameter/n_nanoparticle");
@@ -1519,8 +1519,9 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         }
     if (H5Lexists(file_id, "/parameter/density_weights", H5P_DEFAULT) > 0)
         {
-            hid_t status = read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
-                                     p->field_scaling_type);
+            hid_t status =
+                read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                          p->field_scaling_type);
             HDF5_ERROR_CHECK2(status, "/parameter/density_weights");
         }
     else
@@ -1548,7 +1549,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                                      p->nanoparticles);
             HDF5_ERROR_CHECK2(status, "/nanoparticle");
         }
-    else if ((status = H5Fclose(file_id)) < 0)
+    if ((status = H5Fclose(file_id)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);
