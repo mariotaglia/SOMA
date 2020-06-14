@@ -172,6 +172,8 @@ int main(int argc, char *argv[])
     soma_scalar_t * avg_e_b=calloc(NUMBER_SOMA_BOND_TYPES , sizeof(soma_scalar_t));
     soma_scalar_t * avg_e_nb=calloc(p->n_types, sizeof(soma_scalar_t));
     soma_scalar_t e_b=0;
+    soma_scalar_t e_b0=0;
+	
     soma_scalar_t e_nb=0;
     int mc_accepts=0;
 
@@ -203,44 +205,17 @@ int main(int argc, char *argv[])
 
             screen_output(p, N_steps);
 
-            /* if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1) */
-            /*     convert_polytypes(p); */
-
-
-/*             stop_iteration = check_walltime_stop(); */
-/* #if ( ENABLE_MPI == 1 ) */
-/*             if (!p->args.no_sync_signal_flag) */
-/*                 { */
-/*                     //Sync all mpi cores */
-/*                     MPI_Allreduce(MPI_IN_PLACE, &stop_iteration, 1, MPI_INT, MPI_SUM, p->info_MPI.SOMA_comm_world); */
-/*                 } */
-/* #endif                          //ENABLE_MPI */
-
-            /* if (stop_iteration) */
-            /*     { */
-            /*         if (p->info_MPI.world_rank == 0) */
-            /*             fprintf(stdout, "Environment to stop iteration at time %d catched by rank %d.\n", p->time, */
-            /*                     p->info_MPI.world_rank); */
-            /*         break; */
-            /*     } */
-
-	    if(i>=N_steps-N_steps/10){
-#pragma acc update self(p->fields_unified[p->n_types*p->n_cells])
-#pragma acc update self(p->omega_field_unified[p->n_types*p->n_cells])
-	      average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/10));
-	      calc_non_bonded_energy( p, avg_e_b);
-	      calc_bonded_energy( p, avg_e_nb);
-	      e_b+=avg_e_b[0]/(N_steps-(N_steps-N_steps/10));
-	      e_nb+=avg_e_nb[0]/(N_steps-(N_steps-N_steps/10));
+	    if(i>=N_steps-N_steps/5){
+	      average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/5));
+	      e_nb+=calc_non_bonded_energy_exact(p)/(N_steps-(N_steps-N_steps/5));
+	      calc_non_bonded_energy(p,&e_b0);
+	      e_b+=e_b0/(N_steps/5);
 	    }
 	    
 	}
 
-        
     p->xn[0]=e_b;
     p->k_umbrella[0]=e_nb;
-#pragma acc update device(p->xn[p->n_types])
-#pragma acc update device(p->k_umbrella[p->n_types])
 
 
 #if ( ENABLE_MPI == 1 )

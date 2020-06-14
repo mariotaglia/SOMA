@@ -64,12 +64,12 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     /*    f=1.0;       */
     if (clo < chi)
       for (int i = clo + 1; i < chi; i++)
-	tempfield[i] = 1* 1.0;
+	tempfield[i] = 1* 1.2;
     else
       for (int i = clo + 1; i <= (int)(chi + p->nx); i = (i + 1))
-	tempfield[i % p->nx] = 1* 1.0;
-    tempfield[clo] = ((clo + 1.0) * dl - xlo) / dl* 1.0*np->interaction;
-    tempfield[chi] = (xhi - chi * dl) / dl* 1.0*np->interaction;
+	tempfield[i % p->nx] = 1* 1.2;
+    tempfield[clo] = ((clo + 1.0) * dl - xlo) / dl* 1.2*np->interaction;
+    tempfield[chi] = (xhi - chi * dl) / dl* 1.2*np->interaction;
     if(tempfield[chi]<1e-6)
       tempfield[chi-1]*=np->interaction;
     
@@ -91,7 +91,7 @@ int add_my_np_field(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfiel
   for (uint64_t x = 0; x < p->nx; x++)
       for (uint64_t y = 0; y < p->ny; y++)
         for (uint64_t z = 0; z < p->nz; z++){
-	      p->nanoparticle_field[x * p->ny * p->nz + y * p->nz + z] += tempfield[x]*1.2 ;        
+	      p->nanoparticle_field[x * p->ny * p->nz + y * p->nz + z] += tempfield[x] ;        
         }
     return 0;
 }
