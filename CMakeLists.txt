@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug")
 endif()
 if( ${CMAKE_VERSION} VERSION_GREATER "3.7.0" )
-  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0") 
+  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0")
     cmake_policy(SET CMP0074 NEW)
   endif()
 endif()
@@ -99,7 +99,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -c99")
+  #sorry the PGI compiler messages are utterly useless. And I don't know how to shutoff the warnings in the code.
+  set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -c99 -Minform=severe")
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
