@@ -100,7 +100,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -c99")
+  #sorry the PGI compiler messages are utterly useless. And I don't know how to shutoff the warnings in the code.
+  set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -c99 -Minform=severe")
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
