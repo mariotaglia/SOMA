@@ -218,11 +218,11 @@ int generate_new_beads(struct Phase *const p)
                 }
             free(already_set);
             free(chain);
-            //We assume that the msd_beads and the beads use the same memory offsets
-            memcpy(p->ph.msd_beads.ptr, p->ph.beads.ptr, p->ph.beads.used * p->ph.beads.typelength);
-            //transfer the particle positions after generation to GPU
-            update_device_polymer_heavy(p, false);
         }                       //loop over polymers
+    //We assume that the msd_beads and the beads use the same memory offsets
+    memcpy(p->ph.msd_beads.ptr, p->ph.beads.ptr, p->ph.beads.used * p->ph.beads.typelength);
+    //transfer the particle positions after generation to GPU
+    update_device_polymer_heavy(p, false);
     update_density_fields(p);
     memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
     return 0;

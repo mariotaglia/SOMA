@@ -41,10 +41,10 @@ struct Phase;
   Pointers that are not used, because the current execution mode doesn't need them are set to NULL.
  */
 typedef struct PolymerHeavy {
-    SomaMemory beads;           //! Memory handle struct for the beads data
-    SomaMemory msd_beads;       //! Memory handle struct for the msd_beads data (typically not present on device)
-    SomaMemory set_states;      //! Memory handle struct for set states memory
-    SomaMemory set_permutation; //! Memory handle struct for the set permutation info
+    SomaMemory beads;           //!< Memory handle struct for the beads data
+    SomaMemory msd_beads;       //!< Memory handle struct for the msd_beads data (typically not present on device)
+    SomaMemory set_states;      //!< Memory handle struct for set states memory
+    SomaMemory set_permutation; //!< Memory handle struct for the set permutation info
 } PolyermerHeavy;
 
 /*! \brief Frees all resources of the PolymerHeavy struct
@@ -71,6 +71,7 @@ int copyout_polymer_heavy(struct Phase *const p);
 /*! \brief Update the device memory with the current self memory of the polymer heavy struct
 
   \param p Phase that contains a PolymerHeavy to update
+  \param rng_flag Update of RNG info required?
   \return error code.
 */
 int update_device_polymer_heavy(struct Phase *const p, const bool rng_flag);
@@ -78,6 +79,7 @@ int update_device_polymer_heavy(struct Phase *const p, const bool rng_flag);
 /*! \brief Updates the self memory with the current device memory of the polymer heavcy strcut.
 
   \param p Phase that contains a PolymerHeavy to update
+  \param rng_flag Update of RNG info required?
   \return error code.
 */
 int update_self_polymer_heavy(struct Phase *const p, const bool rng_flag);

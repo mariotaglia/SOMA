@@ -195,6 +195,14 @@ int write_field_hdf5(struct Phase *const p, const hid_t file_id,
     return 0;
 }
 
+/*! Helper function to write the polytypes to disk.
+
+\private
+\param p Phase construct to write the polytypes from
+\param file_id HDF5 file handle, opened and ready to write.
+\param plist_id poperty list to be used for writing the file.
+\return Errorcode
+*/
 int write_poly_type(const struct Phase *const p, hid_t file_id, const hid_t plist_id)
 {
     hid_t status;
@@ -261,6 +269,14 @@ int write_poly_type(const struct Phase *const p, hid_t file_id, const hid_t plis
     return status;
 }
 
+/*! Helper function to write the heavy beads dataset to file. With multiple ranks, MPI-IO is used.
+
+\private
+\param p Phase struct intiliazied, ready to write.
+\param file_id opened HDF5 file handle to write to.
+\param plist_id property list for HDF5 writing.
+\return Errorcode
+*/
 int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id)
 {
     hid_t status;
@@ -734,6 +750,14 @@ int read_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_
     return 0;
 }
 
+/*! Helper function to read the beads information from the input files of version 1.
+
+\private
+\param p Phase struct which is going to be initialized.
+\param file_id opened HDF5 file handle to read from.
+\param plist_id HDF5 property list to read with.
+\return Errorcode.
+*/
 int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
     hid_t status;
@@ -899,6 +923,15 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
     return 0;
 }
 
+/*! General helper function to read the beads information from the input file if available.
+
+This function wraps the different actual reading functions and selects the appropriate one according to the file version.
+\private
+\param p Phase struct which is going to be initialized.
+\param file_id opened HDF5 file handle to read from.
+\param plist_id HDF5 property list to read with.
+\return Errorcode.
+*/
 int read_beads(struct Phase *p, const hid_t file_id, const hid_t plist_id)
 {
     hid_t status;
