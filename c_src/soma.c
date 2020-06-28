@@ -1,3 +1,6 @@
+#define calc_avg 0
+#define save_time_series 1
+
 /* Copyright (C) 2016-2019 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
@@ -169,62 +172,66 @@ int main(int argc, char *argv[])
     nanoparticle_area51_switch(p, 0);
     //    test_nanoparticle(p, &p->nanoparticles[0]);
     int stop_iteration = false;
-    soma_scalar_t * avg_e_b=calloc(NUMBER_SOMA_BOND_TYPES , sizeof(soma_scalar_t));
-    soma_scalar_t * avg_e_nb=calloc(p->n_types, sizeof(soma_scalar_t));
-    soma_scalar_t e_b=0;
-    soma_scalar_t e_b0=0;
-	
-    soma_scalar_t e_nb=0;
-    int mc_accepts=0;
-
-    /* FILE *f = fopen("npx", "w"); */
-    /* if (f == NULL) */
-    /*   { */
-    /*     printf("Error opening file!\n"); */
-    /*     exit(1); */
-    /*   } */
-    /* FILE *g = fopen("enb", "w"); */
-    /* if (g == NULL) */
-    /*   { */
-    /*     printf("Error opening file!\n"); */
-    /*     exit(1); */
-    /*   } */
+#if(calc_avg==1)
+      soma_scalar_t * avg_e_b=calloc(NUMBER_SOMA_BOND_TYPES , sizeof(soma_scalar_t));
+      soma_scalar_t * avg_e_nb=calloc(p->n_types, sizeof(soma_scalar_t));
+      soma_scalar_t e_b=0;
+      soma_scalar_t e_b0=0;	
+      soma_scalar_t e_nb=0;
+#endif
+#if(save_time_series==1)
+      int frequency=10;
+      int eq_time=N_steps/2;
+      int nt=(N_steps-eq_time)/frequency;
+      uint16_t * time_series=NULL;
+      time_series = (uint16_t *) calloc(p->nx*p->ny*p->nz *nt, sizeof(uint16_t));
+      int k=0;
+#endif
     update_density_fields(p);
     update_omega_fields(p);
     for (unsigned int i = 0; i < N_steps; i++)
       {
-            /* analytics(p); */
+	const int mc_error = monte_carlo_propagation(p, 1);
+	if (mc_error != 0)
+	  {
+	    fprintf(stderr, "ERROR %d in monte_carlo_propagation on rank %d.\n", mc_error,
+		    p->info_MPI.world_rank);
+	    exit(mc_error);
+	  }
 
-            const int mc_error = monte_carlo_propagation(p, 1);
-            if (mc_error != 0)
-                {
-                    fprintf(stderr, "ERROR %d in monte_carlo_propagation on rank %d.\n", mc_error,
-                            p->info_MPI.world_rank);
-                    exit(mc_error);
-                }
-
-            screen_output(p, N_steps);
-
-	    if(i>=N_steps-N_steps/5){
-	      average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/5));
-	      e_nb+=calc_non_bonded_energy_exact(p)/(N_steps-(N_steps-N_steps/5));
-	      calc_non_bonded_energy(p,&e_b0);
-	      e_b+=e_b0/(N_steps/5);
+	screen_output(p, N_steps);
+#if(save_time_series==1)
+	  if(i>=eq_time&&i%frequency==0)
+	    {
+	      memcpy(&time_series[k*p->n_cells], p->fields_unified, p->n_cells*sizeof(uint16_t));
+	      k++;
 	    }
-	    
-	}
-
-    p->xn[0]=e_b;
-    p->k_umbrella[0]=e_nb;
-
-
+#endif
+#if(calc_avg==1)
+	  if(i>=N_steps-N_steps/5){
+	    average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/5));
+	    e_nb+=calc_non_bonded_energy_exact(p)/(N_steps-(N_steps-N_steps/5));
+	    calc_non_bonded_energy(p,&e_b0);
+	    e_b+=e_b0/(N_steps/5);
+	  }
+#endif	    
+      }
+#if(calc_avg==1)
+      p->xn[0]=e_b;
+      p->k_umbrella[0]=e_nb;
+#endif
+#if(save_time_series==1)
+      FILE *f = fopen("p", "w");
+      for(int i=0;i<p->n_cells*nt;i++)
+	fprintf(f, "%u\n",time_series[i]);
+      fclose(f);
+#endif
 #if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);
     if (missed_chains != 0)
         exit(missed_chains);
 #endif                          //ENABLE_MPI
     
-#pragma acc update device(p->umbrella_field[p->n_types*p->n_cells])
 
     const int write = write_config_hdf5(p, p->args.final_file_arg);
     MPI_ERROR_CHECK(write, "Cannot write final configuration.");
