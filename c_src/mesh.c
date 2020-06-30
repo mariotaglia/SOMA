@@ -309,7 +309,7 @@ void self_omega_field(const struct Phase *const p)
                                 inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (p->tempfield[cell] - 1.0));
                             break;
                         case SCMF2:;
-                            const soma_scalar_t field = p->fields_scaling_type[T_types] * p->fields_unified[cell];
+                            const soma_scalar_t field = p->field_scaling_type[T_types] * p->fields_unified[cell];
                             const soma_scalar_t wn = p->wn[(T_types * p->n_types + T_types) * p->n_types + T_types];
                             const soma_scalar_t xn = p->xn[T_types * p->n_types + T_types];
                             p->omega_field_unified[cell + T_types * p->n_cells_local] =
