@@ -201,7 +201,7 @@ int init_phase(struct Phase *const p)
     // Note the *= the field is initialized with the density weights in read_hdf5_config.
     // default value = 1.
     for (unsigned int i = 0; i < p->n_types; i++)
-        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads));
+      p->field_scaling_type[i] *= (ncells / 2000); //((soma_scalar_t) p->num_all_beads));
 
     // Info for Ulrich: programm does take excluded volume into account now!
     p->n_accepts = 0;
