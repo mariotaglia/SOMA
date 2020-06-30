@@ -309,12 +309,12 @@ void self_omega_field(const struct Phase *const p)
                                 inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (p->tempfield[cell] - 1.0));
                             break;
                         case SCMF2:;
-                            const soma_scalar_t field = p->fields_unified[cell];
+                            const soma_scalar_t field = p->tempfield[cell];
                             const soma_scalar_t wn = p->wn[(T_types * p->n_types + T_types) * p->n_types + T_types];
                             const soma_scalar_t xn = p->xn[T_types * p->n_types + T_types];
                             p->omega_field_unified[cell + T_types * p->n_cells_local] =
-                                inverse_refbeads * ((wn * inverse_refbeads * field + xn) * field);
-//                            printf("SCMF2: %f %f", p->xn[0], p->wn[0]);
+                                inverse_refbeads * ((wn * field + xn) * field);
+                            //printf("SCMF2: %f %f", p->xn[0], p->wn[0]);
                             break;
                             //Should be finee................................................................................................................................................................................. 
                         }
@@ -385,7 +385,6 @@ void add_pair_omega_fields_scmf1(const struct Phase *const p)
         {                       /*Loop over all fields according to monotype */
             for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
                 {
-                    printf("SCMF2 in pair loop: %f %f", p->xn[0], p->wn[0]);
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
                     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
@@ -418,7 +417,6 @@ void add_triple_omega_fields_scmf2(const struct Phase *const p)
                 {
                     for (unsigned int R_types = S_types + 1; R_types < p->n_types; R_types++)
                         {
-                            printf("In triple loop");
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
                             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
