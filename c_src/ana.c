@@ -388,6 +388,7 @@ void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const n
                                                                 p->field_scaling_type[R_types];
                                                             non_bonded_energy[T_types] +=
                                                                 wn * rhoT * rhoS * rhoR * 0.3333333;
+                                                            printf("rhoT: %f, rhoS %f, rhoR: %f", rhoT, rhoS, rhoR);
                                                         }
                                                 }
                                         }
