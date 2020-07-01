@@ -313,7 +313,7 @@ void self_omega_field(const struct Phase *const p)
                             const soma_scalar_t wn = p->wn[(T_types * p->n_types + T_types) * p->n_types + T_types];
                             const soma_scalar_t xn = p->xn[T_types * p->n_types + T_types];
                             p->omega_field_unified[cell + T_types * p->n_cells_local] =
-                                inverse_refbeads * (xn * field);//(wn * field + xn)
+                                inverse_refbeads * ((wn * field + xn) * field);
                             //printf("SCMF2: %f", p->field_scaling_type[0]);
                             break;
                             //Should be finee................................................................................................................................................................................. 
@@ -409,7 +409,7 @@ void add_triple_omega_fields_scmf2(const struct Phase *const p)
 {
     const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
 
-    // XN part
+    // WN part
 
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
         {                       /*Loop over all fields according to monotype */

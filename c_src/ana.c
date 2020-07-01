@@ -344,20 +344,59 @@ void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const n
     if (p->info_MPI.domain_rank == 0)   //Only the root domain rank needs to calculate the values.
         {
             const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
-            for (unsigned int type = 0; type < p->n_types; type++)
-                {
-                    for (unsigned int x = my_domain * (p->nx / p->args.N_domains_arg);
-                         x < (my_domain + 1) * (p->nx / p->args.N_domains_arg); x++)
-                        for (unsigned int y = 0; y < p->ny; y++)
-                            for (unsigned int z = 0; z < p->nz; z++)
+            for (unsigned int x = my_domain * (p->nx / p->args.N_domains_arg);
+                 x < (my_domain + 1) * (p->nx / p->args.N_domains_arg); x++)
+                for (unsigned int y = 0; y < p->ny; y++)
+                    for (unsigned int z = 0; z < p->nz; z++)
+                        {
+                            const uint64_t cell = cell_coordinate_to_index(p, x, y, z);
+                            switch (p->hamiltonian)
                                 {
-                                    const uint64_t cell = cell_coordinate_to_index(p, x, y, z);
-                                    non_bonded_energy[type] +=
-                                        p->omega_field_unified[cell + type * p->n_cells_local]
-                                        * p->fields_unified[cell + type * p->n_cells_local];
+                                case SCMF0:    //intentionally falls through
+                                case SCMF1:;
+                                    for (unsigned int type = 0; type < p->n_types; type++)
+                                        {
+                                            non_bonded_energy[type] +=
+                                                0.5 * p->omega_field_unified[cell + type * p->n_cells_local]
+                                                * p->fields_unified[cell + type * p->n_cells_local];
+                                        }
+                                    break;
+                                case SCMF2:;
+                                    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
+                                        {
+                                            const soma_scalar_t rhoT =
+                                                p->fields_unified[cell +
+                                                                  T_types * p->n_cells_local] *
+                                                p->field_scaling_type[T_types];
+                                            for (unsigned int S_types = T_types; S_types < p->n_types; S_types++)
+                                                {
+                                                    const soma_scalar_t rhoS =
+                                                        p->fields_unified[cell +
+                                                                          S_types * p->n_cells_local] *
+                                                        p->field_scaling_type[S_types];
+                                                    const soma_scalar_t xn = p->xn[T_types * p->n_types + S_types];
+                                                    non_bonded_energy[T_types] += xn * rhoT * rhoS * 0.5;
+                                                    for (unsigned int R_types = S_types; R_types < p->n_types;
+                                                         R_types++)
+                                                        {
+                                                            const soma_scalar_t wn =
+                                                                p->wn[(T_types * p->n_types + S_types) * p->n_types +
+                                                                      R_types];
+                                                            const soma_scalar_t rhoR =
+                                                                p->fields_unified[cell +
+                                                                                  R_types * p->n_cells_local] *
+                                                                p->field_scaling_type[R_types];
+                                                            non_bonded_energy[T_types] +=
+                                                                wn * rhoT * rhoS * rhoR * 0.3333333;
+                                                        }
+                                                }
+                                        }
+                                    break;
                                 }
-                }
+
+                        }
         }
+
 #if ( ENABLE_MPI == 1 )
     if (p->info_MPI.sim_rank == 0)
         MPI_Reduce(MPI_IN_PLACE, non_bonded_energy, p->n_types, MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
