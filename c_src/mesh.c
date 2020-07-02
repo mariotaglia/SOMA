@@ -65,31 +65,34 @@ void communicate_density_fields(const struct Phase *const p)
                         MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
                                       MPI_SUM, p->info_MPI.SOMA_comm_sim);
                     }
-#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+//#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+// No update of data on cpu required since it is only needed for analytics (updated only when needed)
 #endif                          //ENABLE_MPI_CUDA
                 }
             else                //Communication for domain decomposition
                 {
                     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
+                    uint16_t *fields_unified = p->fields_unified;
+                    uint16_t *left_tmp_buffer = p->left_tmp_buffer;
+                    uint16_t *right_tmp_buffer = p->right_tmp_buffer;
 
 #ifndef ENABLE_MPI_CUDA
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #else                           //ENABLE_MPI_CUDA
-#pragma acc host_data use_device(p->fields_unified)
-#pragma acc host_data use_device(p->left_tmp_buffer)
-#pragma acc host_data use_device(p->right_tmp_buffer)
+#pragma acc host_data use_device(fields_unified,left_tmp_buffer,right_tmp_buffer)
+                    {
 #endif                          //ENABLE_MPI_CUDA
                     //Sum up all values of a single domain to the root domain
                     if (p->info_MPI.domain_rank == 0)
-                        MPI_Reduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
+                        MPI_Reduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
                                    MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
                     else
-                        MPI_Reduce(p->fields_unified, NULL, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM, 0,
+                        MPI_Reduce(fields_unified, NULL, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM, 0,
                                    p->info_MPI.SOMA_comm_domain);
                     if (p->info_MPI.domain_rank == 0)
                         {
-                            assert(p->left_tmp_buffer != NULL);
-                            assert(p->right_tmp_buffer != NULL);
+                            assert(left_tmp_buffer != NULL);
+                            assert(right_tmp_buffer != NULL);
                             const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
                             const int left_rank =
                                 (((my_domain - 1) +
@@ -106,16 +109,16 @@ void communicate_density_fields(const struct Phase *const p)
                             for (unsigned int type = 0; type < p->n_types; type++)
                                 {
                                     //Send buffer to right, recv from left
-                                    MPI_Isend(p->fields_unified + (p->n_cells_local - ghost_buffer_size) +
+                                    MPI_Isend(fields_unified + (p->n_cells_local - ghost_buffer_size) +
                                               type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 0,
                                               p->info_MPI.SOMA_comm_sim, req + 0);
-                                    MPI_Irecv(p->left_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, left_rank, 0,
+                                    MPI_Irecv(left_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, left_rank, 0,
                                               p->info_MPI.SOMA_comm_sim, req + 1);
                                     //Send buffer to left recv from right
-                                    MPI_Isend(p->fields_unified + type * p->n_cells_local,
+                                    MPI_Isend(fields_unified + type * p->n_cells_local,
                                               ghost_buffer_size, MPI_UINT16_T, left_rank, 1, p->info_MPI.SOMA_comm_sim,
                                               req + 2);
-                                    MPI_Irecv(p->right_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, right_rank, 1,
+                                    MPI_Irecv(right_tmp_buffer, ghost_buffer_size, MPI_UINT16_T, right_rank, 1,
                                               p->info_MPI.SOMA_comm_sim, req + 3);
 
                                     MPI_Waitall(4, req, stat);
@@ -123,23 +126,23 @@ void communicate_density_fields(const struct Phase *const p)
                                     //Add the recv values to main part
                                     for (unsigned int i = 0; i < ghost_buffer_size; i++)
                                         {
-                                            p->fields_unified[ghost_buffer_size + i + type * p->n_cells_local] +=
-                                                p->left_tmp_buffer[i];
-                                            p->fields_unified[p->n_cells_local - 2 * ghost_buffer_size + i +
-                                                              type * p->n_cells_local] += p->right_tmp_buffer[i];
+                                            fields_unified[ghost_buffer_size + i + type * p->n_cells_local] +=
+                                                left_tmp_buffer[i];
+                                            fields_unified[p->n_cells_local - 2 * ghost_buffer_size + i +
+                                                              type * p->n_cells_local] += right_tmp_buffer[i];
                                         }
 
                                     //Update the buffers of the neighbors
-                                    MPI_Isend(p->fields_unified + (p->n_cells_local - 2 * ghost_buffer_size) +
+                                    MPI_Isend(fields_unified + (p->n_cells_local - 2 * ghost_buffer_size) +
                                               type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 2,
                                               p->info_MPI.SOMA_comm_sim, req + 0);
-                                    MPI_Irecv(p->fields_unified + type * p->n_cells_local, ghost_buffer_size,
+                                    MPI_Irecv(fields_unified + type * p->n_cells_local, ghost_buffer_size,
                                               MPI_UINT16_T, left_rank, 2, p->info_MPI.SOMA_comm_sim, req + 1);
 
-                                    MPI_Isend(p->fields_unified + ghost_buffer_size + type * p->n_cells_local,
+                                    MPI_Isend(fields_unified + ghost_buffer_size + type * p->n_cells_local,
                                               ghost_buffer_size, MPI_UINT16_T, left_rank, 3, p->info_MPI.SOMA_comm_sim,
                                               req + 2);
-                                    MPI_Irecv(p->fields_unified + (p->n_cells_local - ghost_buffer_size) +
+                                    MPI_Irecv(fields_unified + (p->n_cells_local - ghost_buffer_size) +
                                               type * p->n_cells_local, ghost_buffer_size, MPI_UINT16_T, right_rank, 3,
                                               p->info_MPI.SOMA_comm_sim, req + 3);
                                     MPI_Waitall(4, req, stat);
@@ -147,12 +150,13 @@ void communicate_density_fields(const struct Phase *const p)
                         }
 
                     //Update all domain ranks with the results of the root domain rank
-                    MPI_Bcast(p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, 0,
+                    MPI_Bcast(fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, 0,
                               p->info_MPI.SOMA_comm_domain);
 #ifndef ENABLE_MPI_CUDA
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
 #else                           //ENABLE_MPI_CUDA
-#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+                    }
+//#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #endif                          //ENABLE_MPI_CUDA
                     //Avoid false loadbalance
                     MPI_Barrier(p->info_MPI.SOMA_comm_domain);

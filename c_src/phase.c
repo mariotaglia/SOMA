@@ -308,8 +308,8 @@ int copyin_phase(struct Phase *const p)
         }
 #ifdef ENABLE_MPI_CUDA
     //in this case also copy in the buffers:
-#pragma acc enter data copyin(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz]
-#pragma acc enter data copyin(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz]
+#pragma acc enter data copyin(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#pragma acc enter data copyin(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
 #endif                          //ENABLE_MPI_CUDA
 #endif                          //_OPENACC
 
@@ -372,8 +372,8 @@ int copyout_phase(struct Phase *const p)
             copyout_polymer(p, poly);
         }
 #ifdef ENABLE_MPI_CUDA
-#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz]
-#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz]
+#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
 #endif                          //ENABLE_MPI_CUDA
 
 #pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
