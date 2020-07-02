@@ -39,6 +39,8 @@
 #include "soma_config.h"
 #include <hdf5.h>
 struct Phase;
+struct global_consts;
+struct sim_rank_info;
 
 /*! Parser for old style coord.dat files
   \param p System where read data is stored.
@@ -76,7 +78,11 @@ int write_config_hdf5(const struct Phase *const p, const char *filename);
 //! \param p state of the system
 //! \param filename Filename of the the ouput file.
 //! \return Errorcode.
-int read_config_hdf5(struct Phase *const p, const char *filename);
+int read_config_hdf5 (struct Phase *const p, const char *filename, const struct global_consts *gc);
+
+int read_consts_from_config(struct global_consts * gc, const char *filename);
+
+int read_poly_and_fields_hdf5 (struct Phase *const p, const char *filename, const struct sim_rank_info * sri);
 
 //! \brief Ouput to stdout about the estimated time the program will finish.
 //!

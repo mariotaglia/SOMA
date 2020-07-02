@@ -154,4 +154,13 @@ int update_polymer_rcm(struct Phase *const p);
 //! \param rcm pointer to rcm
 //! \return domain id
 unsigned int get_domain_id(const struct Phase *const p, const Monomer * const rcm);
+
+//! serializes all polymers of the current configuration into a buffer.
+//! \param p Phase that contains all the polymers
+//! \param ptr_to_buf pointer to the pointer that will be modified to point to the new buffer
+//! \param out_size size of the new buffer
+//! \return 0 for success or errorcode
+//! \note the old buffer that ptr_to_buf points to will be freed or reused. The old buffer must be NULL or on the heap (so that it is a valid input for realloc)
+int ser_all_poly (const struct Phase *p, unsigned char **ptr_to_buf, size_t *out_size);
+
 #endif                          //POLYMER_H

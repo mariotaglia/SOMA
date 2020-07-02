@@ -34,30 +34,30 @@
 #error "Namespace violation SOMA_NUM_OBS already defined."
 #endif                          //SOMA_NUM_OBS
 
-int init_ana(struct Phase *const p, const char *const filename, const char *const coord_filename)
+int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_consts *gc, soma_scalar_t * field_scaling_type,  const char *const filename, const char *const coord_filename, MPI_Comm writer_comm)
 {
     //******** START EDIT FOR NEW OBSERVABLES HERE**********
-    p->ana_info.delta_mc_Re = 0;
-    p->ana_info.delta_mc_Rg = 0;
-    p->ana_info.delta_mc_b_anisotropy = 0;
-    p->ana_info.delta_mc_density_field = 0;
-    p->ana_info.delta_mc_acc_ratio = 0;
-    p->ana_info.delta_mc_MSD = 0;
-    p->ana_info.delta_mc_dump = 0;
-    p->ana_info.delta_mc_density_var = 0;
-    p->ana_info.delta_mc_non_bonded_energy = 0;
-    p->ana_info.delta_mc_bonded_energy = 0;
-    p->ana_info.delta_mc_umbrella_field = 0;
-    p->ana_info.delta_mc_dynamical_structure = 0;
-    p->ana_info.delta_mc_static_structure = 0;
+    ana_info->delta_mc_Re = 0;
+    ana_info->delta_mc_Rg = 0;
+    ana_info->delta_mc_b_anisotropy = 0;
+    ana_info->delta_mc_density_field = 0;
+    ana_info->delta_mc_acc_ratio = 0;
+    ana_info->delta_mc_MSD = 0;
+    ana_info->delta_mc_dump = 0;
+    ana_info->delta_mc_density_var = 0;
+    ana_info->delta_mc_non_bonded_energy = 0;
+    ana_info->delta_mc_bonded_energy = 0;
+    ana_info->delta_mc_umbrella_field = 0;
+    ana_info->delta_mc_dynamical_structure = 0;
+    ana_info->delta_mc_static_structure = 0;
     //******** END EDIT FOR NEW OBSERVABLES HERE************
-    p->ana_info.filename = NULL;
-    p->ana_info.coord_filename = NULL;
-    p->ana_info.file_id = -1;
-    p->ana_info.q_dynamical = NULL;
-    p->ana_info.q_static = NULL;
+    ana_info->filename = NULL;
+    ana_info->coord_filename = NULL;
+    ana_info->file_id = -1;
+    ana_info->q_dynamical = NULL;
+    ana_info->q_static = NULL;
     //Copy no ana conf as backup to device.
-#pragma acc update device(p->ana_info)
+#pragma acc update device(ana_info)
 
     if (filename == NULL)
         return 0;
@@ -65,34 +65,29 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     if (str_len < 2)            //Exclude empty strings.
         return 0;
 
-    p->ana_info.filename = (char *)malloc((str_len + 1) * sizeof(char));
-    if (p->ana_info.filename == NULL)
+    ana_info->filename = (char *)malloc((str_len + 1) * sizeof(char));
+    if (ana_info->filename == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%s:%d\n", __func__, __FILE__, __LINE__);
             return -1;
         }
-    strcpy(p->ana_info.filename, filename);
+    strcpy(ana_info->filename, filename);
 
     herr_t status;
     //Set up file access property list with parallel I/O access
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-    if (p->info_MPI.sim_size > 1)
-        {
-#if ( ENABLE_MPI == 1 )
-            status = H5Pset_fapl_mpio(plist_id, p->info_MPI.SOMA_comm_sim, MPI_INFO_NULL);
-            HDF5_ERROR_CHECK(status);
-#endif                          //ENABLE_MPI
-        }
+    status = H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    HDF5_ERROR_CHECK(status);
 
     //Write to the file only for the attr of density_field.
-    hid_t file_id_tmp = H5Fopen(p->ana_info.filename, H5F_ACC_RDWR, plist_id);
+    hid_t file_id_tmp = H5Fopen(ana_info->filename, H5F_ACC_RDWR, plist_id);
     status = file_id_tmp;
     if (status < 0)
         {
             fprintf(stderr, "ERROR: HDF5 %s:%s:%d\n", __func__, __FILE__, __LINE__);
             return -1;
         }
-    p->ana_info.file_id = file_id_tmp;
+    ana_info->file_id = file_id_tmp;
 
     /* H5Pclose(plist_id); */
     /* plist_id = H5Pcreate(H5P_DATASET_XFER); */
@@ -108,35 +103,35 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     const char *names[SOMA_NUM_OBS];
     unsigned int *delta_mc[SOMA_NUM_OBS];
     names[0] = "/Re";
-    delta_mc[0] = &(p->ana_info.delta_mc_Re);
+    delta_mc[0] = &(ana_info->delta_mc_Re);
     names[1] = "/Rg";
-    delta_mc[1] = &(p->ana_info.delta_mc_Rg);
+    delta_mc[1] = &(ana_info->delta_mc_Rg);
     names[2] = "/bond_anisotropy";
-    delta_mc[2] = &(p->ana_info.delta_mc_b_anisotropy);
+    delta_mc[2] = &(ana_info->delta_mc_b_anisotropy);
     names[3] = "/density_field";
-    delta_mc[3] = &(p->ana_info.delta_mc_density_field);
+    delta_mc[3] = &(ana_info->delta_mc_density_field);
     names[4] = "/acc_ratio";
-    delta_mc[4] = &(p->ana_info.delta_mc_acc_ratio);
+    delta_mc[4] = &(ana_info->delta_mc_acc_ratio);
     names[5] = "/MSD";
-    delta_mc[5] = &(p->ana_info.delta_mc_MSD);
+    delta_mc[5] = &(ana_info->delta_mc_MSD);
     names[6] = "/dump";
-    delta_mc[6] = &(p->ana_info.delta_mc_dump);
+    delta_mc[6] = &(ana_info->delta_mc_dump);
     names[7] = "/density_var";
-    delta_mc[7] = &(p->ana_info.delta_mc_density_var);
+    delta_mc[7] = &(ana_info->delta_mc_density_var);
     names[8] = "/non_bonded_energy";
-    delta_mc[8] = &(p->ana_info.delta_mc_non_bonded_energy);
+    delta_mc[8] = &(ana_info->delta_mc_non_bonded_energy);
     names[9] = "/bonded_energy";
-    delta_mc[9] = &(p->ana_info.delta_mc_bonded_energy);
+    delta_mc[9] = &(ana_info->delta_mc_bonded_energy);
     names[10] = "/umbrella_field";
-    delta_mc[10] = &(p->ana_info.delta_mc_umbrella_field);
+    delta_mc[10] = &(ana_info->delta_mc_umbrella_field);
     names[11] = "/dynamical_structure_factor";
-    delta_mc[11] = &(p->ana_info.delta_mc_dynamical_structure);
+    delta_mc[11] = &(ana_info->delta_mc_dynamical_structure);
     names[12] = "/static_structure_factor";
-    delta_mc[12] = &(p->ana_info.delta_mc_static_structure);
+    delta_mc[12] = &(ana_info->delta_mc_static_structure);
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for (unsigned int i = 0; i < SOMA_NUM_OBS; i++)
         {
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, names[i], H5P_DEFAULT);
+            hid_t dataset = H5Dopen2(ana_info->file_id, names[i], H5P_DEFAULT);
             status = dataset;
             if (status < 0)
                 fprintf(stderr, "WARNING %s:%d ana element %s not existing (old file version?).\n", __FILE__, __LINE__,
@@ -171,31 +166,31 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 #undef SOMA_NUM_OBS
     //**************** TEST YOUR OBS EDIT LIKE THIS************************
     /* printf("%d %d %d %d %d %d %d %d\n", */
-    /*     p->ana_info.delta_mc_Re,p->ana_info.delta_mc_Rg, */
-    /*     p->ana_info.delta_mc_acc_ratio,p->ana_info.delta_mc_b_anisotropy, */
-    /*     p->ana_info.delta_mc_density_field,p->ana_info.delta_mc_dump,p->ana_info.delta_mc_non_bonded_energy, */
-    /*     p->ana_info.delta_mc_bonded_energy); */
+    /*     ana_info->delta_mc_Re,ana_info->delta_mc_Rg, */
+    /*     ana_info->delta_mc_acc_ratio,ana_info->delta_mc_b_anisotropy, */
+    /*     ana_info->delta_mc_density_field,ana_info->delta_mc_dump,p->ana_info.delta_mc_non_bonded_energy, */
+    /*     ana_info->delta_mc_bonded_energy); */
 
-    if (p->ana_info.delta_mc_dump > 0)
+    if (ana_info->delta_mc_dump > 0)
         {
             if (coord_filename != NULL)
                 {
                     const unsigned int new_len = strlen(coord_filename) + 1;
-                    p->ana_info.coord_filename = (char *)malloc(new_len * sizeof(char));
-                    if (p->ana_info.coord_filename == NULL)
+                    ana_info->coord_filename = (char *)malloc(new_len * sizeof(char));
+                    if (ana_info->coord_filename == NULL)
                         {
                             fprintf(stderr, "ERROR: %s %d malloc. So no automatic dumping possible.\n", __FILE__,
                                     __LINE__);
-                            p->ana_info.delta_mc_dump = 0;
+                            ana_info->delta_mc_dump = 0;
                         }
-                    memset(p->ana_info.coord_filename, '\0', new_len * sizeof(char));
-                    strcpy(p->ana_info.coord_filename, coord_filename);
+                    memset(ana_info->coord_filename, '\0', new_len * sizeof(char));
+                    strcpy(ana_info->coord_filename, coord_filename);
                     unsigned int first_dot;
                     for (first_dot = new_len - 1; first_dot != 0; first_dot--)
-                        if (p->ana_info.coord_filename[first_dot] == '.' || first_dot == 0)
+                        if (ana_info->coord_filename[first_dot] == '.' || first_dot == 0)
                             {
                                 //remove the ending
-                                memset(p->ana_info.coord_filename + first_dot, '\0',
+                                memset(ana_info->coord_filename + first_dot, '\0',
                                        (new_len - first_dot) * sizeof(char));
                                 first_dot = 0;
                                 break;
@@ -203,24 +198,24 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                 }
             else
                 {
-                    p->ana_info.delta_mc_dump = 0;
+                    ana_info->delta_mc_dump = 0;
                     fprintf(stderr, "WARNING: %s %d no coord_file specified. So no automatic dumping possible.\n",
                             __FILE__, __LINE__);
                 }
-#pragma acc update device(p->ana_info)
+#pragma acc update device(ana_info)
         }
 
     //Check or add the additional attributes for the density fields
-    if (p->ana_info.delta_mc_density_field > 0)
+    if (ana_info->delta_mc_density_field > 0)
         {
             //Exception safety:
-            const unsigned int tmd_delta_mc = p->ana_info.delta_mc_density_field;
-            p->ana_info.delta_mc_density_field = 0;
-#pragma acc update device(p->ana_info)
+            const unsigned int tmd_delta_mc = ana_info->delta_mc_density_field;
+            ana_info->delta_mc_density_field = 0;
+#pragma acc update device(ana_info)
             const hsize_t three = 3;
             const hsize_t one = 1;
 
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/density_field", H5P_DEFAULT);
+            hid_t dataset = H5Dopen2(ana_info->file_id, "/density_field", H5P_DEFAULT);
             status = dataset;
             HDF5_ERROR_CHECK(status);
 
@@ -235,7 +230,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     unsigned int nxyz_tmp[3];
                     status = H5Aread(nxyz_attr, H5T_NATIVE_UINT, nxyz_tmp);
                     HDF5_ERROR_CHECK(status);
-                    if ((nxyz_tmp[0] != p->nx) || (nxyz_tmp[1] != p->ny) || (nxyz_tmp[2] != p->nz))
+                    if ((nxyz_tmp[0] != gc->nx) || (nxyz_tmp[1] != gc->ny) || (nxyz_tmp[2] != gc->nz))
                         {
                             fprintf(stderr, "WARNING: existing nxyz attr of density_field"
                                     "does not match with the system data. No density field output possible. (Try with fresh ana.h5 file.).\n");
@@ -247,7 +242,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             else
                 {               //Create the nxyz attr
                     hid_t nxyz_dataspace = H5Screate_simple(1, &three, NULL);
-                    unsigned int nxyz_tmp[3] = { p->nx, p->ny, p->nz };
+                    unsigned int nxyz_tmp[3] = { gc->nx, gc->ny, gc->nz };
                     hid_t nxyz_attr =
                         H5Acreate2(dataset, "nxyz", H5T_STD_U32LE, nxyz_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(nxyz_attr);
@@ -264,7 +259,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     unsigned int ntypes_tmp;
                     status = H5Aread(ntypes_attr, H5T_NATIVE_UINT, &ntypes_tmp);
                     HDF5_ERROR_CHECK(status);
-                    if ((ntypes_tmp != p->n_types))
+                    if ((ntypes_tmp != gc->n_types))
                         {
                             fprintf(stderr, "Error: existing ntypes attr of density_field"
                                     "does not match with the system data. No density field output possible. (Try with fresh ana.h5 file.).\n");
@@ -279,7 +274,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     hid_t ntypes_attr = H5Acreate2(dataset, "ntypes", H5T_STD_U32LE,
                                                    ntypes_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(ntypes_attr);
-                    status = H5Awrite(ntypes_attr, H5T_NATIVE_UINT, &(p->n_types));
+                    status = H5Awrite(ntypes_attr, H5T_NATIVE_UINT, &(gc->n_types));
                     HDF5_ERROR_CHECK(status);
                     status = H5Aclose(ntypes_attr);
                     HDF5_ERROR_CHECK(status);
@@ -292,7 +287,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     soma_scalar_t lxyz_tmp[3];
                     status = H5Aread(lxyz_attr, H5T_SOMA_NATIVE_SCALAR, lxyz_tmp);
                     HDF5_ERROR_CHECK(status);
-                    if ((lxyz_tmp[0] != p->Lx) || (lxyz_tmp[1] != p->Ly) || (lxyz_tmp[2] != p->Lz))
+                    if ((lxyz_tmp[0] != gc->Lx) || (lxyz_tmp[1] != gc->Ly) || (lxyz_tmp[2] != gc->Lz))
                         {
                             fprintf(stderr, "WARNING: existing lxyz attr of density_field"
                                     "does not match with the system data. No dumping possible.\n");
@@ -304,13 +299,11 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             else
                 {               //Create the lxyz attr
                     hid_t lxyz_dataspace = H5Screate_simple(1, &three, NULL);
-                    soma_scalar_t lxyz_tmp[3] = { p->Lx, p->Ly, p->Lz };
+                    soma_scalar_t lxyz_tmp[3] = { gc->Lx, gc->Ly, gc->Lz };
                     hid_t lxyz_attr =
                         H5Acreate2(dataset, "lxyz", H5T_SOMA_FILE_SCALAR, lxyz_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(lxyz_attr);
                     status = H5Awrite(lxyz_attr, H5T_SOMA_NATIVE_SCALAR, lxyz_tmp);
-                    HDF5_ERROR_CHECK(status);
-                    status = H5Aclose(lxyz_attr);
                     HDF5_ERROR_CHECK(status);
                 }
 
@@ -320,7 +313,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     hid_t typescale_attr =
                         H5Aopen_by_name(dataset, "/density_field", "typescale", H5P_DEFAULT, H5P_DEFAULT);
                     soma_scalar_t *const typescale_tmp =
-                        (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
+                        (soma_scalar_t * const)malloc(gc->n_types * sizeof(soma_scalar_t));
                     if (typescale_tmp == NULL)
                         {
                             fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
@@ -329,8 +322,8 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     status = H5Aread(typescale_attr, H5T_SOMA_NATIVE_SCALAR, typescale_tmp);
                     HDF5_ERROR_CHECK(status);
                     bool match = true;
-                    for (unsigned int i = 0; i < p->n_types; i++)
-                        if (typescale_tmp[i] != p->field_scaling_type[i])
+                    for (unsigned int i = 0; i < gc->n_types; i++)
+                        if (typescale_tmp[i] != field_scaling_type[i])
                             match = false;
                     if (!match)
                         {
@@ -344,12 +337,12 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                 }
             else
                 {               //Create the typescale attr
-                    const hsize_t ntypes = p->n_types;
+                    const hsize_t ntypes = gc->n_types;
                     hid_t typescale_dataspace = H5Screate_simple(1, &ntypes, NULL);
                     hid_t typescale_attr = H5Acreate2(dataset, "typescale", H5T_SOMA_FILE_SCALAR,
                                                       typescale_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(typescale_attr);
-                    status = H5Awrite(typescale_attr, H5T_SOMA_NATIVE_SCALAR, p->field_scaling_type);
+                    status = H5Awrite(typescale_attr, H5T_SOMA_NATIVE_SCALAR, field_scaling_type);
                     HDF5_ERROR_CHECK(status);
                     status = H5Aclose(typescale_attr);
                     HDF5_ERROR_CHECK(status);
@@ -368,7 +361,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             hsize_t dims[5];    //ndims
             status = H5Sget_simple_extent_dims(d_space, dims, NULL);
             HDF5_ERROR_CHECK(status);
-            if (dims[1] != p->n_types || dims[2] != p->nx || dims[3] != p->ny || dims[4] != p->nz)
+            if (dims[1] != gc->n_types || dims[2] != gc->nx || dims[3] != gc->ny || dims[4] != gc->nz)
                 {
                     fprintf(stderr,
                             "Error: The density field dimensions do not match! No density field output possible. (Try with fresh ana.h5 file.)\n");
@@ -378,19 +371,19 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             HDF5_ERROR_CHECK(status);
 
             //If everything was successful set the ana period again.
-            p->ana_info.delta_mc_density_field = tmd_delta_mc;
+            ana_info->delta_mc_density_field = tmd_delta_mc;
         }
 
-    if (p->ana_info.delta_mc_umbrella_field > 0)
+    if (ana_info->delta_mc_umbrella_field > 0)
         {
             //Exception safety:
-            const unsigned int tmd_delta_mc_string = p->ana_info.delta_mc_umbrella_field;
-            p->ana_info.delta_mc_umbrella_field = 0;
-#pragma acc update device(p->ana_info)
+            const unsigned int tmd_delta_mc_string = ana_info->delta_mc_umbrella_field;
+            ana_info->delta_mc_umbrella_field = 0;
+#pragma acc update device(ana_info)
             const hsize_t three = 3;
             const hsize_t one = 1;
 
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/umbrella_field", H5P_DEFAULT);
+            hid_t dataset = H5Dopen2(ana_info->file_id, "/umbrella_field", H5P_DEFAULT);
             status = dataset;
             HDF5_ERROR_CHECK(status);
 
@@ -405,7 +398,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     unsigned int nxyz_tmp[3];
                     status = H5Aread(nxyz_attr, H5T_NATIVE_UINT, nxyz_tmp);
                     HDF5_ERROR_CHECK(status);
-                    if ((nxyz_tmp[0] != p->nx) || (nxyz_tmp[1] != p->ny) || (nxyz_tmp[2] != p->nz))
+                    if ((nxyz_tmp[0] != gc->nx) || (nxyz_tmp[1] != gc->ny) || (nxyz_tmp[2] != gc->nz))
                         {
                             fprintf(stderr, "WARNING: existing nxyz attr of umbrella_field"
                                     "does not match with the system data. No density field output possible. (Try with fresh ana.h5 file.).\n");
@@ -417,7 +410,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             else
                 {               //Create the nxyz attr
                     hid_t nxyz_dataspace = H5Screate_simple(1, &three, NULL);
-                    unsigned int nxyz_tmp[3] = { p->nx, p->ny, p->nz };
+                    unsigned int nxyz_tmp[3] = { gc->nx, gc->ny, gc->nz };
                     hid_t nxyz_attr =
                         H5Acreate2(dataset, "nxyz", H5T_STD_U32LE, nxyz_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(nxyz_attr);
@@ -434,7 +427,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     unsigned int ntypes_tmp;
                     status = H5Aread(ntypes_attr, H5T_NATIVE_UINT, &ntypes_tmp);
                     HDF5_ERROR_CHECK(status);
-                    if ((ntypes_tmp != p->n_types))
+                    if ((ntypes_tmp != gc->n_types))
                         {
                             fprintf(stderr, "Error: existing ntypes attr of umbrella_field"
                                     "does not match with the system data. No density field output possible. (Try with fresh ana.h5 file.).\n");
@@ -449,7 +442,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     hid_t ntypes_attr = H5Acreate2(dataset, "ntypes", H5T_STD_U32LE,
                                                    ntypes_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(ntypes_attr);
-                    status = H5Awrite(ntypes_attr, H5T_NATIVE_UINT, &(p->n_types));
+                    status = H5Awrite(ntypes_attr, H5T_NATIVE_UINT, &(gc->n_types));
                     HDF5_ERROR_CHECK(status);
                     status = H5Aclose(ntypes_attr);
                     HDF5_ERROR_CHECK(status);
@@ -462,7 +455,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     soma_scalar_t lxyz_tmp[3];
                     status = H5Aread(lxyz_attr, H5T_SOMA_NATIVE_SCALAR, lxyz_tmp);
                     HDF5_ERROR_CHECK(status);
-                    if ((lxyz_tmp[0] != p->Lx) || (lxyz_tmp[1] != p->Ly) || (lxyz_tmp[2] != p->Lz))
+                    if ((lxyz_tmp[0] != gc->Lx) || (lxyz_tmp[1] != gc->Ly) || (lxyz_tmp[2] != gc->Lz))
                         {
                             fprintf(stderr, "WARNING: existing lxyz attr of umbrella_field"
                                     "does not match with the system data. No dumping possible.\n");
@@ -474,7 +467,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             else
                 {               //Create the lxyz attr
                     hid_t lxyz_dataspace = H5Screate_simple(1, &three, NULL);
-                    soma_scalar_t lxyz_tmp[3] = { p->Lx, p->Ly, p->Lz };
+                    soma_scalar_t lxyz_tmp[3] = { gc->Lx, gc->Ly, gc->Lz };
                     hid_t lxyz_attr =
                         H5Acreate2(dataset, "lxyz", H5T_SOMA_FILE_SCALAR, lxyz_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(lxyz_attr);
@@ -490,7 +483,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     hid_t typescale_attr =
                         H5Aopen_by_name(dataset, "/umbrella_field", "typescale", H5P_DEFAULT, H5P_DEFAULT);
                     soma_scalar_t *const typescale_tmp =
-                        (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
+                        (soma_scalar_t * const)malloc(gc->n_types * sizeof(soma_scalar_t));
                     if (typescale_tmp == NULL)
                         {
                             fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
@@ -499,8 +492,8 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     status = H5Aread(typescale_attr, H5T_SOMA_NATIVE_SCALAR, typescale_tmp);
                     HDF5_ERROR_CHECK(status);
                     bool match = true;
-                    for (unsigned int i = 0; i < p->n_types; i++)
-                        if (typescale_tmp[i] != p->field_scaling_type[i])
+                    for (unsigned int i = 0; i < gc->n_types; i++)
+                        if (typescale_tmp[i] != field_scaling_type[i])
                             match = false;
                     if (!match)
                         {
@@ -514,12 +507,12 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                 }
             else
                 {               //Create the typescale attr
-                    const hsize_t ntypes = p->n_types;
+                    const hsize_t ntypes = gc->n_types;
                     hid_t typescale_dataspace = H5Screate_simple(1, &ntypes, NULL);
                     hid_t typescale_attr = H5Acreate2(dataset, "typescale", H5T_SOMA_FILE_SCALAR,
                                                       typescale_dataspace, H5P_DEFAULT, H5P_DEFAULT);
                     HDF5_ERROR_CHECK(typescale_attr);
-                    status = H5Awrite(typescale_attr, H5T_SOMA_NATIVE_SCALAR, p->field_scaling_type);
+                    status = H5Awrite(typescale_attr, H5T_SOMA_NATIVE_SCALAR, field_scaling_type);
                     HDF5_ERROR_CHECK(status);
                     status = H5Aclose(typescale_attr);
                     HDF5_ERROR_CHECK(status);
@@ -538,7 +531,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             hsize_t dims[5];    //ndims
             status = H5Sget_simple_extent_dims(d_space, dims, NULL);
             HDF5_ERROR_CHECK(status);
-            if (dims[1] != p->n_types || dims[2] != p->nx || dims[3] != p->ny || dims[4] != p->nz)
+            if (dims[1] != gc->n_types || dims[2] != gc->nx || dims[3] != gc->ny || dims[4] != gc->nz)
                 {
                     fprintf(stderr,
                             "Error: The umbrella_field dimensions do not match! No umbrella_field output possible. (Try with fresh ana.h5 file.)\n");
@@ -548,23 +541,23 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             HDF5_ERROR_CHECK(status);
 
             //If everything was successful set the ana period again.
-            p->ana_info.delta_mc_umbrella_field = tmd_delta_mc_string;
+            ana_info->delta_mc_umbrella_field = tmd_delta_mc_string;
         }
 
-    p->end_mono = NULL;
-    if (p->ana_info.delta_mc_Re > 0)
+    *end_mono = NULL;
+    if (ana_info->delta_mc_Re > 0)
         {
-            const unsigned int tmp = p->ana_info.delta_mc_Re;
-            p->ana_info.delta_mc_Re = 0;
-            p->end_mono = (unsigned int *)malloc(2 * p->n_poly_type * sizeof(unsigned int));
-            if (p->end_mono == NULL)
+            const unsigned int tmp = ana_info->delta_mc_Re;
+            ana_info->delta_mc_Re = 0;
+            *end_mono = (unsigned int *)malloc(2 * gc->n_poly_type * sizeof(unsigned int));
+            if (*end_mono == NULL)
                 {
                     fprintf(stderr, "Malloc error: %s:%d .\n", __FILE__, __LINE__);
                     return -1;
                 }
 
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/Re", H5P_DEFAULT);
-            hid_t status = dataset;
+            hid_t dataset = H5Dopen2(ana_info->file_id, "/Re", H5P_DEFAULT);
+            status = dataset;
             HDF5_ERROR_CHECK(status);
 
             htri_t end_mono_exists = H5Aexists(dataset, "end_mono");
@@ -583,10 +576,10 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     hsize_t dims[2];    //ndims
                     status = H5Sget_simple_extent_dims(d_space, dims, NULL);
                     HDF5_ERROR_CHECK(status);
-                    if (dims[0] != p->n_poly_type)
+                    if (dims[0] != gc->n_poly_type)
                         {
                             fprintf(stderr, "ERROR: %s:%d end_mono for %d polymers, but expected is %d.\n",
-                                    __FILE__, __LINE__, (int)dims[0], p->n_poly_type);
+                                    __FILE__, __LINE__, (int)dims[0], gc->n_poly_type);
                             return -1;
                         }
                     if (dims[1] != 2)
@@ -596,20 +589,20 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                             return -1;
                         }
 
-                    status = H5Aread(end_mono_attr, H5T_NATIVE_UINT, p->end_mono);
+                    status = H5Aread(end_mono_attr, H5T_NATIVE_UINT, *end_mono);
                     HDF5_ERROR_CHECK(status);
 
                     status = H5Aclose(end_mono_attr);
                     HDF5_ERROR_CHECK(status);
                     //Sanatize the input values for end_mono
-                    for (unsigned int poly_type = 0; poly_type < p->n_poly_type; poly_type++)
+                    for (unsigned int poly_type = 0; poly_type < gc->n_poly_type; poly_type++)
                         {
-                            const unsigned int N = p->poly_arch[p->poly_type_offset[poly_type]];
-                            if (p->end_mono[poly_type * 2 + 0] >= N || p->end_mono[poly_type * 2 + 1] >= N)
+                            const unsigned int N = gc->poly_arch[gc->poly_type_offset[poly_type]];
+                            if (*end_mono[poly_type * 2 + 0] >= N || *end_mono[poly_type * 2 + 1] >= N)
                                 {
                                     fprintf(stderr, "ERROR: %s:%d EndMono contains invalid configuration. %d %d %d",
-                                            __FILE__, __LINE__, p->end_mono[poly_type * 2 + 0],
-                                            p->end_mono[poly_type * 2 + 1], N);
+                                            __FILE__, __LINE__, *end_mono[poly_type * 2 + 0],
+                                            *end_mono[poly_type * 2 + 1], N);
                                     return -3;
                                 }
                         }
@@ -622,14 +615,14 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             status = H5Dclose(dataset);
             HDF5_ERROR_CHECK(status);
 
-            p->ana_info.delta_mc_Re = tmp;
+            ana_info->delta_mc_Re = tmp;
         }
 
-    if (p->ana_info.delta_mc_non_bonded_energy > 0)
+    if (ana_info->delta_mc_non_bonded_energy > 0)
         {                       //Sanitize input
-            const unsigned int tmp = p->ana_info.delta_mc_non_bonded_energy;
-            p->ana_info.delta_mc_non_bonded_energy = 0;
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/non_bonded_energy", H5P_DEFAULT);
+            const unsigned int tmp = ana_info->delta_mc_non_bonded_energy;
+            ana_info->delta_mc_non_bonded_energy = 0;
+            hid_t dataset = H5Dopen2(ana_info->file_id, "/non_bonded_energy", H5P_DEFAULT);
             hid_t status = dataset;
             HDF5_ERROR_CHECK(status);
             hid_t d_space = H5Dget_space(dataset);
@@ -642,7 +635,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             hsize_t dims[2];    //ndims
             status = H5Sget_simple_extent_dims(d_space, dims, NULL);
             HDF5_ERROR_CHECK(status);
-            if (dims[1] != p->n_types)
+            if (dims[1] != gc->n_types)
                 {
                     fprintf(stderr, "Error: nonbonded energy dataspace is incorrect.\n");
                     return -2;
@@ -650,14 +643,14 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             status = H5Dclose(dataset);
             HDF5_ERROR_CHECK(status);
 
-            p->ana_info.delta_mc_non_bonded_energy = tmp;
+            ana_info->delta_mc_non_bonded_energy = tmp;
         }
 
-    if (p->ana_info.delta_mc_bonded_energy > 0)
+    if (ana_info->delta_mc_bonded_energy > 0)
         {                       //Sanitize input
-            const unsigned int tmp = p->ana_info.delta_mc_bonded_energy;
-            p->ana_info.delta_mc_bonded_energy = 0;
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/bonded_energy", H5P_DEFAULT);
+            const unsigned int tmp = ana_info->delta_mc_bonded_energy;
+            ana_info->delta_mc_bonded_energy = 0;
+            hid_t dataset = H5Dopen2(ana_info->file_id, "/bonded_energy", H5P_DEFAULT);
             hid_t status = dataset;
             HDF5_ERROR_CHECK(status);
             hid_t d_space = H5Dget_space(dataset);
@@ -679,16 +672,16 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             status = H5Dclose(dataset);
             HDF5_ERROR_CHECK(status);
 
-            p->ana_info.delta_mc_bonded_energy = tmp;
+            ana_info->delta_mc_bonded_energy = tmp;
         }
     ///structure_start
 
-    if (p->ana_info.delta_mc_dynamical_structure > 0)
+    if (ana_info->delta_mc_dynamical_structure > 0)
         {
-            const unsigned int tmp = p->ana_info.delta_mc_dynamical_structure;
-            p->ana_info.delta_mc_dynamical_structure = 0;
+            const unsigned int tmp = ana_info->delta_mc_dynamical_structure;
+            ana_info->delta_mc_dynamical_structure = 0;
 
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/dynamical_structure_factor", H5P_DEFAULT);
+            hid_t dataset = H5Dopen2(ana_info->file_id, "/dynamical_structure_factor", H5P_DEFAULT);
             hid_t status = dataset;
             HDF5_ERROR_CHECK(status);
 
@@ -702,14 +695,14 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     hsize_t dims[1];    //ndims
                     status = H5Sget_simple_extent_dims(d_space, dims, NULL);
                     HDF5_ERROR_CHECK(status);
-                    status = H5Aread(q_size_attr, H5T_NATIVE_UINT, &(p->ana_info.q_size_dynamical));
+                    status = H5Aread(q_size_attr, H5T_NATIVE_UINT, &(ana_info->q_size_dynamical));
                     HDF5_ERROR_CHECK(status);
                     status = H5Aclose(q_size_attr);
                     HDF5_ERROR_CHECK(status);
                 }
 
-            p->ana_info.q_dynamical = (soma_scalar_t *) malloc(p->ana_info.q_size_dynamical * sizeof(soma_scalar_t));
-            if (p->ana_info.q_dynamical == NULL)
+            ana_info->q_dynamical = (soma_scalar_t *) malloc(ana_info->q_size_dynamical * sizeof(soma_scalar_t));
+            if (ana_info->q_dynamical == NULL)
                 {
                     fprintf(stderr, "Malloc error: %s:%d .\n", __FILE__, __LINE__);
                     return -1;
@@ -732,7 +725,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     status = H5Sget_simple_extent_dims(d_space, dims, NULL);
                     HDF5_ERROR_CHECK(status);
 
-                    status = H5Aread(q_attr, H5T_SOMA_NATIVE_SCALAR, p->ana_info.q_dynamical);
+                    status = H5Aread(q_attr, H5T_SOMA_NATIVE_SCALAR, ana_info->q_dynamical);
                     HDF5_ERROR_CHECK(status);
 
                     status = H5Aclose(q_attr);
@@ -741,19 +734,19 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     HDF5_ERROR_CHECK(status);
                 }
 
-            p->ana_info.delta_mc_dynamical_structure = tmp;
+            ana_info->delta_mc_dynamical_structure = tmp;
 
         }
 
     ///dynamic structure
     ///static structure
-    if (p->ana_info.delta_mc_static_structure > 0)
+    if (ana_info->delta_mc_static_structure > 0)
         {
-            const unsigned int tmp = p->ana_info.delta_mc_static_structure;
-            p->ana_info.delta_mc_static_structure = 0;
+            const unsigned int tmp = ana_info->delta_mc_static_structure;
+            ana_info->delta_mc_static_structure = 0;
 
-            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/static_structure_factor", H5P_DEFAULT);
-            hid_t status = dataset;
+            hid_t dataset = H5Dopen2(ana_info->file_id, "/static_structure_factor", H5P_DEFAULT);
+            status = dataset;
             HDF5_ERROR_CHECK(status);
 
             htri_t q_size_exists = H5Aexists(dataset, "q_size");
@@ -766,14 +759,14 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     hsize_t dims[1];    //ndims
                     status = H5Sget_simple_extent_dims(d_space, dims, NULL);
                     HDF5_ERROR_CHECK(status);
-                    status = H5Aread(q_size_attr, H5T_NATIVE_UINT, &(p->ana_info.q_size_static));
+                    status = H5Aread(q_size_attr, H5T_NATIVE_UINT, &(ana_info->q_size_static));
                     HDF5_ERROR_CHECK(status);
                     status = H5Aclose(q_size_attr);
                     HDF5_ERROR_CHECK(status);
                 }
 
-            p->ana_info.q_static = (soma_scalar_t *) malloc(p->ana_info.q_size_static * sizeof(soma_scalar_t));
-            if (p->ana_info.q_static == NULL)
+            ana_info->q_static = (soma_scalar_t *) malloc(ana_info->q_size_static * sizeof(soma_scalar_t));
+            if (ana_info->q_static == NULL)
                 {
                     fprintf(stderr, "Malloc error: %s:%d .\n", __FILE__, __LINE__);
                     return -1;
@@ -795,7 +788,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     status = H5Sget_simple_extent_dims(d_space, dims, NULL);
                     HDF5_ERROR_CHECK(status);
 
-                    status = H5Aread(q_attr, H5T_SOMA_NATIVE_SCALAR, p->ana_info.q_static);
+                    status = H5Aread(q_attr, H5T_SOMA_NATIVE_SCALAR, ana_info->q_static);
                     HDF5_ERROR_CHECK(status);
 
                     status = H5Aclose(q_attr);
@@ -804,7 +797,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     HDF5_ERROR_CHECK(status);
                 }
 
-            p->ana_info.delta_mc_static_structure = tmp;
+            ana_info->delta_mc_static_structure = tmp;
 
         }
     //structure
@@ -814,28 +807,34 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             fprintf(stderr, "ERROR: HDF5 %s:%s:%d\n", __func__, __FILE__, __LINE__);
             return -1;
         }
-    //Reopen file with out MPIIO
-    if (H5Fclose(p->ana_info.file_id) < 0)
+
+    // Reopen file for writing from writer-comm
+    if (H5Fclose(ana_info->file_id) < 0)
         {
             fprintf(stderr, "ERROR: HDF5 %s:%s:%d\n", __func__, __FILE__, __LINE__);
             return -1;
         }
 
-    if (p->info_MPI.sim_rank == 0)
-        {
-            file_id_tmp = H5Fopen(p->ana_info.filename, H5F_ACC_RDWR, H5P_DEFAULT);
-            status = file_id_tmp;
-            if (status < 0)
-                {
-                    fprintf(stderr, "ERROR: HDF5 %s:%s:%d\n", __func__, __FILE__, __LINE__);
-                    return -1;
-                }
-            p->ana_info.file_id = file_id_tmp;
-        }
-    else
-        p->ana_info.file_id = -1;       //Invalid value, do not use.
 
-#pragma acc update device(p->ana_info)
+    ana_info->file_id = -1;       //Invalid value, do not use.
+    if (writer_comm != MPI_COMM_NULL)
+        {
+
+            plist_id = H5Pcreate(H5P_FILE_ACCESS);
+            HDF5_ERROR_CHECK2(plist_id, "failed to create File access properties");
+            status = H5Pset_fapl_mpio(plist_id, writer_comm, MPI_INFO_NULL);
+            HDF5_ERROR_CHECK2(status, "failed to set file access properties");
+
+            /* Open a file collectively for writing*/
+            hid_t file_id = H5Fopen (ana_info->filename, H5F_ACC_RDWR, plist_id);
+            HDF5_ERROR_CHECK2(file_id, "failed to open file for collective writing");
+            status = H5Pclose(plist_id);
+            HDF5_ERROR_CHECK2(status, "failed to close property list");
+
+            ana_info->file_id = file_id_tmp;
+        }
+
+#pragma acc update device(ana_info)
     return 0;
 }
 

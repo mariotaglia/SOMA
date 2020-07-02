@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 struct Phase;
+struct sim_rank_info;
 
 /*! \file mpiroutines.h
   \brief Header file for functions that require MPI calls for SOMA.
@@ -80,13 +81,19 @@ typedef struct Info_MPI {
 
   \param p Phase struct, which defines the current state of the
   simulation.
-  \note This functions is the only function, which does
-  not require a completely initialized Phase struct.
+  \param sri (in) mpi information about this simulation rank as obtained by assign_role
+  \note Phase does not need to be initialized at all
   \return Error code. Error occured if not equal to 0.
   \post All MPI related parts of the Phase struct are initialized.
-  \pre Initialized p->info_MPI.SOMA_MPI_Comm.
 */
-int init_MPI(struct Phase *p);
+int init_MPI(struct Phase *p, const struct sim_rank_info * sri);
+
+/*! \brief Initialize MPI.
+ * Initialize MPI the old way, without a prior assign_role, as the convert-tool needs it.
+ * @param p phase whose mpi-information will be initialized
+ * @return 0 for success or an error code
+ */
+int init_MPI_convert_tool(struct Phase *p);
 
 //! \brief wrapper for MPI_Finalize
 //! \param mpi Input of initialized MPI data.

@@ -21,6 +21,7 @@
 
 struct Phase;
 struct Info_MPI;
+struct global_consts;
 #include "soma_config.h"
 #include <stdint.h>
 #include "cmdline.h"
@@ -36,6 +37,7 @@ enum Hamiltonian {
     SCMF0 = 0,                  //!< Original SCMF hamiltonian. For details refer doc of update_omega_fields_scmf0().
     SCMF1 = 1,                  //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
 };
+
 
 //!  Function to extract the bond_type for poly_arch elements.
 //!
@@ -99,12 +101,12 @@ uint32_t get_info_bl(const unsigned int offset_bl, const unsigned int type);
 int post_process_args(struct som_args *args, const unsigned int world_rank);
 
 //! \brief Returns the number of bonds of specific type in the poly_arch structure.
-//! \param p Phase of the system.
+//! \param gc global constants of the simulation.
 //! \param btype Bondtype to count
 //! \warning This does not count the number of bonds in the system, only which bond types are used in the polyarch structure.
 //! \return Number of bonds in the poly_arch structure.
-//! You may you that function to check if a specific bond type is present in the system.
-unsigned int get_number_bond_type(const struct Phase *const p, const enum Bondtype btype);
+//! You may use that function to check if a specific bond type is present in the system.
+unsigned int get_number_bond_type(const struct global_consts * gc, const enum Bondtype btype);
 
 //! Reseed the random number generators.
 //!
@@ -114,26 +116,28 @@ unsigned int get_number_bond_type(const struct Phase *const p, const enum Bondty
 int reseed(struct Phase *const p, const unsigned int seed);
 
 //! Macro that helps to check and ana for hdf5 errors.
-#define HDF5_ERROR_CHECK(status) if(status < 0){fprintf(stderr, "ERROR: HDF5 %s:%s:%d: %d\n",__func__, __FILE__, __LINE__,(int)status);return status;}
+#define HDF5_ERROR_CHECK(status) {if(status < 0){fprintf(stderr, "ERROR: HDF5 %s:%s:%d: %d\n",__func__, __FILE__, __LINE__,(int)status);return status;}}
 
 //! Macro to check for errors. An error message is printed, with
 //! linenumber and file. In addition, you can specify a specific
 //! message that is printed.
-#define HDF5_ERROR_CHECK2(status,name) if(status < 0){fprintf(stderr, "ERROR: HDF5 Name:%s %s:%d: %d\n",name, __FILE__, __LINE__,(int)status);return status;}
+#define HDF5_ERROR_CHECK2(status,name) {if(status < 0){fprintf(stderr, "ERROR: HDF5 Name:%s %s:%d: %d\n",name, __FILE__, __LINE__,(int)status);return status;}}
 
 //! Macro to abort MPI and print a message with you
 //! specified if status != 0. \warning This macro includes finalize_MPI() and exit();
-#define MPI_ERROR_CHECK(status,msg) if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); ;exit(status);}
+#define MPI_ERROR_CHECK(status,msg) {if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); ;exit(status);}}
 
 //! Macro to check and return error code if malloc failed.
-#define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %d\n", __FILE__, __LINE__, (int) (size)); return -1;}
+#define MALLOC_ERROR_CHECK( ptr, size ) {if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %d\n", __FILE__, __LINE__, (int) (size)); return -1;}}
 #pragma acc routine(calc_bond_length) seq
 static inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,
                                              const int mic);
 inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,
                                       const int mic)
 {
-    soma_scalar_t r = x_i - x_j + 0 * mic * box;        // after "+" to shut up compiler warnings
+    (void) mic;
+    (void) box; // shuts up "unused" warning
+    soma_scalar_t r = x_i - x_j;
 #if ( ENABLE_MIC == 1)
     if (mic)
         {

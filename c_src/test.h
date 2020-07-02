@@ -22,6 +22,9 @@
 #define SOMA_TEST_H
 
 #include "soma_config.h"
+#include <inttypes.h>
+#include "server.h"
+
 struct Phase;
 
 //! Test the read and write functionality for a given phase.
@@ -64,4 +67,13 @@ int test_independet_sets(const struct Phase *const p);
 //! \param p Phase to check
 //! \return Errorcode
 int test_chains_in_domain(struct Phase *const p);
+
+//! do various tests about the consistency of field-sending to the server
+//! \param p Phase of the system
+//! \param sim_inf info about the simrank performing the test
+//! \param min_cell first cell to be sent (index to fields_unified or omega_fields_unified array)
+//! \param max_cell last cell to be sent (inclusive)
+//! \param field_size number of cells to be sent
+//! \note this call is collective on the Simulation-Communicator. Will abort the run with an error message if inconsistencies are detected.
+void test_field_sending_consistency(const struct Phase *p, struct sim_rank_info * sim_inf, uint64_t min_cell, uint64_t max_cell, uint64_t field_size);
 #endif                          //SOMA_TEST_H

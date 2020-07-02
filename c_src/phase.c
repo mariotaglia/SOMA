@@ -29,8 +29,120 @@
 #include "init.h"
 #include "independent_sets.h"
 #include "mesh.h"
+#include "err_handling.h"
+#include "send.h"
 
-int init_phase(struct Phase *const p)
+
+void free_global_consts(struct global_consts * gc)
+{
+    free(gc->xn);
+    free(gc->A);
+    free(gc->k_umbrella);
+    free(gc->poly_type_offset);
+    free(gc->poly_arch);
+    free(gc->cm_a);
+}
+
+
+int process_consts_into_phase(struct Phase * p, const struct global_consts * gc,
+    const struct sim_rank_info * sri)
+{
+
+    // n_polymers_global
+    p->n_polymers_global = gc->n_polymers_global;
+    //Distribute the polymers to different cores.
+    uint64_t n_polymers = p->n_polymers_global / sri->sim_comm.size;
+    if ((unsigned int)sri->sim_comm.rank < p->n_polymers_global % sri->sim_comm.size)
+        n_polymers += 1;
+    p->n_polymers = n_polymers;
+    p->n_polymers_storage = p->n_polymers;
+
+    // n_beads
+    p->reference_Nbeads = gc->reference_Nbeads;
+
+    // n_types
+    p->n_types = gc->n_types;
+
+    // xn
+    size_t xn_size = p->n_types * p->n_types * sizeof(soma_scalar_t);
+    p->xn = (soma_scalar_t *) malloc(p->n_types * p->n_types * sizeof(soma_scalar_t));
+    RET_ERR_ON_NULL(p->xn, "Malloc");
+    memcpy(p->xn, gc->xn, xn_size);
+
+    // A array (diffusivity of particles)
+    size_t A_size = p->n_types * sizeof(soma_scalar_t);
+    p->A = (soma_scalar_t *)malloc(A_size);
+    RET_ERR_ON_NULL(p->A, "Malloc");
+    memcpy(p->A, gc->A, A_size);
+
+    // time
+    p->start_time = gc->start_time;
+    p->time = p->start_time;
+
+    //hamiltonian
+    p->hamiltonian = gc->hamiltonian;
+
+    // k_umbrella
+    size_t k_umbrella_size = p->n_types * sizeof(soma_scalar_t);
+    p->k_umbrella = (soma_scalar_t * ) malloc(k_umbrella_size);
+    RET_ERR_ON_NULL(p->k_umbrella, "Malloc");
+    memcpy(p->k_umbrella, gc->k_umbrella, k_umbrella_size);
+
+    // nx, ny, nz
+    p->nx = gc->nx;
+    p->ny = gc->ny;
+    p->nz = gc->nz;
+
+    if (p->nx % sri->n_domains != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d\n\t"
+                    "The nx %d number is not divible by the number of domains %d\n",
+                    __FILE__, __LINE__, p->nx, sri->n_domains);
+            return -3;
+        }
+
+    // lx, ly, lz
+    p->Lx = gc->Lx;
+    p->Ly = gc->Ly;
+    p->Lz = gc->Lz;
+
+    // n_polymer_type
+    p->n_poly_type = gc->n_poly_type;
+
+    // polymer architecture
+    size_t poly_type_offset_size = p->n_poly_type * sizeof(int);
+    p->poly_type_offset = (int *)malloc(poly_type_offset_size);
+    RET_ERR_ON_NULL(p->poly_type_offset, "Malloc");
+    memcpy(p->poly_type_offset, gc->poly_type_offset, poly_type_offset_size);
+
+    p->poly_arch_length = gc->poly_arch_length;
+    size_t poly_arch_size = p->poly_arch_length * sizeof(uint32_t);
+    p->poly_arch = (uint32_t *) malloc(poly_arch_size);
+    RET_ERR_ON_NULL(p->poly_arch, "Malloc");
+    memcpy(p->poly_arch, gc->poly_arch, poly_arch_size);
+
+    // cm_a
+    if (gc->cm_a == NULL)
+        {
+            p->cm_a = NULL; //null is a valid value meaning deactivated
+        }
+    else
+        {
+            size_t cm_a_size = p->n_poly_type * sizeof(soma_scalar_t);
+            p->cm_a = (soma_scalar_t *)malloc(cm_a_size);
+            RET_ERR_ON_NULL(p->cm_a, "Malloc");
+            memcpy(p->cm_a, gc->cm_a, cm_a_size);
+        }
+
+    // harmonic_normb
+    p->harmonic_normb_variable_scale = gc->harmonic_normb_variable_scale;
+
+    return 0;
+
+
+}
+
+int init_phase (struct Phase *const p, const struct sim_rank_info *sri, const struct global_consts *gc)
 {
     print_version(p->info_MPI.world_rank);
     p->present_on_device = false;
@@ -77,12 +189,21 @@ int init_phase(struct Phase *const p)
 #endif                          //ENABLE_MPI
 
     p->n_cells = p->nx * p->ny * p->nz;
-    const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
+    unsigned int my_domain;
+    if (sri == NULL)
+        {
+            my_domain = p->info_MPI.sim_rank / p->args.N_domains_arg;
+        }
+    else
+        {
+            my_domain = sri->my_domain;
+        }
     p->local_nx_low = (p->nx / p->args.N_domains_arg * my_domain) - p->args.domain_buffer_arg;
     p->local_nx_high = p->local_nx_low + p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg;
     p->n_cells_local = (p->local_nx_high - p->local_nx_low) * p->ny * p->nz;
 
     //Check if it is a valid domain decomposition
+    // if this condition doesn't hold, the buffers from domain 0 and 2 would overlap!
     if (p->args.N_domains_arg * 2 * p->args.domain_buffer_arg > (int)p->nx)
         {
             fprintf(stderr, "ERROR: invalid domain decomposition. %s:%d\n", __FILE__, __LINE__);
@@ -182,27 +303,20 @@ int init_phase(struct Phase *const p)
                     p->num_all_beads_local += 1;
                 }
         }
-#if ( ENABLE_MPI == 1 )
+
     // Share p->num_all_beads
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#else
-    p->num_all_beads = p->num_all_beads_local;
-#endif                          //ENABLE_MPI
 
     // Share p->num_bead_type
     for (unsigned int i = 0; i < p->n_types; i++)
         {
-#if ( ENABLE_MPI == 1 )
             MPI_Allreduce(&(p->num_bead_type_local[i]), &(p->num_bead_type[i]),
                           1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#else
-            p->num_bead_type[i] = p->num_bead_type_local[i];
-#endif                          //ENABLE_MPI
         }
     // Check if uint16_t density field is enough
-    soma_scalar_t check_short = p->num_all_beads / p->n_cells;
+    soma_scalar_t check_short = (double) p->num_all_beads / p->n_cells;
 
-    if (check_short > ((USHRT_MAX / 100) * 95))
+    if (check_short > (((double)USHRT_MAX / 100) * 95))
         {
             fprintf(stderr, "ERROR: Cell-density above 95 Percent of USHRT_MAX\n");
             return -1;
@@ -276,12 +390,23 @@ int init_phase(struct Phase *const p)
 
     int ret = 0;
     if (p->args.coord_file_arg != NULL) //Is it a full init Phase?
-        ret = init_ana(p, p->args.ana_file_arg, p->args.coord_file_arg);
+        {
+            //int init_ana(Ana_Info *ana_info, unsigned int * *end_mono, const global_consts *gc, soma_scalar_t *field_scaling_type, const char * const filename, const char * const coord_filename, MPI_Comm writer_comm)
+            int status;
+            status = send_field_scaling_type(p->field_scaling_type, p->n_types, sri);
+            MPI_ERROR_CHECK(status, "sending field-scaling to server failed");
+            ret = init_ana(&(p->ana_info), &(p->end_mono), gc, p->field_scaling_type,
+                p->args.ana_file_arg, p->args.coord_file_arg, MPI_COMM_NULL);
+        }
     else
-        ret = init_ana(p, NULL, NULL);
+        {
+            ret = init_ana(&p->ana_info, &(p->end_mono), gc, p->field_scaling_type,
+                NULL, NULL, MPI_COMM_NULL);
+        }
 
     return ret;
 }
+
 
 int copyin_phase(struct Phase *const p)
 {

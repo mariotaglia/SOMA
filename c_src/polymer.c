@@ -429,3 +429,39 @@ int update_polymer_rcm(struct Phase *const p)
         }
     return 0;
 }
+
+int ser_all_poly (const struct Phase *p, unsigned char **ptr_to_buf, size_t *out_size)
+{
+    *out_size = 0;
+
+    for (unsigned int i = 0; i < p->n_polymers; i++)
+        {
+            *out_size += poly_serial_length (p, &p->polymers[i]);
+        }
+
+    *ptr_to_buf = realloc(*ptr_to_buf, *out_size * sizeof(unsigned char));
+    unsigned char * buffer = *ptr_to_buf;
+    if (buffer == NULL)
+        {
+            fprintf (stderr, "failed to allocate buffer in %s (line %d file %s)\n",
+                     __func__, __LINE__, __FILE__);
+            return -1;
+        }
+
+    int offset = 0;
+    for (unsigned int i = 0; i < p->n_polymers; i++)
+        {
+            int bytes = serialize_polymer (p, &p->polymers[i], buffer + offset);
+            if (bytes <= 0){
+                    fprintf(stderr, "serialize_polymer returned error code %d "
+                                    " for polymer number %d"
+                                    "(line %d in file %s, function %s)\n",
+                            bytes, i, __LINE__, __FILE__, __func__);
+                    return -1;
+                }
+            offset += bytes;
+        }
+
+
+    return 0;
+}

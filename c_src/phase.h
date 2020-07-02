@@ -24,6 +24,7 @@
 #define PHASE_H
 
 struct IndependetSets;
+struct sim_rank_info;
 #include "soma_config.h"
 #include "mpiroutines.h"
 #include "ana_info.h"
@@ -31,6 +32,7 @@ struct IndependetSets;
 #include "soma_util.h"
 #include "autotuner.h"
 #include "polymer.h"
+#include "server.h"
 
 //! Value of Pi.
 #ifndef M_PI
@@ -52,6 +54,29 @@ struct IndependetSets;
  * with future releases.
 
  */
+
+struct global_consts{
+
+    uint64_t n_polymers_global;
+    unsigned int reference_Nbeads;
+    unsigned int n_types;
+    soma_scalar_t * xn;
+    soma_scalar_t * A;
+    unsigned int start_time;
+    enum Hamiltonian hamiltonian;
+    soma_scalar_t * k_umbrella;
+    unsigned int nx, ny, nz;
+    soma_scalar_t Lx, Ly, Lz;
+    unsigned int n_poly_type;
+    int * poly_type_offset;
+    unsigned int poly_arch_length;
+    uint32_t *poly_arch;
+    soma_scalar_t * cm_a;
+    soma_scalar_t harmonic_normb_variable_scale;
+};
+
+void free_global_consts(struct global_consts * gc);
+
 typedef struct Phase {
     bool present_on_device;     //!< Indicator if the whole system is present of the GPU.
     unsigned int reference_Nbeads;      /*!< \brief number of reference beads for the model polymer */
@@ -105,7 +130,7 @@ typedef struct Phase {
     //! Accepted moves of the cm
     unsigned int n_acc_cm;
 
-    soma_scalar_t *field_scaling_type;  /*!< \brief stores the scaling factor according to the density */
+    soma_scalar_t *field_scaling_type;  /*!< \brief array of p->n_types values, stores the scaling factor according to the density */
 
     soma_scalar_t *k_umbrella;  //!< Strength prefactor for the umbrella Hamiltonians for each type, if needed. Default 0
 
@@ -267,14 +292,23 @@ typedef struct Phase {
 
 } Phase;
 
+
+int process_consts_into_phase(struct Phase * p, const struct global_consts * gc,
+                              const struct sim_rank_info * sri);
+
+
 /*! \brief Initializes the values additional after the input init by the read*() functions.
 
   \note This function should be called before any type of simulaton,
   because several parameters from the input are used to fully initialize the Phase.
   \param p Phase to initialize.
+  \param sri Information on role of the callers simulation rank (which contains the information on what domain this
+  rank is part of). Can be NULL, in which case the domain will be calculated instead of read.
+  \param gc global constants of the system
   \return error code.
+  \note if the program uses sim_rank_info / assign_role, sri should be passed here to prevent inconsistencies.
 */
-int init_phase(struct Phase *const p);
+int init_phase (struct Phase *const p, const struct sim_rank_info *sri, const struct global_consts *gc);
 
 //! Initialize and copy in all data to DEVICE
 //! \param p Pointer to phase to copy in

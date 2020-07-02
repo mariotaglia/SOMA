@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "err_handling.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif                          //_OPENMP
@@ -1017,14 +1018,192 @@ int read_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_
     return 0;
 }
 
-int read_config_hdf5(struct Phase *const p, const char *filename)
+
+// if compiled with mpi, this is collective on world. If not, this is also usable.
+int read_consts_from_config(struct global_consts * gc, const char *filename)
 {
+    assert(gc);
+    assert(filename);
     herr_t status;
-    //Set up file access property list with parallel I/O access
+    hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    HDF5_ERROR_CHECK2(plist_id, "creating file access properties failed");
+
+    status = H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    HDF5_ERROR_CHECK2(status, "settinge file access properties failed");
+
+    //Create a new h5 file and overwrite the content.
+    hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, plist_id);
+    HDF5_ERROR_CHECK2(file_id, "opening file failed");
+    status = H5Pclose(plist_id);
+    HDF5_ERROR_CHECK2(status, "closing fapl failed");
+    status = plist_id = H5Pcreate(H5P_DATASET_XFER);
+    HDF5_ERROR_CHECK2(status, "creating dataset transfer properties failed");
+
+    status = H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+    HDF5_ERROR_CHECK2(status, "setting dataset transfer properties failed")
+
+
+    char * name;
+
+    name = "/parameter/n_polymers";
+    status = read_hdf5(file_id, name, H5T_NATIVE_UINT64,
+        plist_id, &(gc->n_polymers_global));
+    HDF5_ERROR_CHECK2(status, name);
+
+    name = "/parameter/reference_Nbeads";
+    status = read_hdf5(file_id, name,
+        H5T_NATIVE_UINT, plist_id, &gc->reference_Nbeads);
+    HDF5_ERROR_CHECK2(status, name);
+
+    name = "/parameter/n_types";
+    status = read_hdf5(file_id, name, H5T_NATIVE_UINT,
+        plist_id, &gc->n_types);
+    HDF5_ERROR_CHECK2(status, name);
+
+    gc->xn = (soma_scalar_t * const)malloc(gc->n_types * gc->n_types * sizeof(soma_scalar_t));
+    if (gc->xn == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    name = "/parameter/xn";
+    status = read_hdf5(file_id, name, H5T_SOMA_NATIVE_SCALAR,
+        plist_id, gc->xn);
+    HDF5_ERROR_CHECK2(status, name);
+
+    //A array for the diffusivity of the particles
+    gc->A = (soma_scalar_t * const)malloc(gc->n_types * sizeof(soma_scalar_t));
+    if (gc->A == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    name = "/parameter/A";
+    status = read_hdf5(file_id, name, H5T_SOMA_NATIVE_SCALAR,
+        plist_id, gc->A);
+    HDF5_ERROR_CHECK2(status, name);
+
+    name = "/parameter/time";
+    status = read_hdf5(file_id, name, H5T_NATIVE_UINT,
+        plist_id, &gc->start_time);
+    HDF5_ERROR_CHECK2(status, name);
+
+    gc->hamiltonian = SCMF0;
+   //Don't break old configurations.
+    if (H5Lexists(file_id, "/parameter/hamiltonian", H5P_DEFAULT) > 0)
+        {
+            status = read_hdf5(file_id, "/parameter/hamiltonian", H5T_NATIVE_INT, plist_id, &(gc->hamiltonian));
+            HDF5_ERROR_CHECK2(status, "/parameter/hamiltonian");
+        }
+
+
+    gc->k_umbrella = (soma_scalar_t * const)calloc(gc->n_types , sizeof(soma_scalar_t)); // Default 0
+    if (gc->k_umbrella == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    if (H5Lexists(file_id, "/parameter/k_umbrella", H5P_DEFAULT) > 0)
+        {
+            status = read_hdf5(file_id, "/parameter/k_umbrella", H5T_SOMA_NATIVE_SCALAR, plist_id, gc->k_umbrella);
+            HDF5_ERROR_CHECK2(status, "parameter/k_umbrella");
+        }
+
+     // read nx ny nz
+    unsigned int nxyz[3];
+    name = "/parameter/nxyz";
+    status = read_hdf5(file_id, name, H5T_NATIVE_UINT, plist_id, nxyz);
+    HDF5_ERROR_CHECK2(status, name);
+    gc->nx = nxyz[0];
+    gc->ny = nxyz[1];
+    gc->nz = nxyz[2];
+
+    // read lx ly lz
+    soma_scalar_t lxyz[3];
+    name = "/parameter/lxyz";
+    status = read_hdf5(file_id, name, H5T_SOMA_NATIVE_SCALAR, plist_id, lxyz);
+    HDF5_ERROR_CHECK2(status, name);
+    gc->Lx = lxyz[0];
+    gc->Ly = lxyz[1];
+    gc->Lz = lxyz[2];
+
+
+    // n_poly_type
+    name = "/parameter/n_poly_type";
+    status = read_hdf5(file_id, name,
+        H5T_NATIVE_UINT, plist_id, &gc->n_poly_type);
+    HDF5_ERROR_CHECK2(status, "n_poly_type");
+
+    //polymer architecture
+    gc->poly_type_offset = (int *)malloc(gc->n_poly_type * sizeof(int));
+    RET_ERR_ON_NULL(gc->poly_type_offset, "Malloc");
+    name = "/parameter/poly_type_offset";
+    status = read_hdf5(file_id, name, H5T_NATIVE_INT,
+        plist_id, gc->poly_type_offset);
+    HDF5_ERROR_CHECK2(status, "poly_type_offset");
+
+    name = "/parameter/poly_arch_length";
+    status = read_hdf5(file_id, name, H5T_NATIVE_INT,
+                       plist_id, &gc->poly_arch_length);
+    HDF5_ERROR_CHECK2(status, "poly_arch_length");
+
+    gc->poly_arch = (uint32_t * ) malloc(gc->poly_arch_length * sizeof(uint32_t));
+    RET_ERR_ON_NULL(gc->poly_arch, "malloc");
+    name = "/parameter/poly_arch";
+    status = read_hdf5(file_id, name, H5T_NATIVE_INT32,
+                       plist_id, gc->poly_arch);
+    HDF5_ERROR_CHECK2(status, "poly_arch");
+
+
+    gc->cm_a = NULL;             //Default: deactivated.
+    //If mobility is specified write it out.
+    if (H5Lexists(file_id, "/parameter/cm_a", H5P_DEFAULT) > 0)
+        {
+            gc->cm_a = (soma_scalar_t *) malloc(gc->n_poly_type * sizeof(soma_scalar_t));
+            RET_ERR_ON_NULL(gc->cm_a, "Malloc");
+            status = read_hdf5(file_id, "/parameter/cm_a", H5T_SOMA_NATIVE_SCALAR, plist_id, gc->cm_a);
+            HDF5_ERROR_CHECK2(status, "/parameter/cm_a");
+        }
+
+    //harmonic normb
+
+    // read harmonic_normb_variable_scale
+    if (H5Lexists(file_id, "/parameter/harmonic_normb_variable_scale", H5P_DEFAULT) > 0)
+        {
+            status =
+                read_hdf5(file_id, "/parameter/harmonic_normb_variable_scale", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                          &(gc->harmonic_normb_variable_scale));
+            HDF5_ERROR_CHECK2(status, "/parameter/harmonic_normb_variable_scale");
+        }
+    else
+        {
+            if (get_number_bond_type(gc, HARMONICVARIABLESCALE) != 0)
+                {
+                    WARN_ONCE(MPI_COMM_WORLD, "The poly_arch contains HARMONICVARIABLESCALE Bond, but no corresponding value is set. Using 1 instead.");
+                }
+            gc->harmonic_normb_variable_scale = 1.;
+        }
+
+    //close resources
+    status = H5Fclose(file_id);
+    HDF5_ERROR_CHECK2(status, "Closing coord file failed");
+
+
+    return status;
+}
+
+// collective on simulation ranks
+int read_poly_and_fields_hdf5 (struct Phase *const p, const char *filename, const struct sim_rank_info * sri)
+{
+
+    hid_t status;
+
+    //Set up file access property list with parallel I/O access from the sim-ranks
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
 #if ( ENABLE_MPI == 1 )
-    if (p->info_MPI.sim_size > 1)
-        H5Pset_fapl_mpio(plist_id, p->info_MPI.SOMA_comm_sim, MPI_INFO_NULL);
+    if (sri->sim_comm.size > 1)
+        H5Pset_fapl_mpio(plist_id, sri->sim_comm.comm, MPI_INFO_NULL);
 #endif                          //ENABLE_MPI
 
     //Create a new h5 file and overwrite the content.
@@ -1032,164 +1211,22 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     H5Pclose(plist_id);
     plist_id = H5Pcreate(H5P_DATASET_XFER);
 #if ( ENABLE_MPI == 1 )
-    if (p->info_MPI.sim_size > 1)
+    if (sri->sim_comm.size > 1)
         H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 #endif                          //ENABLE_MPI
 
-    status = read_hdf5(file_id, "/parameter/n_polymers", H5T_NATIVE_UINT64, plist_id, &(p->n_polymers_global));
-    HDF5_ERROR_CHECK2(status, "/parameter/n_polymers");
+//todo: check if everything from here on out is simrank_only
 
-    //Distribute the polymers to the different cores.
-    uint64_t n_polymers = p->n_polymers_global / p->info_MPI.sim_size;
-    if ((unsigned int)p->info_MPI.sim_rank < p->n_polymers_global % p->info_MPI.sim_size)
-        n_polymers += 1;
-    p->n_polymers = n_polymers;
-    p->n_polymers_storage = p->n_polymers;
+
     uint64_t n_polymer_offset = 0;
 #if ( ENABLE_MPI == 1 )
     //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
-    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, sri->sim_comm.comm);
     n_polymer_offset -= p->n_polymers;
 #endif                          //ENABLE_MPI
 
-    if (p->info_MPI.sim_rank == p->info_MPI.sim_size - 1)
+    if (sri->sim_comm.rank == sri->sim_comm.size - 1)
         assert(p->n_polymers + n_polymer_offset == p->n_polymers_global);
-
-    status = read_hdf5(file_id, "/parameter/reference_Nbeads", H5T_NATIVE_UINT, plist_id, &(p->reference_Nbeads));
-    HDF5_ERROR_CHECK2(status, "/parameter/reference_Nbeads");
-
-    status = read_hdf5(file_id, "/parameter/n_types", H5T_NATIVE_UINT, plist_id, &(p->n_types));
-    HDF5_ERROR_CHECK2(status, "/parameter/n_types");
-
-    p->xn = (soma_scalar_t * const)malloc(p->n_types * p->n_types * sizeof(soma_scalar_t));
-    if (p->xn == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-    status = read_hdf5(file_id, "/parameter/xn", H5T_SOMA_NATIVE_SCALAR, plist_id, p->xn);
-    HDF5_ERROR_CHECK2(status, "/parameter/xn");
-
-    //A array for the diffusivity of the particles
-    p->A = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
-    if (p->A == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-    // read p->A
-    status = read_hdf5(file_id, "/parameter/A", H5T_SOMA_NATIVE_SCALAR, plist_id, p->A);
-    HDF5_ERROR_CHECK2(status, "/parameter/A");
-
-    // read p->time
-    status = read_hdf5(file_id, "/parameter/time", H5T_NATIVE_UINT, plist_id, &(p->time));
-    HDF5_ERROR_CHECK2(status, "/parameter/time");
-
-    // read nx ny nz
-    p->hamiltonian = SCMF0;
-    //Don't break old configurations.
-    if (H5Lexists(file_id, "/parameter/hamiltonian", H5P_DEFAULT) > 0)
-        {
-            status = read_hdf5(file_id, "/parameter/hamiltonian", H5T_NATIVE_INT, plist_id, &(p->hamiltonian));
-            HDF5_ERROR_CHECK2(status, "/parameter/hamiltonian");
-        }
-
-    p->k_umbrella = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
-    if (p->k_umbrella == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    memset(p->k_umbrella, 0, p->n_types * sizeof(soma_scalar_t));       //Default 0
-    if (H5Lexists(file_id, "/parameter/k_umbrella", H5P_DEFAULT) > 0)
-        {
-            status = read_hdf5(file_id, "/parameter/k_umbrella", H5T_SOMA_NATIVE_SCALAR, plist_id, p->k_umbrella);
-            HDF5_ERROR_CHECK2(status, "parameter/k_umbrella");
-        }
-
-    unsigned int nxyz[3];
-    status = read_hdf5(file_id, "/parameter/nxyz", H5T_NATIVE_UINT, plist_id, nxyz);
-    HDF5_ERROR_CHECK2(status, "/parameter/nxyz");
-    p->nx = nxyz[0];
-    p->ny = nxyz[1];
-    p->nz = nxyz[2];
-
-    if (p->nx % p->args.N_domains_arg != 0)
-        {
-            fprintf(stderr, "ERROR: %s:%d\n\t"
-                    "The nx %d number is not divible by the number of domains %d\n",
-                    __FILE__, __LINE__, p->nx, p->args.N_domains_arg);
-            return -3;
-        }
-
-    // read lx ly lz
-    soma_scalar_t lxyz[3];
-    status = read_hdf5(file_id, "/parameter/lxyz", H5T_SOMA_NATIVE_SCALAR, plist_id, lxyz);
-    HDF5_ERROR_CHECK2(status, "/parameter/lxyz");
-    p->Lx = lxyz[0];
-    p->Ly = lxyz[1];
-    p->Lz = lxyz[2];
-
-    //Read in the polymer architectures.
-    //Number of polymer type
-    status = read_hdf5(file_id, "/parameter/n_poly_type", H5T_NATIVE_UINT, plist_id, &(p->n_poly_type));
-    HDF5_ERROR_CHECK2(status, "n_poly_type");
-    //poly_type_offset
-    p->poly_type_offset = (int *)malloc(p->n_poly_type * sizeof(int));
-    if (p->poly_type_offset == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    status = read_hdf5(file_id, "/parameter/poly_type_offset", H5T_NATIVE_INT, plist_id, p->poly_type_offset);
-    HDF5_ERROR_CHECK2(status, "poly_type_offset");
-    //poly_arch_length
-    status = read_hdf5(file_id, "/parameter/poly_arch_length", H5T_NATIVE_UINT, plist_id, &(p->poly_arch_length));
-    HDF5_ERROR_CHECK2(status, "poly_arch_length");
-    //poly_arch
-    p->poly_arch = (uint32_t *) malloc(p->poly_arch_length * sizeof(uint32_t));
-    if (p->poly_arch == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    status = read_hdf5(file_id, "/parameter/poly_arch", H5T_NATIVE_INT32, plist_id, p->poly_arch);
-    HDF5_ERROR_CHECK2(status, "poly_arch");
-
-    p->cm_a = NULL;             //Default: deactivated.
-    //If mobility is specified write it out.
-    if (H5Lexists(file_id, "/parameter/cm_a", H5P_DEFAULT) > 0)
-        {
-            p->cm_a = (soma_scalar_t *) malloc(p->n_poly_type * sizeof(soma_scalar_t));
-            if (p->cm_a == NULL)
-                {
-                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-                    return -1;
-                }
-            status = read_hdf5(file_id, "/parameter/cm_a", H5T_SOMA_NATIVE_SCALAR, plist_id, p->cm_a);
-            HDF5_ERROR_CHECK2(status, "/parameter/cm_a");
-        }
-
-    // read harmonic_normb_variable_scale
-    if (H5Lexists(file_id, "/parameter/harmonic_normb_variable_scale", H5P_DEFAULT) > 0)
-        {
-            status =
-                read_hdf5(file_id, "/parameter/harmonic_normb_variable_scale", H5T_SOMA_NATIVE_SCALAR, plist_id,
-                          &(p->harmonic_normb_variable_scale));
-            HDF5_ERROR_CHECK2(status, "/parameter/harmonic_normb_variable_scale");
-        }
-    else
-        {
-            if (p->info_MPI.sim_rank == 0)
-                {
-                    if (get_number_bond_type(p, HARMONICVARIABLESCALE) != 0)
-                        fprintf(stderr,
-                                "WARNING: The poly_arch contains HARMONICVARIABLESCALE Bond, but no corresponding value is set. Using 1 instead.\n");
-                }
-            p->harmonic_normb_variable_scale = 1.;
-        }
 
     //Allocate memory for almost everything of PHASE
     //Polymers (only the local copies).
@@ -1217,28 +1254,28 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     if ((status =
          H5Dread(poly_type_dataset, H5T_NATIVE_UINT, poly_type_memspace, poly_type_dataspace, plist_id, poly_type)) < 0)
         {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);
             return status;
         }
 
     if ((status = H5Sclose(poly_type_memspace)) < 0)
         {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);
             return status;
         }
 
     if ((status = H5Dclose(poly_type_dataset)) < 0)
         {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);
             return status;
         }
 
     if ((status = H5Sclose(poly_type_dataspace)) < 0)
         {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);
             return status;
         }
@@ -1299,7 +1336,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
             if ((status =
                  H5Dread(beads_dataset, monomer_memtype, beads_memspace, beads_dataspace, plist_id, monomer_data)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                             p->info_MPI.world_rank, __FILE__, __LINE__, status);
                     return status;
                 }
@@ -1314,28 +1351,28 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
             if ((status = H5Tclose(monomer_memtype)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                             p->info_MPI.world_rank, __FILE__, __LINE__, status);
                     return status;
                 }
 
             if ((status = H5Sclose(beads_dataspace)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                             p->info_MPI.world_rank, __FILE__, __LINE__, status);
                     return status;
                 }
 
             if ((status = H5Sclose(beads_memspace)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                             p->info_MPI.world_rank, __FILE__, __LINE__, status);
                     return status;
                 }
 
             if ((status = H5Dclose(beads_dataset)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                             p->info_MPI.world_rank, __FILE__, __LINE__, status);
                     return status;
                 }
@@ -1350,7 +1387,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     if (H5Lexists(file_id, "/area51", H5P_DEFAULT) > 0)
         {
-            hid_t status = read_area51_hdf5(p, file_id, plist_id);
+            status = read_area51_hdf5(p, file_id, plist_id);
             if (status != 0)
                 {
                     fprintf(stderr, "ERROR: failed to read area51 %s:%d.\n", __FILE__, __LINE__);
@@ -1362,7 +1399,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     if (H5Lexists(file_id, "/external_field", H5P_DEFAULT) > 0)
         {
-            hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->external_field_unified), "/external_field");
+            status = read_field_hdf5(p, file_id, plist_id, &(p->external_field_unified), "/external_field");
             if (status != 0)
                 {
                     fprintf(stderr, "ERROR: failed to read external_field %s:%d.\n", __FILE__, __LINE__);
@@ -1448,7 +1485,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     if (H5Lexists(file_id, "/umbrella_field", H5P_DEFAULT) > 0)
         {
-            hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->umbrella_field), "/umbrella_field");
+            status = read_field_hdf5(p, file_id, plist_id, &(p->umbrella_field), "/umbrella_field");
             if (status != 0)
                 {
                     fprintf(stderr, "ERROR: failed to read umbrella_field %s:%d.\n", __FILE__, __LINE__);
@@ -1458,7 +1495,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     if ((status = H5Fclose(file_id)) < 0)
         {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);
             return status;
         }

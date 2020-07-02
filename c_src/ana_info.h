@@ -21,6 +21,7 @@
 #include <hdf5.h>
 #include "soma_config.h"
 struct Phase;
+struct global_consts;
 
 //! \file ana_info.h
 //! \brief Info needed for output routines.
@@ -50,14 +51,23 @@ typedef struct Ana_Info {
 } Ana_Info;
 
 //! \brief Initialization of the information needed for analysis routines.
-//! \param p almost fully initialized Phase pointer.
-//! \param filename Filename used for output of the analysis. If
+//! \param ana_info (out) returns a fully initialized ana_info
+//! \param end_mono (out) if Re is needed, *end_mono stores an array of length (2 * n_poly_types)
+//! if Re analysis is turned off (or found to be impossible) *end_mono is NULL.
+//! This allocates the array on the heap, and you become the owner of *end_mono.
+//! \param global_consts (in) global constants of the simulation as initialized by read_consts_from_config
+//! \param field_scaling_type scaling factor according to density, must have gc->n_types elements (simulation ranks have this as p->field_scaling_type)
+//! \param filename (in) Filename used for output of the analysis. If
 //! pointer to "" or NULL is passed analysis is turned off.
-//! \param coord_filename Filename of the readin coord.h5 file.
+//! \param coord_filename (in) Filename of the readin coord.h5 file.
 //! This  used to setup proper dumping filenames. (Passing NULL disables dumping.)
+//! \param writer_comm (in) The ranks in this communicator will have write-access to ana_info->file_id.
+//! Ranks that pass MPI_COMM_NULL will receive an invalid file_id.
+//! All ranks that want write-access must pass the same communicator.
+//! \note this call is collective on world,
 //! \post initialized p->ana_info
 //! \return Errorcode.
-int init_ana(struct Phase *const p, const char *const filename, const char *const coord_filename);
+int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_consts *gc, soma_scalar_t * field_scaling_type,  const char *const filename, const char *const coord_filename, MPI_Comm writer_comm);
 
 //! Release resources connected to the Ana_Info struct after init_ana.
 //!

@@ -208,7 +208,7 @@ int post_process_args(struct som_args *args, const unsigned int world_rank)
     return 0;
 }
 
-unsigned int get_number_bond_type(const struct Phase *const p, const enum Bondtype btype)
+unsigned int get_number_bond_type(const struct global_consts *p, const enum Bondtype btype)
 {
     unsigned int counter = 0;
     for (unsigned int p_type = 0; p_type < p->n_poly_type; p_type++)

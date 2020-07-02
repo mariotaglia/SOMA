@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     p->args.N_domains_arg = 1;
     p->args.domain_buffer_arg = 0;
     p->args.long_chain_threshold_arg = 1;
-    init_MPI(p);
+    init_MPI_convert_tool(p);
 
     if (!(argc == 2 || argc == 3))
         {
@@ -110,9 +110,12 @@ int main(int argc, char *argv[])
         }
 
     /* initialize phase */
-    const int init_v = init_phase(p);
+    const int init_v = init_phase (p, NULL, NULL);
     MPI_ERROR_CHECK(init_v, "Init values faild.");
-    const int ana = init_ana(p, NULL, NULL);
+
+    // initialize the ana_info with default values of 0.
+    // todo: I must find a cleaner way for this
+    const int ana = init_ana(&p->ana_info, NULL, NULL, NULL, NULL, NULL, MPI_COMM_NULL);
     MPI_ERROR_CHECK(ana, "Init ana failed.");
 
     const int test_pt = test_particle_types(p);

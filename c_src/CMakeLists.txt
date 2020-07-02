@@ -23,7 +23,7 @@ set(soma_source
   soma_util.c
   walltime.c
   test.c
-  )
+        server.c server.h send.c send.h serv_util.c serv_util.h err_handling.h)
 
 configure_file(soma_config.h.in soma_config.h)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/soma_config.h DESTINATION include)
@@ -53,7 +53,7 @@ set(soma_header
 
 add_library(soma_lib ${soma_source})
 
-add_executable(SOMA soma.c)
+add_executable(SOMA soma.c send.c send.h)
 add_executable(CONVERT convert.c)
 
 option(BUILD_STATIC "Try to build static if possible. No guarantee your EXE is completely static" OFF)

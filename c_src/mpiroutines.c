@@ -41,7 +41,8 @@
 #include "polymer.h"
 #include "monomer.h"
 
-int init_MPI(struct Phase *p)
+
+int init_MPI_convert_tool(struct Phase *p)
 {
     //Initialize all variable even without MPI
     p->info_MPI.domain_divergence_sec = 0.;
@@ -126,6 +127,63 @@ int init_MPI(struct Phase *p)
     if (p->info_MPI.sim_rank == 0)
         printf("All %d ranks use fixed seed %u.\n", p->info_MPI.sim_size, p->args.rng_seed_arg);
 #endif                          //ENABLE_MPI
+    return 0;
+}
+
+
+int init_MPI(struct Phase *p, const struct sim_rank_info * sri)
+{
+
+    p->info_MPI.domain_divergence_sec = 0.;
+    p->info_MPI.domain_divergence_counter = 0;
+
+    int status;
+
+    p->info_MPI.SOMA_comm_world = MPI_COMM_WORLD;
+    status = MPI_Comm_rank(MPI_COMM_WORLD, &p->info_MPI.world_rank);
+    MPI_ERROR_CHECK(status, "unexpected MPI error");
+    status = MPI_Comm_size(MPI_COMM_WORLD, &p->info_MPI.world_size);
+    MPI_ERROR_CHECK(status, "unexpected MPI error");
+    p->info_MPI.sim_size = sri->sim_comm.size;
+    p->info_MPI.sim_rank = sri->sim_comm.rank;
+    p->info_MPI.domain_size = sri->domain_comm.size;
+    p->info_MPI.domain_rank = sri->domain_comm.rank;
+
+    if (p->info_MPI.sim_size < p->args.N_domains_arg)
+        {
+            fprintf(stderr, "ERROR: Requested more domains %d than ranks are available %d. %s:%d\n",
+                    p->args.N_domains_arg, p->info_MPI.sim_size, __FILE__, __LINE__);
+            return -9;
+        }
+
+    if (p->info_MPI.sim_size % p->args.N_domains_arg != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d invalid number of domains."
+                            " Number of simulation ranks must be a multiple of the number of domains,"
+                            " but sim_size is %d and Ndomains is %d."
+                            " Note that ranks that work as servers don't count as simulation ranks for this,"
+                            " and one rank is a server by default. "
+                            "You have %d ranks in total but only %d simulation ranks\n",
+                __FILE__, __LINE__, p->info_MPI.sim_size, p->args.N_domains_arg,
+                p->info_MPI.world_size, p->info_MPI.sim_size);
+            return -7;
+        }
+
+    p->info_MPI.SOMA_comm_domain = sri->domain_comm.comm;
+    p->info_MPI.domain_size = sri->domain_comm.size;
+    p->info_MPI.domain_rank = sri->domain_comm.rank;
+
+
+    uint32_t fixed_seed;
+    if (!p->args.rng_seed_given || p->args.rng_seed_arg < 0)
+        fixed_seed = time(NULL);
+    else
+        fixed_seed = p->args.rng_seed_arg;
+    MPI_Bcast(&fixed_seed, 1, MPI_UINT32_T, 0, p->info_MPI.SOMA_comm_sim);
+    p->args.rng_seed_arg = fixed_seed;
+    if (p->info_MPI.sim_rank == 0)
+        printf("All %d ranks use fixed seed %u.\n", p->info_MPI.sim_size, p->args.rng_seed_arg);
+
     return 0;
 }
 
