@@ -4,7 +4,7 @@
 #include <inttypes.h>
 #include <mpi.h>
 #include <stdbool.h>
-#include <phase.h>
+#include "phase.h"
 #include "server.h"
 
 
