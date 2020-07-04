@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "cmdline.h"
+#include "err_handling.h"
 
 int complete_comm_with_info(struct comm_with_info * cwi)
 {
@@ -75,7 +76,30 @@ void free_role_info(struct role_info * ri)
     free(ri);
 }
 
-struct role_info * assign_role(int n_servers, int n_domains)
+bool is_server(unsigned int n_servers, int world_rank, const int * server_ranks)
+{
+    MESSAGE_ASSERT(n_servers >= 1, "Must have at least one server");
+    // get world size for a quick consistency check on the input
+    int world_size;
+    int status = MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_ERROR_CHECK(status, "failed to get world size");
+
+    for (unsigned int i=0; i < n_servers; i++)
+        {
+            int serv_rank = server_ranks[i];
+            MESSAGE_ASSERT(serv_rank >= 0, "invalid server-rank: server rank is negative.");
+            MESSAGE_ASSERT(serv_rank < world_size, "invalid server-rank: server rank number is higher than exists in mpi_comm_world.");
+
+            if (serv_rank == world_rank)
+                {
+                    return true;
+                }
+        }
+
+    return false;
+}
+
+struct role_info * assign_role(unsigned int n_servers, int n_domains, const int *server_ranks)
 {
     struct role_info * ri = malloc(sizeof(struct role_info));
     int world_rank, world_size;
@@ -84,13 +108,12 @@ struct role_info * assign_role(int n_servers, int n_domains)
 
 
     // consistency checks
-    MESSAGE_ASSERT(n_servers*2 <= world_size, "Can not have more servers than simulation ranks.");
-    MESSAGE_ASSERT(n_domains <= world_size - n_servers, "There can not be more domains than simulation ranks.");
+    MESSAGE_ASSERT(n_servers*2 <= (unsigned int)world_size, "Can not have more servers than simulation ranks.");
+    MESSAGE_ASSERT((unsigned int)n_domains <= (world_size - n_servers), "There can not be more domains than simulation ranks.");
     MESSAGE_ASSERT( n_servers >= 1, "there must be at least one server");
     MESSAGE_ASSERT(n_domains >= 1, "there must be at least one domain");
 
-    // todo: this just picks some ranks as servers. It should pick those ranks that have good IO-access
-    ri->is_server = (world_rank < n_servers);
+    ri->is_server = is_server(n_servers, world_rank, server_ranks);
 
     if (ri->is_server)
         {
@@ -103,12 +126,12 @@ struct role_info * assign_role(int n_servers, int n_domains)
             assert(serv_inf->server_comm.size == n_servers);
 
             // assign simranks to servers for poly-sending, the servers get rank 0 in the new communicator
-            MPI_Comm_split(MPI_COMM_WORLD, world_rank, 0, &(serv_inf->poly_comm.comm));
+            MPI_Comm_split(MPI_COMM_WORLD, serv_inf->server_comm.rank, 0, &(serv_inf->poly_comm.comm));
             complete_comm_with_info(&serv_inf->poly_comm);
             assert(serv_info->poly_comm.rank == 0);
 
             // assign simranks to servers for field-sending, the servers get rank 0
-            MPI_Comm_split(MPI_COMM_WORLD, world_rank, 0, &(serv_inf->field_comm.comm));
+            MPI_Comm_split(MPI_COMM_WORLD, serv_inf->server_comm.rank, 0, &(serv_inf->field_comm.comm));
             complete_comm_with_info(&serv_inf->field_comm);
             assert(serv_info->field_comm.rank == 0);
 
@@ -128,7 +151,7 @@ struct role_info * assign_role(int n_servers, int n_domains)
             assert(sim_inf->sim_comm.size == world_size - n_servers);
 
             // assign simranks to servers for polymer-sending
-            MPI_Comm_split(MPI_COMM_WORLD, world_rank%n_servers, 1, &(sim_inf->poly_comm.comm));
+            MPI_Comm_split(MPI_COMM_WORLD, sim_inf->sim_comm.rank%n_servers, 1, &(sim_inf->poly_comm.comm));
             assert(sim_inf->poly_comm.comm != MPI_COMM_NULL);
             complete_comm_with_info(&sim_inf->poly_comm);
             assert(sim_inf->poly_comm.rank > 0);
@@ -152,8 +175,8 @@ struct role_info * assign_role(int n_servers, int n_domains)
                     color = sim_inf->my_domain % n_servers;
             else
                     color = MPI_UNDEFINED;
-            // splitting with color MPI_UNDEFINED means you get MPI_COMM_NULL, which is what we want for
-            // ranks that dont send the fields
+            // splitting with color MPI_UNDEFINED means you get MPI_COMM_NULL,
+            // which is what we want for ranks that dont send the fields
 
             MPI_Comm_split(MPI_COMM_WORLD, color, 1, &(sim_inf->field_comm.comm));
             complete_comm_with_info(&sim_inf->field_comm);
@@ -183,8 +206,8 @@ struct role_info * assign_role(int n_servers, int n_domains)
 int receive_field_scaling_type(soma_scalar_t * field_scaling_type, unsigned int n_types, const struct server_info * si)
 {
     // receive from rank 1, as rank 1 always exists and is a simrank
-    // the
     assert(n_types < INT_MAX);
+    DPRINT("server now receiving the field scaling");
     return MPI_Recv(field_scaling_type, n_types, MPI_SOMA_SCALAR, 1, 0, si->poly_comm.comm, MPI_STATUS_IGNORE);
 }
 

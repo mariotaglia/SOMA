@@ -72,7 +72,7 @@ typedef double soma_scalar_t;
 #endif                          //SINGLE_PRECISION
 
 //! String containing the git version of SOMA
-static const char soma_version[] = "0.6.1-32-ge9ff09e MPI DOUBLE";
+static const char soma_version[] = "0.6.1-33-g940d4a6 MPI DOUBLE";
 //! Returns the version string.
 //! \return Pointer to version string
 const char *get_soma_version(void);

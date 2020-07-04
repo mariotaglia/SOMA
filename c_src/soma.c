@@ -82,7 +82,16 @@ int main(int argc, char *argv[])
 
     // get a role (server or simrank, which domain to cover...)
     struct role_info * ri;
-    ri = assign_role(args.N_servers_arg, args.N_domains_arg);
+    if (args.server_ranks_given == 0)
+        {
+            // no server-ranks argument provided, using default (one server on rank 0) instead
+            const int default_server = 0;
+            ri = assign_role(1, args.N_domains_arg, &default_server);
+        }
+    else
+        {
+            ri = assign_role(args.server_ranks_given, args.N_domains_arg, args.server_ranks_arg);
+        }
 
     // get some global constants (like n_polymers_global)
     struct global_consts gc;
@@ -115,6 +124,7 @@ int main(int argc, char *argv[])
             MPI_Finalize();
             free(field_scaling_type);
             free(end_mono);
+            free(&args);
         }
     else
         {

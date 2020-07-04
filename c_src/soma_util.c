@@ -104,6 +104,7 @@ int post_process_args(struct som_args *args, const unsigned int world_rank)
                         "WARNING: This might be useful for timing runs or pure equilibration,\n"
                         "WARNING: but in the latter case we nonetheless highly recommend to specify an analyse file.\n");
         }
+
 #ifdef OPENACC
     if ((!args->gpus_given && !args->only_gpu_given) || (args->gpus_given && args->gpus_arg <= 0))
         {

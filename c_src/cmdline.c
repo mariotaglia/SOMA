@@ -55,7 +55,7 @@ const char *som_args_detailed_help[] = {
   "      --accepted-load-inbalance=percent\n                                 [0,100] Percent of step time which is ignored\n                                  by load balancer. Low values enable better\n                                  load balancing, but could cause fluctuation\n                                  of polymers.  (default=`8')",
   "      --autotuner-restart-period=period\n                                Period in which the autotuner is restarted.\n                                  (default=`10000')",
   "  -d, --N-domains=N             Number of domains for a domain decomposition.\n                                  (Domain decomposition is only made linear\n                                  along the X-Axes)  (default=`1')",
-  "  -S, --N-servers=SERV          Number of ranks to be used as servers for\n                                  analysis.  (default=`1')",
+  "  -e, --server-ranks=INT        List of numbers to determine which ranks (by\n                                  numbering in MPI_COMM_WORLD) are to be used\n                                  as servers. Default: There is one server and\n                                  it is on world-rank 0",
   "      --domain-buffer=N         Number of buffer cells which can contain ghost\n                                  particles. Experiment and find the optimum\n                                  for your simulation.  (default=`10')",
   "      --rcm-update=f            Frequency of the update of the molecule center\n                                  of mass. If they enter the ghost layer they\n                                  are sen. Experiment and find the optimum for\n                                  your simulation  (default=`10')",
   "      --user=user-args          Additional arguments. The usage of these\n                                  arguments defined by the user. The default\n                                  setting ignores the arguments.",
@@ -160,7 +160,7 @@ void clear_given (struct som_args *args_info)
   args_info->accepted_load_inbalance_given = 0 ;
   args_info->autotuner_restart_period_given = 0 ;
   args_info->N_domains_given = 0 ;
-  args_info->N_servers_given = 0 ;
+  args_info->server_ranks_given = 0 ;
   args_info->domain_buffer_given = 0 ;
   args_info->rcm_update_given = 0 ;
   args_info->user_given = 0 ;
@@ -207,8 +207,8 @@ void clear_args (struct som_args *args_info)
   args_info->autotuner_restart_period_orig = NULL;
   args_info->N_domains_arg = 1;
   args_info->N_domains_orig = NULL;
-  args_info->N_servers_arg = 1;
-  args_info->N_servers_orig = NULL;
+  args_info->server_ranks_arg = NULL;
+  args_info->server_ranks_orig = NULL;
   args_info->domain_buffer_arg = 10;
   args_info->domain_buffer_orig = NULL;
   args_info->rcm_update_arg = 10;
@@ -255,7 +255,9 @@ void init_args_info(struct som_args *args_info)
   args_info->accepted_load_inbalance_help = som_args_detailed_help[18] ;
   args_info->autotuner_restart_period_help = som_args_detailed_help[19] ;
   args_info->N_domains_help = som_args_detailed_help[20] ;
-  args_info->N_servers_help = som_args_detailed_help[21] ;
+  args_info->server_ranks_help = som_args_detailed_help[21] ;
+  args_info->server_ranks_min = 0;
+  args_info->server_ranks_max = 0;
   args_info->domain_buffer_help = som_args_detailed_help[22] ;
   args_info->rcm_update_help = som_args_detailed_help[23] ;
   args_info->user_help = som_args_detailed_help[24] ;
@@ -359,6 +361,52 @@ free_string_field (char **s)
     }
 }
 
+/** @brief generic value variable */
+union generic_value {
+    int int_arg;
+    double double_arg;
+    char *string_arg;
+    const char *default_string_arg;
+};
+
+/** @brief holds temporary values for multiple options */
+struct generic_list
+{
+  union generic_value arg;
+  char *orig;
+  struct generic_list *next;
+};
+
+/**
+ * @brief add a node at the head of the list 
+ */
+static void add_node(struct generic_list **list) {
+  struct generic_list *new_node = (struct generic_list *) malloc (sizeof (struct generic_list));
+  new_node->next = *list;
+  *list = new_node;
+  new_node->arg.string_arg = 0;
+  new_node->orig = 0;
+}
+
+/**
+ * The passed arg parameter is NOT set to 0 from this function
+ */
+static void
+free_multiple_field(unsigned int len, void *arg, char ***orig)
+{
+  unsigned int i;
+  if (arg) {
+    for (i = 0; i < len; ++i)
+      {
+        free_string_field(&((*orig)[i]));
+      }
+
+    free (arg);
+    free (*orig);
+    *orig = 0;
+  }
+}
+
 
 static void
 cmdline_parser_release (struct som_args *args_info)
@@ -381,7 +429,8 @@ cmdline_parser_release (struct som_args *args_info)
   free_string_field (&(args_info->accepted_load_inbalance_orig));
   free_string_field (&(args_info->autotuner_restart_period_orig));
   free_string_field (&(args_info->N_domains_orig));
-  free_string_field (&(args_info->N_servers_orig));
+  free_multiple_field (args_info->server_ranks_given, (void *)(args_info->server_ranks_arg), &(args_info->server_ranks_orig));
+  args_info->server_ranks_arg = 0;
   free_string_field (&(args_info->domain_buffer_orig));
   free_string_field (&(args_info->rcm_update_orig));
   free_string_field (&(args_info->user_arg));
@@ -451,6 +500,14 @@ write_into_file(FILE *outfile, const char *opt, const char *arg, const char *val
   }
 }
 
+static void
+write_multiple_into_file(FILE *outfile, int len, const char *opt, char **arg, const char *values[])
+{
+  int i;
+  
+  for (i = 0; i < len; ++i)
+    write_into_file(outfile, opt, (arg ? arg[i] : 0), values);
+}
 
 int
 cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
@@ -503,8 +560,7 @@ cmdline_parser_dump(FILE *outfile, struct som_args *args_info)
     write_into_file(outfile, "autotuner-restart-period", args_info->autotuner_restart_period_orig, 0);
   if (args_info->N_domains_given)
     write_into_file(outfile, "N-domains", args_info->N_domains_orig, 0);
-  if (args_info->N_servers_given)
-    write_into_file(outfile, "N-servers", args_info->N_servers_orig, 0);
+  write_multiple_into_file(outfile, args_info->server_ranks_given, "server-ranks", args_info->server_ranks_orig, 0);
   if (args_info->domain_buffer_given)
     write_into_file(outfile, "domain-buffer", args_info->domain_buffer_orig, 0);
   if (args_info->rcm_update_given)
@@ -572,6 +628,141 @@ gengetopt_strdup (const char *s)
   return result;
 }
 
+static char *
+get_multiple_arg_token(const char *arg)
+{
+  const char *tok;
+  char *ret;
+  size_t len, num_of_escape, i, j;
+
+  if (!arg)
+    return 0;
+
+  tok = strchr (arg, ',');
+  num_of_escape = 0;
+
+  /* make sure it is not escaped */
+  while (tok)
+    {
+      if (*(tok-1) == '\\')
+        {
+          /* find the next one */
+          tok = strchr (tok+1, ',');
+          ++num_of_escape;
+        }
+      else
+        break;
+    }
+
+  if (tok)
+    len = (size_t)(tok - arg + 1);
+  else
+    len = strlen (arg) + 1;
+
+  len -= num_of_escape;
+
+  ret = (char *) malloc (len);
+
+  i = 0;
+  j = 0;
+  while (arg[i] && (j < len-1))
+    {
+      if (arg[i] == '\\' && 
+	  arg[ i + 1 ] && 
+	  arg[ i + 1 ] == ',')
+        ++i;
+
+      ret[j++] = arg[i++];
+    }
+
+  ret[len-1] = '\0';
+
+  return ret;
+}
+
+static const char *
+get_multiple_arg_token_next(const char *arg)
+{
+  const char *tok;
+
+  if (!arg)
+    return 0;
+
+  tok = strchr (arg, ',');
+
+  /* make sure it is not escaped */
+  while (tok)
+    {
+      if (*(tok-1) == '\\')
+        {
+          /* find the next one */
+          tok = strchr (tok+1, ',');
+        }
+      else
+        break;
+    }
+
+  if (! tok || strlen(tok) == 1)
+    return 0;
+
+  return tok+1;
+}
+
+static int
+check_multiple_option_occurrences(const char *prog_name, unsigned int option_given, unsigned int min, unsigned int max, const char *option_desc);
+
+int
+check_multiple_option_occurrences(const char *prog_name, unsigned int option_given, unsigned int min, unsigned int max, const char *option_desc)
+{
+  int error_occurred = 0;
+
+  if (option_given && (min > 0 || max > 0))
+    {
+      if (min > 0 && max > 0)
+        {
+          if (min == max)
+            {
+              /* specific occurrences */
+              if (option_given != (unsigned int) min)
+                {
+                  fprintf (stderr, "%s: %s option occurrences must be %d\n",
+                    prog_name, option_desc, min);
+                  error_occurred = 1;
+                }
+            }
+          else if (option_given < (unsigned int) min
+                || option_given > (unsigned int) max)
+            {
+              /* range occurrences */
+              fprintf (stderr, "%s: %s option occurrences must be between %d and %d\n",
+                prog_name, option_desc, min, max);
+              error_occurred = 1;
+            }
+        }
+      else if (min > 0)
+        {
+          /* at least check */
+          if (option_given < min)
+            {
+              fprintf (stderr, "%s: %s option occurrences must be at least %d\n",
+                prog_name, option_desc, min);
+              error_occurred = 1;
+            }
+        }
+      else if (max > 0)
+        {
+          /* at most check */
+          if (option_given > max)
+            {
+              fprintf (stderr, "%s: %s option occurrences must be at most %d\n",
+                prog_name, option_desc, max);
+              error_occurred = 1;
+            }
+        }
+    }
+    
+  return error_occurred;
+}
 int
 cmdline_parser (int argc, char **argv, struct som_args *args_info)
 {
@@ -652,6 +843,9 @@ cmdline_parser_required2 (struct som_args *args_info, const char *prog_name, con
       fprintf (stderr, "%s: '--timesteps' ('-t') option required%s\n", prog_name, (additional_error ? additional_error : ""));
       error_occurred = 1;
     }
+  
+  if (check_multiple_option_occurrences(prog_name, args_info->server_ranks_given, args_info->server_ranks_min, args_info->server_ranks_max, "'--server-ranks' ('-e')"))
+     error_occurred = 1;
   
   
   /* checks for dependences among options */
@@ -793,6 +987,151 @@ int update_arg(void *field, char **orig_field,
   return 0; /* OK */
 }
 
+/**
+ * @brief store information about a multiple option in a temporary list
+ * @param list where to (temporarily) store multiple options
+ */
+static
+int update_multiple_arg_temp(struct generic_list **list,
+               unsigned int *prev_given, const char *val,
+               const char *possible_values[], const char *default_value,
+               cmdline_parser_arg_type arg_type,
+               const char *long_opt, char short_opt,
+               const char *additional_error)
+{
+  /* store single arguments */
+  char *multi_token;
+  const char *multi_next;
+
+  if (arg_type == ARG_NO) {
+    (*prev_given)++;
+    return 0; /* OK */
+  }
+
+  multi_token = get_multiple_arg_token(val);
+  multi_next = get_multiple_arg_token_next (val);
+
+  while (1)
+    {
+      add_node (list);
+      if (update_arg((void *)&((*list)->arg), &((*list)->orig), 0,
+          prev_given, multi_token, possible_values, default_value, 
+          arg_type, 0, 1, 1, 1, long_opt, short_opt, additional_error)) {
+        if (multi_token) free(multi_token);
+        return 1; /* failure */
+      }
+
+      if (multi_next)
+        {
+          multi_token = get_multiple_arg_token(multi_next);
+          multi_next = get_multiple_arg_token_next (multi_next);
+        }
+      else
+        break;
+    }
+
+  return 0; /* OK */
+}
+
+/**
+ * @brief free the passed list (including possible string argument)
+ */
+static
+void free_list(struct generic_list *list, short string_arg)
+{
+  if (list) {
+    struct generic_list *tmp;
+    while (list)
+      {
+        tmp = list;
+        if (string_arg && list->arg.string_arg)
+          free (list->arg.string_arg);
+        if (list->orig)
+          free (list->orig);
+        list = list->next;
+        free (tmp);
+      }
+  }
+}
+
+/**
+ * @brief updates a multiple option starting from the passed list
+ */
+static
+void update_multiple_arg(void *field, char ***orig_field,
+               unsigned int field_given, unsigned int prev_given, union generic_value *default_value,
+               cmdline_parser_arg_type arg_type,
+               struct generic_list *list)
+{
+  int i;
+  struct generic_list *tmp;
+
+  if (prev_given && list) {
+    *orig_field = (char **) realloc (*orig_field, (field_given + prev_given) * sizeof (char *));
+
+    switch(arg_type) {
+    case ARG_INT:
+    case ARG_ENUM:
+      *((int **)field) = (int *)realloc (*((int **)field), (field_given + prev_given) * sizeof (int)); break;
+    case ARG_DOUBLE:
+      *((double **)field) = (double *)realloc (*((double **)field), (field_given + prev_given) * sizeof (double)); break;
+    case ARG_STRING:
+      *((char ***)field) = (char **)realloc (*((char ***)field), (field_given + prev_given) * sizeof (char *)); break;
+    default:
+      break;
+    };
+    
+    for (i = (prev_given - 1); i >= 0; --i)
+      {
+        tmp = list;
+        
+        switch(arg_type) {
+        case ARG_INT:
+          (*((int **)field))[i + field_given] = tmp->arg.int_arg; break;
+        case ARG_DOUBLE:
+          (*((double **)field))[i + field_given] = tmp->arg.double_arg; break;
+        case ARG_ENUM:
+          (*((int **)field))[i + field_given] = tmp->arg.int_arg; break;
+        case ARG_STRING:
+          (*((char ***)field))[i + field_given] = tmp->arg.string_arg; break;
+        default:
+          break;
+        }        
+        (*orig_field) [i + field_given] = list->orig;
+        list = list->next;
+        free (tmp);
+      }
+  } else { /* set the default value */
+    if (default_value && ! field_given) {
+      switch(arg_type) {
+      case ARG_INT:
+      case ARG_ENUM:
+        if (! *((int **)field)) {
+          *((int **)field) = (int *)malloc (sizeof (int));
+          (*((int **)field))[0] = default_value->int_arg; 
+        }
+        break;
+      case ARG_DOUBLE:
+        if (! *((double **)field)) {
+          *((double **)field) = (double *)malloc (sizeof (double));
+          (*((double **)field))[0] = default_value->double_arg;
+        }
+        break;
+      case ARG_STRING:
+        if (! *((char ***)field)) {
+          *((char ***)field) = (char **)malloc (sizeof (char *));
+          (*((char ***)field))[0] = gengetopt_strdup(default_value->string_arg);
+        }
+        break;
+      default: break;
+      }
+      if (!(*orig_field)) {
+        *orig_field = (char **) malloc (sizeof (char *));
+        (*orig_field)[0] = 0;
+      }
+    }
+  }
+}
 
 int
 cmdline_parser_internal (
@@ -801,6 +1140,7 @@ cmdline_parser_internal (
 {
   int c;	/* Character of the parsed option.  */
 
+  struct generic_list * server_ranks_list = NULL;
   int error_occurred = 0;
   struct som_args local_args_info;
   
@@ -857,7 +1197,7 @@ cmdline_parser_internal (
         { "accepted-load-inbalance",	1, NULL, 0 },
         { "autotuner-restart-period",	1, NULL, 0 },
         { "N-domains",	1, NULL, 'd' },
-        { "N-servers",	1, NULL, 'S' },
+        { "server-ranks",	1, NULL, 'e' },
         { "domain-buffer",	1, NULL, 0 },
         { "rcm-update",	1, NULL, 0 },
         { "user",	1, NULL, 0 },
@@ -871,7 +1211,7 @@ cmdline_parser_internal (
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:d:S:mf:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVc:t:a:g:o:s:r:p:n:l:d:e:mf:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -1019,14 +1359,11 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case 'S':	/* Number of ranks to be used as servers for analysis..  */
+        case 'e':	/* List of numbers to determine which ranks (by numbering in MPI_COMM_WORLD) are to be used as servers. Default: There is one server and it is on world-rank 0.  */
         
-        
-          if (update_arg( (void *)&(args_info->N_servers_arg), 
-               &(args_info->N_servers_orig), &(args_info->N_servers_given),
-              &(local_args_info.N_servers_given), optarg, 0, "1", ARG_INT,
-              check_ambiguity, override, 0, 0,
-              "N-servers", 'S',
+          if (update_multiple_arg_temp(&server_ranks_list, 
+              &(local_args_info.server_ranks_given), optarg, 0, 0, ARG_INT,
+              "server-ranks", 'e',
               additional_error))
             goto failure;
         
@@ -1264,7 +1601,14 @@ cmdline_parser_internal (
     } /* while */
 
 
+  update_multiple_arg((void *)&(args_info->server_ranks_arg),
+    &(args_info->server_ranks_orig), args_info->server_ranks_given,
+    local_args_info.server_ranks_given, 0,
+    ARG_INT, server_ranks_list);
 
+  args_info->server_ranks_given += local_args_info.server_ranks_given;
+  local_args_info.server_ranks_given = 0;
+  
   if (check_required)
     {
       error_occurred += cmdline_parser_required2 (args_info, argv[0], additional_error);
@@ -1278,6 +1622,7 @@ cmdline_parser_internal (
   return 0;
 
 failure:
+  free_list (server_ranks_list, 0 );
   
   cmdline_parser_release (&local_args_info);
   return ( -1 );

@@ -34,6 +34,11 @@
 void m_assert(int expr, const char * str_expr, int line, const char * file, const char * fun,
               const char * mess);
 
+/*!
+ * convenience wrapper around an MPI_Comm that also includes the size of the communicator
+ * and the rank that this rank has in this communicator.
+ * Initialize the comm manually, then call complete_comm_with_info
+ */
 struct comm_with_info
 {
     MPI_Comm comm;
@@ -47,13 +52,22 @@ struct comm_with_info
 //! \return MPI_SUCCESS or an error code (if MPI is set to return on error)
 int complete_comm_with_info(struct comm_with_info * cwi);
 
+/*!
+ * \brief object to store the role of a rank in the simulation
+ * if is_server is true, the rank is a server, and detailed_info should be cast to server_info
+ * otherwise, the rank is a simrank, and detailed_info is of type sim_rank_info
+ */
 struct role_info
 {
     bool is_server;
     void * detailed_info;
 };
 
-
+/*!
+ * contains informationn specific to a server.
+ * This has the communicators (and satellite information: size and rank)
+ * on which the server expects fields and polymers, also a communicator with all the other servers
+ */
 struct server_info
 {
     struct comm_with_info server_comm;
@@ -73,8 +87,22 @@ struct sim_rank_info
 };
 
 void free_role_info(struct role_info * ri);
-struct role_info * assign_role(int n_servers, int n_domains);
 
+//! finds the role of my rank. Every rank must call this at the beginning of the program.
+//!
+//! \param n_servers
+//! \param n_domains
+//! \param server_ranks
+//! \return
+struct role_info * assign_role(unsigned int n_servers, int n_domains, const int *server_ranks);
+
+//! determines if the given world rank is a server or a simulation-rank, given a list of all the servers
+//! \param n_servers number of servers (==length of the server_ranks array)
+//! \param world_rank world rank of the rank we want to know about.
+//! \param server_ranks list of servers
+//! \note will perform some consistency checks
+//! \return true if world_rank is a server
+bool is_server(unsigned int n_servers, int world_rank, const int * server_ranks);
 
 //! receive the field_scaling_type. All servers call this to receive, all simranks call send_field_scaling_type to send
 //! \param field_scaling_type (out) Array of n_types that you are the owner of.

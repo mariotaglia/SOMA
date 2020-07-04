@@ -95,9 +95,11 @@ struct som_args
   int N_domains_arg;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes) (default='1').  */
   char * N_domains_orig;	/**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes) original value given at command line.  */
   const char *N_domains_help; /**< @brief Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes) help description.  */
-  int N_servers_arg;	/**< @brief Number of ranks to be used as servers for analysis. (default='1').  */
-  char * N_servers_orig;	/**< @brief Number of ranks to be used as servers for analysis. original value given at command line.  */
-  const char *N_servers_help; /**< @brief Number of ranks to be used as servers for analysis. help description.  */
+  int* server_ranks_arg;	/**< @brief List of numbers to determine which ranks (by numbering in MPI_COMM_WORLD) are to be used as servers. Default: There is one server and it is on world-rank 0.  */
+  char ** server_ranks_orig;	/**< @brief List of numbers to determine which ranks (by numbering in MPI_COMM_WORLD) are to be used as servers. Default: There is one server and it is on world-rank 0 original value given at command line.  */
+  unsigned int server_ranks_min; /**< @brief List of numbers to determine which ranks (by numbering in MPI_COMM_WORLD) are to be used as servers. Default: There is one server and it is on world-rank 0's minimum occurreces */
+  unsigned int server_ranks_max; /**< @brief List of numbers to determine which ranks (by numbering in MPI_COMM_WORLD) are to be used as servers. Default: There is one server and it is on world-rank 0's maximum occurreces */
+  const char *server_ranks_help; /**< @brief List of numbers to determine which ranks (by numbering in MPI_COMM_WORLD) are to be used as servers. Default: There is one server and it is on world-rank 0 help description.  */
   int domain_buffer_arg;	/**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. (default='10').  */
   char * domain_buffer_orig;	/**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. original value given at command line.  */
   const char *domain_buffer_help; /**< @brief Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation. help description.  */
@@ -147,7 +149,7 @@ struct som_args
   unsigned int accepted_load_inbalance_given ;	/**< @brief Whether accepted-load-inbalance was given.  */
   unsigned int autotuner_restart_period_given ;	/**< @brief Whether autotuner-restart-period was given.  */
   unsigned int N_domains_given ;	/**< @brief Whether N-domains was given.  */
-  unsigned int N_servers_given ;	/**< @brief Whether N-servers was given.  */
+  unsigned int server_ranks_given ;	/**< @brief Whether server-ranks was given.  */
   unsigned int domain_buffer_given ;	/**< @brief Whether domain-buffer was given.  */
   unsigned int rcm_update_given ;	/**< @brief Whether rcm-update was given.  */
   unsigned int user_given ;	/**< @brief Whether user was given.  */
