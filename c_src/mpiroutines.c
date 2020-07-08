@@ -188,9 +188,6 @@ int finalize_MPI(struct Info_MPI *mpi)
 {
 #if ( ENABLE_MPI == 1 )
 
-    int size, rank;
-    MPI_Comm_size(mpi->SOMA_comm_world, &size);
-    MPI_Comm_rank(mpi->SOMA_comm_world, &rank);
     if (mpi->SOMA_comm_world != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
     if (mpi->SOMA_comm_domain != MPI_COMM_NULL)

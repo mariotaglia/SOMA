@@ -438,12 +438,14 @@ int receive_from_sim_ranks(const struct server_info * si, const Ana_Info * ai, s
             free(dspls);
         }
 
-    //MPI_Waitall(req_num, reqs, MPI_STATUSES_IGNORE);
+    MPI_Waitall(req_num, reqs, MPI_STATUSES_IGNORE);
+    /*
     for (int i=0; i< req_num; i++)
         {
             int fin;
             MPI_Waitany(req_num, reqs, &fin, MPI_STATUS_IGNORE);
         }
+    */
     free(reqs);
     free(pol_sz); // freeing null-pointers is a no-op.
 

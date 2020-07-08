@@ -3,7 +3,7 @@
 
 
 bool need_to_do(unsigned int obs_delta, unsigned int time){
-    return (obs_delta != 0 && time % obs_delta != 0);
+    return (obs_delta != 0 && time % obs_delta == 0);
 }
 
 bool no_observables(const Ana_Info * ai, unsigned int t){

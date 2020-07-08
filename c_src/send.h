@@ -68,6 +68,8 @@ enum send_requests{
     omega_req = 5
 };
 
+// also finishes all open requests (and ofc frees memory)
+void free_sender(struct sender * snd);
 
 //! initializes the sender so that send_to_server can be called on it
 //! \param snd sender object to be initialized that you are the owner of

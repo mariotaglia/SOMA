@@ -46,6 +46,7 @@
 #include "phase.h"
 #include "err_handling.h"
 #include "send.h"
+#include "ana_server.h"
 
 //! Main Function of the Executable SOMA
 //! \private
@@ -135,6 +136,7 @@ int main(int argc, char *argv[])
                     // receive, but for now, don't do anything
                     receive_from_sim_ranks(serv_inf, &ai,
                         &rcv, t, &args, &gc);
+                    //analytics_server(&gc, &ai, serv_inf, &rcv, t);
                     if (need_walltime_stop(args.no_sync_signal_flag, t))
                         break;
                 }
@@ -266,6 +268,7 @@ int main(int argc, char *argv[])
                             break;
                         }
                 }
+            free_sender(&snd);
 
 
 
@@ -296,7 +299,6 @@ int main(int argc, char *argv[])
             printf("Rank: %d \t polymers %ld\n", p->info_MPI.world_rank, p->n_polymers);
 
             finalize_MPI(&(p->info_MPI));
-
         }
 
     free_global_consts(&gc);

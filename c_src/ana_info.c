@@ -836,7 +836,8 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
             status = H5Pclose(plist_id);
             HDF5_ERROR_CHECK2(status, "failed to close property list");
 
-            ana_info->file_id = file_id_tmp;
+            ana_info->file_id = file_id;
+            assert(ana_info->file_id != -1);
         }
 
 #pragma acc update device(ana_info)

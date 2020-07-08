@@ -9,7 +9,21 @@
 #include "memory.h"
 #include "err_handling.h"
 
-//todo: write a free_sender, too
+void free_sender(struct sender * snd)
+{
+    MPI_Waitall(snd->req_num, snd->reqs, MPI_STATUSES_IGNORE);
+    free(snd->reqs);
+    free(snd->poly_buffer);
+    for (int type = 0; type < snd->n_types; type++)
+        {
+            free(snd->fields[type]);
+            free(snd->omega_fields[type]);
+        }
+    free(snd->fields);
+    free(snd->omega_fields);
+    free(snd->mv_acc);
+
+}
 int init_sender (struct sender *snd, const struct sim_rank_info *sim_inf, const struct Phase * p)
 {
 
@@ -48,9 +62,6 @@ int init_sender (struct sender *snd, const struct sim_rank_info *sim_inf, const 
     uint64_t x_max = p->local_nx_high - p->args.domain_buffer_arg - 1;
     uint64_t min_cell = cell_coordinate_to_index(p, x_min, 0, 0);
     uint64_t max_cell = cell_coordinate_to_index(p, x_max, p->ny - 1, p->nz - 1);
-    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
-    assert(p->fields_unified + ghost_buffer_size == p->fields_unified + min_cell);
-    assert(p->fields_unified + p->n_cells_local - ghost_buffer_size - 1 == p->fields_unified + max_cell);
     uint64_t n_cells_to_send = max_cell - min_cell + 1;
 
     // consistency checks on field sending index calculations
@@ -128,7 +139,7 @@ int send_to_server (struct Phase *p, const struct sim_rank_info *sim_inf, struct
             MPI_Request * open_reqs = malloc(snd->req_num * sizeof(MPI_Request));
             int num_open;
             get_open_reqs(snd, open_reqs, &num_open);
-            assert(num_open > 0);
+            assert(num_open > 0);// if this was 0, all_requests_finished would be lying
 
             MPI_Waitall(num_open, open_reqs, MPI_STATUSES_IGNORE);
             for (int r=0; r < snd->req_num; r++)

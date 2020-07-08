@@ -314,8 +314,7 @@ void test_field_sending_consistency(const struct Phase *p, const struct sim_rank
         {
             assert(sim_inf->domain_comm.rank == 0);
             n_cells_sending = field_size;
-
-            //todo: left und right-neighbor anpassen an neue domain-decomposition (mit servern dazwischen)
+            /*
             const int left_rank =
                 (((sim_inf->my_domain - 1) +
                   p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
@@ -325,6 +324,7 @@ void test_field_sending_consistency(const struct Phase *p, const struct sim_rank
                   p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
                 p->info_MPI.domain_rank;
             DPRINT("right_rank %d //// left_rank %d. my simrank %d", right_rank, left_rank, sim_inf->sim_comm.rank);
+             */
         }
     else
         {

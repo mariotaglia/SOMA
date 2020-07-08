@@ -23,7 +23,7 @@ set(soma_source
   soma_util.c
   walltime.c
   test.c
-        server.c server.h send.c send.h serv_util.c serv_util.h err_handling.h)
+        server.c server.h send.c send.h serv_util.c serv_util.h err_handling.h ana_server.c ana_server.h)
 
 configure_file(soma_config.h.in soma_config.h)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/soma_config.h DESTINATION include)
