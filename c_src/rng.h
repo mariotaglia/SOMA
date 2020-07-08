@@ -179,14 +179,14 @@ int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const sta
 
 //! Deserialize an RNG_STATE from a raw memory buffer.
 //!
-//! \param p System.
+//! \param rng enum that describes which random number generator is used by the simulation.
 //! \param state State to initialize by memory buffer.
 //! \param buffer Initialized memory buffer to read.
 //! \pre You are owner of \a state. And there is no deep
 //! copy data allocated. Otherwise, you create memory leaks.
 //! \post You are owner of the state including deep copy data, because deep copy data is allocated.
 //! \return Number of written bytes. If < 0 Errorcode.
-int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, const unsigned char *const buffer);
+int deserialize_rng_state(enum enum_pseudo_random_number_generator rng, RNG_STATE * const state, const unsigned char *const buffer);
 
 //! Function to initialize an RNG_STATE
 //!

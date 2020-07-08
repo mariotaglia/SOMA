@@ -49,7 +49,7 @@ if (ptr == NULL)\
 }
 #endif
 
-// works like printf (format string + arguments of any type to print,
+// works like printf (format string + arguments of any type to print),
 // but flushes the output and adds additional information to the output:
 // rank, line, file, function name
 #define DPRINT(...) {int rank;\

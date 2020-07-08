@@ -73,6 +73,7 @@ struct global_consts{
     uint32_t *poly_arch;
     soma_scalar_t * cm_a;
     soma_scalar_t harmonic_normb_variable_scale;
+    enum enum_pseudo_random_number_generator rng;
 };
 
 void free_global_consts(struct global_consts * gc);

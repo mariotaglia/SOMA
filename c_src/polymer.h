@@ -21,6 +21,8 @@
 #include "rng.h"
 #include "monomer.h"
 
+struct global_consts;
+
 //! \file polymer.h
 //! \brief Code related to the Polymer structures
 
@@ -122,6 +124,15 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
 //! \return Number of written bytes. If < 0 Errorcode.
 int serialize_polymer(const struct Phase *const p, const Polymer * const poly, unsigned char *const buffer);
 
+//! deserializes a polymer *partly*. set_states and set_permutation is set to NULL as the server doesn't use them
+//! otherwise works like deserialize_polymer without needing a phase
+//! \param poly (out) Polymer that you are the owner of that has no deep copy data allocated
+//! \param buffer (in) Memory buffer with the serialized polymer
+//! \param gc global constants of the system
+//! \param rng type of rng that the simulation uses (needed for deserializing the rng-state)
+//! \return Number of read bytes
+int deserialize_poly_server(Polymer * const poly, const unsigned char * const buffer, const struct global_consts *gc, enum enum_pseudo_random_number_generator rng);
+
 //! Deserialize an Polymer from a raw memory buffer.
 //!
 //! \param p System.
@@ -131,7 +142,7 @@ int serialize_polymer(const struct Phase *const p, const Polymer * const poly, u
 //! copy data allocated. Otherwise, you create memory leaks
 //! , because deep copy data is allocated.
 //! \post You are owner of the Polymer including deep copy data.
-//! \return Number of written bytes. If < 0 Errorcode.
+//! \return Number of bytes read. If < 0 Errorcode.
 int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const unsigned char *const buffer);
 
 //! Update the Self Memory of a given polymer

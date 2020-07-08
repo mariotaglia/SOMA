@@ -21,8 +21,6 @@ bool no_observables(const Ana_Info * ai, unsigned int t){
         return false;
     if (need_to_do(ai->delta_mc_MSD, t))
         return false;
-    if (need_to_do(ai->delta_mc_dump, t))
-        return false;
     if (need_to_do(ai->delta_mc_density_var, t))
         return false;
     if (need_to_do(ai->delta_mc_non_bonded_energy, t))
@@ -39,6 +37,7 @@ bool no_observables(const Ana_Info * ai, unsigned int t){
     return true;
 
 }
+
 
 bool has_poly_obs(const Ana_Info * ai, unsigned int t)
 {

@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "io.h"
 #include "mc.h"
 #include "mesh.h"
@@ -44,6 +45,7 @@
 #include "server.h"
 #include "phase.h"
 #include "err_handling.h"
+#include "send.h"
 
 //! Main Function of the Executable SOMA
 //! \private
@@ -59,10 +61,13 @@ int main(int argc, char *argv[])
             return -1;
         }
 
+    MPI_Comm world_copy;
+    int err = MPI_Comm_dup(MPI_COMM_WORLD, &world_copy);
+    MPI_ERROR_CHECK(err, "failed to duplicate world");
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    struct som_args args;
+   struct som_args args;
     const int args_success = cmdline_parser(argc, argv, &args);
     if (args_success < 0)
         {
@@ -108,23 +113,35 @@ int main(int argc, char *argv[])
             receive_field_scaling_type(field_scaling_type, gc.n_types, serv_inf);
 
             Ana_Info ai;
+
             unsigned int * end_mono;
 
             init_ana(&ai, &end_mono, &gc, field_scaling_type,
                 args.ana_file_arg, args.coord_file_arg,
                 serv_inf->server_comm.comm);
 
-            //early exit for testing
-            {
-                printf("worldrank %d (server) reached end of initialization\n", world_rank);
-                MPI_Finalize();
-                return 0;
-            }
 
-            MPI_Finalize();
             free(field_scaling_type);
+
+            struct receiver rcv;
+            init_receiver(&rcv, &ai, serv_inf, &gc, &args);
+
+            assert(args.timesteps_arg > 0);
+            unsigned int n_steps = args.timesteps_arg;
+
+            // main loop
+            for (unsigned int t=0; t < n_steps; t++)
+                {
+                    // receive, but for now, don't do anything
+                    receive_from_sim_ranks(serv_inf, &ai,
+                        &rcv, t, &args, &gc);
+                    if (need_walltime_stop(args.no_sync_signal_flag, t))
+                        break;
+                }
+
+
             free(end_mono);
-            free(&args);
+            MPI_Finalize();
         }
     else
         {
@@ -134,7 +151,8 @@ int main(int argc, char *argv[])
             Phase *const p = &phase;
             p->args = args;
 
-            p->info_MPI.SOMA_comm_world = MPI_COMM_WORLD;
+            p->info_MPI.SOMA_comm_world = world_copy;
+
             {
                 int tmp;
                 MPI_Comm_rank (p->info_MPI.SOMA_comm_world, &tmp);
@@ -212,18 +230,16 @@ int main(int argc, char *argv[])
                     MPI_ERROR_CHECK(chains_domain, "Chains in domain test failed");
                 }
 
-            // early exit for testing
-            {
-                printf("Worldrank %d (simrank) reached the main loop\n", world_rank);
-                MPI_Finalize();
-                return 0;
-            }
-
+            struct sender snd;
+            init_sender(&snd, sim_inf, p);
 
             int stop_iteration = false;
             for (unsigned int i = 0; i < N_steps; i++)
                 {
-                    analytics(p);
+                    assert(i == p->time); // timestep of loop should match timestep of phase
+                    //analytics(p);
+                    send_to_server (p, sim_inf, &snd);
+
                     const int mc_error = monte_carlo_propagation(p, 1);
                     if (mc_error != 0)
                         {
@@ -232,7 +248,7 @@ int main(int argc, char *argv[])
                             exit(mc_error);
                         }
                     screen_output(p, N_steps);
-#if ( ENABLE_MPI == 1 )
+
                     if (p->args.load_balance_arg > 0
                         && i % p->args.load_balance_arg == (unsigned int)p->args.load_balance_arg - 1)
                         load_balance_mpi_ranks(p);
@@ -243,22 +259,10 @@ int main(int argc, char *argv[])
                             if (missed_chains != 0)
                                 exit(missed_chains);
                         }
-#endif                          //ENABLE_MPI
 
-                    stop_iteration = check_walltime_stop();
-#if ( ENABLE_MPI == 1 )
-                    if (!p->args.no_sync_signal_flag)
+                    if (need_walltime_stop(args.no_sync_signal_flag, i))
                         {
-                            //Sync all mpi cores
-                            MPI_Allreduce(MPI_IN_PLACE, &stop_iteration, 1, MPI_INT, MPI_SUM, p->info_MPI.SOMA_comm_world);
-                        }
-#endif                          //ENABLE_MPI
-
-                    if (stop_iteration)
-                        {
-                            if (p->info_MPI.world_rank == 0)
-                                fprintf(stdout, "Environment to stop iteration at time %d catched by rank %d.\n", p->time,
-                                        p->info_MPI.world_rank);
+                            stop_iteration = true;
                             break;
                         }
                 }

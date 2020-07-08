@@ -64,7 +64,7 @@ struct role_info
 };
 
 /*!
- * contains informationn specific to a server.
+ * contains information specific to a server.
  * This has the communicators (and satellite information: size and rank)
  * on which the server expects fields and polymers, also a communicator with all the other servers
  */
@@ -72,6 +72,7 @@ struct server_info
 {
     struct comm_with_info server_comm;
     struct comm_with_info field_comm;
+    struct comm_with_info omega_field_comm;
     struct comm_with_info poly_comm;
 };
 
@@ -81,9 +82,33 @@ struct sim_rank_info
     struct comm_with_info domain_comm;
     struct comm_with_info poly_comm;
     struct comm_with_info field_comm;
+    struct comm_with_info omega_field_comm;
 
     int n_domains;
     int my_domain;
+};
+
+struct receiver
+{
+    /*! contains the moves and accepts of the simulation ranks since the last time acc_ratio was calculated
+     * access: even indices for moves, uneven for accepts, size is the number of polymer-senders of this server times 2.
+     */
+    uint64_t *mv_acc;
+
+    uint64_t poly_size;
+    unsigned char * poly_buffer;
+
+    Polymer * polymers; //! (deserialized) polymer array
+    uint64_t n_polymers; //! size of polymer array / number of polymers on this server
+
+    unsigned int n_types; //! number of monomer types in the system (copied from global constants for convenience)
+    size_t field_size; //! size of one field for one monomer-type
+    uint16_t ** field; //! field[i] is the density field for monomer type i with size field_size
+    uint16_t ** omega_field;//! omega_field[i] is the omega-field for monomer type i with size field_size.
+    int * fields_recvcount; //! fields_recvcount[i] says how many elements are expected from field rank i (input for Igatherv of fields)
+    int * fields_dspls; //! fields_dspls[i] says where to put data from rank i (input for Igatherv of fields)
+
+
 };
 
 void free_role_info(struct role_info * ri);
@@ -110,4 +135,25 @@ bool is_server(unsigned int n_servers, int world_rank, const int * server_ranks)
 //! \param si mpi information about the server
 //! \return MPI_SUCCESS or error (if mpi is set to return errors)
 int receive_field_scaling_type(soma_scalar_t * field_scaling_type, unsigned int n_types, const struct server_info * si);
+
+//! receive the data from the simulation ranks
+//! The new polymers and fields will be found in the receiver
+//! \param si MPI information about this server
+//! \param ai information about what to analyze in what timestep
+//! \param rcv (out) the receiver-object of this server, which will carry the field-information
+//! \param time the current timestep for which data is being requested
+//! \param args command-line-arguments of the simulation
+//! \param gc global constants of the simulation
+//! \return 0 for success, otherwise error.
+int receive_from_sim_ranks(const struct server_info * si, const Ana_Info * ai, struct receiver * rcv, unsigned int time, const struct som_args * args, const struct global_consts * gc);
+
+
+//! initialize the receiver object for use in receive_from_simranks
+//! \param rcv receiver to be initialized
+//! \param ai information about the analysis of the simulation
+//! \param si MPI-information about this server-rank
+//! \param gc global constants of the simulation
+//! \param args command-line-arguments of the simulation
+//! \return 0 for success, otherwise failure
+int init_receiver(struct receiver* rcv, const Ana_Info * ai, const struct server_info * si, const struct global_consts * gc, const struct som_args *args);
 #endif //_SERVER_H_

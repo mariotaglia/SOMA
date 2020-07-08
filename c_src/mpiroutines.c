@@ -25,9 +25,7 @@
 //! \brief Implementation of mpiroutines.h
 
 #include"mpiroutines.h"
-#if ( ENABLE_MPI == 1 )
 #include<mpi.h>
-#endif                          //ENABLE_MPI
 #include<stdio.h>
 #include<stdlib.h>
 #include <string.h>
@@ -40,7 +38,7 @@
 #include "mesh.h"
 #include "polymer.h"
 #include "monomer.h"
-
+#include "err_handling.h"
 
 int init_MPI_convert_tool(struct Phase *p)
 {
@@ -139,7 +137,6 @@ int init_MPI(struct Phase *p, const struct sim_rank_info * sri)
 
     int status;
 
-    p->info_MPI.SOMA_comm_world = MPI_COMM_WORLD;
     status = MPI_Comm_rank(MPI_COMM_WORLD, &p->info_MPI.world_rank);
     MPI_ERROR_CHECK(status, "unexpected MPI error");
     status = MPI_Comm_size(MPI_COMM_WORLD, &p->info_MPI.world_size);
@@ -190,18 +187,23 @@ int init_MPI(struct Phase *p, const struct sim_rank_info * sri)
 int finalize_MPI(struct Info_MPI *mpi)
 {
 #if ( ENABLE_MPI == 1 )
+
+    int size, rank;
+    MPI_Comm_size(mpi->SOMA_comm_world, &size);
+    MPI_Comm_rank(mpi->SOMA_comm_world, &rank);
+    if (mpi->SOMA_comm_world != MPI_COMM_NULL)
+        MPI_Comm_free(&(mpi->SOMA_comm_world));
     if (mpi->SOMA_comm_domain != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_domain));
     if (mpi->SOMA_comm_sim != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_sim));
-    if (mpi->SOMA_comm_world != MPI_COMM_NULL)
-        MPI_Comm_free(&(mpi->SOMA_comm_world));
 
     return MPI_Finalize();
 #else
     return 0;
 #endif                          //ENABLE_MPI
 }
+
 
 int check_status_on_mpi(const struct Phase *const p, int my_status)
 {

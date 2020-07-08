@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <assert.h>
 #include "rng.h"
 #include "io.h"
 #include "init.h"
@@ -30,6 +31,10 @@
 #include "mc.h"
 #include "independent_sets.h"
 #include "server.h"
+#include "err_handling.h"
+
+//testing remove later
+#include <unistd.h>
 
 
 //todo: bring this test back to life by changing write_config_hdf5 to something current
@@ -289,27 +294,28 @@ int test_chains_in_domain(struct Phase *const p)
     return violations;
 }
 
-void test_field_sending_consistency(const struct Phase *p, struct sim_rank_info * sim_inf, uint64_t min_cell, uint64_t max_cell, uint64_t field_size)
+void test_field_sending_consistency(const struct Phase *p, const struct sim_rank_info *sim_inf, uint64_t min_cell, uint64_t max_cell, uint64_t field_size)
 {
+
+    //todo: improve this to get more certainty
 
     MESSAGE_ASSERT(field_size == max_cell - min_cell + 1, "field_size inconsistent with min and max cell");
 
-    uint64_t n_cells_sending, local_sum; // sending local info
-    uint64_t n_cells_sent_total=0, global_sum=0, max_cell_left, min_cell_right; //receiving global/nonlocal info
+
+    uint64_t n_cells_sending; // sending local info
+    uint64_t n_cells_sent_total=0; //receiving global/nonlocal info
 
     const int req_num = 6;
-    MPI_Request reqs[req_num];
+    MPI_Request reqs[6];
     for (int i=0; i<req_num; i++)
         reqs[i] = MPI_REQUEST_NULL;
 
     if (sim_inf->field_comm.comm != MPI_COMM_NULL)
         {
+            assert(sim_inf->domain_comm.rank == 0);
             n_cells_sending = field_size;
-            local_sum = 0;
-            for (uint64_t i=min_cell; i <= max_cell; i++)
-                {
-                    local_sum += i;
-                }
+
+            //todo: left und right-neighbor anpassen an neue domain-decomposition (mit servern dazwischen)
             const int left_rank =
                 (((sim_inf->my_domain - 1) +
                   p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
@@ -318,34 +324,36 @@ void test_field_sending_consistency(const struct Phase *p, struct sim_rank_info 
                 (((sim_inf->my_domain + 1) +
                   p->args.N_domains_arg) % p->args.N_domains_arg) * p->info_MPI.domain_size +
                 p->info_MPI.domain_rank;
-            MPI_Isend(&min_cell, 1, MPI_UINT64_T, left_rank, 0, sim_inf->sim_comm.comm, &reqs[2]);
-            MPI_Isend(&max_cell, 1, MPI_UINT64_T, right_rank, 0, sim_inf->sim_comm.comm, &reqs[3]);
-            MPI_Irecv(&min_cell_right, 1, MPI_UINT64_T, right_rank, 0, sim_inf->sim_comm.comm, &reqs[4]);
-            MPI_Irecv(&max_cell_left, 1, MPI_UINT64_T, left_rank, 0, sim_inf->sim_comm.comm, &reqs[5]);
+            DPRINT("right_rank %d //// left_rank %d. my simrank %d", right_rank, left_rank, sim_inf->sim_comm.rank);
         }
     else
         {
+            assert(sim_inf->domain_comm.rank != 0);
             n_cells_sending = 0;
-            local_sum = 0;
         }
     uint64_t n_cells_expected = p->nx*p->ny*p->nz;
     MPI_Ireduce(&n_cells_sending, &n_cells_sent_total, 1, MPI_UINT64_T, MPI_SUM, 0, sim_inf->sim_comm.comm, &reqs[0]);
-    MPI_Ireduce(&local_sum, &global_sum, 1, MPI_UINT64_T, MPI_SUM, 0, sim_inf->sim_comm.comm, &reqs[1]);
 
+    MPI_Waitall(6, reqs, MPI_STATUSES_IGNORE);
+/*
+    DPRINT("waiting for consistency check communication");
+
+    MPI_Barrier(sim_inf->sim_comm.comm);
+    if (sim_inf->sim_comm.size == 0)
+        {
+            sleep(5);
+        }
+    DPRINT("received consistency check communication");
+    DPRINT("CONSTANTS=========")
+    DPRINT("domain buffer arg: %d", p->args.domain_buffer_arg);
+    DPRINT("n_cells_expected %lu", n_cells_expected);
+    DPRINT("CONSTANTS END============")
+    MPI_Barrier(sim_inf->sim_comm.comm);
+*/
     if (sim_inf->sim_comm.rank == 0)
         {
-            MESSAGE_ASSERT(n_cells_sending == n_cells_expected, "Index calculation must be very wrong, not sending the correct amount of cells");
-            MESSAGE_ASSERT((n_cells_expected-1)*(n_cells_expected-2)/2 == local_sum, "Index calculation gives wrong checksum.");
-        }       MPI_Waitall(6, reqs, MPI_STATUSES_IGNORE);
+            MESSAGE_ASSERT(n_cells_sent_total == n_cells_expected, "Index calculation must be very wrong, not sending the correct amount of cells");
+        }
 
-    if (sim_inf->my_domain == 0)
-        MESSAGE_ASSERT(max_cell_left == n_cells_expected - 1, "Mising cells in domain on the very right");
-    else
-        MESSAGE_ASSERT(max_cell_left == min_cell -1, "Missing cells or overlap in domain decomp");
-
-    if (sim_inf->my_domain == p->args.N_domains_arg - 1)
-        MESSAGE_ASSERT(min_cell_right == 0, "Missing cells in domain on the very left");
-    else
-        MESSAGE_ASSERT(min_cell_right == max_cell + 1, "Missing cells or overlap in domain decomp");
 
 }

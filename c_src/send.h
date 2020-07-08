@@ -15,7 +15,7 @@
 struct sender{
 
     // total number of requests that can be made
-    // this is also the size of the reqs, req_is_open and sendbufs array
+    // this is also the size of the reqs array
     int req_num;
 
     // all created mpi-requests. reqs[i] == MPI_REQUEST_NULL iff request is completed or never made.
@@ -25,15 +25,16 @@ struct sender{
     // where type fulfills 0 <= type < p->n_types
     MPI_Request *reqs;
 
-    //true for open, false for completed or never started
-    bool *req_is_open;
 
     // the buffer for the serialized polymers and its size
     uint64_t poly_size;
     unsigned char * poly_buffer;
 
-    // size of the fields to be sent (number of cells, not bytes)
-    uint64_t field_size;
+    uint64_t n_polymers; //! the number of polymers being sent.
+    uint64_t n_polymers_recv_buf; //! only exists because Reductions need a receive buffer
+//! even in non-root-ranks. Never has a useful value.
+
+    uint64_t n_cells_to_send; //! size of the fields to be sent (number of cells, not bytes) per type
 
     // every element is a pointer to the buffer used for sending one field.
     // The size of the array at omega_fields[i] and fields[i] is field_size
@@ -54,15 +55,17 @@ struct sender{
 
 
 //! meant to index the request-array used by the sender
-//! reqs[size_req], reqs[poly_req], reqs[acc_rate_req] refer to size, polymer and acceptance rate requests
+//! reqs[size_req], reqs[number_req] reqs[poly_req], reqs[acc_rate_req]
+//! refer to size, number, polymer and acceptance rate requests
 //! reqs[field_req + 2*i] refers to the field-request of monomer type i
 //! reqs[omega_req + 2*i] refers to the omega_field_request of monomer type i
 enum send_requests{
     size_req = 0,
-    poly_req = 1,
-    acc_rate_req = 2,
-    field_req = 3,
-    omega_req = 4
+    number_req = 1,
+    poly_req = 2,
+    acc_rate_req = 3,
+    field_req = 4,
+    omega_req = 5
 };
 
 
@@ -70,7 +73,7 @@ enum send_requests{
 //! \param snd sender object to be initialized that you are the owner of
 //! \param p current configuration (to determine field sizes, number of monomer types etc)
 //! \return error code, 0 is for success
-int init_sender (struct sender *snd, struct sim_rank_info * sim_inf, const struct Phase * p);
+int init_sender (struct sender *snd, const struct sim_rank_info *sim_inf, const struct Phase * p);
 
 //! frees all buffers associated with the sender, it cant be used afterwards
 //! this also waits for all pending requests to complete.

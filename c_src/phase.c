@@ -144,7 +144,7 @@ int process_consts_into_phase(struct Phase * p, const struct global_consts * gc,
 
 int init_phase (struct Phase *const p, const struct sim_rank_info *sri, const struct global_consts *gc)
 {
-    print_version(p->info_MPI.world_rank);
+    print_version(p->info_MPI.sim_rank);
     p->present_on_device = false;
     p->start_time = p->time;
     p->start_clock = time(NULL);

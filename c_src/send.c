@@ -7,16 +7,22 @@
 #include "server.h"
 #include "test.h"
 #include "memory.h"
+#include "err_handling.h"
 
-int init_sender (struct sender *snd, struct sim_rank_info * sim_inf, const struct Phase * p)
+//todo: write a free_sender, too
+int init_sender (struct sender *snd, const struct sim_rank_info *sim_inf, const struct Phase * p)
 {
 
-    // requests are: size of polymer array, polymer array (serialized),
+    // requests are: size of polymer array, number of polymers, polymer array (serialized),
     // acceptance rate, and
     // 2 fields for each monomer type ( density field and omega field )
     // see enum send_requests
-    snd->req_num = 3 + 2*p->n_types;
+    snd->req_num = 4 + 2*p->n_types;
     snd->reqs = malloc(snd->req_num * sizeof(MPI_Request));
+    for (int i=0; i<snd->req_num; i++)
+        {
+            snd->reqs[i] = MPI_REQUEST_NULL;
+        }
     snd->n_types = p->n_types;
     snd->fields = malloc( snd->n_types * sizeof(uint16_t *));
     snd->omega_fields = malloc(snd->n_types * sizeof(uint16_t *));
@@ -42,24 +48,27 @@ int init_sender (struct sender *snd, struct sim_rank_info * sim_inf, const struc
     uint64_t x_max = p->local_nx_high - p->args.domain_buffer_arg - 1;
     uint64_t min_cell = cell_coordinate_to_index(p, x_min, 0, 0);
     uint64_t max_cell = cell_coordinate_to_index(p, x_max, p->ny - 1, p->nz - 1);
-    uint64_t field_size = max_cell - min_cell + 1;
+    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
+    assert(p->fields_unified + ghost_buffer_size == p->fields_unified + min_cell);
+    assert(p->fields_unified + p->n_cells_local - ghost_buffer_size - 1 == p->fields_unified + max_cell);
+    uint64_t n_cells_to_send = max_cell - min_cell + 1;
 
     // consistency checks on field sending index calculations
     if (!p->args.skip_tests_flag)
         {
             // aborts on failure
-            test_field_sending_consistency(p, sim_inf, min_cell, max_cell, field_size);
+            test_field_sending_consistency(p, sim_inf, min_cell, max_cell, n_cells_to_send);
         }
 
 
 
-    snd->field_size = field_size;
+    snd->n_cells_to_send = n_cells_to_send;
     snd->min_cell = min_cell;
 
     for (unsigned int r=0; r < p->n_types; r++)
         {
-            snd->fields[r] = malloc(field_size * sizeof(uint16_t));
-            snd->omega_fields[r] = malloc(field_size * sizeof(uint16_t));
+            snd->fields[r] = malloc(n_cells_to_send * sizeof(uint16_t));
+            snd->omega_fields[r] = malloc(n_cells_to_send * sizeof(uint16_t));
             if (snd->fields[r] == NULL || snd->omega_fields == NULL)
                 {
                     fprintf(stderr, "Malloc error in function %s line %d of file %s\n",
@@ -87,6 +96,13 @@ void get_open_reqs(struct sender *snd, MPI_Request *open_reqs, int *num_open){
 int send_to_server (struct Phase *p, const struct sim_rank_info *sim_inf, struct sender *snd)
 {
 
+    /* note for future maintainers: The order in which non-blocking collectives
+     * are posted must be the same in all ranks for MPI to match the data to the right request.
+     * The simrank-server communication relies on that fact!
+     * If you modify anything here, change receive_from_sim_ranks (server.c) accordingly.
+     * see also: https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node126.htm
+     */
+
     // on every timestep, test if requests finished
     int err, all_requests_finished;
     err = MPI_Testall(snd->req_num, snd->reqs, &all_requests_finished,
@@ -109,7 +125,7 @@ int send_to_server (struct Phase *p, const struct sim_rank_info *sim_inf, struct
             // this is necessary for correctness but should not be called when SOMA is used with typical data
             // todo: find a good way to log this bad event
 
-            MPI_Request open_reqs[snd->req_num];
+            MPI_Request * open_reqs = malloc(snd->req_num * sizeof(MPI_Request));
             int num_open;
             get_open_reqs(snd, open_reqs, &num_open);
             assert(num_open > 0);
@@ -119,51 +135,53 @@ int send_to_server (struct Phase *p, const struct sim_rank_info *sim_inf, struct
                 {
                     snd->reqs[r] = MPI_REQUEST_NULL;
                 }
+            free(open_reqs);
         }
-    // todo: for all data, find for which observables it is needed, and send it only then
-    // This is in some cases necessary not just for performance, but for correctness, as
-    // dvar and acc_ratio react to the configuration of the last time they were calculated
+
 
     if (has_poly_obs(&p->ana_info, p->time))
         {
             // serialize polymers
-            size_t sz;
-            err = ser_all_poly(p, &(snd->poly_buffer), &(snd->poly_size));
+            err = ser_all_poly (p, &(snd->poly_buffer), &(snd->poly_size));
             if (err)
                 {
-                    fprintf(stderr, "serializing polymers failed with"
-                                    " error code %d "
-                                    "(function %s, line %d, file %s)\n",
-                            err, __func__, __LINE__, __FILE__);
+                    fprintf (stderr, "serializing polymers failed with"
+                                     " error code %d "
+                                     "(function %s, line %d, file %s)\n",
+                             err, __func__, __LINE__, __FILE__);
                     return -1;
                 }
 
 
             // tell server about size of polymer-array
             // todo: this step can be avoided many times when using the load-balancer-interval
-            MPI_Igather(&sz, 1, MPI_INT,
-                        NULL, 0, MPI_INT,
-                        0, sim_inf->poly_comm.comm, &snd->reqs[size_req]);
+            MPI_Igather (&snd->poly_size, 1, MPI_INT,
+                         NULL, 0, MPI_INT,
+                         0, sim_inf->poly_comm.comm, &snd->reqs[size_req]);
 
-            // give server the polymers
-            MPI_Igatherv(&snd->poly_buffer, sz, MPI_BYTE,
-                         NULL, NULL, NULL, MPI_INT,
-                         0, sim_inf->poly_comm.comm, &snd->reqs[poly_req]);
+            // tell server about the number of polymers to be sent
+            snd->n_polymers = p->n_polymers;
+            MPI_Ireduce (&snd->n_polymers, &snd->n_polymers_recv_buf,
+                         1, MPI_UINT64_T, MPI_SUM, 0, sim_inf->poly_comm.comm,
+                         &snd->reqs[number_req]);
+
+
         }
+
+    // send fields
 
     if (has_field_obs(&p->ana_info, p->time))
         {
             // send the density fields (not omega)
-            MPI_Comm fields_comm = sim_inf->field_comm.comm;
-            if (fields_comm != MPI_COMM_NULL)
+            if (sim_inf->field_comm.comm != MPI_COMM_NULL)
                 {
-                    for (unsigned int type=0; type < p->n_poly_type; type++)
+                    for (unsigned int type=0; type < p->n_types; type++)
                         {
                             const uint64_t index = snd->min_cell + type * p->n_cells_local;
-                            memcpy(snd->fields[type], &(p->fields_unified[index]), snd->field_size);
-                            MPI_Igatherv(snd->fields[type], snd->field_size, MPI_UINT16_T,
+                            memcpy(snd->fields[type], &(p->fields_unified[index]), snd->n_cells_to_send);
+                            MPI_Igatherv(snd->fields[type], snd->n_cells_to_send, MPI_UINT16_T,
                                          NULL, NULL, NULL, MPI_INT,
-                                         0, fields_comm, &(snd->reqs[field_req + 2*type]));
+                                         0, sim_inf->field_comm.comm, &(snd->reqs[field_req + 2*type]));
                         }
                 }
         }
@@ -171,23 +189,22 @@ int send_to_server (struct Phase *p, const struct sim_rank_info *sim_inf, struct
     if (has_omega_field_obs(&p->ana_info, p->time))
         {
             // send the fields
-            MPI_Comm fields_comm = sim_inf->field_comm.comm;
-            if (fields_comm != MPI_COMM_NULL)
+            if (sim_inf->omega_field_comm.comm != MPI_COMM_NULL)
                 {
-                    for (unsigned int type=0; type < p->n_poly_type; type++)
+                    for (unsigned int type=0; type < p->n_types; type++)
                         {
                             const uint64_t index = snd->min_cell + type * p->n_cells_local;
-                            memcpy(snd->omega_fields[type], &(p->omega_field_unified[index]), snd->field_size);
-                            MPI_Igatherv(snd->fields[type], snd->field_size, MPI_UINT16_T,
+                            memcpy(snd->omega_fields[type], &(p->omega_field_unified[index]), snd->n_cells_to_send);
+                            MPI_Igatherv(snd->fields[type], snd->n_cells_to_send, MPI_UINT16_T,
                                          NULL, NULL, NULL, MPI_INT,
-                                         0, fields_comm, &(snd->reqs[omega_req + 2*type]));
+                                         0, sim_inf->omega_field_comm.comm,  &(snd->reqs[omega_req + 2*type]));
                         }
                 }
         }
+
     if (need_to_do(p->ana_info.delta_mc_acc_ratio, p->time))
         {
             // send moves and accepts
-            // todo: reset moves and accepts to zero
             snd->mv_acc[0] = p->n_moves;
             snd->mv_acc[1] = p->n_accepts;
             MPI_Igather(snd->mv_acc, 2, MPI_UINT64_T,
@@ -198,6 +215,12 @@ int send_to_server (struct Phase *p, const struct sim_rank_info *sim_inf, struct
             p->n_accepts = 0;
         }
 
+    if (has_poly_obs(&p->ana_info, p->time))
+        {
+            // give server the polymers
+            MPI_Igatherv (snd->poly_buffer, snd->poly_size, MPI_UNSIGNED_CHAR, NULL, NULL, NULL, MPI_UNSIGNED_CHAR, 0, sim_inf->poly_comm.comm, &snd->reqs[poly_req]);
+
+        }
 
     return 0;
 }

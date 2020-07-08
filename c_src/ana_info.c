@@ -27,6 +27,7 @@
 #include <assert.h>
 #include "soma_config.h"
 #include "phase.h"
+#include "err_handling.h"
 
 //! \def SOMA_NUM_OBS
 //! \brief Number of known observables to SOMA.
@@ -56,6 +57,8 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
     ana_info->file_id = -1;
     ana_info->q_dynamical = NULL;
     ana_info->q_static = NULL;
+
+    *end_mono = NULL;
     //Copy no ana conf as backup to device.
 #pragma acc update device(ana_info)
 
@@ -544,7 +547,6 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
             ana_info->delta_mc_umbrella_field = tmd_delta_mc_string;
         }
 
-    *end_mono = NULL;
     if (ana_info->delta_mc_Re > 0)
         {
             const unsigned int tmp = ana_info->delta_mc_Re;
@@ -556,6 +558,7 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
                     return -1;
                 }
 
+
             hid_t dataset = H5Dopen2(ana_info->file_id, "/Re", H5P_DEFAULT);
             status = dataset;
             HDF5_ERROR_CHECK(status);
@@ -564,6 +567,7 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
             if (end_mono_exists > 0)
                 {               //end_mono attr exists
                     hid_t end_mono_attr = H5Aopen_by_name(dataset, "/Re", "end_mono", H5P_DEFAULT, H5P_DEFAULT);
+                    HDF5_ERROR_CHECK2(end_mono_attr, "could not open end_mono_attr");
 
                     hid_t d_space = H5Aget_space(end_mono_attr);
                     HDF5_ERROR_CHECK(d_space);
@@ -594,15 +598,15 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
 
                     status = H5Aclose(end_mono_attr);
                     HDF5_ERROR_CHECK(status);
-                    //Sanatize the input values for end_mono
+                    //Sanitize the input values for end_mono
                     for (unsigned int poly_type = 0; poly_type < gc->n_poly_type; poly_type++)
                         {
                             const unsigned int N = gc->poly_arch[gc->poly_type_offset[poly_type]];
-                            if (*end_mono[poly_type * 2 + 0] >= N || *end_mono[poly_type * 2 + 1] >= N)
+                            if ( (*end_mono)[poly_type * 2 + 0] >= N || (*end_mono)[poly_type * 2 + 1] >= N)
                                 {
-                                    fprintf(stderr, "ERROR: %s:%d EndMono contains invalid configuration. %d %d %d",
-                                            __FILE__, __LINE__, *end_mono[poly_type * 2 + 0],
-                                            *end_mono[poly_type * 2 + 1], N);
+                                    fprintf(stderr, "ERROR: %s:%d EndMono contains invalid configuration. %d %d %d\n",
+                                            __FILE__, __LINE__, (*end_mono)[poly_type * 2 + 0],
+                                            (*end_mono)[poly_type * 2 + 1], N);
                                     return -3;
                                 }
                         }
@@ -615,8 +619,10 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
             status = H5Dclose(dataset);
             HDF5_ERROR_CHECK(status);
 
+
             ana_info->delta_mc_Re = tmp;
         }
+
 
     if (ana_info->delta_mc_non_bonded_energy > 0)
         {                       //Sanitize input
@@ -645,7 +651,6 @@ int init_ana(Ana_Info * ana_info, unsigned int ** end_mono, const struct global_
 
             ana_info->delta_mc_non_bonded_energy = tmp;
         }
-
     if (ana_info->delta_mc_bonded_energy > 0)
         {                       //Sanitize input
             const unsigned int tmp = ana_info->delta_mc_bonded_energy;

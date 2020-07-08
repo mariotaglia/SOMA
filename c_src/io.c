@@ -400,9 +400,10 @@ int write_area51_hdf5(const struct Phase *const p, const hid_t file_id, const hi
     const hsize_t offset[3] = { my_domain * (p->nx / p->args.N_domains_arg), 0, 0 };
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
-#if ( ENABLE_MPI == 1 )
-    MPI_Barrier(p->info_MPI.SOMA_comm_world);
-#endif                          //ENABLE_MPI
+    // I changed this barrier from comm_world to comm_sim so it doesn't wait for the server which will never call this function.
+    // but what is this barrier good for anyways?
+    MPI_Barrier(p->info_MPI.SOMA_comm_sim);
+
     int status;
     if ((status =
          H5Dwrite(dataset, H5T_NATIVE_UINT8, memspace, dataspace, plist_id, p->area51 + ghost_buffer_size)) < 0)
@@ -1060,7 +1061,7 @@ int read_consts_from_config(struct global_consts * gc, const char *filename)
         plist_id, &gc->n_types);
     HDF5_ERROR_CHECK2(status, name);
 
-    gc->xn = (soma_scalar_t * const)malloc(gc->n_types * gc->n_types * sizeof(soma_scalar_t));
+    gc->xn = (soma_scalar_t *)malloc(gc->n_types * gc->n_types * sizeof(soma_scalar_t));
     if (gc->xn == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -1072,7 +1073,7 @@ int read_consts_from_config(struct global_consts * gc, const char *filename)
     HDF5_ERROR_CHECK2(status, name);
 
     //A array for the diffusivity of the particles
-    gc->A = (soma_scalar_t * const)malloc(gc->n_types * sizeof(soma_scalar_t));
+    gc->A = (soma_scalar_t *)malloc(gc->n_types * sizeof(soma_scalar_t));
     if (gc->A == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -1098,7 +1099,7 @@ int read_consts_from_config(struct global_consts * gc, const char *filename)
         }
 
 
-    gc->k_umbrella = (soma_scalar_t * const)calloc(gc->n_types , sizeof(soma_scalar_t)); // Default 0
+    gc->k_umbrella = (soma_scalar_t *)calloc(gc->n_types , sizeof(soma_scalar_t)); // Default 0
     if (gc->k_umbrella == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);

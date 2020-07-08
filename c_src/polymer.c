@@ -27,6 +27,7 @@
 #include <openacc.h>
 #endif                          //_OPENACC
 #include "phase.h"
+#include "err_handling.h"
 
 int free_polymer(const struct Phase *const p, Polymer * const poly)
 {
@@ -298,6 +299,55 @@ int serialize_polymer(const struct Phase *const p, const Polymer * const poly, u
     return position;
 }
 
+int deserialize_poly_server(Polymer * const poly, const unsigned char * const buffer, const struct global_consts *gc, enum enum_pseudo_random_number_generator rng)
+{
+   unsigned int position = 0;
+   //Buffer length
+   unsigned int length_tmp;
+   memcpy(&length_tmp, buffer + position, sizeof(unsigned int));
+   position += sizeof(unsigned int);
+   const unsigned int length = length_tmp;
+   if (length < sizeof(unsigned int))
+        {
+            int world_rank;
+            int status = MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+            MPI_ERROR_CHECK(status, "failed to get world rank");
+            fprintf(stderr, "ERROR: %s:%s:%d  invalid buffer received on world-rank %d, buffer has length %u \n",
+                    __func__, __FILE__, __LINE__, world_rank, length);
+            return -1;
+        }
+    //Type data
+    memcpy(&(poly->type), buffer + position, sizeof(unsigned int));
+    position += sizeof(unsigned int);
+    assert(poly->type < gc->n_poly_type);
+    const unsigned int N = gc->poly_arch[gc->poly_type_offset[poly->type]];
+
+    //RCM
+    memcpy(&(poly->rcm), buffer + position, sizeof(Monomer));
+    position += sizeof(Monomer);
+
+    //Beads data
+    poly->beads = (Monomer *) malloc(N * sizeof(Monomer));
+    MALLOC_ERROR_CHECK(poly->beads, N * sizeof(Monomer));
+
+    memcpy(poly->beads, buffer + position, N * sizeof(Monomer));
+    position += N * sizeof(Monomer);
+
+    //MSD data
+    poly->msd_beads = (Monomer *) malloc(N * sizeof(Monomer));
+    MALLOC_ERROR_CHECK(poly->msd_beads, N * sizeof(Monomer));
+
+    memcpy(poly->msd_beads, buffer + position, N * sizeof(Monomer));
+
+    poly->set_states = NULL;
+    poly->set_permutation = NULL;
+    // Poly state
+
+    deserialize_rng_state(rng, &(poly->poly_state), buffer + position);;
+
+    return length;
+}
+
 int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const unsigned char *const buffer)
 {
     unsigned int position = 0;
@@ -317,6 +367,7 @@ int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const
     //Type data
     memcpy(&(poly->type), buffer + position, sizeof(unsigned int));
     position += sizeof(unsigned int);
+    assert(poly->type < p->n_poly_type);
     const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
 
     //RCM
@@ -338,7 +389,7 @@ int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const
     position += N * sizeof(Monomer);
 
     // Poly state
-    position += deserialize_rng_state(p, &(poly->poly_state), buffer + position);
+    position += deserialize_rng_state(p->args.pseudo_random_number_generator_arg, &(poly->poly_state), buffer + position);
 
     poly->set_permutation = NULL;
     poly->set_states = NULL;
@@ -358,7 +409,7 @@ int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const
             MALLOC_ERROR_CHECK(poly->set_states, p->max_set_members * sizeof(RNG_STATE));
 
             for (unsigned int i = 0; i < p->max_set_members; i++)
-                position += deserialize_rng_state(p, poly->set_states + i, buffer + position);
+                position += deserialize_rng_state(p->args.pseudo_random_number_generator_arg, poly->set_states + i, buffer + position);
         }
     else
         {
@@ -439,7 +490,8 @@ int ser_all_poly (const struct Phase *p, unsigned char **ptr_to_buf, size_t *out
             *out_size += poly_serial_length (p, &p->polymers[i]);
         }
 
-    *ptr_to_buf = realloc(*ptr_to_buf, *out_size * sizeof(unsigned char));
+    free(*ptr_to_buf);
+    *ptr_to_buf = malloc((*out_size) * sizeof(unsigned char));
     unsigned char * buffer = *ptr_to_buf;
     if (buffer == NULL)
         {

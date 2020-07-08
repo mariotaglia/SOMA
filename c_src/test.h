@@ -75,5 +75,5 @@ int test_chains_in_domain(struct Phase *const p);
 //! \param max_cell last cell to be sent (inclusive)
 //! \param field_size number of cells to be sent
 //! \note this call is collective on the Simulation-Communicator. Will abort the run with an error message if inconsistencies are detected.
-void test_field_sending_consistency(const struct Phase *p, struct sim_rank_info * sim_inf, uint64_t min_cell, uint64_t max_cell, uint64_t field_size);
+void test_field_sending_consistency(const struct Phase *p, const struct sim_rank_info *sim_inf, uint64_t min_cell, uint64_t max_cell, uint64_t field_size);
 #endif                          //SOMA_TEST_H

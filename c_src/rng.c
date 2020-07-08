@@ -310,7 +310,7 @@ int serialize_rng_state(const struct Phase *const p, const RNG_STATE * const sta
     return position;
 }
 
-int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, const unsigned char *const buffer)
+int deserialize_rng_state(enum enum_pseudo_random_number_generator rng, RNG_STATE * const state, const unsigned char *const buffer)
 {
     unsigned int position = 0;
     //default state
@@ -320,7 +320,7 @@ int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, 
     state->mt_state = NULL;
     state->tt800_state = NULL;
 
-    if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_MT)
+    if (rng == pseudo_random_number_generator_arg_MT)
         {
             state->mt_state = (MERSENNE_TWISTER_STATE *) malloc(sizeof(MERSENNE_TWISTER_STATE));
             MALLOC_ERROR_CHECK(state->mt_state, sizeof(MERSENNE_TWISTER_STATE));
@@ -329,7 +329,7 @@ int deserialize_rng_state(const struct Phase *const p, RNG_STATE * const state, 
             position += sizeof(MERSENNE_TWISTER_STATE);
         }
 
-    if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_TT800)
+    if (rng == pseudo_random_number_generator_arg_TT800)
         {
             state->tt800_state = (MTTSTATE *) malloc(sizeof(MTTSTATE));
             MALLOC_ERROR_CHECK(state->tt800_state, sizeof(MTTSTATE));
