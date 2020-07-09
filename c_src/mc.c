@@ -94,7 +94,7 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
             return 0/0;
 #endif//__PGIC
 #endif//_PGI
-            return NAN;
+            return 0./0;
 #else
             return nan("");
 #endif                          //NAN

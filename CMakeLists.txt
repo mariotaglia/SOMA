@@ -155,24 +155,27 @@ if(ENABLE_NVIDIA_GPU)
 
   if(ENABLE_MPI)
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
-    if ( MPI_LIBRARY MATCHES mpich OR MPI_LIBRARY MATCHES "MVAPICH" )
+    message(STATUS "MPI_mpi_LIBRARY: "${MPI_mpi_LIBRARY})
+    if ( MPI_mpi_LIBRARY MATCHES libmpi OR MPI_mpi_LIBRARY MATCHES "MVAPICH" )
       # find out if this is MVAPICH2
-      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      get_filename_component(_mpi_library_dir ${MPI_mpi_LIBRARY} PATH)
       find_program(MPICH2_VERSION
 	NAMES mpichversion mpich2version
 	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
 	)
+    message(STATUS "MPICH2_VERSION: "${MPICH2_VERSION})
       if (MPICH2_VERSION)
 	execute_process(COMMAND ${MPICH2_VERSION}
           OUTPUT_VARIABLE _output)
-	if (_output MATCHES "--enable-cuda")
+      message(STATUS "OUTPUT: "${_output})
+    if (_output MATCHES "--enable-cuda" OR _output MATCHES "--enable-psp-cuda-awareness")
           set(MPI_CUDA TRUE)
           message(STATUS "Found MVAPICH2 with CUDA support.")
-	endif(_output MATCHES "--enable-cuda")
+    endif (_output MATCHES "--enable-cuda" OR _output MATCHES "--enable-psp-cuda-awareness")
       endif(MPICH2_VERSION)
-    elseif(MPI_LIBRARY MATCHES libmpi)
+    elseif(MPI_mpi_LIBRARY MATCHES libmpi)
       # find out if this is OpenMPI
-      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      get_filename_component(_mpi_library_dir ${MPI_mpi_LIBRARY} PATH)
       find_program(OMPI_INFO
 	NAMES ompi_info
 	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
