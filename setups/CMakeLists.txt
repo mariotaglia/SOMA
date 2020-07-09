@@ -9,7 +9,8 @@ set(setup_scripts
 	hlrn.sh
 	strand.sh
 	juwels.sh
-	juwels_cpu.sh)
+	juwels_cpu.sh
+	jusuf_cpu.sh)
 
 foreach(SCRIPT ${setup_scripts})
 	install(FILES ${SCRIPT} DESTINATION setups)
