@@ -93,6 +93,7 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
 #if __PGIC__ < 20
             return 0/0;
 #endif//__PGIC
+	    return 0./0.;
 #endif//_PGI
             return NAN;
 #else
