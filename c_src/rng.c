@@ -137,30 +137,6 @@ void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scala
     *z = root2 * u3;
 }
 
-/*! generate 3D vector, with a distribution that just has the 2nd and 4th moment of a gaussian
-  \param rng RNG State
-  \param p Phase construct of the simulated system
-  \param x result for X
-  \param y result for Y
-  \param z result for Z
-*/
-void soma_normal_vector2(RNG_STATE * rng, const struct Phase *const p, soma_scalar_t * x,
-                         soma_scalar_t * y, soma_scalar_t * z)
-{
-    // the two factors are connected to ensure a 2nd moment of 1:
-    // sfactor = (3-3*qfactor**2/7.0)**0.5
-
-    soma_scalar_t u1 = 2.0 * soma_rng_soma_scalar(rng, p) - 1.;
-    soma_scalar_t u2 = 2.0 * soma_rng_soma_scalar(rng, p) - 1.;
-    soma_scalar_t u3 = 2.0 * soma_rng_soma_scalar(rng, p) - 1.;
-    soma_scalar_t u4 = 2.0 * soma_rng_soma_scalar(rng, p) - 1.;
-    soma_scalar_t u5 = 2.0 * soma_rng_soma_scalar(rng, p) - 1.;
-    soma_scalar_t u6 = 2.0 * soma_rng_soma_scalar(rng, p) - 1.;
-    *x = 1.97212 * u1 * u1 * u1 + 1.1553052583624814 * u2;
-    *y = 1.97212 * u3 * u3 * u3 + 1.1553052583624814 * u4;
-    *z = 1.97212 * u5 * u5 * u5 + 1.1553052583624814 * u6;
-}
-
 unsigned int rng_state_serial_length(const struct Phase *const p)
 {
     unsigned int length = 0;

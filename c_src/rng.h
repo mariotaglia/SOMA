@@ -99,16 +99,6 @@ void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scala
 //! \return random number
 uint32_t pcg32_random(PCG_STATE * rng);
 
-//! Function that generates 3D vector (x,y,z), with a distribution that just has the 2nd and 4th moment of a gaussian
-//! \param rng struct which contains all information about the internal states of the rngs
-//! \param p Phase struct of the simulated system
-//! \param x coordinate of the vector
-//! \param y coordinate of the vector
-//! \param z coordinate of the vector
-//! \pre rng has been seeded
-void soma_normal_vector2(RNG_STATE * rng, const struct Phase *const p, soma_scalar_t * x,
-                         soma_scalar_t * y, soma_scalar_t * z);
-
 //! Obtain the number of bytes, which are necessary to serialize a RNG_STATE.
 //!
 //! the current system configuration might influence the result. Especially,

@@ -463,7 +463,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
             for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_poly = 0;
-                    Polymer const *const mypoly = &p->polymers[npoly];
+                    Polymer *const mypoly = &p->polymers[npoly];
 
                     const unsigned int poly_type = mypoly->type;
                     const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
@@ -543,6 +543,10 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
 {
     int error_flags[2] = { 0 }; // [0] domain error, [1] pgi_bug
 
+#ifndef _OPENACC
+	    unsigned int accepted_moves_poly = 0;
+#endif                          //_OPENACC
+
 #pragma acc enter data copyin(error_flags[0:2])
     for (unsigned int step = 0; step < nsteps; step++)
         {
@@ -583,7 +587,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                     const unsigned int len = set_length[set_id];
 
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
-#pragma omp parallel for reduction(+:n_accepts)
+#pragma omp parallel for reduction(+:accepted_moves_set)
                     for (unsigned int iP = 0; iP < len; iP++)
                         {
                             const unsigned int ibead = sets[set_id * max_member + iP];
@@ -608,7 +612,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
             p->n_accepts += n_accepts;
 #endif                          //_OPENACC
         }
-    int ret = 0;
+    int ret = 0*tuning_parameter; //Shutup compiler warning
 #pragma acc exit data copyout(error_flags[0:2])
     if (error_flags[0] != 0)
         {
