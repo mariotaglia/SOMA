@@ -552,7 +552,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
         {
             unsigned int n_accepts = 0;
 
-            Polymer const *const mypoly = &p->polymers[chain_i];
+            Polymer * const mypoly = &p->polymers[chain_i];
 
             const unsigned int poly_type = mypoly->type;
             const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
