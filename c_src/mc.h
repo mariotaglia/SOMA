@@ -255,7 +255,8 @@ int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, 
   \return error_flags[0] indicating domain error
 */
 #pragma acc routine(set_iteration_possible_move) seq
-int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, Monomer * const beads, uint64_t chain_index,
-                                unsigned int iP, const int nonexact_area51, const unsigned int ibead,
-                                const unsigned int iwtype, unsigned int *accepted_moves_set_ptr);
+int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, Monomer * const beads,
+                                uint64_t chain_index, unsigned int iP, const int nonexact_area51,
+                                const unsigned int ibead, const unsigned int iwtype,
+                                unsigned int *accepted_moves_set_ptr);
 #endif                          //SOMA_MC_H

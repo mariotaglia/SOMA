@@ -90,9 +90,9 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
 #ifdef NAN
 #ifdef __PGI
 #if __PGIC__ < 20
-            return 0/0;
-#endif//__PGIC
-#endif//_PGI
+            return 0 / 0;
+#endif                          //__PGIC
+#endif                          //_PGI
             return NAN;
 #else
             return nan("");
@@ -357,8 +357,8 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                     Polymer *mypoly = &p->polymers[npoly];
                     Monomer *beads = p->ph.beads.ptr;
                     beads += mypoly->bead_offset;
- 
-                    const int mypoly_poly_type_offset = p->poly_type_offset[mypoly->type];     
+
+                    const int mypoly_poly_type_offset = p->poly_type_offset[mypoly->type];
                     unsigned int myN = p->poly_arch[mypoly_poly_type_offset];
                     RNG_STATE *myrngstate = &mypoly->poly_state;        // maybe local copy of rngstate
 
@@ -463,7 +463,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
             for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_poly = 0;
-                    Polymer const * const mypoly = &p->polymers[npoly];
+                    Polymer const *const mypoly = &p->polymers[npoly];
 
                     const unsigned int poly_type = mypoly->type;
                     const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
@@ -478,7 +478,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
 
                     unsigned int *set_permutation = p->ph.set_permutation.ptr;
                     set_permutation += mypoly->set_permutation_offset;
-			
+
                     Monomer *beads = p->ph.beads.ptr;
                     beads += mypoly->bead_offset;
 
@@ -548,12 +548,12 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
         {
             unsigned int n_accepts = 0;
 
-            Polymer const * const mypoly = &p->polymers[chain_i];
+            Polymer const *const mypoly = &p->polymers[chain_i];
 
             const unsigned int poly_type = mypoly->type;
             const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
             const IndependetSets mySets = p->sets[poly_type];
- 
+
             const unsigned int n_sets = mySets.n_sets;
             const unsigned int *const set_length = mySets.set_length;
             const unsigned int *const sets = mySets.sets;
@@ -835,8 +835,9 @@ inline int possible_move_area51(const Phase * p, const soma_scalar_t oldx, const
     return 2;
 }
 
-int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, Monomer * const beads, uint64_t chain_index, unsigned int iP,
-                                const int nonexact_area51, const unsigned int ibead, const unsigned int iwtype,
+int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, Monomer * const beads,
+                                uint64_t chain_index, unsigned int iP, const int nonexact_area51,
+                                const unsigned int ibead, const unsigned int iwtype,
                                 unsigned int *accepted_moves_set_ptr)
 {
 
