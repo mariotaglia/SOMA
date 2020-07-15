@@ -246,6 +246,7 @@ int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, 
 /*! \brief Private function used together with set_iteration_multi_chain and set_iteration_single_chain
   \param p Initialized configuration
   \param set_states The set states of the selected polymer
+  \param beads ptr to the beads of the current polymer
   \param chain_index Index of the selected polymer
   \param iP Index of the current selected bead
   \param nonexact_area51 The exact check of area51

@@ -340,6 +340,6 @@
    The normalization assures that the part of the hamiltonian that restrains the density fluctuations can compare to the total density to 1.
    Weights of 0 are possible, but probably not recommended. All weights zero or negative weights are obviously not an option.
 
-\warning It is recommended to use the the SCMF1 hamiltonian, since the SCFM0 expects a unit density implicitly in the  \f$ \chi N\f$-term.
+\warning It is recommended to use the the SCMF1 hamiltonian, since the SCFM0 expects a unit density implicitly in the  \f$ \chi N\f$ -term.
 
 */

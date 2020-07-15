@@ -32,10 +32,6 @@
 #include "rng_alternative.h"
 
 #pragma acc routine(pcg32_random) seq
-/*! Random number generator PCG32
-  \param rng State for PRNG
-  \return PRN
-*/
 uint32_t pcg32_random(PCG_STATE * rng)
 {
     const uint64_t old = rng->state;
@@ -96,11 +92,6 @@ soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, const struct Phase *const p)
 }
 
 /*! generate 3D vector, 2 times Box-Mueller Transform, discards one value
-  \param rng RNG State
-  \param p Phase construct of the acutal system
-  \param x result for X
-  \param y result for Y
-  \param z result for Z
 */
 void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scalar_t * x,
                         soma_scalar_t * y, soma_scalar_t * z)
