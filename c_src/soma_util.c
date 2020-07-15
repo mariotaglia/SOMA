@@ -219,16 +219,15 @@ unsigned int get_number_bond_type(const struct Phase *const p, const enum Bondty
                     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[p_type] + 1 + mono]);
                     if (start > 0)
                         {
-                            int i = start;
-                            unsigned int end;
-                            do
+                            unsigned int end = 0;
+                            for(int i = start; end == 0; i++)
                                 {
-                                    const uint32_t info = p->poly_arch[i++];
+                                    const uint32_t info = p->poly_arch[i];
                                     end = get_end(info);
                                     const unsigned int bond_type = get_bond_type(info);
                                     if (bond_type == btype)
                                         counter++;
-                            } while (end == 0);
+                            }
                         }
                 }
         }

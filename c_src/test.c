@@ -178,17 +178,16 @@ int test_independet_sets(const struct Phase *const p)
                                         get_bondlist_offset(p->poly_arch[p->poly_type_offset[poly_type] + pj + 1]);
                                     if (start > 0)
                                         {
-                                            unsigned int i = start;
-                                            unsigned int end;
-                                            do
+                                            unsigned int end = 0;
+                                            for(int i = start; end == 0; i++)
                                                 {
-                                                    const uint32_t info = p->poly_arch[i++];
+                                                    const uint32_t info = p->poly_arch[i];
                                                     end = get_end(info);
                                                     const int offset = get_offset(info);
                                                     const unsigned n_id = pj + offset;
                                                     if (n_id == pi)
                                                         n_neigh++;
-                                            } while (end == 0);
+                                            } 
                                         }
                                 }
                             if (p->info_MPI.domain_rank == 0 && n_neigh > 0)
