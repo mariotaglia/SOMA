@@ -1507,9 +1507,8 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         }
     if (H5Lexists(file_id, "/parameter/density_weights", H5P_DEFAULT) > 0)
         {
-            hid_t status =
-                read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
-                          p->field_scaling_type);
+            hid_t status = read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                                     p->field_scaling_type);
             HDF5_ERROR_CHECK2(status, "/parameter/density_weights");
         }
     else

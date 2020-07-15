@@ -62,18 +62,17 @@ bool try_particle_in_set(const unsigned int set_id, const unsigned int p_id, con
             const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[poly_type] + ibead + 1]);
             if (start > 0)
                 {
-                    int i = start;
                     //BondInfo bn;
-                    unsigned int end;
-                    do
+                    unsigned int end = 0;
+                    for(int i = start; end == 0; i++)
                         {
-                            const uint32_t info = p->poly_arch[i++];
+                            const uint32_t info = p->poly_arch[i];
                             end = get_end(info);
                             const int offset = get_offset(info);
                             const unsigned int neighbour_id = ibead + offset;
                             if (neighbour_id == p_id)
                                 neighbor_found = true;
-                    } while (end == 0);
+                    }
                 }
         }
 

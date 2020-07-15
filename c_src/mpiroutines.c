@@ -119,14 +119,14 @@ int init_MPI(struct Phase *p)
     uint32_t fixed_seed;
     if (!p->args.rng_seed_given || p->args.rng_seed_arg < 0)
         {
-        uint32_t time_bytes = time(NULL);
-        fixed_seed = time_bytes;
-# if __GLIBC__ > 2 || __GLIBC_MINOR__ > 24
-#  include <sys/random.h>
-        uint32_t entropy_bytes;
-        if( getentropy( &entropy_bytes, sizeof(uint32_t) ) == 0)
-            fixed_seed ^= entropy_bytes;
-#endif//__GLIBC
+            uint32_t time_bytes = time(NULL);
+            fixed_seed = time_bytes;
+#if __GLIBC__ > 2 || __GLIBC_MINOR__ > 24
+#include <sys/random.h>
+            uint32_t entropy_bytes;
+            if (getentropy(&entropy_bytes, sizeof(uint32_t)) == 0)
+                fixed_seed ^= entropy_bytes;
+#endif                          //__GLIBC
 
         }
     else

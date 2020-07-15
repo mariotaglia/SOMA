@@ -91,9 +91,9 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
 #ifdef NAN
 #ifdef __PGI
 #if __PGIC__ < 20
-            return 0/0;
-#endif//__PGIC
-#endif//_PGI
+            return 0 / 0;
+#endif                          //__PGIC
+#endif                          //_PGI
             return NAN;
 #else
             return nan("");
@@ -129,12 +129,10 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
 
     if (start > 0)
         {
-            int i = start;
-            //BondInfo bn;
-            unsigned int end;
-            do
+            unsigned int end = 0;
+            for(int i = start; end == 0; i++)
                 {
-                    const uint32_t info = p->poly_arch[i++];
+                    const uint32_t info = p->poly_arch[i];
                     end = get_end(info);
                     const unsigned int bond_type = get_bond_type(info);
                     const int offset = get_offset(info);
@@ -185,7 +183,7 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
                             break;
                         }
 
-            } while (end == 0);
+            }
         }
     return delta_energy;
 }
@@ -742,11 +740,10 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 
     if (start > 0)
         {
-            int i = start;
-            unsigned int end;
-            do
+            unsigned int end = 0;
+            for(int i = start; end == 0; i++)
                 {
-                    const uint32_t info = p->poly_arch[i++];
+                    const uint32_t info = p->poly_arch[i];
                     end = get_end(info);
                     const unsigned int bond_type = get_bond_type(info);
                     const int offset = get_offset(info);
@@ -788,7 +785,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 #endif                          //OPENACC
                             break;
                         }
-            } while (end == 0);
+            }
         }
     *fx += v1x;
     *fy += v1y;

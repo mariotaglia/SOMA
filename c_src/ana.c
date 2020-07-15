@@ -195,12 +195,10 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
                     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[type] + ibead + 1]);
                     if (start > 0)
                         {
-                            int i = start;
-                            int end;
-                            do
+                            int end = 0;
+                            for(int i = start; end == 0; i++)
                                 {
-                                    const uint32_t bn = p->poly_arch[i++];
-                                    const int info = bn;
+                                    const int info = p->poly_arch[i];
                                     end = get_end(info);
                                     const int offset = get_offset(info);
                                     const int neighbour_id = ibead + offset;
@@ -223,7 +221,7 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
                                     result[type * 6 + 4] += by * bz;
                                     result[type * 6 + 5] += bz * bx;
                                     counter[type] += 1;
-                            } while (end == 0);
+                            }
                         }
                 }
         }
@@ -382,11 +380,10 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 
                     if (start > 0)
                         {
-                            int i = start;
-                            unsigned int end;
-                            do
+                            unsigned int end = 0;
+                            for(int i = start; end == 0; i++)
                                 {
-                                    const uint32_t info = p->poly_arch[i++];
+                                    const uint32_t info = p->poly_arch[i];
                                     end = get_end(info);
                                     const unsigned int bond_type = get_bond_type(info);
                                     const int offset = get_offset(info);
@@ -433,7 +430,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                                             assert(bond_type < NUMBER_SOMA_BOND_TYPES);
                                             bonded_energy[bond_type] += energy;
                                         }
-                            } while (end == 0);
+                            }
                         }
                 }
         }
