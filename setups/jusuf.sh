@@ -7,4 +7,6 @@ module load ParaStationMPI/5.4.6-1-CUDA
 module load HDF5/1.10.5
 module load CMake/3.16.5
 
+export PSP_CUDA=0
+
 export CC=pgcc
