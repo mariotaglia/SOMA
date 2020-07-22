@@ -36,6 +36,8 @@ except ImportError:
     import io as stringio
 except ModuleNotFoundError:
     import io as stringio
+import auto_chunk
+
 ## Matches the enum Bondtype of struct.h
 bondDict = {}
 bondDict["HARMONIC".upper()] = 0
@@ -1075,6 +1077,7 @@ class Configuration(SomaXML):
         ## Root of the xml tree.
         self.root = self.tree.getroot()
         assert self.root.tag == "soma","You are not parsing a SOMA input file."
+
         for child in self.root:
             if not child.tag in self.knownTags:
                 print("WARNING: unknown tag ("+child.tag+") found in SOMA xml. Value will be ignored. Typo?")
@@ -1665,9 +1668,12 @@ def main(argv):
     parser.add_argument('--area51-no-pbc',action="store_true",help="Define that Area51 GridObjects are not folded with the periodic boundary conditions. Grid sites outside the simulation box are ignored.",default=False)
     parser.add_argument('--external-field-no-pbc',action="store_true",help="Define that External_Field GridObjects are not folded with the periodic boundary conditions. Grid sites outside the simulation box are ignored.",default=False)
     parser.add_argument('--umbrella-feld-no-pbc',action="store_true",help="Define that Umbrella_Field GridObjects are not folded with the periodic boundary conditions. Grid sites outside the simulation box are ignored.",default=False)
+    auto_chunk.add_autochunk_parsing_arguments(parser)
 
 
     arguments = vars(parser.parse_args())
+
+    auto_chunking_options = auto_chunk.auto_chunking_options_from_arguments(arguments)
 
     filename = arguments['i'][0]
     extension = filename.rfind(".xml")
@@ -1707,7 +1713,7 @@ def main(argv):
     if not arguments['no_hdf5_output'] and arguments['update']:
         conf.update_hdf5(outfile)
 
-    analysis = AnaGen.AnalysisFile(outfile,filename)
+    analysis = AnaGen.AnalysisFile(outfile,filename,auto_chunking_options)
     if not arguments['no_ana_output']:
         analysis.write_hdf5(ana_out_file)
 

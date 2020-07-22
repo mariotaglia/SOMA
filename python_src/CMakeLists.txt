@@ -4,7 +4,9 @@ set(soma_python_scripts
   ConfGen.py
   create_pov.py
   create_xdmf.py
-  handleAnaH5.py )
+  handleAnaH5.py
+  auto_chunk.py
+        )
 
 if( SINGLE_PRECISION )
   set(NUMPY_SOMA_SCALAR_TYPE "numpy.float32")

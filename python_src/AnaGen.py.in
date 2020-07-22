@@ -39,6 +39,7 @@ except ImportError:
 except ModuleNotFoundError:
     import io as stringio
 import ConfGen
+import auto_chunk
 
 ## Class to parse the analysis section of a hdf5 configuration and an SOMA xml.
 class AnalysisFile(ConfGen.SomaXML):
@@ -50,9 +51,11 @@ class AnalysisFile(ConfGen.SomaXML):
     ## @param filename File to parse in
     ## @param conf Configuration element corresponding to the xml.
     ## @return None
-    def __init__(self,filename_conf,filename_xml):
+    def __init__(self,filename_conf,filename_xml,auto_chunking_options):
         ## Is the Configuration fully initialized?
         self.good = False
+
+        self.auto_chunking_options = auto_chunking_options
 
         ## Configuration element from config file.
         with h5py.File(filename_conf, 'r') as hf:
@@ -100,14 +103,26 @@ class AnalysisFile(ConfGen.SomaXML):
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,6*self.n_poly_types), 0 )
             self.ana_dict["bond_anisotropy"] = copy.deepcopy( element )
 
+            # get compression recommendations for density and umbrella field
+            dims5D = (1,self.n_particle_types,self.nxyz[0], self.nxyz[1], self.nxyz[2])
+            rec_dic = auto_chunk.get_good_compression(dims5D,
+                                                      exhaustiveness=self.auto_chunking_options.thoroughness,
+                                                      optigoal=self.auto_chunking_options.optigoal,
+                                                      ndomains=self.auto_chunking_options.ndomains,
+                                                      szip_allowed=self.auto_chunking_options.szip_allowed)
+
             #density_field
-            element = AnaElement( numpy.uint16 , (0,self.n_particle_types,self.nxyz[0],self.nxyz[1],self.nxyz[2]), 0)
+            rec = rec_dic["density_field"]
+            element = AnaElement( numpy.uint16 , (0,self.n_particle_types,self.nxyz[0],self.nxyz[1],self.nxyz[2]), 0,
+                                  chunks5D=rec.chunks_t_nt_xyz, compression=rec.comp, use_scaleoffset=rec.use_scaleoffset)
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["density_field"] = copy.deepcopy( element )
 
             #umbrella_field
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_particle_types,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            rec = rec_dic["umbrella_field"]
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_particle_types,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0,
+                                  chunks5D=rec.chunks_t_nt_xyz, compression=rec.comp, use_scaleoffset=False)
             element.attr["nxyz"] = self.nxyz
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["umbrella_field"] = copy.deepcopy(element)
@@ -169,6 +184,9 @@ class AnalysisFile(ConfGen.SomaXML):
         dict_element = self.ana_dict[element.tag]
         for child in element:
             if child.tag == "compression":
+                # if compression is explicitly given in the ana-file,
+                # it overrides the compression method suggested by the autochunking.
+                # This is intentional.
                 dict_element.compression = child.text.strip()
             elif child.tag == "q":
                 tmp_file = stringio.StringIO(child.text)
@@ -201,7 +219,22 @@ class AnalysisFile(ConfGen.SomaXML):
                         maxshape[i]= None
                     i += 1
                 maxshape = tuple(maxshape)
-                dset = f.create_dataset( key, ana.shape,maxshape=maxshape,dtype=ana.datatype,compression=ana.compression )
+
+                args = {"name" : key,
+                        "shape" : ana.shape,
+                        "maxshape" : maxshape,
+                        "dtype" : ana.datatype,
+                        "compression" : ana.compression,
+                        "chunks" : ana.chunks5D,
+                        }
+                if (ana.use_scaleoffset):
+                    # scaleoffset 0 for ints means "do a lossless scaleoffset compression"
+                    assert(ana.datatype == numpy.uint16) # scaleoffset is completely different for floats
+                    dset = f.create_dataset(**args, scaleoffset= 0)
+                else:
+                    # no scaleoffset argument => no scaleoffset-filter
+                    dset = f.create_dataset(**args)
+
                 for attr in ana.attr.keys():
                     dset.attrs[attr] = ana.attr[attr]
 
@@ -215,14 +248,23 @@ class AnaElement:
     ## @param shape shape of the observable matrix.
     ## @param DeltaMC Analsis frequency.
     ## @param compression Compression string for hdf5, or None.
+    ## @param chunks5D (t,ntypes,x,y,z) shape of a chunk for chunked datasets. If True, use hdf5-automatic chunking
+    ## @param scaleoffset if True, use a scaleoffset-filter for the dataset. Default False.
     ## @return None
-    def __init__(self,datatype,shape,DeltaMC,compression=None):
+    def __init__(self,datatype,shape,DeltaMC,compression=None,chunks5D=True,use_scaleoffset=False):
         ## Numpy-datatype of the observable
         self.datatype = datatype
         ## Shape of the observable matrix.
         self.shape = shape
         ## Compression string for hdf5, or None.
         self.compression = compression
+        ## chunking to use for chunked datasets
+        self.chunks5D = chunks5D
+        ## if True, use a scaleoffset filter
+        self.use_scaleoffset = use_scaleoffset
+        ## scaleoffset-filter for floats and ints is very different!
+        ## for soma, only scaleoffset filter for integer-types makes sense.
+        assert(self.datatype==numpy.uint16 or not self.use_scaleoffset)
         ## Attribute dictionary, storing all attributes for hdf5.
         self.attr = { "DeltaMC": numpy.array(DeltaMC) }
     ## Convert an element to string for convenience.
@@ -236,8 +278,9 @@ def main(argv):
     parser.add_argument('-i',metavar='input_file_xml',type=str,nargs=1,required=True,help="Input SOMA xml file.")
     parser.add_argument('-c',metavar='input_file_conf',type=str,nargs=1,required=True,help="Input SOMA hdf5 config file.")
     parser.add_argument('--ana-filename',metavar='ana_filename',type=str,nargs=1,required=False,help="Output filename of the analysis hdf5 file.")
-
+    auto_chunk.add_autochunk_parsing_arguments(parser)
     arguments = vars(parser.parse_args())
+    auto_chunking_options = auto_chunk.auto_chunking_options_from_arguments(arguments)
 
     filename_conf = arguments['c'][0]
 
@@ -256,7 +299,7 @@ def main(argv):
         ana_out_file = filename_conf[:extension_conf]+"_ana.h5"
 
     #Parse the analysis file
-    analysis = AnalysisFile(filename_conf,filename_xml)
+    analysis = AnalysisFile(filename_conf,filename_xml, auto_chunking_options)
     analysis.write_hdf5(ana_out_file)
 
 if __name__ == "__main__":

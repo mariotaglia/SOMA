@@ -1,0 +1,874 @@
+import copy
+import sys
+import re
+from dataclasses import dataclass
+from typing import Union
+
+import numpy as np
+import h5py as h5
+import time
+import os
+from scipy.interpolate import RegularGridInterpolator
+import random
+from enum import Enum
+
+
+sys.path.append( @SOMA_PYTHON_INSTALL_DIR@ )
+import soma_type
+
+def add_autochunk_parsing_arguments(parser):
+    """
+    call this function with the ArgumentParser object used by AnaGen or ConfGen to add the command-line-arguments
+    that control autochunking. (So that the arguments here can be used in the exact same way for both AnaGen.py and ConfGen.py)
+    :param parser: ArgumentParser object of the script
+    """
+    parser.add_argument('--optimize-for-ndomains', metavar='optimize_for_ndomains',type=int,default=1,
+                        help="Number of domains that the analysis file should be optimized for. "
+                             "Note that this is not required, even if you do use domain decomposition, "
+                             "and files created with this value can still be safely used with another domain decomposition. "
+                             "This is only meant to help IO-performance and ensuring IO-parallelizability. Default: 1 Domain")
+    parser.add_argument('--no-szip', dest='no_szip', action='store_true', default=False,
+                        help="If true, szip will not be chosen as a compression algorithm for the datasets, even if it is available in the hdf5-install this script is using."
+                             "Default: False, meaning szip may be used if it is available."
+                             "szip is a compression algorithm that ususally performs very well in terms of compression ratio and (de)compression time,"
+                             "but it may not be installed on every system.")
+    parser.add_argument('--thoroughness', metavar='thoroughness',type=int,  default=0,
+                        help="takes value from 0-5 to control how much time this script will spend optimizing the datasets."
+                             " High=slow, but it may speed up the simulation. Default 0")
+    parser.add_argument('--optimization-goal', metavar='optimization_goal', type=str, default="standard",
+                        help="takes values "+str(str_to_opti_goal.keys())+" to optimize the umbrella and density field for memory consumption, writing speed, or both.")
+
+class OptiGoal(Enum):
+    MEMORY=1
+    STANDARD=2
+    SPEED=3
+
+str_to_opti_goal = {"standard" : OptiGoal.STANDARD, "memory" : OptiGoal.MEMORY, "speed": OptiGoal.SPEED}
+
+@dataclass
+class AutoChunkingOptions():
+    szip_allowed : Union[bool, None]
+    thoroughness : int
+    ndomains : int
+    optigoal : OptiGoal
+
+def auto_chunking_options_from_arguments(argument_dic):
+
+    og_str = argument_dic["optimization_goal"]
+    try:
+        optigoal = str_to_opti_goal[og_str]
+    except:
+        print("WARNING: unknown optimization option \"",og_str,"\", using \"standard\" instead")
+        optigoal = OptiGoal.STANDARD
+
+    thoro = argument_dic["thoroughness"]
+    thoro_min, thoro_max = 0, 5
+    if (thoro not in range(thoro_max + 1)):
+        thoro_old = thoro
+        l = [thoro_min, thoro, thoro_max]
+        l.sort()
+        thoro = l[1]
+        print(f"WARNING: thoroughness should be between 0 and 5 (inclusive),"
+              f" but was {thoro_old}. Clipping value to {thoro}")
+
+    no_szip = argument_dic["no_szip"]
+    if (no_szip == True):
+        szip_allowed = False
+    else:
+        szip_allowed = None
+
+    ndomains = argument_dic["optimize_for_ndomains"]
+    if (ndomains < 1):
+        print(f"Warning, ndomains={ndomains} is invalid (it must be positive). Using 1 instead")
+        ndomains = 1
+
+
+    return AutoChunkingOptions(szip_allowed=szip_allowed,
+                               thoroughness=thoro,
+                               ndomains=ndomains,
+                               optigoal=optigoal)
+
+
+@dataclass
+class Recommendation:
+    chunks_t_nt_xyz : (int, int, int, int, int)
+    comp : str
+    use_scaleoffset : bool
+
+
+def get_good_compression(dims5D, ndomains=1, optigoal=OptiGoal.STANDARD, exhaustiveness=0, szip_allowed=None):
+    """
+    find a good compression method (chunking and compression algorithm) for given dataset dimensions for the
+    umbrella field and the density field
+    This will be done by trying out different methods based on heuristics, then profiling them for their memory
+    consumption and writing speed.
+    :param dims5D: (t,ntypes,nx,ny,nz) simulationn parameters that define the dataset-dimensions for which to find compression
+    :param ndomains: number of domains to optimize for. A dataset created with the chunking suggested by this function
+     works with any number of domains, but output might be slower and not parallel. Default: 1
+    :param optigoal: one of the values in Enum OptiGoal. Control which goal to favor: low memory consumption or high writing speed.
+    Default: standard, which tries to strike a balance.
+    :param exhaustiveness: number from 0-5. High values mean the profiling will be more accurate and explore more methods,
+    thereby hopefully giving a better result. However, this makes the function very slow. Default: 0 (very fast)
+    :param szip_allowed: one of True, False, None. If true or None, the szip algorithms may be used if available
+    (difference between None and True or None being that True warns you if unavailable).
+    hdf5 knows three compression algorithms: szip, gzip and lzf. szip usually performs very good but is not available
+    unless hdf5 is compiled with szip-support.
+    :return: {"umbrella_field" : umbrella_comp, "density_field" : density_comp} where *_comp are Recommendation-objects whose
+    comp, scaleoffset and chunks - fields represent the recommendation for dataset creation. The fields of recommendation are always
+    valid inputs for h5file.create_dataset. If this method fails to find a good chunking method, it will turn chunks to true to enable
+    use of hdf5-built-in autochunking.
+    This should happen only for weird input data (like very small ny and nz).
+    """
+
+    # returns a recommendation for both umbrella_field (soma_scalar) and density_field(uint_16)
+    # the fields have the same dimension
+    # current method: find a good chunksize and compression method for the density field,
+    # then use a similar one for the umbrella field (change chunk dimensions to keep chunk size in bytes similar)
+    ret = {"umbrella_field" : None, "density_field" : None}
+    _, ntypes, nx, ny, nz = dims5D
+
+    h5filename, h5file = open_new_hdf5_file()
+
+    try:
+        max_candidates = 5 + exhaustiveness*15
+        if (exhaustiveness >= 5):
+            max_candidates = None # unlimited candidates possible
+
+        if (szip_allowed != False):
+            tmp = try_allow_szip(h5file)
+            if (tmp==False and szip_allowed==True):
+                print("WARNING: szip requested but is not available. Using other compression methods instead")
+            szip_allowed = tmp
+
+        chunks3D = generate_chunking_candidates(nx, ny, nz, ndomains=ndomains, max_len=max_candidates)
+        algs = get_compression_alg_candidates(optigoal=optigoal, exhaustiveness=exhaustiveness, szip_allowed=szip_allowed)
+
+        tc_list = []
+        for c in chunks3D:
+            tc_list.extend(make_trial_compressions_with_chunks(c, algs))
+
+        if not tc_list:
+            print("WARNING: field-chunksize not optimized. This can happen if there is too little data per domain. Your Ana-file is still valid and safe to use")
+            return ret
+
+        tc_list = add_datasets_where_possible(tc_list, h5file, dims5D)
+
+        if not tc_list:
+            print("WARNING: field-chunksize not optimized.No chunking fulfilled basic sanity criteria. This should not happen")
+            return ret
+
+        # number of timesteps to simulate inputting.
+        # the more we do, the higher the precision, but it obviously takes longer and is probably not worth it
+        Nt = 1 if (exhaustiveness<=3) else (exhaustiveness - 2)
+        do_timings(tc_list, h5file, dims5D, Nt)
+
+        h5file.close()
+
+        find_comp_rates(tc_list,h5filename)
+
+        tc_list = get_pareto_optimum(tc_list)
+
+
+        best_for_density = get_balanced(tc_list, Tolerance(optigoal=optigoal))
+        best_for_umbrella = umbrella_chunking_from_density(best_for_density, ndomains=ndomains, dims_xyz=(nx,ny,nz))
+
+        ret["umbrella_field"] = get_recommendation(best_for_umbrella)
+        ret["density_field"] = get_recommendation(best_for_density)
+
+    finally:
+        os.system(f"rm {h5filename}")
+
+    return ret
+
+### private ###
+
+
+class TrialCompression():
+
+    def __init__(self, name, chunking_xyz, comp="szip", scaleoffset=True):
+
+        self.name = name
+
+        self.comp = comp
+        self.scaleoffset = scaleoffset
+
+        # convert 3D-chunks to 5D-chunks
+        cx, cy, cz = chunking_xyz
+        self.chunks = (1,1,cx,cy,cz)
+
+        self.file = None
+        self.dset = None
+        self.write_time = None
+        self.comp_rate = None
+
+    def is_sane(self, maxdims):
+        """
+        returns true if datasets with maxdims as their maximum dimensions
+        can be created with these compression rules without breaking basic rules/guidelines
+        """
+
+        # calc chunksize in kilobytes
+        t, ntypes, cx, cy, cz = self.chunks
+        assert(t==1); assert(ntypes==1)
+        chunksize = get_chunk_size_in_kbytes(cx,cy,cz,np.uint16)
+
+        #hdf5-group recommends strongly that chunksize is between 10kiB and 1MiB
+        if (chunksize < 10 or chunksize >= 1000):
+            return False
+
+        _, ctypes, cx, cy, cz = self.chunks
+        nt, ntypes, nx, ny, nz = maxdims
+        assert(nt is None)
+
+        if (ctypes > ntypes or cx > nx or cy > ny or cz > nz):
+            return False
+
+        return True
+
+
+    def create_dataset(self, h5file, dset_dims):
+
+        _ , ntypes, nx, ny, nz = dset_dims
+        maxshape = (None, ntypes, nx, ny, nz)
+
+        assert(self.is_sane(maxshape))
+
+        args = {"name" : self.name,
+                "shape": dset_dims,
+                "maxshape" : maxshape,
+                "dtype" : soma_type.get_soma_scalar_type(),
+                "chunks" : self.chunks,
+                "compression" : self.comp
+                }
+
+        try:
+
+            if (self.scaleoffset):
+                # scaleoffset = 0 means lossless scaleoffset-compression
+                # (TrialCompression never suggests lossy compression)
+                self.dset = h5file.create_dataset(**args, scaleoffset = 0)
+            else:
+                # no scaleoffset argument => no scaleoffset filter
+                self.dset =  h5file.create_dataset(**args)
+
+            return True
+
+
+        except:
+
+            if (self.comp == "szip"):
+                warn_szip()
+            else:
+                print("ERROR: unknown error occured while creating dataset")
+                raise
+
+            return False
+
+
+    def __str__(self):
+
+        t, ntypes, cx, cy, cz = self.chunks
+        assert(t==1); assert(ntypes==1)
+        chunksize = get_chunk_size_in_kbytes(cx,cy,cz,np.uint16)
+
+        ret = f"{self.name}:\n\tchunksize(kB):{chunksize}\n\tchunks:{self.chunks}\n\twrite-time:{self.write_time}\n\tcomp-rate:{self.comp_rate}\n\tcomp:{self.comp}\n"
+
+        return ret
+
+def get_recommendation(trial_comp):
+
+    if trial_comp == None:
+        return Recommendation(chunks_t_nt_xyz=True, comp="gzip", use_scaleoffset=False)
+    else:
+        return Recommendation(chunks_t_nt_xyz=trial_comp.chunks, comp=trial_comp.comp, use_scaleoffset=trial_comp.scaleoffset)
+
+
+def try_allow_szip(h5file):
+    try:
+        h5file.create_dataset(name="szip-test",
+                              shape=(None,30,30),
+                              dtype=soma_type.get_soma_scalar_type(),
+                              compression="szip")
+        return True
+    except ValueError:
+        return False
+
+
+def get_dtype_size(dtype):
+
+    # get size of datatype
+    # for reasons I don't understand, you can't query the size of a numpy-datatype,
+    # but you can query the itemsize of an array with that datatype
+    arr = np.array([0], dtype=dtype)
+    type_size = arr.itemsize
+
+    return type_size
+
+
+def umbrella_chunking_from_density(density_tc, ndomains, dims_xyz):
+    """
+    generates a TrialCompression suitable for the umbrella-field from a TrialCompression
+    suitable for the density-field. new compression will work with domain decomposition
+    :param density_tc: Trial compression for the density field
+    :param ndomains: number of domains to optimize for
+    :param dims_xyz: dimensions of the whole field of the simulation
+    :return: compression suitable for the density field
+    """
+
+    nx, ny, nz = dims_xyz #dimensions of the whole field
+    _, _, cx, cy, cz = density_tc.chunks # dimensions of the chunk for the density field
+    assert(nx%ndomains == 0)
+    dx = nx // ndomains # x-extension of one domain
+
+    # size_ratio == factor by how much bigger the umbrella field is compared to the density field
+    size_ratio = get_dtype_size(soma_type.get_soma_scalar_type()) // get_dtype_size(np.uint16)
+    assert(size_ratio == 2 or size_ratio == 4)
+
+    # easiest scenario: cx is divisible by how much we want to decrease the chunksize
+    if (cx!=1 and cx%size_ratio==0):
+        #scaleoffset-filter works very different for floating point data, so we always set it to false
+        umbrella_tc = TrialCompression("umbrella", (cx//size_ratio, cy, cz), comp=density_tc.comp, scaleoffset=False)
+        return umbrella_tc
+    # if it is not exactly divisible, try to divide it anyway and see if the resulting size is acceptable and fitting for domain
+    for cx_umbrella in [cx//size_ratio, cx//size_ratio + 1]:
+        if (cx_umbrella != 0): # chunks can not have size 0 in any dimension as it doesnt make sense
+            if (10 < get_chunk_size_in_kbytes(cx_umbrella,cy,cz,soma_type.get_soma_scalar_type()) < 1000): # check if size is good
+                if (dx%cx_umbrella == 0): # check if domain decomposition is broken
+                    # all ok
+                    umbrella_tc = TrialCompression("umbrella", (cx_umbrella, cy, cz), comp=density_tc.comp, scaleoffset=False)
+                    return umbrella_tc
+
+    # try to divide the y-dimension exactly
+    if (cy%size_ratio==0):
+        umbrella_tc = TrialCompression("umbrella", (cx, cy//size_ratio, cz), comp=density_tc.comp, scaleoffset=False)
+        return umbrella_tc
+
+    # dividing cz exactly
+    if (cz%size_ratio==0):
+        umbrella_tc = TrialCompression("umbrella", (cx, cy, cz//size_ratio), comp=density_tc.comp, scaleoffset=False)
+        return umbrella_tc
+
+    # neither cy nor cz is exactly divisible, try to divide anyway
+    for cy_umbrella in [cy//size_ratio, cy//size_ratio + 1]:
+        if (cy_umbrella != 0):
+            if (10 < get_chunk_size_in_kbytes(cx, cy_umbrella, cz, dtype=soma_type.get_soma_scalar_type()) < 1000):
+                umbrella_tc = TrialCompression("umbrella", (cx, cy_umbrella, cz), comp=density_tc.comp, scaleoffset=False)
+                return umbrella_tc
+
+    # try to inexactly divide cz instead
+    for cz_umbrella in [cz//size_ratio, cz//size_ratio + 1]:
+        if (cz_umbrella != 0):
+            if (10 < get_chunk_size_in_kbytes(1, cy, cz_umbrella, dtype=soma_type.get_soma_scalar_type()) < 1000):
+                umbrella_tc = TrialCompression("umbrella", (cx, cy, cz_umbrella), comp=density_tc.comp, scaleoffset=False)
+                return umbrella_tc
+
+    # if all of this failed, just make some valid chunking and use it.
+    chunk3D = generate_chunking_candidates(nx, ny, nz, ndomains, max_len=1)
+    if not chunk3D:
+        print("Umbrella field chunking not optimized. Your ana-file is still usable")
+        return None
+    assert(len(chunk3D) == 1)
+    ux, uy, uz = chunk3D[0]
+
+    return TrialCompression("umbrella", (ux,uy,uz), comp=density_tc.comp, scaleoffset=False)
+
+
+
+def get_chunk_size_in_kbytes(cx,cy,cz,dtype):
+
+
+    type_size = get_dtype_size(dtype)
+
+    return cx*cy*cz*type_size/1000
+
+
+def trim_3dchunk_set(tc_set, max_len):
+    """
+    removes chunkings from the nonempty input until at most max_len remain.
+    Does this by imposing stricter and stricter limits to the size of the chunks
+    The output may not have exactly max_len elements, but it will not be empty
+    """
+
+    ret = copy.copy(tc_set)
+
+    minsize = 10
+    maxsize = 1000
+    idealsize = 700 # somewhat arbitrary
+
+    max_iterations = 30 # avoid infinite/long loops if number of chunkings with near idealsize is higher than max_len
+    i = 0
+
+    while (len(ret) > max_len):
+
+        minsize += (idealsize - minsize)/4
+        maxsize -= (maxsize - idealsize)/4
+
+        tmp = {(cx,cy,cz) for cx,cy,cz in ret if (minsize < get_chunk_size_in_kbytes(cx,cy,cz,np.uint16) < maxsize)}
+
+        if tmp: #nonempty
+            ret = tmp
+        else:
+            break
+
+        i += 1
+        if (i > max_iterations):
+            break
+
+    if (len(ret) > max_len):
+        ret = random.choice(ret, k=max_len)
+
+    return ret
+
+
+def generate_chunking_candidates(nx, ny, nz, ndomains=1, max_len=None, dtype = np.uint16):
+
+
+    # names: n_ means system size, c_ means chunksize d_ means domainsize
+
+    ret = set()
+
+    # nz == cz for all chunkings, as I dont think nz is ever so high that something else is necessary
+    # all chunkings treat z as the fastest dimension, then y, then x. types and time are slowest (and equal).
+
+    # 1. generate small chunkings, where cx==1
+
+    # 1.1. try powers of two for cy
+    cy = 1
+    while (cy < ny):
+        ret.add((1,cy,nz))
+        cy *= 2
+
+    # 1.2. try cy as fractions of the whole data-y-dimension
+    cy = ny
+    i = 1
+    # chunks smaller than 10kB are not recommended by hdfgroup and will be filtered out later anyway
+    while (get_chunk_size_in_kbytes(cx=1, cy=cy, cz=nz, dtype=dtype) >= 10):
+        ret.add((1,cy,nz))
+
+        # round up, otherwise we might create a chunk that saves only the very edge of the field
+        # (consider ny==101, ny//2 would be 50, we would need *3* chunks in y-direction to cover the field)
+        cy = (ny // i) if (ny%i==0) else (ny//i + 1)
+        i += 1
+        #avoid infinite loop in case cz is ridiculously large
+        if (cy <= 1):
+            break
+
+    # 2. generate big chunkings, where cy==ny
+    # do this much in the same way as for the small chunks, excepts now we also care about domains
+
+    if (nx%ndomains != 0):
+        print(f"ERROR: the numnber of domains (ndomains={ndomains}) does not evenly divide nx={nx}, this is not allowed in soma. Exiting.")
+        exit(1)
+
+    dx = nx // ndomains # number of cells in x-dimension per domain
+
+    cx = 1
+    while (cx < dx):
+        # with only one domain, not perfectly covering the dataset is allowed.
+        if (dx%cx == 0 or ndomains==1):
+            ret.add((cx,ny,nz))
+        cx *= 2
+
+    cx = dx
+    i = 1
+    while (get_chunk_size_in_kbytes(cx=cx, cy=ny, cz=nz, dtype=dtype) >= 10):
+        if (dx%cx == 0 or ndomains==1):
+            ret.add((cx, ny, nz))
+        cx = (dx // i) if (dx%i==0) else (dx//i + 1)
+        i += 1
+
+        if (cx <= 1):
+            break
+
+    # filter out those chunkings out that do not adhere to the hdf5-group-recommendation
+    # of 10kiB < chunksize < 1MiB
+
+    ret = {(cx,cy,cz) for cx,cy,cz in ret if (10 <= get_chunk_size_in_kbytes(cx,cy,cz,dtype) < 1000)}
+
+    # reduce the number of chunkings artificially to match maximum length
+    if (max_len is not None and len(ret) > max_len):
+        ret = trim_3dchunk_set(ret, max_len)
+
+    return ret
+
+def warn_szip(x=[True]):
+    """
+    warn that no szip was found, but if this function gets called more than once, don't print it again
+    """
+
+    # use mutable default argument like a C-static-variable
+    if x[0]:
+        print("WARNING: hdf5 seems to not support szip-compression. Using lzf, gzip and/or scaleoffset instead")
+        x[0] = False
+
+
+
+def get_compression_alg_candidates(exhaustiveness=0, optigoal=OptiGoal.STANDARD, szip_allowed=False):
+
+    if (exhaustiveness < 2):
+        # use one fixed algorithm
+        if (optigoal == OptiGoal.SPEED):
+            return [("lzf", True)]
+
+        if (szip_allowed):
+            return [("szip", True)]
+
+        return [("gzip", True)]
+
+    elif (exhaustiveness < 4):
+
+        ret = [("gzip", True), ("lzf", True)]
+        # try szip if possible
+        if (szip_allowed):
+            ret.append(("szip", False))
+
+        return ret
+
+    else:
+        # generate all combinations of scaleoffsetfilter and compression algorithms
+
+        ret = []
+
+        algs = ["gzip", "lzf"]
+        if (szip_allowed):
+            algs.append("szip")
+        for alg in algs:
+            for scaleoff in [True, False]:
+                ret.append((alg, scaleoff))
+
+        return ret
+
+
+
+def make_trial_compressions_with_chunks(chunk3D, algs, name=None):
+    """
+    given a 3d-chunk-shape (x,y,z), create all kinds of TrialCompression-objects
+    with this chunk-shape with different compression strategies
+    """
+
+    if name is None:
+        x,y,z = chunk3D
+        name = f"{x}-{y}-{z}"
+
+    ret = []
+
+    for compression, scaleoffset in algs:
+        compname = compression if compression is not None else "-no-comp-"
+        so_name = "-scaleoff" if scaleoffset else ""
+        tc_name = compname + so_name + "-" + name
+        tc = TrialCompression(tc_name, chunk3D, comp=compression, scaleoffset=scaleoffset)
+        ret.append(tc)
+
+    return ret
+
+def add_datasets_where_possible(tc_list, h5file, dset_dims):
+    """
+    creates datasets for those compressions where it makes sense.
+    returns a list of those TrialCompression objects where datasets have been added
+    """
+
+    ret = []
+
+    _ , ntypes, nx, ny, nz = dset_dims
+    maxshape = (None, ntypes, nx, ny, nz)
+
+    for tc in tc_list:
+        if tc.is_sane(maxshape):
+            if (tc.create_dataset(h5file, dset_dims)):
+                ret.append(tc)
+
+    return ret
+
+class LoadingBar():
+    """
+    simple class to show progress in terminal
+    """
+
+    def __init__(self, maxval, message=""):
+
+        self.maxval = maxval
+        self.current = 0
+        self.message = message + ":"
+
+        print("\n")
+        self.display()
+
+
+    def incr(self, added=1):
+
+        self.current += added
+
+        self.display()
+
+    def display(self):
+
+        if (self.current > self.maxval):
+            print(f"error in loading bar: {self.current}/{self.maxval}")
+            return
+
+        blanks = (len(str(self.maxval)) - len(str(self.current)))*" "
+
+        sys.stdout.write("\033[F") #curser up one line
+        print(self.message, blanks, self.current, "/", self.maxval)
+
+
+def time_input(h5file, tc, dset_dims, data, Nt, silent=False):
+
+    assert(tc.dset is not None)
+
+    dset = tc.dset
+    name = tc.name
+
+    _, ntypes, nx, ny, nz = dset_dims
+
+    if not silent:
+        print(f"writing {name}", end="", flush=True)
+
+    start = time.time()
+
+    for i in range(Nt):
+
+        dset.resize((i+1,ntypes,nx,ny,nz))
+        dset[i,:,:,:,:] = data[i]
+        h5file.flush()
+
+        if not silent:
+            print(".", end="", flush=True)
+
+    end = time.time()
+
+    if not silent:
+        print("")
+
+    tc.write_time= end-start
+
+def create_random_data(dset_dims, Nt, silent=False):
+
+    if not silent:
+        print(f"creating random data", end="", flush=True)
+
+    data = [] #data[i] is field for analysis-step i
+
+
+    _, ntypes, nx, ny, nz = dset_dims
+
+    lb = LoadingBar(Nt*ntypes, "creating test input data")
+
+    xyz = np.array([ [x,y,z] \
+        for x in np.arange(nx)/nx \
+        for y in np.arange(ny)/ny \
+        for z in np.arange(nz)/nz ])
+
+    for i in range(Nt):
+
+        field = np.full((ntypes, nx, ny, nz), np.nan)
+
+        for j in range(ntypes):
+
+            sx = np.linspace(0, 1, nx//7 + 1)
+            sy = np.linspace(0, 1, ny//7 + 1)
+            sz = np.linspace(0, 1, nz//7 + 1)
+
+            values = np.random.rand(sx.size, sy.size, sz.size)
+            values = 4000*values
+
+            f = RegularGridInterpolator((sx,sy,sz), values)
+
+            dat = f(xyz)
+            dat = dat.reshape(nx,ny,nz)
+            dat = dat.astype(np.uint16)
+
+            field[j,:,:,:] = dat
+
+            lb.incr()
+
+        data.append(field)
+
+
+        if not silent:
+            print(".", end="", flush=True)
+
+    if not silent:
+        print("")
+
+    return data
+
+def do_timings(tc_list, h5file, dset_dims, Nt, silent=True):
+
+    data = create_random_data(dset_dims, Nt, silent)
+
+    lb = LoadingBar(Nt*len(tc_list), message="timing test inputs")
+
+    for tc in tc_list:
+        if tc.dset is not None:
+            time_input(h5file, tc, dset_dims, data, Nt, silent=silent)
+        lb.incr(Nt)
+
+
+def find_comp_rates(tc_list, h5filename):
+
+    h5ls_out = os.popen(f"h5ls -lrv {h5filename}").read()
+
+
+    for tc in tc_list:
+        rex = r"/"+tc.name+r"(?:.*\n){7}"
+        match = re.search(rex, h5ls_out)
+        assert(match)
+        grp = match.group(0)
+        rex = r"([0-9]*\.[0-9]*)\% utilization\n"
+        match = re.search(rex, grp)
+        assert(match)
+        tc.comp_rate = float(match.group(1))
+
+def open_new_hdf5_file():
+
+    # create temporary hdf5-file to use for input-testing
+    while True:
+        chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        name = "".join(random.choices(chars, k=16)) + ".h5"
+        try:
+            # w- => fail if exists
+            f = h5.File(name, "w-")
+            break
+        except:
+            continue
+
+    return name, f
+
+
+def get_pareto_optimum(tc_list):
+
+    assert(tc_list)
+
+    ret = copy.copy(tc_list)
+
+
+    for tc in tc_list:
+
+        time = tc.write_time
+        comp = tc.comp_rate
+
+        ret = list(filter(lambda x : (x.write_time < time or x.comp_rate > comp or (x.comp_rate == comp and x.write_time == time))  , ret))
+
+    return ret
+
+
+def not_too_slow_chunkings(tc_list, x):
+    """
+    takes a list of compressions and returns a list of compressions that are
+    at worst x% slower than the fastest in the original list
+    """
+
+    ret = copy.copy(tc_list)
+    fastest_time = min(tc_list, key = lambda x : x.write_time).write_time
+
+    acceptable_time = fastest_time * ((100 + x)/100)
+
+    ret = list(filter(lambda d : d.write_time <= acceptable_time, ret))
+
+    return ret
+
+def not_too_big_chunkings(tc_list, x):
+    """
+    takes a list of compressions and returns only those that take
+    at most x% more space than the most space-efficient compression
+    """
+
+    ret = copy.copy(tc_list)
+    best_comp_ratio = max(tc_list, key = lambda d : d.comp_rate).comp_rate
+
+    ret = list(filter(lambda d : (best_comp_ratio / d.comp_rate) <= ((100+x)/100) , tc_list))
+
+    return ret
+
+class Tolerance():
+
+    def __init__(self, optigoal=OptiGoal.STANDARD):
+
+        if (optigoal == OptiGoal.STANDARD):
+            self.space_tol=20
+            self.speed_tol=20
+            self.space_tol_inc=1.5
+            self.speed_tol_inc=1.5
+            self.space_tol_dec=0.7
+            self.speed_tol_dec=0.7
+        elif (optigoal == OptiGoal.MEMORY):
+            self.space_tol=15
+            self.speed_tol=50
+            self.space_tol_inc=1.3
+            self.speed_tol_inc=1.6
+            self.space_tol_dec=0.6
+            self.speed_tol_dec=0.9
+        elif (optigoal == OptiGoal.SPEED):
+            self.space_tol=50
+            self.speed_tol=15
+            self.space_tol_inc=1.6
+            self.speed_tol_inc=1.3
+            self.space_tol_dec=0.9
+            self.speed_tol_dec=0.6
+        else:
+            raise ValueError(f"Unknown OptiGoal-value {optigoal}")
+
+
+def get_balanced(tc_list, tol):
+    """
+    from a list of compressions choose one compression that
+    heuristically strikes a good balance between speed and memory
+    tolerance objects can be used to control the compromise
+    """
+
+    assert(tol.space_tol > 0)
+    assert(tol.speed_tol > 0)
+    assert(tol.space_tol_inc > 1)
+    assert(tol.space_tol_dec < 1)
+    assert(tol.speed_tol_inc > 1)
+    assert(tol.speed_tol_dec < 1)
+
+    smallest_good_inter_size = len(tc_list)
+    smallest_good_inter = tc_list
+
+    space_tol = tol.space_tol
+    speed_tol = tol.speed_tol
+
+    for i in range(20): # max iterations
+
+
+        small = set(not_too_big_chunkings(tc_list, space_tol))
+        fast = set(not_too_slow_chunkings(tc_list, speed_tol))
+
+        inter = small & fast
+
+
+        if (len(inter) == 1):
+
+            return list(inter)[0]
+
+        if (len(inter) < smallest_good_inter_size and len(inter) > 1):
+            smallest_good_inter = inter
+            smallest_good_inter_size = len(inter)
+
+
+        if (len(inter) == 0):
+            # increase tolerance
+            space_tol *= tol.space_tol_inc
+            speed_tol *= tol.speed_tol_inc
+        else:
+            # decrease tolerance
+            space_tol *= tol.space_tol_dec
+            speed_tol *= tol.speed_tol_dec
+
+    # no single optimum found.
+    # pick the space-optimal chunking from the smallest inter
+
+    return  max(smallest_good_inter, key = lambda x : x.comp_rate)
+
+# for trying out stuff
+if __name__ == '__main__':
+
+    nx = 100
+    ny = 100
+    nz = 200
+    res = get_good_compression((1,1,nx,ny,nz), ndomains=2, exhaustiveness=5, szip_allowed=False)
+    for field, tc in res.items():
+        print(field, ":")
+        print(tc)
