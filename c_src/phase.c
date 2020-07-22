@@ -212,8 +212,7 @@ int init_phase(struct Phase *const p)
         {
             for (uint64_t i = 0; i < p->n_nanoparticle; i++)
                 {
-		  //		  vol_nanoparticles_total+=p->nanoparticles[i].radius*2*p->nx/p->Lx*p->ny/p->Ly*p->nz/p->Lz;
-		  vol_nanoparticles_total+=0.6*2.0*p->nx/p->Lx*p->ny/p->Ly*p->nz/p->Lz;
+                  vol_nanoparticles_total+=p->nanoparticles[i].radius*2*p->nx/p->Lx*p->ny/p->Ly*p->nz/p->Lz;
                 }
         }
 

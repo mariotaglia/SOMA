@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "soma_config.h"
 #include "phase.h"
 #include "mesh.h"
@@ -70,9 +71,15 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
 	tempfield[i % p->nx] = 1* fnp;
     soma_scalar_t dlo= ((clo + 1.0) * dl - xlo) / dl;
     soma_scalar_t dhi=(xhi - chi * dl) / dl;
-    
-    tempfield[clo] =dlo*fnp*np->interaction;
-    tempfield[chi] = dhi* fnp*np->interaction;
+
+
+    soma_scalar_t a=-1.74386875; ///  a = - \Delta \phi_P(f=0.5) i.e. the value of the parabola at f=0.5. The parabola is defined by the difference between measured \phi and \phi_id=linear
+    soma_scalar_t b=-17.022608344437643; ///b=\phi(f=1)-\phi(f=0)
+    soma_scalar_t flo=(4*a+b)/(8*a)+sqrt(16*a*a+16*a*b*(1-dlo)-8*a*b+b*b)/(8*a);
+    soma_scalar_t fhi=(4*a+b)/(8*a)+sqrt(16*a*a+16*a*b*(1-dhi)-8*a*b+b*b)/(8*a);
+    tempfield[clo] = flo*fnp;
+    tempfield[chi] = fhi*fnp;
+    printf("%lf\t\%lf\n%lf\t%lf\n",dlo,flo,dhi,fhi);
     /* if(tempfield[chi]<1e-6) */
     /*   tempfield[chi-1]*=np->interaction; */
     
