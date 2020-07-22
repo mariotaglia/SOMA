@@ -60,18 +60,21 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     int chi = floor(xhi / dl);
     soma_scalar_t d=fmod(np->x,dl)/dl;
     soma_scalar_t dd2=(d-0.5)*(d-0.5);
-    /* if(fabs(d<1e-5)) */
-    /*    f=1.0;       */
+    soma_scalar_t fnp=1.2;
+    
     if (clo < chi)
       for (int i = clo + 1; i < chi; i++)
-	tempfield[i] = 1* 1.2;
+	tempfield[i] = 1* fnp;
     else
       for (int i = clo + 1; i <= (int)(chi + p->nx); i = (i + 1))
-	tempfield[i % p->nx] = 1* 1.2;
-    tempfield[clo] = ((clo + 1.0) * dl - xlo) / dl* 1.2*np->interaction;
-    tempfield[chi] = (xhi - chi * dl) / dl* 1.2*np->interaction;
-    if(tempfield[chi]<1e-6)
-      tempfield[chi-1]*=np->interaction;
+	tempfield[i % p->nx] = 1* fnp;
+    soma_scalar_t dlo= ((clo + 1.0) * dl - xlo) / dl;
+    soma_scalar_t dhi=(xhi - chi * dl) / dl;
+    
+    tempfield[clo] =dlo*fnp*np->interaction;
+    tempfield[chi] = dhi* fnp*np->interaction;
+    /* if(tempfield[chi]<1e-6) */
+    /*   tempfield[chi-1]*=np->interaction; */
     
     FILE *f = fopen("wall", "w");
     if (f == NULL)

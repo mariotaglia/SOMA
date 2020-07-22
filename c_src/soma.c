@@ -1,5 +1,5 @@
-#define calc_avg 0
-#define save_time_series 1
+#define calc_avg 1
+#define save_time_series 0
 
 /* Copyright (C) 2016-2019 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
