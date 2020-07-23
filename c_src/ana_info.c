@@ -37,6 +37,7 @@
 int init_ana(struct Phase *const p, const char *const filename, const char *const coord_filename)
 {
     //******** START EDIT FOR NEW OBSERVABLES HERE**********
+    p->ana_info.inter_domain_communicator = MPI_COMM_NULL;
     p->ana_info.delta_mc_Re = 0;
     p->ana_info.delta_mc_Rg = 0;
     p->ana_info.delta_mc_b_anisotropy = 0;
@@ -835,6 +836,16 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     else
         p->ana_info.file_id = -1;       //Invalid value, do not use.
 
+#if (ENABLE_MPI == 1)
+    if (MPI_Comm_split
+        (p->info_MPI.SOMA_comm_sim, p->info_MPI.domain_rank, p->info_MPI.sim_rank,
+         &(p->ana_info.inter_domain_communicator)) != MPI_SUCCESS)
+        {
+            fprintf(stderr, " MPI_ERROR: %s:%d ", __FILE__, __LINE__);
+            return -8;
+        }
+#endif                          //ENABLE_MPI
+
 #pragma acc update device(p->ana_info)
     return 0;
 }
@@ -845,6 +856,10 @@ int close_ana(struct Ana_Info *const a)
     free(a->filename);
     free(a->q_dynamical);
     free(a->q_static);
+#if (ENABLE_MPI == 1)
+    if (a->inter_domain_communicator != MPI_COMM_NULL)
+        MPI_Comm_free(&(a->inter_domain_communicator));
+#endif                          //ENABLE_MPI
 
     if (a->file_id >= 0)
         {
