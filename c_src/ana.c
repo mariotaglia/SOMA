@@ -654,17 +654,6 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
 
-#if (ENABLE_MPI == 1)
-    MPI_Comm inter_domain_communicator;
-    if (MPI_Comm_split
-        (p->info_MPI.SOMA_comm_sim, p->info_MPI.domain_rank, p->info_MPI.sim_rank,
-         &inter_domain_communicator) != MPI_SUCCESS)
-        {
-            fprintf(stderr, " MPI_ERROR: %s:%d ", __FILE__, __LINE__);
-            return -8;
-        }
-#endif                          //ENABLE_MPI
-
     if (p->info_MPI.sim_rank == 0)
         {
             //Gather all data on the sim_rank_0
@@ -683,7 +672,7 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
                             MPI_Gather(field_pointer + ghost_buffer_size * data_size +
                                        type * p->n_cells_local * data_size, buffer_size, mpi_type,
                                        full_array + type * p->nx * p->ny * p->nz * data_size, buffer_size, mpi_type, 0,
-                                       inter_domain_communicator);
+                                       p->ana_info.inter_domain_communicator);
                         }
 #endif                          //ENABLE_MPI
                 }
@@ -764,7 +753,7 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
             HDF5_ERROR_CHECK(status);
             status = H5Dclose(dset);
             HDF5_ERROR_CHECK(status);
-            if (p->info_MPI.sim_rank > 1)
+            if (p->info_MPI.sim_size> 1)
                 free(full_array);
         }
     else if (p->info_MPI.domain_rank == 0)
@@ -773,15 +762,10 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
             for (unsigned int type = 0; type < p->n_types; type++)
                 {
                     MPI_Gather(field_pointer + ghost_buffer_size * data_size + type * p->n_cells_local * data_size,
-                               buffer_size, mpi_type, NULL, 0, mpi_type, 0, inter_domain_communicator);
+                               buffer_size, mpi_type, NULL, 0, mpi_type, 0, p->ana_info.inter_domain_communicator);
                 }
 #endif                          //ENABLE_MPI
         }
-#if (ENABLE_MPI == 1)
-    if (inter_domain_communicator != MPI_COMM_NULL)
-        MPI_Comm_free(&inter_domain_communicator);
-#endif                          //ENABLE_MPI
-
     return 0;
 }
 
