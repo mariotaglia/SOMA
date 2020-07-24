@@ -72,11 +72,15 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     soma_scalar_t dlo= ((clo + 1.0) * dl - xlo) / dl;
     soma_scalar_t dhi=(xhi - chi * dl) / dl;
 
-
-    soma_scalar_t a=-1.74386875; ///  a = - \Delta \phi_P(f=0.5) i.e. the value of the parabola at f=0.5. The parabola is defined by the difference between measured \phi and \phi_id=linear
-    soma_scalar_t b=-17.022608344437643; ///b=\phi(f=1)-\phi(f=0)
-    soma_scalar_t flo=(4*a+b)/(8*a)+sqrt(16*a*a+16*a*b*(1-dlo)-8*a*b+b*b)/(8*a);
-    soma_scalar_t fhi=(4*a+b)/(8*a)+sqrt(16*a*a+16*a*b*(1-dhi)-8*a*b+b*b)/(8*a);
+    soma_scalar_t xa= 2.61393661e-01;
+    soma_scalar_t xb=-5.07971418e-01;
+    soma_scalar_t xc= 4.90827324e-01;
+    soma_scalar_t xd=-1.15725804e-01;
+    soma_scalar_t xe= 1.55394607e-01;
+    soma_scalar_t xf= 7.16087153e-01;
+    soma_scalar_t xg= 1.27522649e-05;
+    soma_scalar_t flo=xg+xf*pow(dlo,1)+xe*pow(dlo,2)+xd*pow(dlo,3)+xc*pow(dlo,4)+xb*pow(dlo,5)+xa*pow(dlo,6);
+    soma_scalar_t fhi=xg+xf*pow(dhi,1)+xe*pow(dhi,2)+xd*pow(dhi,3)+xc*pow(dhi,4)+xb*pow(dhi,5)+xa*pow(dhi,6);
     tempfield[clo] = flo*fnp;
     tempfield[chi] = fhi*fnp;
     printf("%lf\t\%lf\n%lf\t%lf\n",dlo,flo,dhi,fhi);
