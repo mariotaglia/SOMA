@@ -84,15 +84,24 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     /* soma_scalar_t xg= 1.27522649e-05; */
 
 
-    ///const bulk
-    soma_scalar_t xa= 2.79761581e-01;
-    soma_scalar_t xb=-6.04518082e-01;
-    soma_scalar_t xc= 5.73541725e-01;
-    soma_scalar_t xd=-2.18959190e-01;
-    soma_scalar_t xe= 1.87293972e-01;
-    soma_scalar_t xf= 7.83705283e-01;
-    soma_scalar_t xg= 1.69980393e-04;
+    /* ///const  edge small */
+    /* soma_scalar_t xa= 2.79761581e-01; */
+    /* soma_scalar_t xb=-6.04518082e-01; */
+    /* soma_scalar_t xc= 5.73541725e-01; */
+    /* soma_scalar_t xd=-2.18959190e-01; */
+    /* soma_scalar_t xe= 1.87293972e-01; */
+    /* soma_scalar_t xf= 7.83705283e-01; */
+    /* soma_scalar_t xg= 1.69980393e-04; */
 
+    
+    ///const  bulk small
+    soma_scalar_t xa= 2.38969144e-01;
+    soma_scalar_t xa=-4.98099364e-01;
+    soma_scalar_t xa= 4.35923284e-01;
+    soma_scalar_t xa=-1.69777167e-01;
+    soma_scalar_t xa= 2.40942369e-01;
+    soma_scalar_t xa= 7.54415562e-01;
+    soma_scalar_t xa=-6.61919857e-04;
 
     
     soma_scalar_t flo=xg+xf*pow(dlo,1)+xe*pow(dlo,2)+xd*pow(dlo,3)+xc*pow(dlo,4)+xb*pow(dlo,5)+xa*pow(dlo,6);
