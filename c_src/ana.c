@@ -1363,13 +1363,21 @@ int extent_structure(const struct Phase *p, const soma_scalar_t * const data, co
     HDF5_ERROR_CHECK(status);
     return 0;
 }
-int average_field(const struct Phase *p, soma_scalar_t* destination,soma_scalar_t time){
+int average_field(const struct Phase *p, soma_scalar_t* destination,soma_scalar_t time, int pow ){
 #pragma acc update self(p->fields_unified[p->n_types*p->n_cells])
-      for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
-	for (uint64_t cell = 0; cell < p->n_cells; cell++)
-	  if(p->area51==NULL||(p->area51!=NULL&&p->area51[cell]==0)){
-	   destination[cell + T_types * p->n_cells] += (soma_scalar_t) p->fields_unified[cell + T_types * p->n_cells]/(time);	            
-	  }
+  if(pow==1){
+    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
+      for (uint64_t cell = 0; cell < p->n_cells; cell++)
+	if(p->area51==NULL||(p->area51!=NULL&&p->area51[cell]==0)){
+	  destination[cell + T_types * p->n_cells] += (soma_scalar_t) (p->fields_unified[cell + T_types * p->n_cells])/(time);	            
+	}
+  }
+  if(pow==2){      for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
+      for (uint64_t cell = 0; cell < p->n_cells; cell++)
+	if(p->area51==NULL||(p->area51!=NULL&&p->area51[cell]==0)){
+	  destination[cell + T_types * p->n_cells] += (soma_scalar_t) (p->fields_unified[cell + T_types * p->n_cells]*p->fields_unified[cell + T_types * p->n_cells])/(time);	            
+	}
+}
 return 0;
 }
 soma_scalar_t calc_non_bonded_energy_exact(const struct Phase *p){

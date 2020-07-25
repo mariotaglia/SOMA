@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
 #if(calc_avg==1)
       soma_scalar_t * avg_e_b=calloc(NUMBER_SOMA_BOND_TYPES , sizeof(soma_scalar_t));
       soma_scalar_t * avg_e_nb=calloc(p->n_types, sizeof(soma_scalar_t));
+      p->external_field_unified=(soma_scalar_t *) malloc(p->n_cells * p->n_types * sizeof(soma_scalar_t));
       soma_scalar_t e_b=0;
       soma_scalar_t e_b0=0;	
       soma_scalar_t e_nb=0;
@@ -209,7 +210,8 @@ int main(int argc, char *argv[])
 #endif
 #if(calc_avg==1)
 	  if(i>=N_steps-N_steps/5){
-	    average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/5));
+	    average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/5),1);
+	    average_field(p, p->external_field_unified, (soma_scalar_t) N_steps-(N_steps-N_steps/5),2);
 	    e_nb+=calc_non_bonded_energy_exact(p)/(N_steps-(N_steps-N_steps/5));
 	    calc_non_bonded_energy(p,&e_b0);
 	    e_b+=e_b0/(N_steps/5);
