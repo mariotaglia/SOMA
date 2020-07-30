@@ -102,6 +102,7 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     /* soma_scalar_t xe= 2.40942369e-01; */
     /* soma_scalar_t xf= 7.54415562e-01; */
     /* soma_scalar_t xg=-6.61919857e-04; */
+
     /* soma_scalar_t xa=5.58533470e-02; */
     /* soma_scalar_t xb=-7.28120871e-02; */
     /* soma_scalar_t xc=8.38215045e-02; */
@@ -117,14 +118,31 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     /* soma_scalar_t xe=6.79208152e-02; */
     /* soma_scalar_t xf=8.04816319e-01; */
     /* soma_scalar_t xg=1.79962597e-04; */
-    soma_scalar_t xa=0.2682037467621129;
-    soma_scalar_t xb=-0.5208632422052761;
-    soma_scalar_t xc=0.500753988738143;
-    soma_scalar_t xd=-0.11691499827239908;
-    soma_scalar_t xe=0.1467827089162869;
-    soma_scalar_t xf=0.7218849608800436;
-    soma_scalar_t xg=3.428351380292647e-05;
-    
+
+    /* const edge small newest */
+    /* soma_scalar_t xa=0.2682037467621129; */
+    /* soma_scalar_t xb=-0.5208632422052761; */
+    /* soma_scalar_t xc=0.500753988738143; */
+    /* soma_scalar_t xd=-0.11691499827239908; */
+    /* soma_scalar_t xe=0.1467827089162869; */
+    /* soma_scalar_t xf=0.7218849608800436; */
+    /* soma_scalar_t xg=3.428351380292647e-05; */
+
+    /* const bulk edge small newest */
+
+
+    soma_scalar_t xa=-0.29619148614586593;
+    soma_scalar_t xb=0.8117401630556317;
+    soma_scalar_t xc=-0.657459689453385;
+    soma_scalar_t xd=0.2617042904010601;
+    soma_scalar_t xe=0.08054724396460784;
+    soma_scalar_t xf=0.800372671630164;
+    soma_scalar_t xg=0.00024082204615293888;
+
+
+
+
+
     
     soma_scalar_t flo=xg+xf*pow(dlo,1)+xe*pow(dlo,2)+xd*pow(dlo,3)+xc*pow(dlo,4)+xb*pow(dlo,5)+xa*pow(dlo,6);
     soma_scalar_t fhi=xg+xf*pow(dhi,1)+xe*pow(dhi,2)+xd*pow(dhi,3)+xc*pow(dhi,4)+xb*pow(dhi,5)+xa*pow(dhi,6);
