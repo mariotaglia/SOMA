@@ -141,13 +141,13 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
 
 
     //const bulk field scal var
-    soma_scalar_t xa=-0.3226686627648815;
-    soma_scalar_t xb=0.8749964661358357;
-    soma_scalar_t xc=-0.7221984713707235;
-    soma_scalar_t xd=0.33881015200606035;
-    soma_scalar_t xe=-0.009165689033214073;
-    soma_scalar_t xf=0.8408752811677045;
-    soma_scalar_t xg=-3.0333153610555586e-05;
+    soma_scalar_t xa=(-0.29619148614586593*3  -0.3226686627648815)/4.0;
+    soma_scalar_t xb=(0.8117401630556317*3    +0.8749964661358357)/4.0;
+    soma_scalar_t xc=(-0.657459689453385*3    -0.7221984713707235)/4.0;
+    soma_scalar_t xd=(0.2617042904010601 *3   +0.33881015200606035)/4.0;
+    soma_scalar_t xe=(0.08054724396460784 *3  -0.009165689033214073)/4.0;
+    soma_scalar_t xf=(0.800372671630164    *3 +0.8408752811677045)/4.0;
+    soma_scalar_t xg=(0.00024082204615293888*3-3.0333153610555586e-05)/4.0;
       
 
 
