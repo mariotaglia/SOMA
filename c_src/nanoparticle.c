@@ -61,8 +61,8 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
     int chi = floor(xhi / dl);
     soma_scalar_t d=fmod(np->x,dl)/dl;
     soma_scalar_t dd2=(d-0.5)*(d-0.5);
-    soma_scalar_t fnp=1.2;
-    
+    soma_scalar_t fnp=1.4;
+
     if (clo < chi)
       for (int i = clo + 1; i < chi; i++)
 	tempfield[i] = 1* fnp;
@@ -71,96 +71,13 @@ int box_to_grid(struct Phase *p, Nanoparticle * np, soma_scalar_t * tempfield)
 	tempfield[i % p->nx] = 1* fnp;
     soma_scalar_t dlo= ((clo + 1.0) * dl - xlo) / dl;
     soma_scalar_t dhi=(xhi - chi * dl) / dl;
-
-
-
-    /* ///const edge */
-    /* soma_scalar_t xa= 2.61393661e-01; */
-    /* soma_scalar_t xb=-5.07971418e-01; */
-    /* soma_scalar_t xc= 4.90827324e-01; */
-    /* soma_scalar_t xd=-1.15725804e-01; */
-    /* soma_scalar_t xe= 1.55394607e-01; */
-    /* soma_scalar_t xf= 7.16087153e-01; */
-    /* soma_scalar_t xg= 1.27522649e-05; */
-
-
-    /* ///const  edge small */
-    /* soma_scalar_t xa= 2.79761581e-01; */
-    /* soma_scalar_t xb=-6.04518082e-01; */
-    /* soma_scalar_t xc= 5.73541725e-01; */
-    /* soma_scalar_t xd=-2.18959190e-01; */
-    /* soma_scalar_t xe= 1.87293972e-01; */
-    /* soma_scalar_t xf= 7.83705283e-01; */
-    /* soma_scalar_t xg= 1.69980393e-04; */
-
     
-    /* ///const  bulk small */
-    /* soma_scalar_t xa= 2.38969144e-01; */
-    /* soma_scalar_t xb=-4.98099364e-01; */
-    /* soma_scalar_t xc= 4.35923284e-01; */
-    /* soma_scalar_t xd=-1.69777167e-01; */
-    /* soma_scalar_t xe= 2.40942369e-01; */
-    /* soma_scalar_t xf= 7.54415562e-01; */
-    /* soma_scalar_t xg=-6.61919857e-04; */
-
-    /* soma_scalar_t xa=5.58533470e-02; */
-    /* soma_scalar_t xb=-7.28120871e-02; */
-    /* soma_scalar_t xc=8.38215045e-02; */
-    /* soma_scalar_t xd=5.97644130e-02; */
-    /* soma_scalar_t xe=6.43003438e-02; */
-    /* soma_scalar_t xf=8.10989400e-01; */
-    /* soma_scalar_t xg=-3.46970772e-05; */
-    
-    /* soma_scalar_t xa=-2.33275278e-01; */
-    /* soma_scalar_t xb=6.51175036e-01; */
-    /* soma_scalar_t xc=-5.26773121e-01; */
-    /* soma_scalar_t xd=2.37455615e-01; */
-    /* soma_scalar_t xe=6.79208152e-02; */
-    /* soma_scalar_t xf=8.04816319e-01; */
-    /* soma_scalar_t xg=1.79962597e-04; */
-
-    /* const edge small newest */
-    /* soma_scalar_t xa=0.2682037467621129; */
-    /* soma_scalar_t xb=-0.5208632422052761; */
-    /* soma_scalar_t xc=0.500753988738143; */
-    /* soma_scalar_t xd=-0.11691499827239908; */
-    /* soma_scalar_t xe=0.1467827089162869; */
-    /* soma_scalar_t xf=0.7218849608800436; */
-    /* soma_scalar_t xg=3.428351380292647e-05; */
-
-    /* const bulk edge small newest */
-
-
-    /* soma_scalar_t xa=-0.29619148614586593; */
-    /* soma_scalar_t xb=0.8117401630556317; */
-    /* soma_scalar_t xc=-0.657459689453385; */
-    /* soma_scalar_t xd=0.2617042904010601; */
-    /* soma_scalar_t xe=0.08054724396460784; */
-    /* soma_scalar_t xf=0.800372671630164; */
-    /* soma_scalar_t xg=0.00024082204615293888; */
-
-
-    //const bulk field scal var
-    soma_scalar_t xa=(-0.29619148614586593*3  -0.3226686627648815)/4.0;
-    soma_scalar_t xb=(0.8117401630556317*3    +0.8749964661358357)/4.0;
-    soma_scalar_t xc=(-0.657459689453385*3    -0.7221984713707235)/4.0;
-    soma_scalar_t xd=(0.2617042904010601 *3   +0.33881015200606035)/4.0;
-    soma_scalar_t xe=(0.08054724396460784 *3  -0.009165689033214073)/4.0;
-    soma_scalar_t xf=(0.800372671630164    *3 +0.8408752811677045)/4.0;
-    soma_scalar_t xg=(0.00024082204615293888*3-3.0333153610555586e-05)/4.0;
-      
-
-
-
-
-    
-    soma_scalar_t flo=xg+xf*pow(dlo,1)+xe*pow(dlo,2)+xd*pow(dlo,3)+xc*pow(dlo,4)+xb*pow(dlo,5)+xa*pow(dlo,6);
-    soma_scalar_t fhi=xg+xf*pow(dhi,1)+xe*pow(dhi,2)+xd*pow(dhi,3)+xc*pow(dhi,4)+xb*pow(dhi,5)+xa*pow(dhi,6);
-    tempfield[clo] = flo*fnp;
-    tempfield[chi] = fhi*fnp;
-    printf("%lf\t\%lf\n%lf\t%lf\n",dlo,flo,dhi,fhi);
-    /* if(tempfield[chi]<1e-6) */
-    /*   tempfield[chi-1]*=np->interaction; */
+    tempfield[clo] = dlo*fnp;
+    tempfield[chi] = dhi*fnp;
+    if(fabs(tempfield[chi])>1e-5&&fabs(tempfield[chi]-fnp)>1e-5)
+      tempfield[chi]=np->interaction*fnp;
+    if(fabs(tempfield[clo])>1e-5&&fabs(tempfield[clo]-fnp)>1e-5)
+      tempfield[clo]=np->interaction*fnp;
     
     FILE *f = fopen("wall", "w");
     if (f == NULL)

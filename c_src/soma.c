@@ -209,12 +209,12 @@ int main(int argc, char *argv[])
 	    }
 #endif
 #if(calc_avg==1)
-	  if(i>=N_steps-N_steps/5){
-	    average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/5),1);
-	    average_field(p, p->external_field_unified, (soma_scalar_t) N_steps-(N_steps-N_steps/5),2);
-	    e_nb+=calc_non_bonded_energy_exact(p)/(N_steps-(N_steps-N_steps/5));
+	  if(i>=N_steps-N_steps/2){
+	    average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/2),1);
+	    average_field(p, p->external_field_unified, (soma_scalar_t) N_steps-(N_steps-N_steps/2),2);
+	    e_nb+=calc_non_bonded_energy_exact(p)/(N_steps-(N_steps-N_steps/2));
 	    calc_non_bonded_energy(p,&e_b0);
-	    e_b+=e_b0/(N_steps/5);
+	    e_b+=e_b0/(N_steps/2);
 	  }
 #endif	    
       }
