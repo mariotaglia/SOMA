@@ -25,38 +25,18 @@
 //! \brief Code related to the Polymer structures
 
 /*! \brief Polymer information */
+//! Instead of pointers this struct contains offset counters, that have to be applied to global arrays instead.
+//! To invalidate pointers (such as using NULL) the offsets are sets are set to UINT64_MAX
+//! To access for example the beads of this polymer use: p->ph.beads[ this->bead_offset + i]
 typedef struct Polymer {
-    //unsigned int N; /*!<\brief number of beads per chain */
-    Monomer *beads;             /*!<\brief pointer to beads */
-    Monomer *msd_beads;         //!< \brief bead positions used for MSD calculation. (Not on device.)
     unsigned int type;          //!< \brief Type of the polymer architecture.
     RNG_STATE poly_state;       //!< \brief Struct which contains all RNGs
     Monomer rcm;                //!< center of mass of the polymer
-    struct RNG_STATE *set_states;       //!< RNG states of independet sets. NULL if not used.
-    //! Array to store thr permutation of sets for set iteration. NULL if not used.
-    unsigned int *set_permutation;
+    uint64_t bead_offset;       //!< \brief offset to the bead pointer for this polymer.
+    uint64_t msd_bead_offset;   //!< \brief offset to the msd bead pointer for this polymer. (Typically not on device).
+    uint64_t set_states_offset; //!< offset to the set_states pointer for this polymer.
+    uint64_t set_permutation_offset;    //!< offset to the set_permutation pointer for this polymer.
 } Polymer;
-
-//! \brief Deallocate memory of deep copy elements in Polymer.
-//!
-//! \param p initialized system.
-//! \param poly Polymer to deallocate.
-//! \return Errorcode.
-int free_polymer(const struct Phase *const p, Polymer * const poly);
-
-//! Copyin deep copy to device memory of a polymer.
-//!
-//! \param p System
-//! \param poly Polymer to copyin.
-//! \return Errorcode.
-int copyin_polymer(struct Phase *const p, Polymer * const poly);
-
-//! Copyout deep copy from device memory of a polymer.
-//!
-//! \param p System
-//! \param poly Polymer to copyout.
-//! \return Errorcode.
-int copyout_polymer(struct Phase *const p, Polymer * const poly);
 
 //! If more memory space for polymers is requested than available,
 //! this functionallocates more space.
@@ -120,7 +100,7 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
 //! \pre Allocation of buffer with return value of poly_state_serial_length() minimum.
 //! \note Ownership and allocation status is unchanged.
 //! \return Number of written bytes. If < 0 Errorcode.
-int serialize_polymer(const struct Phase *const p, const Polymer * const poly, unsigned char *const buffer);
+int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigned char *const buffer);
 
 //! Deserialize an Polymer from a raw memory buffer.
 //!
@@ -132,15 +112,7 @@ int serialize_polymer(const struct Phase *const p, const Polymer * const poly, u
 //! , because deep copy data is allocated.
 //! \post You are owner of the Polymer including deep copy data.
 //! \return Number of written bytes. If < 0 Errorcode.
-int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const unsigned char *const buffer);
-
-//! Update the Self Memory of a given polymer
-//!
-//! \param p System
-//! \param poly Polymer to update
-//! \param rng_update_flag The flag deciding whether rng_state will be updated
-//! \return Errorcode
-int update_self_polymer(const struct Phase *const p, Polymer * const poly, const int rng_update_flag);
+int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsigned char *const buffer);
 
 //! Update the center of mass of the polymer from its monomer positions.
 //!

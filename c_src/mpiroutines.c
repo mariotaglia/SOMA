@@ -247,9 +247,6 @@ int send_polymer_chain(struct Phase *const p, const uint64_t poly_id, const int 
             return -3;
         }
 
-    //After serialization the polymer deep memory can be freed.
-    free_polymer(p, &poly);
-
     //Send the buffer to destination.
     MPI_Send(buffer, buffer_length, MPI_UNSIGNED_CHAR, destination, 0, comm);
 
@@ -351,8 +348,6 @@ int send_mult_polymers(struct Phase *const p, const int destination, unsigned in
                                     __FILE__, __LINE__, p->info_MPI.world_rank, poly_len, poly_theo_len);
                             return -5;
                         }
-                    //After serialization the polymer deep memory can be freed.
-                    free_polymer(p, &poly);
                     bytes_written += poly_bytes;
                 }
 
@@ -660,8 +655,6 @@ int extract_chains_per_domain(struct Phase *const p, const int *domain_lookup_li
                                             __FILE__, __LINE__, p->info_MPI.world_rank, poly_len, poly_theo_len);
                                     return -5;
                                 }
-                            //After serialization the polymer deep memory can be freed.
-                            free_polymer(p, &poly);
                             buffer_offsets[domain_index] += poly_bytes;
                         }
                 }

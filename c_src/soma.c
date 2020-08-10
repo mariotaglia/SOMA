@@ -53,6 +53,7 @@ int main(int argc, char *argv[])
 {
     Phase phase;
     Phase *const p = &phase;
+
 #if ( ENABLE_MPI == 1 )
     if (MPI_Init(NULL, NULL) != MPI_SUCCESS)
         {

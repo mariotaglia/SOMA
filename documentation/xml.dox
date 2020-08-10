@@ -324,7 +324,7 @@
       -\code <cylinder> <box> <sphere> <point_cloud> \endcode work exactly as with area51 or external field.
        They define the zone where the switching rules are applied.
        The value has only one entry and defines the switching rules for that reason.
-       To be precise: the value indicates the starting index for the <conversion_list>.
+       To be precise: the value indicates the starting index for the \code <conversion_list> \endcode.
        For example a 0 means to start reading at the beginning of that list.
        The user may define multiple zones with different indices. If zones overlap, the last zone overwrites the previous index value.
       - \code <conversion_list> \endcode defines the reactions.
@@ -339,6 +339,7 @@
    The default weight is 1 for each type. The weights are automatically normalized such that the sum of the weights equals the number of types in the system.
    The normalization assures that the part of the hamiltonian that restrains the density fluctuations can compare to the total density to 1.
    Weights of 0 are possible, but probably not recommended. All weights zero or negative weights are obviously not an option.
-   \warning It is recommended to use the the SCMF1 hamiltonian, since the SCFM0 expects a unit density implicitly in the  \f$ \chi N\f$-term.
+
+\warning It is recommended to use the the SCMF1 hamiltonian, since the SCFM0 expects a unit density implicitly in the  \f$ \chi N\f$ -term.
 
 */
