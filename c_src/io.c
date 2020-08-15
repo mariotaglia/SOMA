@@ -555,6 +555,28 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
             return status;
         }
 
+    //Synchronize the closing of the file
+    MPI_Barrier(p->info_MPI.SOMA_comm_sim);
+
+    // Variable length data is not supported with parallel IO.
+    // So we just reopen the file on one rank and write it anyways.
+    if (p->info_MPI.sim_rank == 0)
+        {
+            hid_t file_id = H5Fopen(filename, H5F_ACC_RDWR, H5P_DEFAULT);
+            status = file_id;
+            if (status < 0)
+                {
+                    fprintf(stderr, "ERROR: HDF5 %s:%s:%d\n", __func__, __FILE__, __LINE__);
+                    return -1;
+                }
+            add_self_documentation_to_hdf5(&(p->sd), file_id, H5P_DEFAULT);
+            if ((status = H5Fclose(file_id)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    return status;
+                }
+        }
     return status;
 }
 
@@ -966,7 +988,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         H5Pset_fapl_mpio(plist_id, p->info_MPI.SOMA_comm_sim, MPI_INFO_NULL);
 #endif                          //ENABLE_MPI
 
-    //Create a new h5 file and overwrite the content.
     hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, plist_id);
     H5Pclose(plist_id);
     plist_id = H5Pcreate(H5P_DATASET_XFER);

@@ -187,6 +187,12 @@ extern "C" {
         char *final_file_orig;  /**< @brief Filename to write the final configuration. (HDF5-Format) original value given at command line.  */
         const char *final_file_help;
                                /**< @brief Filename to write the final configuration. (HDF5-Format) help description.  */
+        char *purpose_arg;
+                        /**< @brief Describe the purpose of the simulation run. Enables automatic self documentation. only ASCII.  */
+        char *purpose_orig;
+                        /**< @brief Describe the purpose of the simulation run. Enables automatic self documentation. only ASCII original value given at command line.  */
+        const char *purpose_help;
+                            /**< @brief Describe the purpose of the simulation run. Enables automatic self documentation. only ASCII help description.  */
 
         unsigned int help_given;/**< @brief Whether help was given.  */
         unsigned int detailed_help_given;
@@ -233,6 +239,8 @@ extern "C" {
         unsigned int set_order_frequency_given; /**< @brief Whether set_order_frequency was given.  */
         unsigned int n_random_q_given;  /**< @brief Whether n_random_q was given.  */
         unsigned int final_file_given;  /**< @brief Whether final-file was given.  */
+        unsigned int purpose_given;
+                                /**< @brief Whether purpose was given.  */
 
     };
 

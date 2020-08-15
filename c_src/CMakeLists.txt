@@ -21,6 +21,7 @@ set(soma_source
   polymer.c
   poly_heavy.c
   rng.c
+  self_documentation.c
   rng_alternative.c
   soma_config.c
   soma_memory.c
@@ -53,6 +54,7 @@ set(soma_header
   polymer.h
   poly_heavy.h
   rng.h
+  self_documentation.h
   rng_alternative.h
   soma_memory.h
   soma_util.h

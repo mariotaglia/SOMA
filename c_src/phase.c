@@ -31,11 +31,11 @@
 #include "independent_sets.h"
 #include "mesh.h"
 #include "polytype_conversion.h"
+#include "self_documentation.h"
 #include "poly_heavy.h"
 
 int init_phase(struct Phase *const p)
 {
-    print_version(p->info_MPI.world_rank);
     p->present_on_device = false;
     p->start_time = p->time;
     gettimeofday(&(p->start_clock), NULL);
@@ -272,6 +272,16 @@ int init_phase(struct Phase *const p)
             memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
         }
 
+    p->sd.Ndoc = 0;
+    p->sd.simdoc = NULL;
+    p->sd.simdoc_internal = NULL;
+    if (p->args.coord_file_arg != NULL) //This is only set to NULL if convert is used.
+        {
+            init_self_documentation(p, p->args.coord_file_arg, &(p->sd));
+        }
+    if (p->info_MPI.world_rank == 0)
+        print_self_documentation(&(p->sd), stdout);
+
     int ret = 0;
     if (p->args.coord_file_arg != NULL) //Is it a full init Phase?
         ret = init_ana(p, p->args.ana_file_arg, p->args.coord_file_arg);
@@ -471,6 +481,8 @@ int free_phase(struct Phase *const p)
         free(p->umbrella_field);
 
     free_poly_conversion(p);
+
+    free_self_documentation(&(p->sd));
     switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
