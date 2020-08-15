@@ -832,6 +832,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                     return -1;
                 }
             p->ana_info.file_id = file_id_tmp;
+            add_self_documentation_to_hdf5(&(p->sd), file_id_tmp, H5P_DEFAULT);
         }
     else
         p->ana_info.file_id = -1;       //Invalid value, do not use.

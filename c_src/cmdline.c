@@ -66,6 +66,7 @@ const char *som_args_detailed_help[] = {
     "      --set_order_frequency=frequency\n                                Option to determine the frequency to check the\n                                  ordering of the polymers which is important\n                                  for independent_set_iteration.\n                                  (default=`200')",
     "      --n_random_q=N            Option to determine the number of random wave\n                                  vectors used for the calculation of structure\n                                  factor.  (default=`32')",
     "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
+    "      --purpose=description     Describe the purpose of the simulation run.\n                                  Enables automatic self documentation. only\n                                  ASCII",
     0
 };
 
@@ -101,11 +102,12 @@ static void init_help_array(void)
     som_args_help[27] = som_args_detailed_help[28];
     som_args_help[28] = som_args_detailed_help[29];
     som_args_help[29] = som_args_detailed_help[30];
-    som_args_help[30] = 0;
+    som_args_help[30] = som_args_detailed_help[31];
+    som_args_help[31] = 0;
 
 }
 
-const char *som_args_help[31];
+const char *som_args_help[32];
 
 typedef enum { ARG_NO, ARG_FLAG, ARG_STRING, ARG_INT, ARG_DOUBLE, ARG_ENUM
 } cmdline_parser_arg_type;
@@ -161,6 +163,7 @@ void clear_given(struct som_args *args_info)
     args_info->set_order_frequency_given = 0;
     args_info->n_random_q_given = 0;
     args_info->final_file_given = 0;
+    args_info->purpose_given = 0;
 }
 
 static
@@ -215,6 +218,8 @@ void clear_args(struct som_args *args_info)
     args_info->n_random_q_orig = NULL;
     args_info->final_file_arg = gengetopt_strdup("end.h5");
     args_info->final_file_orig = NULL;
+    args_info->purpose_arg = NULL;
+    args_info->purpose_orig = NULL;
 
 }
 
@@ -253,6 +258,7 @@ void init_args_info(struct som_args *args_info)
     args_info->set_order_frequency_help = som_args_detailed_help[28];
     args_info->n_random_q_help = som_args_detailed_help[29];
     args_info->final_file_help = som_args_detailed_help[30];
+    args_info->purpose_help = som_args_detailed_help[31];
 
 }
 
@@ -363,6 +369,8 @@ static void cmdline_parser_release(struct som_args *args_info)
     free_string_field(&(args_info->n_random_q_orig));
     free_string_field(&(args_info->final_file_arg));
     free_string_field(&(args_info->final_file_orig));
+    free_string_field(&(args_info->purpose_arg));
+    free_string_field(&(args_info->purpose_orig));
 
     clear_given(args_info);
 }
@@ -411,9 +419,9 @@ static void write_into_file(FILE * outfile, const char *opt, const char *arg, co
                     found = check_possible_values(arg, values);
                 }
             if (found >= 0)
-                fprintf(outfile, "%s=\"%s\" # %s\n", opt, arg, values[found]);
+                fprintf(outfile, "\t%s=\"%s\" # %s\n", opt, arg, values[found]);
             else
-                fprintf(outfile, "%s=\"%s\"\n", opt, arg);
+                fprintf(outfile, "\t%s=\"%s\"\n", opt, arg);
         }
     else
         {
@@ -493,6 +501,8 @@ int cmdline_parser_dump(FILE * outfile, struct som_args *args_info)
         write_into_file(outfile, "n_random_q", args_info->n_random_q_orig, 0);
     if (args_info->final_file_given)
         write_into_file(outfile, "final-file", args_info->final_file_orig, 0);
+    if (args_info->purpose_given)
+        write_into_file(outfile, "purpose", args_info->purpose_orig, 0);
 
     i = 1;
     return i;
@@ -825,6 +835,7 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                 {"set_order_frequency", 1, NULL, 0},
                 {"n_random_q", 1, NULL, 0},
                 {"final-file", 1, NULL, 'f'},
+                {"purpose", 1, NULL, 0},
                 {0, 0, 0, 0}
             };
 
@@ -1139,6 +1150,17 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                                            &(args_info->n_random_q_orig), &(args_info->n_random_q_given),
                                            &(local_args_info.n_random_q_given), optarg, 0, "32", ARG_INT,
                                            check_ambiguity, override, 0, 0, "n_random_q", '-', additional_error))
+                                goto failure;
+
+                        }
+                    /* Describe the purpose of the simulation run. Enables automatic self documentation. only ASCII.  */
+                    else if (strcmp(long_options[option_index].name, "purpose") == 0)
+                        {
+
+                            if (update_arg((void *)&(args_info->purpose_arg),
+                                           &(args_info->purpose_orig), &(args_info->purpose_given),
+                                           &(local_args_info.purpose_given), optarg, 0, 0, ARG_STRING,
+                                           check_ambiguity, override, 0, 0, "purpose", '-', additional_error))
                                 goto failure;
 
                         }

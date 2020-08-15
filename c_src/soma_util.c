@@ -83,12 +83,6 @@ uint32_t get_info_bl(const unsigned int offset_bl, const unsigned int type)
 
 int post_process_args(struct som_args *args, const unsigned int world_rank)
 {
-    if (world_rank == 0)
-        {
-            cmdline_parser_print_version();
-            printf("\n");
-        }
-
     if (args->timesteps_arg < 0)
         {
             if (world_rank == 0)
@@ -203,8 +197,6 @@ int post_process_args(struct som_args *args, const unsigned int world_rank)
                 }
         }
 
-    if (world_rank == 0)
-        cmdline_parser_dump(stdout, args);
     return 0;
 }
 

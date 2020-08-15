@@ -47,37 +47,6 @@
 #include "soma_config.h"
 #include "phase.h"
 
-int print_version(const int rank)
-{
-    if (rank == 0)
-        {
-            //Sytem
-            fprintf(stdout, "system is %s with C std %ld.\n", get_soma_system_info(), __STDC_VERSION__);
-
-            //SOMA git
-            fprintf(stdout, "GIT version of SOMA is %s compiled on %s %s.\n", get_soma_version(), __DATE__, __TIME__);
-
-            //HDF5
-            unsigned int majnum = 0, minnum = 0, relnum = 0;
-            H5get_libversion(&majnum, &minnum, &relnum);
-            fprintf(stdout, "HDF5 version is %u.%u.%u\n", majnum, minnum, relnum);
-#if ( ENABLE_MPI == 1 )
-#ifdef MPI_MAX_LIBRARY_VERSION_STRING
-            //MPI
-            char mpi_version[MPI_MAX_LIBRARY_VERSION_STRING];
-            int length;
-            MPI_Get_library_version(mpi_version, &length);
-            int mpi_maj = 0, mpi_min = 0;
-            MPI_Get_version(&mpi_maj, &mpi_min);
-            fprintf(stdout, "MPI version: %s %d.%d\n", mpi_version, mpi_maj, mpi_min);
-#else
-            fprintf(stdout, "No MPI lib version available.\n");
-#endif                          //mpi_max_library_version_string
-#endif                          //( ENABLE_MPI == 1 )
-        }
-    return 0;
-}
-
 int set_openacc_devices(const struct Phase *const p)
 {
     int ret = 0;

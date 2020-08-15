@@ -82,6 +82,12 @@ if(DEFINED SOMA_PYTHON_SHEBANG)
   add_test(NAME xml WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./xml.sh)
 endif()
 
+#self_documentation
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/self_documentation.sh.in ${CMAKE_CURRENT_BINARY_DIR}/self_documentation.sh)
+if(DEFINED SOMA_PYTHON_SHEBANG)
+  add_test(NAME self-documentation WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./self_documentation.sh)
+endif()
+
 if(ENABLE_MPI)
   #async
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.py.in ${CMAKE_CURRENT_BINARY_DIR}/async.py)
