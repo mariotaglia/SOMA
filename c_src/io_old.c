@@ -445,6 +445,7 @@ int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             p->polymers[i].msd_bead_offset = get_new_soma_memory_offset(&(p->ph.msd_beads), N);
         }
 
+
     if (H5Lexists(file_id, "/beads", H5P_DEFAULT) > 0)
         {
             //Get the data for the polymers
@@ -484,8 +485,12 @@ int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             for (uint64_t i = 0; i < p->n_polymers; i++)
                 {
                     const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
-                    memcpy(((Monomer *) p->ph.beads.ptr) + i, monomer_data + i * max_n_beads, N * sizeof(Monomer));
-                    memcpy(((Monomer *) p->ph.msd_beads.ptr) + i, monomer_data + i * max_n_beads, N * sizeof(Monomer));
+                    for(unsigned int j=0; j < N; j++)
+                        {
+                        const Monomer data = monomer_data[i*max_n_beads+j];
+                        *(((Monomer*)p->ph.beads.ptr)+ p->polymers[i].bead_offset +j) = data;
+                        *(((Monomer*)p->ph.msd_beads.ptr)+ p->polymers[i].msd_bead_offset +j) = data;
+                        }
                 }
             free(monomer_data);
 
