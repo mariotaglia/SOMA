@@ -61,7 +61,7 @@ void unity_mpi_collect_and_print_err_msg()
     int test_world_size;
     MPI_Comm_size(get_test_world(), & test_world_size);
 	// gather sizes of error messages
-	int size_on_rank[ test_world_size];
+	int *size_on_rank = (int*)malloc(test_world_size*sizeof(int));
 	MPI_Gather(&err_len, 1, MPI_INT,
 			size_on_rank, 1, MPI_INT,
 			0, get_test_world());
@@ -70,7 +70,7 @@ void unity_mpi_collect_and_print_err_msg()
 	{
 
 		int total_size = 0;
-		int dspls[ test_world_size];
+		int * dspls = (int*)malloc(test_world_size*sizeof(int));
 		for (int i=0; i < test_world_size; i++)
 		{
 			dspls[i] = total_size;
@@ -85,7 +85,7 @@ void unity_mpi_collect_and_print_err_msg()
 				0, get_test_world());
 
 
-		int fail_ranks[test_world_size];
+        int * fail_ranks= (int*)malloc(test_world_size*sizeof(int));
 		int num_fail_ranks = 0;
 		for (int i=0; i <test_world_size; i++)
 		{
@@ -115,7 +115,9 @@ void unity_mpi_collect_and_print_err_msg()
 			printf("rank %d: %s\n", fail_ranks[i], &recv[dspls[fail_ranks[i]]]);
 		}
 
+		free(fail_ranks);
 		free(recv);
+		free(size_on_rank);
 		}
 	else
 	{
@@ -127,6 +129,7 @@ void unity_mpi_collect_and_print_err_msg()
 
 	clear_err_msg();
 
+	free(size_on_rank);
 }
 
 
