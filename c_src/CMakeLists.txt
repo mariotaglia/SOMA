@@ -29,7 +29,18 @@ set(soma_source
   walltime.c
   test.c
   polytype_conversion.c
-  )
+
+  ## unit testing harness
+  unity_fixture.c
+  unity_memory.c
+  unity_mpi_addon.c
+  unity.c
+  unit_test_main.c
+  test_runner.c
+  run_unit_tests.c
+  unity_capture.c
+  unity_capture_test.c
+        ana_test.c mesh_test.c)
 
 configure_file(soma_config.h.in soma_config.h)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/soma_config.h DESTINATION include)
@@ -60,16 +71,30 @@ set(soma_header
   soma_util.h
   walltime.h
   test.h
+  err_handling.h
+
+  # headers for unit tests:
+  unity.h
+  unity_fixture.h
+  unity_fixture_internals.h
+  unity_memory.h
+  unity_mpi_addon.h
+  unit_test_util.h
+  run_unit_tests.h
+  unity_capture.h
+  unity_capture_internals.h
+
   )
 
 add_library(soma_lib ${soma_source})
 
 add_executable(SOMA soma.c)
 add_executable(CONVERT convert.c)
+add_executable(UNITTESTS unit_test_main.c)
 
 option(BUILD_STATIC "Try to build static if possible. No guarantee your EXE is completely static" OFF)
 
-foreach(EXE SOMA CONVERT)
+foreach(EXE SOMA CONVERT UNITTESTS)
   target_link_libraries(${EXE} soma_lib)
   target_link_libraries(${EXE} ${MPI_LIBRARIES})
   target_link_libraries(${EXE} ${HDF5_LIBRARIES})

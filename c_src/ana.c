@@ -37,6 +37,9 @@
 #include "io.h"
 #include "rng.h"
 #include <math.h>
+#include "err_handling.h"
+
+#include "unity_capture.h"
 
 void calc_Re(const struct Phase *p, soma_scalar_t * const result)
 {
@@ -243,6 +246,7 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
 
 void calc_MSD(const struct Phase *p, soma_scalar_t * const result)
 {
+
     uint64_t *const counter = (uint64_t *) malloc(2 * p->n_poly_type * sizeof(uint64_t));
     if (counter == NULL)
         {
@@ -345,6 +349,26 @@ void calc_acc_ratio(struct Phase *const p, soma_scalar_t * const acc_ratio)
 
 void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const non_bonded_energy)
 {
+    /*
+    if (p->args.N_domains_arg > 1)
+        {
+            DPRINT("calculating non-bonded-energy")
+            file_open("calc_nb_energy_domain_decomp_test_data.h5", p->info_MPI.SOMA_comm_sim);
+            SAVE(p->n_types);
+            SAVE(p->nx);
+            SAVE(p->ny);
+            SAVE(p->nz);
+            SAVE(p->n_cells_local);
+            SAVE_ARR(p->fields_unified, p->n_types * p->nx * p->ny * p->nz);
+            SAVE_ARR(p->omega_field_unified, p->n_types * p->nx * p->ny * p->nz);
+            SAVE(p->info_MPI.domain_size);
+            SAVE(p->args.N_domains_arg);
+            SAVE(p->local_nx_high);
+            SAVE(p->local_nx_low);
+            SAVE(p->info_MPI.domain_rank);
+        }
+        */
+
     memset(non_bonded_energy, 0, p->n_types * sizeof(soma_scalar_t));
 
     if (p->info_MPI.domain_rank == 0)   //Only the root domain rank needs to calculate the values.
@@ -370,6 +394,15 @@ void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const n
     else
         MPI_Reduce(non_bonded_energy, NULL, p->n_types, MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
 #endif                          //ENABLE_MPI
+
+    /*
+    if (p->args.N_domains_arg)
+        {
+            change_group(RESULTS);
+            SAVE_ARR(non_bonded_energy, p->n_types);
+            file_close();
+        }
+        */
 }
 
 void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonded_energy)

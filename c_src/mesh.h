@@ -38,6 +38,7 @@
 
 #include "soma_config.h"
 #include "phase.h"
+#include "err_handling.h"
 
 #pragma acc routine(coord_to_cell_coordinate) seq
 static inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,
@@ -170,6 +171,9 @@ inline uint64_t coord_to_index_unified(const struct Phase *p, const soma_scalar_
     const uint64_t cell = cell_coordinate_to_index(p, x, y, z);
     return cell_to_index_unified(p, cell, rtype);
 }
+
+
+void communicate_density_fields(const struct Phase *const p);
 
 /*! Update the density fields \f$ \rho \f$ of the system.
  The field update fist sets all entries to zero. Then performs a loop over all polymers eg. monomers.
