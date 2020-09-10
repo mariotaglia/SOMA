@@ -84,11 +84,18 @@ void init_field_metadata (Phase *p, int nx, int ny, int nz, int ntypes, int doma
     p->n_cells_local = (p->local_nx_high - p->local_nx_low) * p->ny*p->nz;
     p->fields_unified = (uint16_t *) malloc(p->n_cells_local * p->n_types * sizeof(uint16_t));
     TEST_ASSERT_NOT_NULL(p->fields_unified);
-    p->left_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
-    TEST_ASSERT_NOT_NULL(p->left_tmp_buffer);
-    p->right_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
-    TEST_ASSERT_NOT_NULL(p->right_tmp_buffer);
-
+    if (n_domains > 1)
+        {
+            p->left_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
+            TEST_ASSERT_NOT_NULL(p->left_tmp_buffer);
+            p->right_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
+            TEST_ASSERT_NOT_NULL(p->right_tmp_buffer);
+        }
+    else
+        {
+            p->left_tmp_buffer = NULL;
+            p->right_tmp_buffer = NULL;
+        }
 }
 
 static Phase init_communicate_density_fields_phase(int n_domains, int nx, int ny, int nz, int ntypes, int domain_buffer_arg)
@@ -114,6 +121,28 @@ static void free_communicate_density_field_phase(Phase * p)
     free(p->fields_unified);
 }
 
+TEST(communicate_density_fields_w2, 1domain_2ranks)
+{
+
+    int n_domains = 1;
+    int nx , ny , nz;
+    nx = ny = nz = 5;
+    int ntypes = 2;
+    int domain_buffer_arg = 0;
+
+    INIT_COMM_DENSITY_TEST
+
+    LOOP_DENSITY_FIELD
+        (
+            uint64_t index = cell_coordinate_to_index(&p, x, y, z) + type*p.n_cells_local;
+
+            uint16_t val = y + z*10;
+            p.fields_unified[index] = val + p.info_MPI.domain_rank;
+            expected[index] = 2*val + 1;
+        )
+
+    FINALIZE_COMM_DENSITY_TEST
+}
 
 TEST(communicate_density_fields_w2, 2domains_1rankperdomain_3types)
 {

@@ -56,6 +56,7 @@ TEST_GROUP_RUNNER(convenience_api_w1_3)
 
 TEST_GROUP_RUNNER(communicate_density_fields_w2)
 {
+    RUN_TEST_CASE(communicate_density_fields_w2,1domain_2ranks);
     RUN_TEST_CASE(communicate_density_fields_w2,2domains_1rankperdomain_3types);
 }
 
