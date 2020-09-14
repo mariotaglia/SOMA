@@ -162,19 +162,6 @@ int init_phase(struct Phase *const p)
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
             return -1;
         }
-    p->omega_field_unified = (soma_scalar_t *) malloc(p->n_cells_local * p->n_types * sizeof(soma_scalar_t));
-    if (p->omega_field_unified == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-    p->tempfield = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
-    if (p->tempfield == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
 
     // Set all values to zero
     p->num_all_beads = 0;
@@ -310,7 +297,6 @@ int copyin_phase(struct Phase *const p)
         {
 #pragma acc enter data copyin(p->area51[0:p->n_cells_local])
         }
-#pragma acc enter data copyin(p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL)
         {
 #pragma acc enter data copyin(p->external_field_unified[0:p->n_cells_local*p->n_types])
@@ -319,7 +305,6 @@ int copyin_phase(struct Phase *const p)
         {
 #pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
-#pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
 #pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
@@ -379,7 +364,6 @@ int copyout_phase(struct Phase *const p)
         {
 #pragma acc exit data copyout(p->area51[0:p->n_cells_local])
         }
-#pragma acc exit data copyout(p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL)
         {
 #pragma acc exit data copyout(p->external_field_unified[0:p->n_cells_local*p->n_types])
@@ -388,7 +372,6 @@ int copyout_phase(struct Phase *const p)
         {
 #pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
-#pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
 #pragma acc exit data copyout(p->A[0:p->n_types])
 #pragma acc exit data copyout(p->R[0:p->n_types])
 #pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
@@ -441,8 +424,6 @@ int free_phase(struct Phase *const p)
     /* de-allocate fields */
     free(p->left_tmp_buffer);
     free(p->right_tmp_buffer);
-    free(p->omega_field_unified);
-    free(p->tempfield);
     free(p->fields_unified);
     free(p->old_fields_unified);
     free(p->fields_32);
@@ -523,7 +504,6 @@ int update_self_phase(Phase * const p, int rng_update_flag)
         {
 #pragma acc update self(p->area51[0:p->n_cells_local])
         }
-#pragma acc update self(p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL)
         {
 #pragma acc update self(p->external_field_unified[0:p->n_cells_local*p->n_types])
@@ -533,7 +513,6 @@ int update_self_phase(Phase * const p, int rng_update_flag)
 #pragma acc update self(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
 
-#pragma acc update self(p->tempfield[0:p->n_cells_local])
 #pragma acc update self(p->A[0:p->n_types])
 #pragma acc update self(p->R[0:p->n_types])
 #pragma acc update self(p->field_scaling_type[0:p->n_types])

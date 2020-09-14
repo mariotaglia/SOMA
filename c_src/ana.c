@@ -881,7 +881,6 @@ int analytics(struct Phase *const p)
                     fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
                     return -2;
                 }
-#pragma acc update self(p->omega_field_unified[0:p->n_cells_local*p->n_types])
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
             calc_non_bonded_energy(p, nb_energy);
             if (p->info_MPI.sim_rank == 0)
