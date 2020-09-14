@@ -99,9 +99,9 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
             return nan("");
 #endif                          //NAN
         }
-    const soma_scalar_t energy_old = p->omega_field_unified[cellindex_old];
+    const soma_scalar_t energy_old = calc_omega_field_unified(p, cellindex_old);
     // New non-bonded interaction
-    const soma_scalar_t energy_new = p->omega_field_unified[cellindex_new];
+    const soma_scalar_t energy_new = calc_omega_field_unified(p, cellindex_new);
     const soma_scalar_t energy = energy_new - energy_old;
     return energy;
 }

@@ -210,4 +210,11 @@ void update_omega_fields_scmf0(const struct Phase *const p);
 //! \note In case of the use of the density_weights every \f$\phi_i\f$ is multiplied with its weight \f$w_i\f$.
 void update_omega_fields_scmf1(const struct Phase *const p);
 
+//! function to calculate omega fields on the fly (within MC loop) instead of precalculation
+//! 
+//! \param p Initialized Phase struct.
+//! \param index memory index to access a field p.fields[type][index]
+#pragma acc routine
+soma_scalar_t calc_omega_field_unified(const struct Phase *const p, const unsigned int index);
+
 #endif                          //SOMA_MESH_H

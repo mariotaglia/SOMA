@@ -240,6 +240,74 @@ int update_density_fields(const struct Phase *const p)
     return 0;
 }
 
+soma_scalar_t calc_omega_field_unified(const struct Phase *const p, const unsigned int index)
+{
+    // need actual cell index and bead type
+    const unsigned int cell = index % p->n_cells_local; 
+    const unsigned int T_types = index / p->n_cells_local;
+
+    //calculate tempfield, i.e. total density
+    soma_scalar_t tempfield = 0.;
+    for (unsigned int S_types = 0; S_types < p->n_types; S_types++)
+    {
+        tempfield += p->field_scaling_type[S_types] * p->fields_unified[cell + S_types * p->n_cells_local];
+    }
+
+    // calculate external_field_time
+    soma_scalar_t external_field_time = 0;
+    if (p->time == 0 || p->serie_length == 0)
+    {                       //to fix serie_length seg fault
+        external_field_time = 1;
+    }
+    else
+    {
+        for (unsigned int serie_index = 0; serie_index < p->serie_length; serie_index++)
+        {
+            external_field_time += p->cos_serie[serie_index] * cos(2 * M_PI * serie_index / p->period * p->time);
+            external_field_time += p->sin_serie[serie_index] * sin(2 * M_PI * serie_index / p->period * p->time);
+        }
+    }
+
+    // add different contributions to omega
+    const soma_scalar_t inverse_refbeads = 1.0 / p->reference_Nbeads;
+    // total density omega field
+    soma_scalar_t omega = inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (tempfield - 1.0));
+    // externtal field part
+    if (p->external_field_unified != NULL)
+    {
+        omega += inverse_refbeads * p->external_field_unified[index] * external_field_time;
+    }
+    // umbrella part
+    if (p->umbrella_field != NULL)
+    {
+        omega += -inverse_refbeads * p->field_scaling_type[T_types] * p->k_umbrella[T_types] * (p->umbrella_field[index] - p->fields_unified[index]);
+    }
+    // xn part
+    switch(p->hamiltonian)
+    {
+    case SCMF0:
+        for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
+        {
+            soma_scalar_t dnorm = -0.5 * inverse_refbeads * p->xn[T_types * p->n_types + S_types];
+            omega += dnorm * (p->field_scaling_type[T_types] * p->fields_unified[index] - p->field_scaling_type[S_types] * p->fields_unified[cell + S_types * p->n_cells_local]);
+        }
+        break;
+    case SCMF1:
+        for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
+        {
+            const soma_scalar_t normT = inverse_refbeads * p->xn[T_types * p->n_types + S_types];
+            const soma_scalar_t rhoS = p->fields_unified[cell + S_types * p->n_cells_local] * p->field_scaling_type[S_types];
+            omega += normT * rhoS;
+        }
+        break;
+    default:
+            ;
+            //fprintf(stderr, "ERROR: %s:%d Unkown hamiltonian specified %d.\n", __FILE__, __LINE__, p->hamiltonian);             
+    }
+    
+    return omega;
+}
+
 void update_omega_fields(const struct Phase *const p)
 {
     static unsigned int last_time_call = 0;

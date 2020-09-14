@@ -359,7 +359,7 @@ void calc_non_bonded_energy(const struct Phase *const p, soma_scalar_t * const n
                                 {
                                     const uint64_t cell = cell_coordinate_to_index(p, x, y, z);
                                     non_bonded_energy[type] +=
-                                        p->omega_field_unified[cell + type * p->n_cells_local]
+                                        calc_omega_field_unified(p, cell + type * p->n_cells_local)
                                         * p->fields_unified[cell + type * p->n_cells_local];
                                 }
                 }
