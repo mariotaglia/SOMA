@@ -62,10 +62,13 @@ void communicate_density_fields(const struct Phase *const p)
                     uint16_t *fields_unified = p->fields_unified;
 #pragma acc host_data use_device(fields_unified)
                     {
-                        /* MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, */
-                        /*               MPI_SUM, p->info_MPI.SOMA_comm_sim); */
-                        ncclAllReduce(fields_unified, fields_unified, p->n_cells_local * p->n_types / 2, ncclUint32,
-                                      ncclSum, p->info_MPI.SOMA_nccl_sim, acc_get_cuda_stream(acc_get_default_async()));
+#if ( ENABLE_NCCL == 1)
+		      ncclAllReduce(fields_unified, fields_unified, p->n_cells_local * p->n_types / 2, ncclUint32,
+				    ncclSum, p->info_MPI.SOMA_nccl_sim, acc_get_cuda_stream(acc_get_default_async()));
+#else //ENABLE_NCCL
+		      MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
+				    MPI_SUM, p->info_MPI.SOMA_comm_sim);
+#endif//ENABLE_NCCL
 
                     }
 //#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
@@ -166,7 +169,10 @@ void communicate_density_fields(const struct Phase *const p)
                 }
         }
 #endif                          //ENABLE_MPI
+
+#if ( ENABLE_NCCL == 1)
 #pragma acc wait
+#endif//ENABLE_NCCL
 }
 
 int update_density_fields(const struct Phase *const p)

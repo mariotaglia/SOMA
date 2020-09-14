@@ -91,12 +91,22 @@ int set_openacc_devices(const struct Phase *const p)
                             p->info_MPI.world_rank, my_gpu_rank, check_gpu);
                 }
             printf("INFO: rank %d runs GPU %u.\n", p->info_MPI.world_rank, my_gpu_rank);
-#if ( ENABLE_MPI_CUDA == 1)
+#if ( ENABLE_NCCL == 1)
             ncclUniqueId id;
+	    if (p->info_MPI.world_rank == 0)
+                ncclGetUniqueId(&id);
+            MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, p->info_MPI.SOMA_comm_world);
+            ncclCommInitRank(&(p->info_MPI.SOMA_nccl_world), p->info_MPI.world_size, id, p->info_MPI.world_rank);
+
             if (p->info_MPI.sim_rank == 0)
                 ncclGetUniqueId(&id);
             MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, p->info_MPI.SOMA_comm_sim);
             ncclCommInitRank(&(p->info_MPI.SOMA_nccl_sim), p->info_MPI.sim_size, id, p->info_MPI.sim_rank);
+
+            if (p->info_MPI.domain_rank == 0)
+                ncclGetUniqueId(&id);
+            MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, p->info_MPI.SOMA_comm_domain);
+            ncclCommInitRank(&(p->info_MPI.SOMA_nccl_domain), p->info_MPI.domain_size, id, p->info_MPI.domain_rank);
 #endif                          //ENABLE_MPI_CUDA
 
         }
