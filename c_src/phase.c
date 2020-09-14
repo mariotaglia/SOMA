@@ -340,6 +340,11 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
         }
+#ifdef ENABLE_MPI_CUDA
+    //in this case also copy in the buffers:
+#pragma acc enter data copyin(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#pragma acc enter data copyin(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#endif                          //ENABLE_MPI_CUDA
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
@@ -409,6 +414,11 @@ int copyout_phase(struct Phase *const p)
                 }
 #pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         }
+#ifdef ENABLE_MPI_CUDA
+#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#endif                          //ENABLE_MPI_CUDA
+
 #pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma acc exit data delete(p[0:1])
