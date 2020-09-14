@@ -24,15 +24,6 @@
 #include "soma_config.h"
 struct Phase;
 
-//! Test the read and write functionality for a given phase.
-//!
-//! \param p Phase which is used for the testing.
-//! \warning This can only succeed with suffiecient diskspace and of
-//! the cmd tool h5diff is installed. /tmp/p1.h5 and /tmp/p2.h5 are
-//! going to be accessed.
-//! \return Errorcode.
-int test_read_write_hdf5(const struct Phase *const p);
-
 //! Test the particle types to be in bounds
 //!
 //! \param p Phase to test.

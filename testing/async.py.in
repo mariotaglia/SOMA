@@ -80,10 +80,11 @@ def test():
     return ret
 
 def main_test(argv):
-    tmp = argv[1]
     extra_flags = []
-    for arg in tmp.split():
-        extra_flags.append(arg.strip())
+    if len(argv) > 1:
+        tmp = argv[1]
+        for arg in tmp.split():
+            extra_flags.append(arg.strip())
 
     print(extra_flags)
     convert_files()

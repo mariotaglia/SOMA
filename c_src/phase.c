@@ -31,10 +31,11 @@
 #include "independent_sets.h"
 #include "mesh.h"
 #include "polytype_conversion.h"
+#include "self_documentation.h"
+#include "poly_heavy.h"
 
 int init_phase(struct Phase *const p)
 {
-    print_version(p->info_MPI.world_rank);
     p->present_on_device = false;
     p->start_time = p->time;
     gettimeofday(&(p->start_clock), NULL);
@@ -52,14 +53,42 @@ int init_phase(struct Phase *const p)
     n_polymer_offset -= p->n_polymers;
 #endif                          //ENABLE_MPI
 
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            /* intentionally falls through */
+        case pseudo_random_number_generator_arg_PCG32:
+            init_soma_memory(&(p->rh.mt), 0, 0);
+            init_soma_memory(&(p->rh.tt800), 0, 0);
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            init_soma_memory(&(p->rh.mt), p->n_polymers, sizeof(MERSENNE_TWISTER_STATE));
+            init_soma_memory(&(p->rh.tt800), 0, 0);
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            init_soma_memory(&(p->rh.mt), 0, 0);
+            init_soma_memory(&(p->rh.tt800), p->n_polymers, sizeof(TT800STATE));
+            break;
+        }
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            p->polymers[i].set_states = NULL;
-            p->polymers[i].set_permutation = NULL;
-
-            allocate_rng_state(&(p->polymers[i].poly_state), p->args.pseudo_random_number_generator_arg);
-            seed_rng_state(&(p->polymers[i].poly_state), p->args.rng_seed_arg,
-                           i + n_polymer_offset, p->args.pseudo_random_number_generator_arg);
+            p->polymers[i].set_states_offset = UINT64_MAX;
+            p->polymers[i].set_permutation_offset = UINT64_MAX;
+            switch (p->args.pseudo_random_number_generator_arg)
+                {
+                case pseudo_random_number_generator__NULL:
+                    /* intentionally falls through */
+                case pseudo_random_number_generator_arg_PCG32:
+                    p->polymers[i].poly_state.alternative_rng_offset = UINT64_MAX;
+                    break;
+                case pseudo_random_number_generator_arg_MT:
+                    p->polymers[i].poly_state.alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.mt), 1);
+                    break;
+                case pseudo_random_number_generator_arg_TT800:
+                    p->polymers[i].poly_state.alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.tt800), 1);
+                    break;
+                }
+            seed_rng_state(&(p->polymers[i].poly_state), p->args.rng_seed_arg, i + n_polymer_offset, p);
         }
 
     // Max safe move distance
@@ -243,6 +272,16 @@ int init_phase(struct Phase *const p)
             memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
         }
 
+    p->sd.Ndoc = 0;
+    p->sd.simdoc = NULL;
+    p->sd.simdoc_internal = NULL;
+    if (p->args.coord_file_arg != NULL) //This is only set to NULL if convert is used.
+        {
+            init_self_documentation(p, p->args.coord_file_arg, &(p->sd));
+        }
+    if (p->info_MPI.world_rank == 0)
+        print_self_documentation(&(p->sd), stdout);
+
     int ret = 0;
     if (p->args.coord_file_arg != NULL) //Is it a full init Phase?
         ret = init_ana(p, p->args.ana_file_arg, p->args.coord_file_arg);
@@ -301,11 +340,6 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
         }
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            copyin_polymer(p, poly);
-        }
 #ifdef ENABLE_MPI_CUDA
     //in this case also copy in the buffers:
 #pragma acc enter data copyin(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
@@ -314,6 +348,20 @@ int copyin_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            copyin_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            copyin_soma_memory(&(p->rh.tt800));
+            break;
+        }
+    copyin_polymer_heavy(p);
 
     p->present_on_device = true;
     return p->n_polymers * 0 + 1;
@@ -366,11 +414,6 @@ int copyout_phase(struct Phase *const p)
                 }
 #pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         }
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            copyout_polymer(p, poly);
-        }
 #ifdef ENABLE_MPI_CUDA
 #pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
 #pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
@@ -382,6 +425,20 @@ int copyout_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyout_poly_conversion(p);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            copyout_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            copyout_soma_memory(&(p->rh.tt800));
+            break;
+        }
+    copyout_polymer_heavy(p);
 
     p->present_on_device = false;
     return p->n_polymers * 0 + 1;
@@ -419,42 +476,43 @@ int free_phase(struct Phase *const p)
             free(p->sets);
         }
 
-    /* free polymers */
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            free_polymer(p, poly);
-        }
-
     free(p->polymers);
-
     free(p->poly_type_offset);
     free(p->poly_arch);
-
     free(p->xn);
 
     if (p->area51 != NULL)
-        {
-            free(p->area51);
-        }
+        free(p->area51);
 
     if (p->external_field_unified != NULL)
-        {
-            free(p->external_field_unified);
-        }
+        free(p->external_field_unified);
 
     if (p->umbrella_field != NULL)
-        {
-            free(p->umbrella_field);
-        }
+        free(p->umbrella_field);
 
     free_poly_conversion(p);
+
+    free_self_documentation(&(p->sd));
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            free_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            free_soma_memory(&(p->rh.tt800));
+            break;
+        }
+    free_polymer_heavy(p);
 
     close_ana(&(p->ana_info));
     return 0;
 }
 
-int update_self_phase(const Phase * const p, int rng_update_flag)
+int update_self_phase(Phase * const p, int rng_update_flag)
 {
     static unsigned int last_time_call = 0;
     if (last_time_call == 0 || p->time > last_time_call)
@@ -464,10 +522,9 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
 
     // Not pointer members are expected to not change on device
 #pragma acc update self(p->xn[0:p->n_types*p->n_types])
+#pragma acc update self(p->polymers[0:p->n_polymers])
 
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        update_self_polymer(p, p->polymers + i, rng_update_flag);
-
+    update_self_polymer_heavy(p, rng_update_flag);
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #pragma acc update self(p->old_fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc update self(p->fields_32[0:p->n_types*p->n_cells_local])
@@ -501,6 +558,22 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
     //SETS are not updated to host
 
     update_self_poly_conversion(p);
+    if (rng_update_flag)
+        {
+            switch (p->args.pseudo_random_number_generator_arg)
+                {
+                case pseudo_random_number_generator__NULL:
+                    break;
+                case pseudo_random_number_generator_arg_PCG32:
+                    break;
+                case pseudo_random_number_generator_arg_MT:
+                    update_self_soma_memory(&(p->rh.mt));
+                    break;
+                case pseudo_random_number_generator_arg_TT800:
+                    update_self_soma_memory(&(p->rh.tt800));
+                    break;
+                }
+        }
 
     return p->n_polymers * 0 + 1;
 }

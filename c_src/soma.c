@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2020 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -20,10 +20,6 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-/* SOMA  */
-/* TO do Typedef for curand */
-/* Clean up the hdf5 output*/
 
 //! \file soma.c
 //! \brief Implementation of the main executable SOMA.
@@ -53,6 +49,7 @@ int main(int argc, char *argv[])
 {
     Phase phase;
     Phase *const p = &phase;
+
 #if ( ENABLE_MPI == 1 )
     if (MPI_Init(NULL, NULL) != MPI_SUCCESS)
         {

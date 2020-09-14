@@ -133,8 +133,6 @@ int init_MPI(struct Phase *p)
         fixed_seed = p->args.rng_seed_arg;
     MPI_Bcast(&fixed_seed, 1, MPI_UINT32_T, 0, p->info_MPI.SOMA_comm_sim);
     p->args.rng_seed_arg = fixed_seed;
-    if (p->info_MPI.sim_rank == 0)
-        printf("All %d ranks use fixed seed %u.\n", p->info_MPI.sim_size, p->args.rng_seed_arg);
 #endif                          //ENABLE_MPI
     return 0;
 }
@@ -247,9 +245,6 @@ int send_polymer_chain(struct Phase *const p, const uint64_t poly_id, const int 
             return -3;
         }
 
-    //After serialization the polymer deep memory can be freed.
-    free_polymer(p, &poly);
-
     //Send the buffer to destination.
     MPI_Send(buffer, buffer_length, MPI_UNSIGNED_CHAR, destination, 0, comm);
 
@@ -351,8 +346,6 @@ int send_mult_polymers(struct Phase *const p, const int destination, unsigned in
                                     __FILE__, __LINE__, p->info_MPI.world_rank, poly_len, poly_theo_len);
                             return -5;
                         }
-                    //After serialization the polymer deep memory can be freed.
-                    free_polymer(p, &poly);
                     bytes_written += poly_bytes;
                 }
 
@@ -660,8 +653,6 @@ int extract_chains_per_domain(struct Phase *const p, const int *domain_lookup_li
                                             __FILE__, __LINE__, p->info_MPI.world_rank, poly_len, poly_theo_len);
                                     return -5;
                                 }
-                            //After serialization the polymer deep memory can be freed.
-                            free_polymer(p, &poly);
                             buffer_offsets[domain_index] += poly_bytes;
                         }
                 }

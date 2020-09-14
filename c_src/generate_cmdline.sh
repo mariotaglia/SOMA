@@ -32,3 +32,5 @@ sed -i s/"EXIT_SUCCESS"/" 1 "/g cmdline.h
 sed -i s/"EXIT_SUCCESS"/" 1 "/g cmdline.c
 sed -i s/"EXIT_FAILURE"/" -1 "/g cmdline.h
 sed -i s/"EXIT_FAILURE"/" -1 "/g cmdline.c
+#Refromat the arg dumping to include a tab in front of each line
+sed -i s/'%s=\\\"%s\\"'/'\\t%s=\\"%s\\"'/g cmdline.c

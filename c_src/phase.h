@@ -32,7 +32,9 @@ struct IndependetSets;
 #include "autotuner.h"
 #include "polymer.h"
 #include "polytype_conversion.h"
-
+#include "self_documentation.h"
+#include "poly_heavy.h"
+#include "rng_alternative.h"
 #include <sys/time.h>
 
 //! Value of Pi.
@@ -268,6 +270,9 @@ typedef struct Phase {
     unsigned int serie_length;  //!< number of time-dependent external field
 
     struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
+    struct SelfDocumentation sd;        //!< struct that contains all elements for the self documenation functionality
+    struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.
+    struct RNG_HEAVY rh;        //!< struct containing the pointer to the heavy memory of alternative PRNGs, if needed.
 } Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
@@ -289,7 +294,7 @@ int copyin_phase(struct Phase *const p);
   \param rng_update_flag The flag deciding whether rng_state will be updated
   \return Errorcode
  */
-int update_self_phase(const Phase * const p, int rng_update_flag);
+int update_self_phase(Phase * const p, int rng_update_flag);
 
 //! Copy all data out from the DEVICE
 //! \param p Pointer to phase to copy out

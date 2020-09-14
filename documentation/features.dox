@@ -107,6 +107,9 @@ The output matrix in the hdf5 has than the dimensions 5x8, the first dimension i
 
  - Dynamical-Structure-Factor: For each polymer_type: \f$ S_q(t) = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(0)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
 
+- Self documentation. SOMA is storing a string describing each simulation run. This accumulative stored in the configuration and analysis file. This allows to track this full evolution of a simulation, even if the user changes parameter in between run.
+  In addition, SOMA allows the specification of a purpose for each simulation step e.g. "equilibration", "quench", "measurement" etc..
+
  \subsection no-features Not Available Features
 
  If you want to implement a feature, please do not hesitate to help
