@@ -62,8 +62,9 @@ void communicate_density_fields(const struct Phase *const p)
                     uint16_t *fields_unified = p->fields_unified;
 #pragma acc host_data use_device(fields_unified)
                     {
-                        MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
-                                      MPI_SUM, p->info_MPI.SOMA_comm_sim);
+                        /* MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, */
+                        /*               MPI_SUM, p->info_MPI.SOMA_comm_sim); */
+		      ncclAllReduce(fields_unified,fields_unified, p->n_cells_local * p->n_types/2, ncclUint32, ncclSum, p->info_MPI.SOMA_nccl_sim, acc_get_cuda_stream() );
                     }
 //#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 // No update of data on cpu required since it is only needed for analytics (updated only when needed)

@@ -27,7 +27,9 @@
 #if ( ENABLE_MPI == 1 )
 #include <mpi.h>
 #endif                          //ENABLE_MPI
-
+#if ( ENABLE_MPI_CUDA == 1)
+#include <nccl.h>
+#endif//ENABLE_MPI_CUDA
 #include <stdint.h>
 #include <stdbool.h>
 struct Phase;
@@ -66,6 +68,9 @@ typedef struct Info_MPI {
     MPI_Comm SOMA_comm_world;   //!< Global communicator for 1 simulation
     MPI_Comm SOMA_comm_sim;     /*!< \brief communicator within one conf, SCMF parallelization */
     MPI_Comm SOMA_comm_domain;  /*!< \brief communicator within one domain of a SCMF simulation parallelization */
+#if ( ENABLE_MPI_CUDA == 1 )
+  ncclComm_t SOMA_nccl_sim;     //!< NCCL communicator for sim MPI communicator
+#endif//ENABLE_MPI_CUDA
     MPI_Status mpi_status;      //!< Status of the mpi init.
 #endif                          //ENABLE_MPI
     //! Store MPI divergence in between domain ranks.

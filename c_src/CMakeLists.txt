@@ -85,6 +85,10 @@ foreach(EXE SOMA CONVERT)
     endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
   endif(BUILD_STATIC)
 
+  if(ENABLE_MPI_CUDA)
+    target_link_libraries(${EXE} "-lnccl")
+  endif(ENABLE_MPI_CUDA)
+
   install(TARGETS ${EXE} DESTINATION bin)
 endforeach(EXE)
 
