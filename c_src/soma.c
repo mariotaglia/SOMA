@@ -168,7 +168,9 @@ int main(int argc, char *argv[])
     nvtxRangePushA("Main loop");
     
     for (unsigned int i = 0; i < N_steps; i++)
-        {
+        {    
+	  nvtxRangePushA("Step");
+
             analytics(p);
             const int mc_error = monte_carlo_propagation(p, 1);
             if (mc_error != 0)
@@ -214,6 +216,8 @@ int main(int argc, char *argv[])
                                 p->info_MPI.world_rank);
                     break;
                 }
+    nvtxRangePop();
+
         }
     nvtxRangePop();
 #if ( ENABLE_MPI == 1 )
