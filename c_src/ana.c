@@ -199,7 +199,7 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
                     if (start > 0)
                         {
                             int end = 0;
-                            for(int i = start; end == 0; i++)
+                            for (int i = start; end == 0; i++)
                                 {
                                     const int info = p->poly_arch[i];
                                     end = get_end(info);
@@ -224,7 +224,7 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
                                     result[type * 6 + 4] += by * bz;
                                     result[type * 6 + 5] += bz * bx;
                                     counter[type] += 1;
-                            }
+                                }
                         }
                 }
         }
@@ -392,7 +392,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                     if (start > 0)
                         {
                             unsigned int end = 0;
-                            for(int i = start; end == 0; i++)
+                            for (int i = start; end == 0; i++)
                                 {
                                     const uint32_t info = p->poly_arch[i];
                                     end = get_end(info);
@@ -440,7 +440,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                                             assert(bond_type < NUMBER_SOMA_BOND_TYPES);
                                             bonded_energy[bond_type] += energy;
                                         }
-                            }
+                                }
                         }
                 }
         }
@@ -763,7 +763,7 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
             HDF5_ERROR_CHECK(status);
             status = H5Dclose(dset);
             HDF5_ERROR_CHECK(status);
-            if (p->info_MPI.sim_size> 1)
+            if (p->info_MPI.sim_size > 1)
                 free(full_array);
         }
     else if (p->info_MPI.domain_rank == 0)

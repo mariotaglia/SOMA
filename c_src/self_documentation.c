@@ -120,7 +120,7 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
         fprintf(ftmp, "\tUmbrella field present: yes\n");
     if (p->pc.deltaMC)
         fprintf(ftmp, "\tPolytype conversion active %d\n", p->pc.deltaMC);
-    if (p->serie_length > 1 || (p->serie_length == 1 && p->sin_serie[0] != 0) )
+    if (p->serie_length > 1 || (p->serie_length == 1 && p->sin_serie[0] != 0))
         fprintf(ftmp, "\tTime dependent external field active: yes\n");
 
     return 0;
@@ -164,10 +164,10 @@ int init_self_documentation(struct Phase *p, char *filename, struct SelfDocument
             if (filename != NULL)
                 {
                     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-                    if(H5Pset_fclose_degree(plist_id, H5F_CLOSE_STRONG ) < 0)
+                    if (H5Pset_fclose_degree(plist_id, H5F_CLOSE_STRONG) < 0)
                         {
-                        fprintf(stderr,"ERROR: setting file access properties %s:%d\n",__FILE__,__LINE__);
-                        return -1;
+                            fprintf(stderr, "ERROR: setting file access properties %s:%d\n", __FILE__, __LINE__);
+                            return -1;
                         }
 
                     hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, plist_id);
