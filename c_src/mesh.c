@@ -29,7 +29,6 @@
 #include <assert.h>
 #include "mpiroutines.h"
 #include "soma_config.h"
-#include "nvToolsExt.h"
 
 /* #pragma acc routine seq */
 /* inline void increment_16_bit_uint(uint16_t*const ptr) */
@@ -46,7 +45,6 @@
 */
 void communicate_density_fields(const struct Phase *const p)
 {
-    nvtxRangePushA("Comm. dens. fields");
 #if ( ENABLE_MPI == 1 )
     //Const cast!
     mpi_divergence((struct Phase * const)p);
@@ -194,7 +192,6 @@ void communicate_density_fields(const struct Phase *const p)
 #ifdef ENABLE_NCCL
 #pragma acc wait
 #endif                          //ENABLE_NCCL
-    nvtxRangePop();
 }
 
 int update_density_fields(const struct Phase *const p)
