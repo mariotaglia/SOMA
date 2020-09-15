@@ -717,11 +717,13 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     y += *dy;
     z += *dz;
 
+    soma_scalar_t scale = 1; //needs to be implemented for other values
+
     /* calculate forces in the proposed position */
-    soma_scalar_t nfx = 0.0;
-    soma_scalar_t nfy = 0.0;
-    soma_scalar_t nfz = 0.0;
-    add_bond_forces(p, ipoly, ibead, x, y, z, &nfx, &nfy, &nfz);
+    soma_scalar_t nfx = fx- 2.0*  2.0 * scale*p->harmonic_normb *(A*fx+R*rx);
+    soma_scalar_t nfy = fy- 2.0*  2.0 * scale*p->harmonic_normb *(A*fy+R*ry);
+    soma_scalar_t nfz = fz- 2.0*  2.0 * scale*p->harmonic_normb *(A*fz+R*rz);
+
 
     /* calculate additional terms for scm energy change */
     *smc_deltaE = 0.0;
@@ -740,7 +742,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
     beads += p->polymers[ipoly].bead_offset;
 
     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[p->polymers[ipoly].type] + ibead + 1]);
-
+	
     if (start > 0)
         {
             unsigned int end = 0;
