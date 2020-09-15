@@ -62,7 +62,10 @@ void communicate_density_fields(const struct Phase *const p)
 #pragma acc host_data use_device(fields_unified)
                     {
 #if ( ENABLE_NCCL == 1)
-		      ncclAllReduce(fields_unified, fields_unified, p->n_cells_local * p->n_types / 2, ncclUint32,
+		      const unsigned int safety_32_16_margin_fields = (p->n_types*p->n_cells_local) % 2 == 0 ? 0 : 1;
+
+		      // NCCL does not support unit16 so far, hence we are using
+		      ncclAllReduce(fields_unified, fields_unified, p->n_cells_local * p->n_types / 2 + safety_32_16_margin_fields, ncclUint32,
 				    ncclSum, p->info_MPI.SOMA_nccl_sim, acc_get_cuda_stream(acc_get_default_async()));
 #else //ENABLE_NCCL
 		      MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
@@ -88,6 +91,12 @@ void communicate_density_fields(const struct Phase *const p)
                     {
 #endif                          //ENABLE_MPI_CUDA
 
+#if (ENABLE_NCCL == 1)
+		      const unsigned int safety_32_16_margin_fields = (p->n_types*p->n_cells_local) % 2 == 0 ? 0 : 1;
+		      ncclReduce(fields_unified,fields_unified,p->n_cells_local * p->n_types / 2 +safety_32_16_margin_fields, ncclUint32, ncclSum, 0,p->info_MPI.SOMA_nccl_domain,acc_get_cuda_stream( acc_get_default_async() ));
+#pragma acc wait
+#else
+
 		      //Sum up all values of a single domain to the root domain
                         if (p->info_MPI.domain_rank == 0)
                             MPI_Reduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
@@ -95,6 +104,7 @@ void communicate_density_fields(const struct Phase *const p)
                         else
                             MPI_Reduce(fields_unified, NULL, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM, 0,
                                        p->info_MPI.SOMA_comm_domain);
+#endif//ENABLE_NCCL
 
                         if (p->info_MPI.domain_rank == 0)
                             {
@@ -153,10 +163,13 @@ void communicate_density_fields(const struct Phase *const p)
                                         MPI_Waitall(4, req, stat);
                                     }
                             }
-
+#if (ENABLE_NCCL == 1)
+			ncclBroadcast(fields_unified,fields_unified,p->n_cells_local * p->n_types / 2 + safety_32_16_margin_fields, ncclUint32, 0, p->info_MPI.SOMA_nccl_domain, acc_get_cuda_stream( acc_get_default_async() ) );
+#else
                         //Update all domain ranks with the results of the root domain rank
                         MPI_Bcast(fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, 0,
                                   p->info_MPI.SOMA_comm_domain);
+#endif//ENABLE_NCCL
 
 #ifndef ENABLE_MPI_CUDA
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
