@@ -718,11 +718,18 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     z += *dz;
 
     soma_scalar_t scale = 1; //needs to be implemented for other values
+    soma_scalar_t n_neighbours=2.0;
+    soma_scalar_t nfx = fx- n_neighbours *  2.0 * scale*p->harmonic_normb *(A*fx+R*rx);
+    soma_scalar_t nfy = fy- n_neighbours *  2.0 * scale*p->harmonic_normb *(A*fy+R*ry);
+    soma_scalar_t nfz = fz- n_neighbours *  2.0 * scale*p->harmonic_normb *(A*fz+R*rz);
+
+    /* soma_scalar_t nfx = 0.0; */
+    /* soma_scalar_t nfy = 0.0; */
+    /* soma_scalar_t nfz = 0.0; */
+    /* add_bond_forces(p, ipoly, ibead, x, y, z, &nfx, &nfy, &nfz); */
 
     /* calculate forces in the proposed position */
-    soma_scalar_t nfx = fx- 2.0*  2.0 * scale*p->harmonic_normb *(A*fx+R*rx);
-    soma_scalar_t nfy = fy- 2.0*  2.0 * scale*p->harmonic_normb *(A*fy+R*ry);
-    soma_scalar_t nfz = fz- 2.0*  2.0 * scale*p->harmonic_normb *(A*fz+R*rz);
+
 
 
     /* calculate additional terms for scm energy change */
