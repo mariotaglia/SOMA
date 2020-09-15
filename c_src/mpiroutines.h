@@ -27,7 +27,7 @@
 #if ( ENABLE_MPI == 1 )
 #include <mpi.h>
 #endif                          //ENABLE_MPI
-#if ( ENABLE_NCCL == 1)
+#ifdef ENABLE_NCCL
 #include <nccl.h>
 #endif                          //ENABLE_NCCL
 #include <stdint.h>
@@ -68,7 +68,7 @@ typedef struct Info_MPI {
     MPI_Comm SOMA_comm_world;   //!< Global communicator for 1 simulation
     MPI_Comm SOMA_comm_sim;     /*!< \brief communicator within one conf, SCMF parallelization */
     MPI_Comm SOMA_comm_domain;  /*!< \brief communicator within one domain of a SCMF simulation parallelization */
-#if ( ENABLE_NCCL == 1 )
+#ifdef ENABLE_NCCL
     ncclComm_t SOMA_nccl_world; //!< \brief NCCL communicator for world communication
     ncclComm_t SOMA_nccl_sim;   //!< NCCL communicator for sim MPI communicator
     ncclComm_t SOMA_nccl_domain;//!< NCCL communicator for domain communicator

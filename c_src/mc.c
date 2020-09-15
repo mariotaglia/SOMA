@@ -30,6 +30,7 @@
 #include "phase.h"
 #include "mesh.h"
 #include "independent_sets.h"
+#include "nvToolsExt.h"
 
 void trial_move(const Phase * p, const uint64_t ipoly, const int ibead,
                 soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, const unsigned int iwtype,
@@ -189,12 +190,16 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
 int monte_carlo_propagation(Phase * const p, unsigned int nsteps)
 {
     //Update the omega fields for the calculations.
+    nvtxRangePushA("Update Omega fields");
     update_omega_fields(p);
+    nvtxRangePop();
     int ret;
     start_autotuner(&(p->mc_autotuner));
+    nvtxRangePushA("MC iteration");
     switch (p->args.iteration_alg_arg)
         {
         case iteration_alg_arg_POLYMER:
+
             ret = mc_polymer_iteration(p, nsteps, p->mc_autotuner.value);
             break;
         case iteration_alg_arg_SET:
@@ -206,6 +211,7 @@ int monte_carlo_propagation(Phase * const p, unsigned int nsteps)
             ret = 1;
         }
     end_autotuner(&(p->mc_autotuner));
+    nvtxRangePop();
     if (ret != 0)
         return ret;
 
@@ -220,8 +226,9 @@ int monte_carlo_propagation(Phase * const p, unsigned int nsteps)
             restart_autotuner(&(p->mc_autotuner));
             restart_autotuner(&(p->cm_mc_autotuner));
         }
-
+    nvtxRangePushA("Update density fields");
     update_density_fields(p);
+    nvtxRangePop();
     return ret;
 }
 

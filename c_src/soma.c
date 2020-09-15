@@ -38,6 +38,7 @@
 #include "walltime.h"
 #include "generate_positions.h"
 #include "polytype_conversion.h"
+#include "nvToolsExt.h"
 
 //! Main Function of the Executable SOMA
 //! \private
@@ -163,8 +164,13 @@ int main(int argc, char *argv[])
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
     int stop_iteration = false;
+
+    nvtxRangePushA("Main loop");
+    
     for (unsigned int i = 0; i < N_steps; i++)
-        {
+        {    
+	  nvtxRangePushA("Step");
+
             analytics(p);
             const int mc_error = monte_carlo_propagation(p, 1);
             if (mc_error != 0)
@@ -184,10 +190,13 @@ int main(int argc, char *argv[])
                 load_balance_mpi_ranks(p);
             if (p->args.N_domains_arg > 1 && p->args.rcm_update_arg > 0
                 && i % p->args.rcm_update_arg == (unsigned int)p->args.rcm_update_arg - 1)
+
                 {
+		  nvtxRangePushA("Send domain chains");
                     const int missed_chains = send_domain_chains(p, false);
                     if (missed_chains != 0)
                         exit(missed_chains);
+		    nvtxRangePop();
                 }
 #endif                          //ENABLE_MPI
 
@@ -207,7 +216,10 @@ int main(int argc, char *argv[])
                                 p->info_MPI.world_rank);
                     break;
                 }
+    nvtxRangePop();
+
         }
+    nvtxRangePop();
 #if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);
     if (missed_chains != 0)

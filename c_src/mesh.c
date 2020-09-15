@@ -29,6 +29,7 @@
 #include <assert.h>
 #include "mpiroutines.h"
 #include "soma_config.h"
+#include "nvToolsExt.h"
 
 /* #pragma acc routine seq */
 /* inline void increment_16_bit_uint(uint16_t*const ptr) */
@@ -45,6 +46,7 @@
 */
 void communicate_density_fields(const struct Phase *const p)
 {
+    nvtxRangePushA("Comm. dens. fields");
 #if ( ENABLE_MPI == 1 )
     //Const cast!
     mpi_divergence((struct Phase * const)p);
@@ -61,7 +63,7 @@ void communicate_density_fields(const struct Phase *const p)
                     uint16_t *fields_unified = p->fields_unified;
 #pragma acc host_data use_device(fields_unified)
                     {
-#if ( ENABLE_NCCL == 1)
+#ifdef ENABLE_NCCL
 		      const unsigned int safety_32_16_margin_fields = (p->n_types*p->n_cells_local) % 2 == 0 ? 0 : 1;
 
 		      // NCCL does not support unit16 so far, hence we are using
@@ -91,7 +93,7 @@ void communicate_density_fields(const struct Phase *const p)
                     {
 #endif                          //ENABLE_MPI_CUDA
 
-#if (ENABLE_NCCL == 1)
+#ifdef ENABLE_NCCL
 		      const unsigned int safety_32_16_margin_fields = (p->n_types*p->n_cells_local) % 2 == 0 ? 0 : 1;
 		      ncclReduce(fields_unified,fields_unified,p->n_cells_local * p->n_types / 2 +safety_32_16_margin_fields, ncclUint32, ncclSum, 0,p->info_MPI.SOMA_nccl_domain,acc_get_cuda_stream( acc_get_default_async() ));
 #pragma acc wait
@@ -137,7 +139,7 @@ void communicate_density_fields(const struct Phase *const p)
                                         MPI_Waitall(4, req, stat);
 
                                         //Add the recv values to main part
-#if ( ENABLE_MPI_CUDA == 1 )
+#ifdef ENABLE_MPI_CUDA
 #pragma acc parallel loop present(p[0:1])
 #endif//ENABLE_MPI_CUDA
                                         for (unsigned int i = 0; i < ghost_buffer_size; i++)
@@ -163,7 +165,7 @@ void communicate_density_fields(const struct Phase *const p)
                                         MPI_Waitall(4, req, stat);
                                     }
                             }
-#if (ENABLE_NCCL == 1)
+#ifdef ENABLE_NCCL
 			ncclBroadcast(fields_unified,fields_unified,p->n_cells_local * p->n_types / 2 + safety_32_16_margin_fields, ncclUint32, 0, p->info_MPI.SOMA_nccl_domain, acc_get_cuda_stream( acc_get_default_async() ) );
 #else
                         //Update all domain ranks with the results of the root domain rank
@@ -182,10 +184,10 @@ void communicate_density_fields(const struct Phase *const p)
                 }
         }
 #endif                          //ENABLE_MPI
-
-#if ( ENABLE_NCCL == 1)
+#ifdef ENABLE_NCCL
 #pragma acc wait
 #endif//ENABLE_NCCL
+    nvtxRangePop();
 }
 
 int update_density_fields(const struct Phase *const p)

@@ -31,7 +31,7 @@ endif (SOMA_GIT_VERSION)
 set(SOMA_SYSTEM_INFO "${CMAKE_SYSTEM} with ${CMAKE_C_COMPILER_ID} for ${CMAKE_SYSTEM_PROCESSOR} ")
 
 #set extra flags from environment
-set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} $ENV{SOMA_C_FLAGS}" CACHE STRING "" FORCE)
+set( CMAKE_C_FLAGS "-lnvToolsExt ${CMAKE_C_FLAGS} $ENV{SOMA_C_FLAGS}" CACHE STRING "" FORCE)
 
 #Set proper release flags for PGI.
 if( "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )

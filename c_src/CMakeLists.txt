@@ -1,6 +1,9 @@
 if(ENABLE_MPI_CUDA AND MPI_CUDA)
   add_definitions(-DENABLE_MPI_CUDA)
 endif()
+if(ENABLE_NCCL)
+  add_definitions(-DENABLE_NCCL)
+endif()
 
 set(soma_source
   ana.c

@@ -148,7 +148,7 @@ int finalize_MPI(struct Info_MPI *mpi)
     if (mpi->SOMA_comm_world != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
 
-#if (ENABLE_NCCL == 1)
+#ifdef ENABLE_NCCL
             ncclCommDestroy(mpi->SOMA_nccl_world);
 	    ncclCommDestroy(mpi->SOMA_nccl_sim);
 	    ncclCommDestroy(mpi->SOMA_nccl_domain);
