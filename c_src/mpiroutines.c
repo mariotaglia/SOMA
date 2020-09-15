@@ -143,17 +143,16 @@ int finalize_MPI(struct Info_MPI *mpi)
     if (mpi->SOMA_comm_domain != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_domain));
     if (mpi->SOMA_comm_sim != MPI_COMM_NULL)
-      MPI_Comm_free(&(mpi->SOMA_comm_sim));
+        MPI_Comm_free(&(mpi->SOMA_comm_sim));
 
     if (mpi->SOMA_comm_world != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
 
 #ifdef ENABLE_NCCL
-            ncclCommDestroy(mpi->SOMA_nccl_world);
-	    ncclCommDestroy(mpi->SOMA_nccl_sim);
-	    ncclCommDestroy(mpi->SOMA_nccl_domain);
+    ncclCommDestroy(mpi->SOMA_nccl_world);
+    ncclCommDestroy(mpi->SOMA_nccl_sim);
+    ncclCommDestroy(mpi->SOMA_nccl_domain);
 #endif                          //ENABLE_MPI_CUDA
-
 
     return MPI_Finalize();
 #else

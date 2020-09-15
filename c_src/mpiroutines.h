@@ -71,7 +71,7 @@ typedef struct Info_MPI {
 #ifdef ENABLE_NCCL
     ncclComm_t SOMA_nccl_world; //!< \brief NCCL communicator for world communication
     ncclComm_t SOMA_nccl_sim;   //!< NCCL communicator for sim MPI communicator
-    ncclComm_t SOMA_nccl_domain;//!< NCCL communicator for domain communicator
+    ncclComm_t SOMA_nccl_domain;        //!< NCCL communicator for domain communicator
 #endif                          //ENABLE_NCCL
     MPI_Status mpi_status;      //!< Status of the mpi init.
 #endif                          //ENABLE_MPI

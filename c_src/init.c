@@ -93,7 +93,7 @@ int set_openacc_devices(const struct Phase *const p)
             printf("INFO: rank %d runs GPU %u.\n", p->info_MPI.world_rank, my_gpu_rank);
 #ifdef ENABLE_NCCL
             ncclUniqueId id;
-	    if (p->info_MPI.world_rank == 0)
+            if (p->info_MPI.world_rank == 0)
                 ncclGetUniqueId(&id);
             MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, p->info_MPI.SOMA_comm_world);
             ncclCommInitRank(&(p->info_MPI.SOMA_nccl_world), p->info_MPI.world_size, id, p->info_MPI.world_rank);
