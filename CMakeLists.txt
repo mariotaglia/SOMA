@@ -264,6 +264,22 @@ if(INSTALL_PYTHON)
   endif(ENABLE_TESTING)
 endif(INSTALL_PYTHON)
 
+
+option(UNIT_TESTS_COMPILE "extract test cases and compile unit tests on every invocation of make" on)
+option(UNIT_TESTS_RUN "run unit tests with every invocation of make" off)
+if (!ENABLE_MPI AND UNIT_TESTS_RUN)
+  message(FATAL_ERROR "running unit tests requires mpi, either enable MPI (ENABLE_MPI-flag) or disable running unit tests (UNIT_TESTS_RUN-flag).")
+endif()
+if (!PYTHONINTERP_FOUND AND UNIT_TESTS_COMPILE)
+  message(FATAL_ERROR "setting up unit tests requires python (2 or 3). (you may deactivate unit tests compilation through the UNIT_TESTS_COMPILE-flag)")
+endif()
+
+if (UNIT_TESTS_RUN AND NOT UNIT_TESTS_COMPILE)
+  message(FATAL_ERROR "cannot run unit tests without compiling them, please check the flags UNIT_TESTS_COMPILE and UNIT_TESTS_RUN")
+endif()
+
+
+
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
   option(ENABLE_DOXYGEN "Enable the generation of API documentation." ON)

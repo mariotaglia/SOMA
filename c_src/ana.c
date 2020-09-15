@@ -37,9 +37,7 @@
 #include "io.h"
 #include "rng.h"
 #include <math.h>
-#include "err_handling.h"
 
-#include "unity_capture.h"
 
 void calc_Re(const struct Phase *p, soma_scalar_t * const result)
 {

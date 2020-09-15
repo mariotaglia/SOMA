@@ -38,7 +38,7 @@
 
 #include "soma_config.h"
 #include "phase.h"
-#include "err_handling.h"
+#include "mpi_unity/err_handling.h"
 
 #pragma acc routine(coord_to_cell_coordinate) seq
 static inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,

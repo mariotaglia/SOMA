@@ -1,8 +1,8 @@
 #include "unity_fixture.h"
 #include <memory.h>
 #include <assert.h>
-#include "phase.h"
-#include "mesh.h"
+#include "../mesh.h"
+#include "../phase.h"
 #include "err_handling.h"
 
 #define INIT_COMM_DENSITY_TEST \

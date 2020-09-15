@@ -30,17 +30,7 @@ set(soma_source
   test.c
   polytype_conversion.c
 
-  ## unit testing harness
-  unity_fixture.c
-  unity_memory.c
-  unity_mpi_addon.c
-  unity.c
-  unit_test_main.c
-  test_runner.c
-  run_unit_tests.c
-  unity_capture.c
-  unity_capture_test.c
-        ana_test.c mesh_test.c)
+)
 
 configure_file(soma_config.h.in soma_config.h)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/soma_config.h DESTINATION include)
@@ -71,30 +61,22 @@ set(soma_header
   soma_util.h
   walltime.h
   test.h
-  err_handling.h
 
-  # headers for unit tests:
-  unity.h
-  unity_fixture.h
-  unity_fixture_internals.h
-  unity_memory.h
-  unity_mpi_addon.h
-  unit_test_util.h
-  run_unit_tests.h
-  unity_capture.h
-  unity_capture_internals.h
+  # include this header from the unit test folder into a .c file to help find memory bugs like double frees and leaks
+  mpi_unity/unity_fixture.h
 
+  #just for a useful DPRINT-macro
+  mpi_unity/err_handling.h
   )
 
 add_library(soma_lib ${soma_source})
 
 add_executable(SOMA soma.c)
 add_executable(CONVERT convert.c)
-add_executable(UNITTESTS unit_test_main.c)
 
 option(BUILD_STATIC "Try to build static if possible. No guarantee your EXE is completely static" OFF)
 
-foreach(EXE SOMA CONVERT UNITTESTS)
+foreach(EXE SOMA CONVERT)
   target_link_libraries(${EXE} soma_lib)
   target_link_libraries(${EXE} ${MPI_LIBRARIES})
   target_link_libraries(${EXE} ${HDF5_LIBRARIES})
@@ -127,6 +109,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/instantaneous_shear_plugin)
   endif(ENABLE_INSTANTANEOUS_SHEAR_PLUGIN)
 endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/instantaneous_shear_plugin)
 #END INSTANTANEOUS_SHEAR_PLUGIN
+
+#START UNIT TEST PLUGIN
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mpi_unity)
+  if (UNIT_TESTS_COMPILE)
+    add_subdirectory(mpi_unity)
+  endif()
+endif()
 
 #START SPLIT_PLUGIN
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/split_hdf5)

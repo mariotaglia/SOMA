@@ -612,9 +612,15 @@ IGNORE_TEST(read_write_array_w1_4, write_only_rank_0)
 
 TEST_GROUP(convenience_api_w1_3);
 
-TEST_SETUP(convenience_api_w1_3){}
+TEST_SETUP(convenience_api_w1_3)
+{
+    UnityMalloc_StartTest();
+}
 
-TEST_TEAR_DOWN(convenience_api_w1_3){}
+TEST_TEAR_DOWN(convenience_api_w1_3)
+{
+    UnityMalloc_EndTest();
+}
 
 TEST(convenience_api_w1_3, sample_use)
 {

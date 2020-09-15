@@ -117,7 +117,6 @@ void unity_mpi_collect_and_print_err_msg()
 
 		free(fail_ranks);
 		free(recv);
-		free(size_on_rank);
 		}
 	else
 	{

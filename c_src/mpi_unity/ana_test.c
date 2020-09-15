@@ -1,13 +1,11 @@
 
-#include "unity_mpi_addon.h"
 #include "unity_fixture.h"
 #include "unity_capture.h"
 #include "soma_config.h"
 
-#include "phase.h"
-#include "ana.h"
+#include "../phase.h"
+#include "../ana.h"
 
-#include "err_handling.h"
 
 TEST_GROUP(calc_non_bonded_energy_w2);
 
@@ -18,6 +16,7 @@ TEST_SETUP(calc_non_bonded_energy_w2){
 TEST_TEAR_DOWN(calc_non_bonded_energy_w2) {
     UnityMalloc_EndTest();
 }
+
 
 IGNORE_TEST(calc_non_bonded_energy_w2, example)
 {
