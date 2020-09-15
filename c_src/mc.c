@@ -345,7 +345,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
             unsigned int n_accepts = 0;
 
             //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
-#pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
+#pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])  
 #pragma omp parallel for reduction(+:n_accepts)
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
@@ -701,6 +701,14 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     soma_scalar_t fx = 0.0;
     soma_scalar_t fy = 0.0;
     soma_scalar_t fz = 0.0;
+    
+    if(ipoly>1000000000)
+      {
+    	soma_scalar_t  reg[100];
+    	for (int i =0;i<100;i++)
+    	  x+=reg[i];
+      }
+
     add_bond_forces(p, ipoly, ibead, x, y, z, &fx, &fy, &fz);
 
     /* generate a normal distributed random vector */
@@ -739,7 +747,6 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     *smc_deltaE += 0.25 * A * ((nfx * nfx) + (nfy * nfy) + (nfz * nfz) - (fx * fx) - (fy * fy) - (fz * fz));
 
 }
-
 void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
                      soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz)
