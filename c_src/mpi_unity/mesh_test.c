@@ -30,8 +30,10 @@ TEST_GROUP(communicate_density_fields_w2);
 
 TEST_SETUP(communicate_density_fields_w2)
 {
-    if (ENABLE_DOMAIN_DECOMPOSITION != 1)
-        TEST_IGNORE_MESSAGE("need to compile with domain decomp to test communicate density fields");
+#if (ENABLE_DOMAIN_DECOMPOSITION != 1)
+        DPRINT("\nENABLE_DOMAIN_DECOMPOSITION=%d", ENABLE_DOMAIN_DECOMPOSITION)
+        TEST_IGNORE_MESSAGE("need to compile with domain decomp to test communicate density fields\n");
+#endif
     UnityMalloc_StartTest();
 }
 
@@ -116,9 +118,9 @@ static Phase init_communicate_density_fields_phase(int n_domains, int nx, int ny
 
 static void free_communicate_density_field_phase(Phase * p)
 {
-    free(p->right_tmp_buffer);
-    free(p->left_tmp_buffer);
-    free(p->fields_unified);
+    free(p->right_tmp_buffer); p->right_tmp_buffer = NULL;
+    free(p->left_tmp_buffer); p->left_tmp_buffer = NULL;
+    free(p->fields_unified); p->fields_unified = NULL;
 }
 
 TEST(communicate_density_fields_w2, 1domain_2ranks)
@@ -175,8 +177,10 @@ TEST_GROUP(communicate_density_fields_w8);
 
 TEST_SETUP(communicate_density_fields_w8)
 {
-    if (ENABLE_DOMAIN_DECOMPOSITION != 1)
-        TEST_IGNORE_MESSAGE("need to compile with domain decomp to test communicate density fields");
+#if (ENABLE_DOMAIN_DECOMPOSITION != 1)
+    DPRINT("\nENABLE_DOMAIN_DECOMPOSITION=%d", ENABLE_DOMAIN_DECOMPOSITION)
+    TEST_IGNORE_MESSAGE("need to compile with domain decomp to test communicate density fields\n");
+#endif
     UnityMalloc_StartTest();
 }
 

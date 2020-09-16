@@ -31,7 +31,6 @@ add_executable(UNITTESTS
         ${CMAKE_CURRENT_BINARY_DIR}/run_unit_tests.c
         )
 
-
 # extract_test_cases needs to run every time the test cases change, that is, any of the _test.c files.
 # I do not know how to detect this, so I run the script on *every* invocation of make.
 # add_custom_command without a DEPENDS-argument runs the script whenever one of the OUTPUTs do not exist, so if we specify a file as OUTPUT that does not exist and will not be created, we have the behaviour of running this every time.
