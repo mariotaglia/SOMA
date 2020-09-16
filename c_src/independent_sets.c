@@ -66,7 +66,7 @@ bool try_particle_in_set(const unsigned int set_id, const unsigned int p_id, con
                 {
                     //BondInfo bn;
                     unsigned int end = 0;
-                    for(int i = start; end == 0; i++)
+                    for (int i = start; end == 0; i++)
                         {
                             const uint32_t info = p->poly_arch[i];
                             end = get_end(info);
@@ -74,7 +74,7 @@ bool try_particle_in_set(const unsigned int set_id, const unsigned int p_id, con
                             const unsigned int neighbour_id = ibead + offset;
                             if (neighbour_id == p_id)
                                 neighbor_found = true;
-                    }
+                        }
                 }
         }
 

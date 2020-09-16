@@ -131,7 +131,7 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
     if (start > 0)
         {
             unsigned int end = 0;
-            for(int i = start; end == 0; i++)
+            for (int i = start; end == 0; i++)
                 {
                     const uint32_t info = p->poly_arch[i];
                     end = get_end(info);
@@ -181,7 +181,7 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
                             break;
                         }
 
-            }
+                }
         }
     return delta_energy;
 }
@@ -550,7 +550,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
         {
             unsigned int n_accepts = 0;
 
-            Polymer * const mypoly = &p->polymers[chain_i];
+            Polymer *const mypoly = &p->polymers[chain_i];
 
             const unsigned int poly_type = mypoly->type;
             const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
@@ -744,7 +744,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
     if (start > 0)
         {
             unsigned int end = 0;
-            for(int i = start; end == 0; i++)
+            for (int i = start; end == 0; i++)
                 {
                     const uint32_t info = p->poly_arch[i];
                     end = get_end(info);
@@ -788,7 +788,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 #endif                          //OPENACC
                             break;
                         }
-            }
+                }
         }
     *fx += v1x;
     *fy += v1y;

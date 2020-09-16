@@ -212,14 +212,14 @@ unsigned int get_number_bond_type(const struct Phase *const p, const enum Bondty
                     if (start > 0)
                         {
                             unsigned int end = 0;
-                            for(int i = start; end == 0; i++)
+                            for (int i = start; end == 0; i++)
                                 {
                                     const uint32_t info = p->poly_arch[i];
                                     end = get_end(info);
                                     const unsigned int bond_type = get_bond_type(info);
                                     if (bond_type == btype)
                                         counter++;
-                            }
+                                }
                         }
                 }
         }

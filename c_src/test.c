@@ -127,7 +127,7 @@ int test_independet_sets(const struct Phase *const p)
                                     if (start > 0)
                                         {
                                             unsigned int end = 0;
-                                            for(int i = start; end == 0; i++)
+                                            for (int i = start; end == 0; i++)
                                                 {
                                                     const uint32_t info = p->poly_arch[i];
                                                     end = get_end(info);
@@ -135,7 +135,7 @@ int test_independet_sets(const struct Phase *const p)
                                                     const unsigned n_id = pj + offset;
                                                     if (n_id == pi)
                                                         n_neigh++;
-                                            } 
+                                                }
                                         }
                                 }
                             if (p->info_MPI.domain_rank == 0 && n_neigh > 0)
