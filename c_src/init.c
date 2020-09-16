@@ -50,6 +50,8 @@
 #include "soma_config.h"
 #include "phase.h"
 
+#include "mpi_unity/err_handling.h"
+
 int set_openacc_devices(const struct Phase *const p)
 {
     int ret = 0;
@@ -76,8 +78,10 @@ int set_openacc_devices(const struct Phase *const p)
                     assert(p->args.gpus_given);
                     assert(p->args.gpus_arg > 0);
                     my_gpu_rank = p->info_MPI.world_rank % p->args.gpus_arg;
+		    DPRINT("second branch");
                 }
 
+	    DPRINT("rank %d was assigned gpu %d", my_gpu_rank, p->info_MPI.world_rank);
             acc_init(acc_device_nvidia);
             const unsigned int num_gpus = acc_get_num_devices(acc_device_nvidia);
             if (my_gpu_rank >= num_gpus)

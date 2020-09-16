@@ -10,20 +10,65 @@
 static int init_for_acc_if_necessary(Phase * p)
 {
 
-    memset(&p->args, 0, sizeof(p->args));
-
 #ifdef _OPENACC
 
     p->args.gpus_given = 1;
-    p->args.only_gpu_given = 1;
-    p->args.gpus_arg = 1;
-    p->args.only_gpu_arg = 1;
+    p->args.gpus_arg = 4;
+
+    p->args.only_gpu_given = 0;
+    p->args.only_gpu_arg = 0;
+
+    p->args.omp_threads_given = 0;
+    p->args.omp_threads_arg = 0;
 
     return set_openacc_devices(p);
 #else
     return 0;
 #endif
 
+}
+
+static void phase_copyin_if_necessary(Phase * p)
+{
+    if (p->present_on_device)
+        {
+            fprintf(stderr, "WARNING: copyin of phase that is already on device!");
+        }
+#ifdef _OPENACC
+#pragma acc enter data copyin(p[0:1])
+#pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
+    if (p->args.N_domains_arg > 1)
+        {
+//#pragma acc enter data copyin(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+//#pragma acc enter data copyin(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+        }
+#endif
+    p->present_on_device = true;
+}
+
+static void phase_copyout_if_necessary(Phase * p)
+{
+    if (!p->present_on_device)
+        {
+            fprintf(stderr, "WARNING: copyout of phase that is not on device!");
+        }
+#ifdef _OPENACC
+DPRINT("copyout fields_unified")
+#pragma acc update host(p->fields_unified[0:p->n_types*p->n_cells_local])
+DPRINT("copyout phase")
+#pragma acc update host(p[0:1])
+DPRINT("fields_unified copied")
+//#pragma acc exit data delete(p->fields_unified)
+//#pragma acc exit data delete(p[0:1])
+
+DPRINT("delete successful")
+    if (p->args.N_domains_arg > 1)
+        {
+//#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+//#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+        }
+#endif
+    p->present_on_device = false;
 }
 
 #define INIT_COMM_DENSITY_TEST \
@@ -40,9 +85,16 @@ for (unsigned type=0; type<p.n_types; type++)\
                         body\
                     }
 
-#define FINALIZE_COMM_DENSITY_TEST \
+#define FINALIZE_COMM_DENSITY_TEST \ 
+    phase_copyin_if_necessary(&p);\
+    DPRINT("calling comm");\
     communicate_density_fields(&p);\
+    DPRINT("testing equality");\
     TEST_ASSERT_EQUAL_UINT16_ARRAY(expected, p.fields_unified, p.n_types*p.n_cells_local);\
+    DPRINT("equality confirmed");\
+    DPRINT("calling copyout");\
+    phase_copyout_if_necessary(&p);\
+    DPRINT("copyout successful");\
     free_communicate_density_field_phase(&p);\
     free(expected);
 
@@ -77,6 +129,10 @@ static void init_info_mpi(Info_MPI * inf, int n_domains)
     inf->SOMA_comm_sim = get_test_world();
     inf->sim_size = get_test_world_size();
     inf->sim_rank = get_test_world_rank();
+
+    inf->SOMA_comm_world = get_test_world();
+    inf->world_size = get_test_world_size();
+    inf->world_rank = get_test_world_rank();
 
     inf->domain_size = get_test_world_size() / n_domains;
     int my_domain = get_test_world_rank() / inf->domain_size;
@@ -128,12 +184,15 @@ static Phase init_communicate_density_fields_phase(int n_domains, int nx, int ny
 
     p.args.N_domains_arg = n_domains;
     init_info_mpi(&p.info_MPI, n_domains);
+
+    int err = init_for_acc_if_necessary(&p);
+    TEST_ASSERT_EQUAL_INT(0, err);
+
     init_field_metadata (&p, nx, ny, nz, ntypes, domain_buffer_arg, n_domains);
 
     // dont run mpi_divergence as it is hard to test and would require more parameters
     p.args.load_balance_arg = 0;
-
-    init_for_acc_if_necessary(&p);
+    p.present_on_device = false;
 
     return p;
 }
@@ -145,6 +204,7 @@ static void free_communicate_density_field_phase(Phase * p)
     free(p->fields_unified); p->fields_unified = NULL;
 }
 
+
 TEST(communicate_density_fields_w2, 1domain_2ranks)
 {
 
@@ -154,8 +214,10 @@ TEST(communicate_density_fields_w2, 1domain_2ranks)
     int ntypes = 2;
     int domain_buffer_arg = 0;
 
+DPRINT("init_comm");
     INIT_COMM_DENSITY_TEST
 
+DPRINT("loop");
     LOOP_DENSITY_FIELD
         (
             uint64_t index = cell_coordinate_to_index(&p, x, y, z) + type*p.n_cells_local;
@@ -164,6 +226,7 @@ TEST(communicate_density_fields_w2, 1domain_2ranks)
             p.fields_unified[index] = val + p.info_MPI.domain_rank;
             expected[index] = 2*val + 1;
         )
+	DPRINT("finalize");
 
     FINALIZE_COMM_DENSITY_TEST
 }
