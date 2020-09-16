@@ -109,12 +109,12 @@ soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly, const Mon
                                 const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy,
                                 const soma_scalar_t dz, const unsigned int iwtype)
 {
-    const soma_scalar_t delta_nonbonded_energy = calc_delta_nonbonded_energy(p, monomer, dx, dy, dz, iwtype);
-    const soma_scalar_t delta_bonded_energy = calc_delta_bonded_energy(p, monomer, ipoly, ibead, dx, dy, dz);
-
+  const soma_scalar_t delta_nonbonded_energy = calc_delta_nonbonded_energy(p, monomer, dx, dy, dz, iwtype);
+  //   const soma_scalar_t delta_bonded_energy = calc_delta_bonded_energy(p, monomer, ipoly, ibead, dx, dy, dz);
+  
     // non-bonded energy + bonded energy
-    soma_scalar_t energy = delta_nonbonded_energy;
-    energy += delta_bonded_energy;
+  soma_scalar_t energy = delta_nonbonded_energy;
+    //    energy += delta_bonded_energy;
     return energy;
 }
 
@@ -694,7 +694,6 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     soma_scalar_t z = mybead->z;
 
     /* R calculated from A according to: Rossky, Doll and Friedman, J.Chem.Phys 69(10)1978 */
-    const soma_scalar_t A = p->A[iwtype];
     const soma_scalar_t R = p->R[iwtype];
 
     /* calculate forces in current position */
@@ -702,21 +701,14 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     soma_scalar_t fy = 0.0;
     soma_scalar_t fz = 0.0;
 
-    add_bond_forces(p, ipoly, ibead, x, y, z, &fx, &fy, &fz);
+    soma_scalar_t rx, ry, rz;
+    soma_scalar_t delta_E=0;
+    soma_normal_vector(myrngstate, p, &rx, &ry, &rz);
+    soma_scalar_t A = p->A[iwtype];
+    add_bond_forces(p, ipoly, ibead, x, y, z, &fx, &fy, &fz,R*rx,R*ry,R*rz,&delta_E,A);
 
     /* generate a normal distributed random vector */
-    soma_scalar_t rx, ry, rz;
-    soma_normal_vector(myrngstate, p, &rx, &ry, &rz);
 
-    /* combine the random offset with the forces, to obtain Brownian motion */
-    *dx = A * fx + rx * R;
-    *dy = A * fy + ry * R;
-    *dz = A * fz + rz * R;
-
-    /* calculate proposed position */
-    x += *dx;
-    y += *dy;
-    z += *dz;
 
     soma_scalar_t scale = 1; //needs to be implemented for other values
     soma_scalar_t n_neighbours=2.0;
@@ -738,11 +730,12 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     *smc_deltaE += 0.5 * ((nfx + fx) * (*dx) + (nfy + fy) * (*dy) + (nfz + fz) * (*dz));
 
     *smc_deltaE += 0.25 * A * ((nfx * nfx) + (nfy * nfy) + (nfz * nfz) - (fx * fx) - (fy * fy) - (fz * fz));
+    *smc_deltaE+=delta_E;
 
 }
 void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
-                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz)
+                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz, soma_scalar_t Rrx,soma_scalar_t Rry,soma_scalar_t Rrz,soma_scalar_t * delta_E,soma_scalar_t A)
 {
     soma_scalar_t v1x = 0.0, v1y = 0.0, v1z = 0.0;
     Monomer *beads = p->ph.beads.ptr;
@@ -784,6 +777,24 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                             v1y += v1y_tmp * 2.0 * p->harmonic_normb * scale;
                             v1z += v1z_tmp * 2.0 * p->harmonic_normb * scale;
 			
+
+                            soma_scalar_t old_r2 =  v1x_tmp* v1x_tmp + v1y_tmp * v1y_tmp  + v1z_tmp * v1z_tmp;
+                            
+                            soma_scalar_t e0 = p->harmonic_normb * ( old_r2) * scale;
+
+                            
+                            /* combine the random offset with the forces, to obtain Brownian motion */
+                            
+                            soma_scalar_t new_rx = v1x_tmp + A * v1x + Rrx ;
+                            soma_scalar_t new_ry = v1y_tmp + A * v1y + Rry ;
+                            soma_scalar_t new_rz = v1z_tmp + A * v1z + Rrz ;
+
+                            soma_scalar_t new_r2 = new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
+                            
+                            soma_scalar_t e1=p->harmonic_normb *(new_r2) *scale;
+                            /* Add DeltaE from all neighbours */
+                            *delta_E+=e1-e0;
+
                             break;
 
                         case STIFF:
@@ -801,9 +812,6 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                         }
             }
         }
-    *fx += v1x;
-    *fy += v1y;
-    *fz += v1z;
 }
 
 inline int possible_move_area51(const Phase * p, const soma_scalar_t oldx, const soma_scalar_t oldy,

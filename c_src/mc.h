@@ -193,9 +193,12 @@ void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead
   the configuration to enable the computation of forces after and before the move with this same function.
 */
 #pragma acc routine(add_bond_forces) seq
-void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead,
+void add_bond_forces(const struct Phase * p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
-                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz);
+                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz, soma_scalar_t Rrx,soma_scalar_t Rry,soma_scalar_t Rrz,soma_scalar_t * delta_E,soma_scalar_t A);
+/* void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, */
+/*                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, */
+/*                      soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz); */
 
 //! Validates, whether a move for a particle from the old position, by
 //! a displacement of dx violates the forbidden area51.
