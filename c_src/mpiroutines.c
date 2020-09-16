@@ -442,7 +442,7 @@ int deserialize_mult_polymers(struct Phase *const p, const unsigned int Nsends,
     for (unsigned int i = 0; i < Nsends; i++)
         {
             assert(bytes_read < buffer_length);
-            const unsigned int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+            const int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
             bytes_read += poly_bytes;
             //Push the polymer to the system if something has been read
             if (poly_bytes > 0)

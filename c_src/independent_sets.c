@@ -340,7 +340,19 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
             Polymer *const poly_tmp = p->polymers + i;
 
             poly_tmp->set_states_offset = get_new_soma_memory_offset(&(p->ph.set_states), p->max_set_members);
+            if (poly_tmp->set_states_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             poly_tmp->set_permutation_offset = get_new_soma_memory_offset(&(p->ph.set_permutation), p->max_n_sets);
+            if (poly_tmp->set_permutation_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
 
             //Init every state in the polymer
             const unsigned int seed = pcg32_random(&(poly_tmp->poly_state.default_state));
@@ -357,9 +369,21 @@ int allo_init_memory_for_Polystates(struct Phase *const p)
                             break;
                         case pseudo_random_number_generator_arg_MT:
                             state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.mt), 1);
+                            if (state->alternative_rng_offset == UINT64_MAX)
+                                {
+                                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__,
+                                            __LINE__, p->info_MPI.world_rank, p->n_polymers);
+                                    return -1;
+                                }
                             break;
                         case pseudo_random_number_generator_arg_TT800:
                             state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.tt800), 1);
+                            if (state->alternative_rng_offset == UINT64_MAX)
+                                {
+                                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__,
+                                            __LINE__, p->info_MPI.world_rank, p->n_polymers);
+                                    return -1;
+                                }
                             break;
                         }
                     seed_rng_state(state, seed, j, p);
