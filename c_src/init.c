@@ -25,6 +25,9 @@
 //! \file init.c
 //! \brief Implementation of init.h
 
+#define _OPENACC
+#warning define openacc aus init entfernen!!!
+
 #include "init.h"
 #include <math.h>
 #include <time.h>

@@ -1,9 +1,30 @@
 #include "unity_fixture.h"
 #include <memory.h>
 #include <assert.h>
+#include "err_handling.h"
+
 #include "../mesh.h"
 #include "../phase.h"
-#include "err_handling.h"
+#include "../init.h"
+
+static int init_for_acc_if_necessary(Phase * p)
+{
+
+    memset(&p->args, 0, sizeof(p->args));
+
+#ifdef _OPENACC
+
+    p->args.gpus_given = 1;
+    p->args.only_gpu_given = 1;
+    p->args.gpus_arg = 1;
+    p->args.only_gpu_arg = 1;
+
+    return set_openacc_devices(p);
+#else
+    return 0;
+#endif
+
+}
 
 #define INIT_COMM_DENSITY_TEST \
     Phase p = init_communicate_density_fields_phase(n_domains, nx, ny, nz, ntypes, domain_buffer_arg);\
@@ -31,7 +52,6 @@ TEST_GROUP(communicate_density_fields_w2);
 TEST_SETUP(communicate_density_fields_w2)
 {
 #if (ENABLE_DOMAIN_DECOMPOSITION != 1)
-        DPRINT("\nENABLE_DOMAIN_DECOMPOSITION=%d", ENABLE_DOMAIN_DECOMPOSITION)
         TEST_IGNORE_MESSAGE("need to compile with domain decomp to test communicate density fields\n");
 #endif
     UnityMalloc_StartTest();
@@ -113,6 +133,8 @@ static Phase init_communicate_density_fields_phase(int n_domains, int nx, int ny
     // dont run mpi_divergence as it is hard to test and would require more parameters
     p.args.load_balance_arg = 0;
 
+    init_for_acc_if_necessary(&p);
+
     return p;
 }
 
@@ -178,7 +200,6 @@ TEST_GROUP(communicate_density_fields_w8);
 TEST_SETUP(communicate_density_fields_w8)
 {
 #if (ENABLE_DOMAIN_DECOMPOSITION != 1)
-    DPRINT("\nENABLE_DOMAIN_DECOMPOSITION=%d", ENABLE_DOMAIN_DECOMPOSITION)
     TEST_IGNORE_MESSAGE("need to compile with domain decomp to test communicate density fields\n");
 #endif
     UnityMalloc_StartTest();
