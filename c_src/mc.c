@@ -705,7 +705,7 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     soma_scalar_t delta_E=0;
     soma_normal_vector(myrngstate, p, &rx, &ry, &rz);
     soma_scalar_t A = p->A[iwtype];
-    add_bond_forces(p, ipoly, ibead, x, y, z, &fx, &fy, &fz,R*rx,R*ry,R*rz,&delta_E,A);
+    add_bond_forces(p, ipoly, ibead, x, y, z, &fx, &fy, &fz,R*rx,R*ry,R*rz,&delta_E,A,dx,dy,dz);
 
     /* generate a normal distributed random vector */
 
@@ -730,12 +730,13 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     *smc_deltaE += 0.5 * ((nfx + fx) * (*dx) + (nfy + fy) * (*dy) + (nfz + fz) * (*dz));
 
     *smc_deltaE += 0.25 * A * ((nfx * nfx) + (nfy * nfy) + (nfz * nfz) - (fx * fx) - (fy * fy) - (fz * fz));
+
     *smc_deltaE+=delta_E;
 
 }
 void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
-                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz, soma_scalar_t Rrx,soma_scalar_t Rry,soma_scalar_t Rrz,soma_scalar_t * delta_E,soma_scalar_t A)
+                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz, soma_scalar_t Rrx,soma_scalar_t Rry,soma_scalar_t Rrz,soma_scalar_t * delta_E,soma_scalar_t A,soma_scalar_t *dx,soma_scalar_t *dy,soma_scalar_t *dz)
 {
     soma_scalar_t v1x = 0.0, v1y = 0.0, v1z = 0.0;
     Monomer *beads = p->ph.beads.ptr;
@@ -745,6 +746,8 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 	
     if (start > 0)
         {
+	    soma_scalar_t e0=0;
+            soma_scalar_t e1=0;
             unsigned int end = 0;
             for(int i = start; end == 0; i++)
                 {
@@ -755,7 +758,6 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 
                     const int neighbour_id = ibead + offset;
                     const unsigned int jbead = neighbour_id;
-#pragma acc cache (beads[jbead])
                     soma_scalar_t scale = 1;
                     switch (bond_type)
                         {
@@ -778,22 +780,9 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                             v1z += v1z_tmp * 2.0 * p->harmonic_normb * scale;
 			
 
-                            soma_scalar_t old_r2 =  v1x_tmp* v1x_tmp + v1y_tmp * v1y_tmp  + v1z_tmp * v1z_tmp;
-                            
-                            soma_scalar_t e0 = p->harmonic_normb * ( old_r2) * scale;
-
-                            
-                            /* combine the random offset with the forces, to obtain Brownian motion */
-                            
-                            soma_scalar_t new_rx = v1x_tmp + A * v1x + Rrx ;
-                            soma_scalar_t new_ry = v1y_tmp + A * v1y + Rry ;
-                            soma_scalar_t new_rz = v1z_tmp + A * v1z + Rrz ;
-
-                            soma_scalar_t new_r2 = new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
-                            
-                            soma_scalar_t e1=p->harmonic_normb *(new_r2) *scale;
-                            /* Add DeltaE from all neighbours */
-                            *delta_E+=e1-e0;
+                            soma_scalar_t old_r2 =  v1x_tmp* v1x_tmp + v1y_tmp * v1y_tmp  + v1z_tmp * v1z_tmp;			    
+                            e0 = p->harmonic_normb * ( old_r2) * scale;                            
+                            *delta_E-=e0;
 
                             break;
 
@@ -811,6 +800,63 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                             break;
                         }
             }
+	    *fx=v1x;
+	    *fy=v1y;
+	    *fz=v1z;
+	    *dx=A * v1x + Rrx ;
+	    *dy=A * v1y + Rry ;
+	    *dz=A * v1z + Rrz ;
+
+	    end=0;
+            for(int i = start; end == 0; i++)
+                {
+                    const uint32_t info = p->poly_arch[i];
+                    end = get_end(info);
+                    const unsigned int bond_type = get_bond_type(info);
+                    const int offset = get_offset(info);
+
+                    const int neighbour_id = ibead + offset;
+                    const unsigned int jbead = neighbour_id;
+                    soma_scalar_t scale = 1;
+                    switch (bond_type)
+                        {
+                        case HARMONICVARIABLESCALE:
+                            scale = p->harmonic_normb_variable_scale;
+                            /* intentionally falls through */
+                        case HARMONIC:
+                            //Empty statement, because a statement after a label
+                            //has to come before any declaration
+                            ;
+
+                            soma_scalar_t v1x_tmp = calc_bond_length(beads[jbead].x, x+*dx, p->Lx,
+                                                                     p->args.bond_minimum_image_convention_flag);
+                            soma_scalar_t v1y_tmp = calc_bond_length(beads[jbead].y, y+*dy, p->Ly,
+                                                                     p->args.bond_minimum_image_convention_flag);
+                            soma_scalar_t v1z_tmp = calc_bond_length(beads[jbead].z, z+*dz, p->Lz,
+                                                                     p->args.bond_minimum_image_convention_flag);
+			    soma_scalar_t new_r2 =  v1x_tmp* v1x_tmp + v1y_tmp * v1y_tmp  + v1z_tmp * v1z_tmp;			    
+
+                            e1 = p->harmonic_normb * ( new_r2) * scale;                            
+                            *delta_E+=e1;
+                            break;
+
+                        case STIFF:
+#ifndef _OPENACC
+                            fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
+#endif                          //OPENACC
+                            break;
+
+                        default:
+#ifndef _OPENACC
+                            fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
+                                    __FILE__, __LINE__, bond_type);
+#endif                          //OPENACC
+                            break;
+                        }
+            }
+
+
+
         }
 }
 

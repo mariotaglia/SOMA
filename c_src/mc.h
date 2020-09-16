@@ -195,7 +195,8 @@ void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead
 #pragma acc routine(add_bond_forces) seq
 void add_bond_forces(const struct Phase * p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
-                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz, soma_scalar_t Rrx,soma_scalar_t Rry,soma_scalar_t Rrz,soma_scalar_t * delta_E,soma_scalar_t A);
+		     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz, soma_scalar_t Rrx,soma_scalar_t Rry,soma_scalar_t Rrz,soma_scalar_t * delta_E,soma_scalar_t A,soma_scalar_t *dx,soma_scalar_t *dy,soma_scalar_t *dz);
+
 /* void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, */
 /*                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, */
 /*                      soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz); */
