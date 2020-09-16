@@ -701,13 +701,6 @@ void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma
     soma_scalar_t fx = 0.0;
     soma_scalar_t fy = 0.0;
     soma_scalar_t fz = 0.0;
-    
-    if(ipoly>1000000000)
-      {
-    	soma_scalar_t  reg[100];
-    	for (int i =0;i<100;i++)
-    	  x+=reg[i];
-      }
 
     add_bond_forces(p, ipoly, ibead, x, y, z, &fx, &fy, &fz);
 
@@ -769,7 +762,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 
                     const int neighbour_id = ibead + offset;
                     const unsigned int jbead = neighbour_id;
-
+#pragma acc cache (beads[jbead])
                     soma_scalar_t scale = 1;
                     switch (bond_type)
                         {
@@ -780,6 +773,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                             //Empty statement, because a statement after a label
                             //has to come before any declaration
                             ;
+
                             soma_scalar_t v1x_tmp = calc_bond_length(beads[jbead].x, x, p->Lx,
                                                                      p->args.bond_minimum_image_convention_flag);
                             soma_scalar_t v1y_tmp = calc_bond_length(beads[jbead].y, y, p->Ly,
@@ -789,6 +783,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
                             v1x += v1x_tmp * 2.0 * p->harmonic_normb * scale;
                             v1y += v1y_tmp * 2.0 * p->harmonic_normb * scale;
                             v1z += v1z_tmp * 2.0 * p->harmonic_normb * scale;
+			
                             break;
 
                         case STIFF:
