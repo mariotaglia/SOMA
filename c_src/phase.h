@@ -78,6 +78,7 @@ typedef struct Phase {
 
     //uint16_t **fields; /*!< \brief n_types fields in 3D, mimics the DENSITY NOT normalized to 1, this has to be done in the omega_field calculation*/
     uint16_t *fields_unified;   /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of fields */
+  uint32_t *fields_unified_private; //!< \private
     uint16_t *old_fields_unified;       /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of old fields for density variance calculations */
     uint32_t *fields_32;        //!< \brief linear 32 bit version of the fields. This is required for GPU-simulation, because no 16-bit atomic operations are available.
 
