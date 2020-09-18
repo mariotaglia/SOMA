@@ -109,8 +109,8 @@ soma_scalar_t calc_delta_energy(const Phase * p, const uint64_t ipoly, const Mon
                                 const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy,
                                 const soma_scalar_t dz, const unsigned int iwtype)
 {
-    const soma_scalar_t delta_nonbonded_energy = calc_delta_nonbonded_energy(p, monomer, dx, dy, dz, iwtype);
     const soma_scalar_t delta_bonded_energy = calc_delta_bonded_energy(p, monomer, ipoly, ibead, dx, dy, dz);
+    const soma_scalar_t delta_nonbonded_energy = calc_delta_nonbonded_energy(p, monomer, dx, dy, dz, iwtype);
 
     // non-bonded energy + bonded energy
     soma_scalar_t energy = delta_nonbonded_energy;
