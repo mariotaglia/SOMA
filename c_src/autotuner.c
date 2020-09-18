@@ -35,9 +35,9 @@
 #include <sys/time.h>
 
 //! Step size between different elements.
-static const unsigned int AUTO_TUNER_STEP = 32;
+static const unsigned int AUTO_TUNER_STEP = 16;
 //! Number of iterations an autotuner runs, before an optimal value is determined.
-static const unsigned int AUTO_TUNER_ITERATIONS = 500;
+static const unsigned int AUTO_TUNER_ITERATIONS = 1000;
 
 int init_autotuner(Autotuner * a)
 {
