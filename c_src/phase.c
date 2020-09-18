@@ -129,15 +129,13 @@ int init_phase(struct Phase *const p)
 
     if (p->args.N_domains_arg > 1 && p->info_MPI.domain_rank == 0)
         {
-            p->left_tmp_buffer =
-	      (uint16_t *) malloc( (p->args.domain_buffer_arg * p->ny * p->nz ) * sizeof(uint16_t) );
+            p->left_tmp_buffer = (uint16_t *) malloc((p->args.domain_buffer_arg * p->ny * p->nz) * sizeof(uint16_t));
             if (p->left_tmp_buffer == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
                     return -1;
                 }
-            p->right_tmp_buffer =
-	      (uint16_t *) malloc( (p->args.domain_buffer_arg * p->ny * p->nz ) * sizeof(uint16_t));
+            p->right_tmp_buffer = (uint16_t *) malloc((p->args.domain_buffer_arg * p->ny * p->nz) * sizeof(uint16_t));
             if (p->right_tmp_buffer == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -145,7 +143,7 @@ int init_phase(struct Phase *const p)
                 }
         }
     p->fields_unified = (uint16_t *) malloc(p->n_cells_local * p->n_types * sizeof(uint16_t));
-    p->fields_unified = (uint16_t *) malloc( (p->n_cells_local * p->n_types )* sizeof(uint16_t) );
+    p->fields_unified = (uint16_t *) malloc((p->n_cells_local * p->n_types) * sizeof(uint16_t));
     if (p->fields_unified == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
