@@ -1,13 +1,12 @@
 module purge
 
-module load CUDA
-module load PGI
-module load MVAPICH2
-module load CMake
-module load HDF5
+ml use $OTHERSTAGES
+ml Stages/2020
+ml NVHPC/20.7-GCC-9.3.0
+ml ParaStationMPI/5.4.7-1
+ml mpi-settings/CUDA
+ml HDF5/1.10.6
+ml CMake/3.18.0
+ml NCCL
 
-#export SOMA_C_FLAGS="-Mnollvm -L$EBROOTNUMACTL/lib/ -L$EBROOTGCCCORE/lib64/ -L$EBROOTHDF5/lib/ -L$EBROOTMVAPICH2/lib64/ -L$EBROOTSZIP/lib/ -L$EBROOTCUDA/lib64/"
-
-export MV2_USE_GPUDIRECT_GDRCOPY=0
-
-export CC=pgcc
+export CC=nvc
