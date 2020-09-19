@@ -24,6 +24,7 @@ static int init_for_acc_if_necessary(Phase * p)
 
     return set_openacc_devices(p);
 #else
+    (void)p;
     return 0;
 #endif
 
@@ -82,7 +83,7 @@ for (unsigned type=0; type<p.n_types; type++)\
                         body\
                     }
 
-#define FINALIZE_COMM_DENSITY_TEST \ 
+#define FINALIZE_COMM_DENSITY_TEST \
     phase_copyin_if_necessary(&p);\
     communicate_density_fields(&p);\
     TEST_ASSERT_EQUAL_UINT16_ARRAY(expected, p.fields_unified, p.n_types*p.n_cells_local);\
