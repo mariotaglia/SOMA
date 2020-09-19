@@ -9,6 +9,7 @@
 
 static int init_for_acc_if_necessary(Phase * p)
 {
+    //static setzen, nur einmal aufrufen!
 
 #ifdef _OPENACC
 
@@ -39,8 +40,8 @@ static void phase_copyin_if_necessary(Phase * p)
 #pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
     if (p->args.N_domains_arg > 1)
         {
-//#pragma acc enter data copyin(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
-//#pragma acc enter data copyin(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+#pragma acc enter data copyin(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+#pragma acc enter data copyin(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
         }
 #endif
     p->present_on_device = true;
@@ -53,20 +54,16 @@ static void phase_copyout_if_necessary(Phase * p)
             fprintf(stderr, "WARNING: copyout of phase that is not on device!");
         }
 #ifdef _OPENACC
-DPRINT("copyout fields_unified")
-#pragma acc update host(p->fields_unified[0:p->n_types*p->n_cells_local])
-DPRINT("copyout phase")
-#pragma acc update host(p[0:1])
-DPRINT("fields_unified copied")
-//#pragma acc exit data delete(p->fields_unified)
-//#pragma acc exit data delete(p[0:1])
+#pragma acc exit data copyout(p->fields_unified)
 
-DPRINT("delete successful")
+
     if (p->args.N_domains_arg > 1)
         {
-//#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
-//#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
+#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg * p->ny * p->nz])
         }
+#pragma acc exit data copyout(p[0:1])
+
 #endif
     p->present_on_device = false;
 }
@@ -87,16 +84,11 @@ for (unsigned type=0; type<p.n_types; type++)\
 
 #define FINALIZE_COMM_DENSITY_TEST \ 
     phase_copyin_if_necessary(&p);\
-    DPRINT("calling comm");\
     communicate_density_fields(&p);\
-    DPRINT("testing equality");\
     TEST_ASSERT_EQUAL_UINT16_ARRAY(expected, p.fields_unified, p.n_types*p.n_cells_local);\
-    DPRINT("equality confirmed");\
-    DPRINT("calling copyout");\
     phase_copyout_if_necessary(&p);\
-    DPRINT("copyout successful");\
     free_communicate_density_field_phase(&p);\
-    free(expected);
+    free(expected);\
 
 
 TEST_GROUP(communicate_density_fields_w2);
@@ -214,10 +206,8 @@ TEST(communicate_density_fields_w2, 1domain_2ranks)
     int ntypes = 2;
     int domain_buffer_arg = 0;
 
-DPRINT("init_comm");
     INIT_COMM_DENSITY_TEST
 
-DPRINT("loop");
     LOOP_DENSITY_FIELD
         (
             uint64_t index = cell_coordinate_to_index(&p, x, y, z) + type*p.n_cells_local;
@@ -226,7 +216,6 @@ DPRINT("loop");
             p.fields_unified[index] = val + p.info_MPI.domain_rank;
             expected[index] = 2*val + 1;
         )
-	DPRINT("finalize");
 
     FINALIZE_COMM_DENSITY_TEST
 }
