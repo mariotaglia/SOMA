@@ -1,6 +1,3 @@
-#define calc_avg 1
-#define save_time_series 0
-
 /* Copyright (C) 2016-2019 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
@@ -133,11 +130,8 @@ int main(int argc, char *argv[])
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
-    init_nanoparticle_rng(p,&p->nanoparticles[0]);
-    calc_np_field_total(p);
     if (!p->bead_data_read)
         {
-          nanoparticle_area51_switch(p, 1);
             if (p->info_MPI.sim_rank == 0)
                 printf("INFO: Generating new bead initial data. "
                        "If your configuration contains rings " "equilibration might take long.\n");
@@ -146,10 +140,6 @@ int main(int argc, char *argv[])
             //Reset the RNG to initial starting conditions.
             reseed(p, p->args.rng_seed_arg);
         }
-#if ( ENABLE_MPI == 1 )
-    const int init_domain_chains_status = send_domain_chains(p, true);
-    MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
-#endif                          //ENABLE_MPI
     if (!p->args.skip_tests_flag)
         {
             const int test_p = test_particle_types(p);
@@ -169,27 +159,10 @@ int main(int argc, char *argv[])
             const int polytype_conversion = test_poly_conversion(p);
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
-    nanoparticle_area51_switch(p, 0);
-    //    test_nanoparticle(p, &p->nanoparticles[0]);
     int stop_iteration = false;
-#if(calc_avg==1)
-      soma_scalar_t * avg_e_b=calloc(NUMBER_SOMA_BOND_TYPES , sizeof(soma_scalar_t));
-      soma_scalar_t * avg_e_nb=calloc(p->n_types, sizeof(soma_scalar_t));
-      p->external_field_unified=(soma_scalar_t *) malloc(p->n_cells * p->n_types * sizeof(soma_scalar_t));
-      soma_scalar_t e_b=0;
-      soma_scalar_t e_b0=0;	
-      soma_scalar_t e_nb=0;
-#endif
-#if(save_time_series==1)
-      int frequency=10;
-      int eq_time=N_steps/2;
-      int nt=(N_steps-eq_time)/frequency;
-      uint16_t * time_series=NULL;
-      time_series = (uint16_t *) calloc(p->nx*p->ny*p->nz *nt, sizeof(uint16_t));
-      int k=0;
-#endif
     update_density_fields(p);
     update_omega_fields(p);
+
     for (unsigned int i = 0; i < N_steps; i++)
       {
 	const int mc_error = monte_carlo_propagation(p, 1);
@@ -201,38 +174,7 @@ int main(int argc, char *argv[])
 	  }
 
 	screen_output(p, N_steps);
-#if(save_time_series==1)
-	  if(i>=eq_time&&i%frequency==0)
-	    {
-	      memcpy(&time_series[k*p->n_cells], p->fields_unified, p->n_cells*sizeof(uint16_t));
-	      k++;
-	    }
-#endif
-#if(calc_avg==1)
-	  if(i>=N_steps-N_steps/2){
-	    average_field(p, p->umbrella_field, (soma_scalar_t) N_steps-(N_steps-N_steps/2),1);
-	    average_field(p, p->external_field_unified, (soma_scalar_t) N_steps-(N_steps-N_steps/2),2);
-	    e_nb+=calc_non_bonded_energy_exact(p)/(N_steps-(N_steps-N_steps/2));
-	    calc_non_bonded_energy(p,&e_b0);
-	    e_b+=e_b0/(N_steps/2);
-	  }
-#endif	    
       }
-#if(calc_avg==1)
-      p->xn[0]=e_b;
-      p->k_umbrella[0]=e_nb;
-#endif
-#if(save_time_series==1)
-      FILE *f = fopen("p", "w");
-      for(int i=0;i<p->n_cells*nt;i++)
-	fprintf(f, "%u\n",time_series[i]);
-      fclose(f);
-#endif
-#if ( ENABLE_MPI == 1 )
-    const int missed_chains = send_domain_chains(p, false);
-    if (missed_chains != 0)
-        exit(missed_chains);
-#endif                          //ENABLE_MPI
     
 
     const int write = write_config_hdf5(p, p->args.final_file_arg);
