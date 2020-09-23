@@ -359,7 +359,11 @@ int convert_polytypes(struct Phase *p)
             if (p->pc.array[cell] != 0)
                 {
                     //Minus 1 because the index in array are shifted by 1
-                    for (int i = p->pc.array[cell] - 1; !p->pc.reaction_end[i + 1]; i++)
+
+                    int i = p->pc.array[cell] - 1;
+                    if (p->polymers[poly].type == p->pc.input_type[i])
+                        p->polymers[poly].type = p->pc.output_type[i];
+                    for (; !p->pc.reaction_end[i]; i++)
                         {
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 p->polymers[poly].type = p->pc.output_type[i];
