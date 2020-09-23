@@ -1375,16 +1375,3 @@ int average_field(const struct Phase *p, soma_scalar_t* destination,soma_scalar_
 }
 return 0;
 }
-soma_scalar_t calc_non_bonded_energy_exact(const struct Phase *p){
-  soma_scalar_t energy=0;
-  soma_scalar_t inverse_refbeads=1.0/p->reference_Nbeads;
-  const soma_scalar_t rho_c0=1.0/p->field_scaling_type[0];
-  for (unsigned int T_types = 0; T_types < p->n_types; T_types++)
-	for (uint64_t cell = 0; cell < p->n_cells; cell++)
-          energy+=(rho_c0*p->xn[0]*inverse_refbeads*
-                   ((p->fields_unified[cell+T_types*p->n_cells])/rho_c0+p->nanoparticle_field[cell+T_types*p->n_cells]-1)*
-                   ((p->fields_unified[cell+T_types*p->n_cells])/rho_c0+p->nanoparticle_field[cell+T_types*p->n_cells]-1))/2.0;
-  return energy;
-                   
-
-}

@@ -75,8 +75,6 @@ typedef struct Phase {
     uint64_t n_polymers_storage;        /*!< \brief Storage space for polymers. */
     uint64_t n_polymers_global; /*!< \brief \#polymers in the global configuration. */
     Polymer *polymers;          /*!< \brief pointer to array of polymers */
-    Nanoparticle *nanoparticles;
-    uint64_t n_nanoparticle;
     //uint16_t **fields; /*!< \brief n_types fields in 3D, mimics the DENSITY NOT normalized to 1, this has to be done in the omega_field calculation*/
     uint16_t *fields_unified;   /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of fields */
     uint16_t *old_fields_unified;       /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of old fields for density variance calculations */
@@ -98,7 +96,6 @@ typedef struct Phase {
     soma_scalar_t *external_field_unified;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
     soma_scalar_t *umbrella_field;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
-    soma_scalar_t *nanoparticle_field;  /*!< \brief stores the density field of all nanoparticles */
     soma_scalar_t *A;           /*!< \brief stores the diffusion constants for each type */
     soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
     //!  Mobility of the center of mass for all polymer types.

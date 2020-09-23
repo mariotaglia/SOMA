@@ -176,12 +176,6 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->nanoparticle_field = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
-    if (p->nanoparticle_field == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
 
     // Set all values to zero
     p->num_all_beads = 0;
@@ -327,7 +321,6 @@ int copyin_phase(struct Phase *const p)
         {
 #pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
-#pragma acc enter data copyin(p->nanoparticle_field[p->n_cells])
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
