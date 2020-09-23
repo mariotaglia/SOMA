@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.13.4 FATAL_ERROR)
 
 include(CheckCCompilerFlag)
 
@@ -28,14 +28,14 @@ else (SOMA_GIT_VERSION)
   set(SOMA_VERSION_LONG "${SOMA_VERSION}-unknown")
 endif (SOMA_GIT_VERSION)
 
-set(SOMA_SYSTEM_INFO "${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_C_COMPILER_ID}")
+set(SOMA_SYSTEM_INFO "${CMAKE_SYSTEM} with ${CMAKE_C_COMPILER_ID} for ${CMAKE_SYSTEM_PROCESSOR} ")
 
 #set extra flags from environment
 set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} $ENV{SOMA_C_FLAGS}" CACHE STRING "" FORCE)
 
 #Set proper release flags for PGI.
 if( "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
-  set( CMAKE_C_FLAGS_RELEASE "-O0 -DNDEBUG" CACHE STRING "" FORCE)
+  set( CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING "" FORCE)
   set( CMAKE_C_FLAGS_RELWITHDEBINFO "-g -O0 -DNDEBUG" CACHE STRING "" FORCE)
 endif()
 
@@ -100,7 +100,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -c99")
+  #sorry the PGI compiler messages are utterly useless. And I don't know how to shutoff the warnings in the code.
+  set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -c99 -Minform=severe")
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
@@ -110,16 +111,23 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
   SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
 
-
+find_package(OpenACC)
 #Set up options build options
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  option(ENABLE_NVIDIA_GPU "Activate NVIDIA GPUs as OpenACC accelerator." ON)
-  option(ENABLE_OPENMP "Activate OpenMP for shared memory system parallelism." OFF)
-else("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  option(ENABLE_NVIDIA_GPU "Activate NVIDIA GPUs as OpenACC accelerator." OFF)
-  option(ENABLE_OPENMP "Activate OpenMP for shared memory system parallelism." ON)
-endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+if(OpenACC_C_FOUND)
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    option(ENABLE_OPENACC "Activate OpenACC for  accelerators." OFF)
+  else("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    option(ENABLE_OPENACC "Activate OpenACC for  accelerators." ON)
+  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+endif(OpenACC_C_FOUND)
 
+if(NOT ENABLE_OPENACC)
+find_package(OpenMP)
+endif(NOT ENABLE_OPENACC)
+
+if(OpenMP_C_FOUND)
+  option(ENABLE_OPENMP "Activate OpenMP for shared memory system parallelism." ON)
+endif(OpenMP_C_FOUND)
 
 option(SINGLE_PRECISION  "Single precision floats for real values. Otherwise double precision." OFF)
 
@@ -137,20 +145,17 @@ if( !ENABLE_MPI)
   endif(ENABLE_DOMAIN_DECOMPOSITION)
 endif( !ENABLE_MPI )
 
-if( ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
+if( ENABLE_OPENACC AND ENABLE_OPENMP )
   message(SEND_ERROR "SOMA can be compiled with either OpenACC or OpenMP, not both.")
-endif(ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
+endif(ENABLE_OPENACC AND ENABLE_OPENMP )
 
-if(ENABLE_NVIDIA_GPU)
-  find_package(CUDA REQUIRED QUIET)
+if(ENABLE_OPENACC)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenACC_C_FLAGS}")
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} OpenACC")
 
-  if(CUDA_VERSION_MAJOR VERSION_LESS 8)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ta=nvidia,host")
-  else(CUDA_VERSION_MAJOR VERSION_LESS 8)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ta=nvidia:cuda${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR},host")
-  endif(CUDA_VERSION_MAJOR VERSION_LESS 8)
-
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Minfo=accel")
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Minfo=accel")
+  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
 
   if(ENABLE_MPI)
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
@@ -194,23 +199,14 @@ if(ENABLE_NVIDIA_GPU)
       message(STATUS "MPI<->CUDA interoperability does not appear to be available.")
       option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
     endif(MPI_CUDA)
-  endif(ENABLE_MPI)
+endif(ENABLE_MPI)
 
-endif(ENABLE_NVIDIA_GPU)
+endif(ENABLE_OPENACC)
 
 if(ENABLE_OPENMP)
-  if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mp")
-  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -qopenmp")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -qopenmp-offload=mic")
-  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} OpenMP")
 endif(ENABLE_OPENMP)
-
 
 add_subdirectory(c_src)
 add_subdirectory(setups)

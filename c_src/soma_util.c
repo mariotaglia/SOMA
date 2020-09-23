@@ -83,12 +83,6 @@ uint32_t get_info_bl(const unsigned int offset_bl, const unsigned int type)
 
 int post_process_args(struct som_args *args, const unsigned int world_rank)
 {
-    if (world_rank == 0)
-        {
-            cmdline_parser_print_version();
-            printf("\n");
-        }
-
     if (args->timesteps_arg < 0)
         {
             if (world_rank == 0)
@@ -203,8 +197,6 @@ int post_process_args(struct som_args *args, const unsigned int world_rank)
                 }
         }
 
-    if (world_rank == 0)
-        cmdline_parser_dump(stdout, args);
     return 0;
 }
 
@@ -219,16 +211,15 @@ unsigned int get_number_bond_type(const struct Phase *const p, const enum Bondty
                     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[p_type] + 1 + mono]);
                     if (start > 0)
                         {
-                            int i = start;
-                            unsigned int end;
-                            do
+                            unsigned int end = 0;
+                            for (int i = start; end == 0; i++)
                                 {
-                                    const uint32_t info = p->poly_arch[i++];
+                                    const uint32_t info = p->poly_arch[i];
                                     end = get_end(info);
                                     const unsigned int bond_type = get_bond_type(info);
                                     if (bond_type == btype)
                                         counter++;
-                            } while (end == 0);
+                                }
                         }
                 }
         }
@@ -246,9 +237,8 @@ int reseed(struct Phase *const p, const unsigned int seed)
     //Reset PRNG to initial state
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            seed_rng_state(&(p->polymers[i].poly_state), seed,
-                           i + n_polymer_offset, p->args.pseudo_random_number_generator_arg);
-            update_device_rng_state(&(p->polymers[i].poly_state), p->args.pseudo_random_number_generator_arg);
+            seed_rng_state(&(p->polymers[i].poly_state), seed, i + n_polymer_offset, p);
         }
+
     return 0;
 }

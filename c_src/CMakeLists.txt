@@ -12,14 +12,19 @@ set(soma_source
   independent_sets.c
   init.c
   io.c
+  io_old.c
   mc.c
   mesh.c
   monomer.c
   mpiroutines.c
   phase.c
   polymer.c
+  poly_heavy.c
   rng.c
+  self_documentation.c
+  rng_alternative.c
   soma_config.c
+  soma_memory.c
   soma_util.c
   walltime.c
   test.c
@@ -41,13 +46,18 @@ set(soma_header
   independent_sets.h
   init.h
   io.h
+  io_old.h
   mc.h
   mesh.h
   monomer.h
   mpiroutines.h
   phase.h
   polymer.h
+  poly_heavy.h
   rng.h
+  self_documentation.h
+  rng_alternative.h
+  soma_memory.h
   soma_util.h
   walltime.h
   test.h

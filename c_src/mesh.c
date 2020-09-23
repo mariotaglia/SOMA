@@ -177,15 +177,15 @@ int update_density_fields(const struct Phase *const p)
     for (uint64_t i = 0; i < n_polymers; i++)
         {                       /*Loop over polymers */
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[i].bead_offset;
 #pragma acc loop vector
             for (unsigned int j = 0; j < N; j++)
                 {               /*Loop over monomers */
                     const unsigned int monotype =
                         get_particle_type(p->poly_arch[p->poly_type_offset[p->polymers[i].type] + 1 + j]);
 
-                    const unsigned int index = coord_to_index_unified(p, p->polymers[i].beads[j].x,
-                                                                      p->polymers[i].beads[j].y,
-                                                                      p->polymers[i].beads[j].z, monotype);
+                    const unsigned int index = coord_to_index_unified(p, beads[j].x, beads[j].y, beads[j].z, monotype);
                     if (index < p->n_cells_local * p->n_types)
                         {
 #pragma acc atomic update
@@ -316,9 +316,9 @@ void self_omega_field(const struct Phase *const p)
                     if (p->umbrella_field != NULL)
                         {
                             p->omega_field_unified[cell + T_types * p->n_cells_local] +=
-                                -inverse_refbeads *  p->k_umbrella[T_types] *
+                                -inverse_refbeads  * p->k_umbrella[T_types] *
                                 (p->umbrella_field[cell + T_types * p->n_cells_local] -
-                                 p->field_scaling_type[T_types] *p->fields_unified[cell + T_types * p->n_cells_local]);
+                                  p->field_scaling_type[T_types]*p->fields_unified[cell + T_types * p->n_cells_local]);
                         }
                 }
         }

@@ -51,3 +51,4 @@ option "long-chain-threshold" - "Option to determine the length of the long chai
 option "set_order_frequency" - "Option to determine the frequency to check the ordering of the polymers which is important for independent_set_iteration." int typestr="frequency" optional default="200"
 option "n_random_q" - "Option to determine the number of random wave vectors used for the calculation of structure factor." int typestr="N" optional default="32"
 option "final-file" f "Filename to write the final configuration. (HDF5-Format)" string typestr="filename" optional default="end.h5"
+option "purpose" - "Describe the purpose of the simulation run. Enables automatic self documentation. only ASCII" string typestr="description" optional

@@ -57,12 +57,10 @@ int mc_polymer_iteration(struct Phase *const p, const unsigned int nsteps, const
 //! \param dx Output pointer to dx.
 //! \param dy Output pointer to dy.
 //! \param dz Output pointer to dz.
-//! \param arg_rng_type Random number generator type.
 //! \param rng_state State of the random number generator.
 #pragma acc routine(trial_move_cm) seq
 void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_t * const dx,
-                   soma_scalar_t * const dy, soma_scalar_t * const dz,
-                   const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state);
+                   soma_scalar_t * const dy, soma_scalar_t * const dz, RNG_STATE * const rng_state);
 
 //! Calculate the nonbonded energy of a given particle compared to a proposed move.
 //!
@@ -105,13 +103,11 @@ int mc_set_iteration(struct Phase *const p, const unsigned int nsteps, const uns
   \param dy memory for the resulting x proposal.
   \param dz memory for the resulting x proposal.
   \param iwtype Type of the particle to move.
-  \param arg_rng_type Type of the Random number generator.
   \param rng_state State of the RNG.
 */
 #pragma acc routine(trial_move) seq
 void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy,
-                soma_scalar_t * dz, const unsigned int iwtype,
-                const enum enum_pseudo_random_number_generator arg_rng_type, RNG_STATE * const rng_state);
+                soma_scalar_t * dz, const unsigned int iwtype, RNG_STATE * const rng_state);
 
 //! Calculate the energy difference for a trial move.
 //!
@@ -150,12 +146,12 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * mo
   bool as in the macro in <stdbool.h> (valid for C99).
 
   \param delta_energy: double ( E_new - E_old ), energy change after the intended movement on the random bead
+  \param p Phase construct of the simulated system
   \param rng State of the rng to use
-  \param rng_type enum which carries information about which RNG should by used
   \return true or false according to the Metropolis criteria
 */
 #pragma acc routine(som_accept) seq
-int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator rng_type, soma_scalar_t delta_energy);
+int som_accept(RNG_STATE * const rng, const struct Phase *const p, soma_scalar_t delta_energy);
 
 /*! \brief Smart Monte-Carlo (SMC) move.  Calculate the displacement and the energy change from the forces.
 
@@ -168,7 +164,6 @@ int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator r
   \param smc_deltaE energy change calculated from the forces acting on the bead before and after the proposed move.
   \param mybead Selected bead for the MC move
   \param myrngstate State of the random number generator, used to generate the random vector.
-  \param arg_rng_type enum which carries information about which RNG should by used
   \param iwtype Type of the monomer.
   \return displacement of the proposed move (in dx,dy,dz components) and energy change of the proposed SMC move.
 
@@ -179,8 +174,7 @@ int som_accept(RNG_STATE * const rng, enum enum_pseudo_random_number_generator r
 void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead,
                     soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz,
                     soma_scalar_t * smc_deltaE, const Monomer * mybead,
-                    RNG_STATE * const myrngstate, const enum enum_pseudo_random_number_generator arg_rng_type,
-                    const unsigned int iwtype);
+                    RNG_STATE * const myrngstate, const unsigned int iwtype);
 
 /*! \brief Calculate forces acting on a monomer resulting from all of its bonds.
   \param p Initialized configuration.
@@ -231,34 +225,30 @@ int possible_move_area51(const struct Phase *p, const soma_scalar_t oldx, const 
   \param p Initialized configuration.
   \param nsteps \#steps to perform with the system.
   \param tuning_parameter Parameter for ACC kernels. (vector_length)
-  \param my_rng_type enum which carries information about which RNG should by used
   \param nonexact_area51 The exact check of area51
   \param chain_i The index of the chain to be handled
   \return Error code. Returns either pgi error or domain error.
 */
 int set_iteration_single_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                               const enum enum_pseudo_random_number_generator my_rng_type, const int nonexact_area51,
-                               uint64_t chain_i);
+                               const int nonexact_area51, uint64_t chain_i);
 
 /*! \brief Set iteration function for all the chains starting from start_chain, private function
   \param p Initialized configuration.
   \param nsteps \#steps to perform with the system.
   \param tuning_parameter Parameter for ACC kernels. (vector_length)
-  \param my_rng_type enum which carries information about which RNG should by used
   \param nonexact_area51 The exact check of area51
   \param start_chain the starting index of the chains to be handled with this function
   \return Error code. Returns either pgi error or domain error.
 */
 int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                              const enum enum_pseudo_random_number_generator my_rng_type, const int nonexact_area51,
-                              const int start_chain);
+                              const int nonexact_area51, const int start_chain);
 
 /*! \brief Private function used together with set_iteration_multi_chain and set_iteration_single_chain
   \param p Initialized configuration
   \param set_states The set states of the selected polymer
+  \param beads ptr to the beads of the current polymer
   \param chain_index Index of the selected polymer
   \param iP Index of the current selected bead
-  \param my_rng_type enum which carries information about which RNG should by used
   \param nonexact_area51 The exact check of area51
   \param ibead The selected bead
   \param iwtype The particle type of the selected particle
@@ -266,8 +256,8 @@ int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, 
   \return error_flags[0] indicating domain error
 */
 #pragma acc routine(set_iteration_possible_move) seq
-int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, uint64_t chain_index,
-                                unsigned int iP, const enum enum_pseudo_random_number_generator my_rng_type,
-                                const int nonexact_area51, const unsigned int ibead, const unsigned int iwtype,
+int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, Monomer * const beads,
+                                uint64_t chain_index, unsigned int iP, const int nonexact_area51,
+                                const unsigned int ibead, const unsigned int iwtype,
                                 unsigned int *accepted_moves_set_ptr);
 #endif                          //SOMA_MC_H

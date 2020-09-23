@@ -25,11 +25,20 @@ import h5py
 def get_bead_data(filename):
     with h5py.File(filename,"r") as f:
         data = f["/beads"][:]
-    conv_data = numpy.zeros(shape= data.shape+(3,))
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            for d in range(3):
-                conv_data[i,j,d] = data[i,j][d]
+        Npoly = f["/parameter/n_polymers"][0]
+        poly_type = f["/poly_type"][:]
+        poly_arch = f["/parameter/poly_arch"][:]
+        poly_type_offset = f["/parameter/poly_type_offset"][:]
+    Ns = numpy.zeros( Npoly,dtype=int )
+    for i in range(Npoly):
+        Ns[i] = poly_arch[ poly_type_offset[ poly_type[i] ]]
+
+    conv_data = numpy.zeros(shape= (Npoly,max(Ns),3))
+    bead_counter = 0
+    for i in range(Npoly):
+        for j in range(Ns[i]):
+            conv_data[i,j] = data[bead_counter]
+            bead_counter += 1
     return conv_data
 
 def get_best_match_diff(poly,beads,epsilon):

@@ -42,7 +42,7 @@ if [ ! $? -eq 0 ]; then
 fi
 mv end.h5 gpu.h5
 
-@HDF5_DIFF_EXECUTABLE@ -d $DELTA cpu.h5 gpu.h5
+@HDF5_DIFF_EXECUTABLE@ --exclude-path "/documentation" -d $DELTA cpu.h5 gpu.h5
 if [ ! $? -eq 0 ]; then
     exit -4
 fi

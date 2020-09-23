@@ -1203,6 +1203,7 @@ class Configuration(SomaXML):
                 f.create_group("parameter")
 
             create_list = []
+            create_list += [("/version",numpy.asarray([1],dtype=numpy.uint))]
             create_list += [("/parameter/A",self.A)]
             create_list += [("/parameter/lxyz",self.lxyz)]
             create_list += [("/parameter/nxyz",self.nxyz)]
