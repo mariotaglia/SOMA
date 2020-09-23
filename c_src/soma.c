@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
 
     for (unsigned int i = 0; i < N_steps; i++)
       {
+        analytics(p);
 	const int mc_error = monte_carlo_propagation(p, 1);
 	if (mc_error != 0)
 	  {
@@ -172,6 +173,7 @@ int main(int argc, char *argv[])
 		    p->info_MPI.world_rank);
 	    exit(mc_error);
 	  }
+        
 
 	screen_output(p, N_steps);
       }

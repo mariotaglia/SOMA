@@ -128,41 +128,48 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
     soma_scalar_t E_kn_new1=0;
     for(int type=0;type<p->n_types;type++){
       if(type!=iwtype)
-        E_kn_new1+=p->field_scaling_type[type]*p->fields_unified[cell_old+p->n_cells*type];
+        E_kn_new1+=p->field_scaling_type[type]*p->fields_unified[cell_new+p->n_cells*type];
       else
-        E_kn_new1+=p->field_scaling_type[type]*(p->fields_unified[cell_old+p->n_cells*type]+1);        
+        E_kn_new1+=p->field_scaling_type[type]*(p->fields_unified[cell_new+p->n_cells*type]+1);        
     }
     E_kn_new1=(E_kn_new1-1)*(E_kn_new1-1)*p->xn[0]/p->reference_Nbeads;
     
-    soma_scalar_t delta_E_kn=((E_kn_new_0+E_kn_new1)-(E_kn_old0+E_kn_old1))*0.5;
+    soma_scalar_t delta_E_kn=((E_kn_new0+E_kn_new1)-(E_kn_old0+E_kn_old1))*0.5;
       
     soma_scalar_t E_xn_old0=0;
     for(int type=0;type<p->n_types;type++)
       if(type!=iwtype)
-        E_xn_old0+=(p->fields_unified[cell_old+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])*(p->fields_unified[cell_old+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])
+        E_xn_old0+=
+           (p->fields_unified[cell_old+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])
+          *(p->fields_unified[cell_old+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])
           *p->xn[iwtype+p->n_types*type]/p->reference_Nbeads;
 
     soma_scalar_t E_xn_old1=0;
     for(int type=0;type<p->n_types;type++)
       if(type!=iwtype)
-        E_xn_old1+=(p->fields_unified[cell_new+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])*(p->fields_unified[cell_new+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])
+        E_xn_old1+=
+           (p->fields_unified[cell_new+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])
+          *(p->fields_unified[cell_new+p->n_cells*iwtype]*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])
           *p->xn[iwtype+p->n_types*type]/p->reference_Nbeads;
     
     soma_scalar_t E_xn_new0=0;
     for(int type=0;type<p->n_types;type++)
       if(type!=iwtype)
-        E_xn_new0+=((p->fields_unified[cell_old+p->n_cells*iwtype]-1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])*((p->fields_unified[cell_old+p->n_cells*iwtype]-1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])
+        E_xn_new0+=
+          ((p->fields_unified[cell_old+p->n_cells*iwtype]-1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])
+          *((p->fields_unified[cell_old+p->n_cells*iwtype]-1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_old+p->n_cells*type]*p->field_scaling_type[type])
           *p->xn[iwtype+p->n_types*type]/p->reference_Nbeads;
 
     soma_scalar_t E_xn_new1=0;
     for(int type=0;type<p->n_types;type++)
       if(type!=iwtype)
-        E_xn_new1+=((p->fields_unified[cell_new+p->n_cells*iwtype]+1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])*((p->fields_unified[cell_new+p->n_cells*iwtype]+1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])
+        E_xn_new1+=
+          ((p->fields_unified[cell_new+p->n_cells*iwtype]+1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])
+          *((p->fields_unified[cell_new+p->n_cells*iwtype]+1)*p->field_scaling_type[iwtype]-p->fields_unified[cell_new+p->n_cells*type]*p->field_scaling_type[type])
           *p->xn[iwtype+p->n_types*type]/p->reference_Nbeads;
 
-    soma_scalar_t delta_E_xn=-((E_xn_new_0+E_xn_new1)-(E_xn_old0+E_xn_old1))*0.25;
-
-    const soma_scalar_t energy = delta_E_xn+delta_E_kn;
+    soma_scalar_t delta_E_xn=-((E_xn_new0+E_xn_new1)-(E_xn_old0+E_xn_old1))/(4.0);
+    const soma_scalar_t energy = (delta_E_xn+delta_E_kn)/(p->field_scaling_type[0]);
 
     return energy;
 }
