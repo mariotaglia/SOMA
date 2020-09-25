@@ -1,9 +1,3 @@
-//The code for the PCG random number generation is derived work from
-//the original PCG software "http://www.pcg-random.org/" the license
-//is Apache version 2. A license text is found in the file
-// Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
-//"PCG_LICENSE.txt"
-
 /* Copyright (C) 2016-2019 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
