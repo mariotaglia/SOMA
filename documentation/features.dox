@@ -70,6 +70,7 @@
  - Domain decomposition as a third layer of parallelism.
  - Time dependent external field.
  - The user can define reaction zones, where one polymer type is converted into another.
+ - Implementation of full CUDA aware MPI for domain decoposition and "normal". In addition the NCCL library for device reduction has been implemented as well to gain full speed ups from the direct device communication such that no memory transfer is needed. Both features have to be manually activated via CMake options the default is off.
 
  \subsection observables Available Observables
 

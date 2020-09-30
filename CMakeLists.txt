@@ -96,6 +96,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   option(ENABLE_SANITIZE_DEBUG "Activate gcc sanitize debug plugins (undefined and address)." OFF)
   if(ENABLE_SANITIZE_DEBUG)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=undefined -fsanitize=address")
+    set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} SANITIZE_DEBUG")
+
   endif(ENABLE_SANITIZE_DEBUG)
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
@@ -138,7 +140,15 @@ else()
 endif()
 
 option(ENABLE_MIC "Activate compilation with minimum image convention for bond distances" OFF)
+if(ENABLE_MIC)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} MIC")
+endif(ENABLE_MIC)
+
 option(ENABLE_DOMAIN_DECOMPOSITION "Activate compilation with domain decomposition support." OFF)
+if(ENABLE_DOMAIN_DECOMPOSITION)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} DOMAIN_DECOMPOSITION")
+endif(ENABLE_DOMAIN_DECOMPOSITION)
+
 if( !ENABLE_MPI)
   if(ENABLE_DOMAIN_DECOMPOSITION)
     message(SEND_ERROR "Domain decomposition requires enabled MPI")
@@ -159,9 +169,9 @@ if(ENABLE_OPENACC)
 
   if(ENABLE_MPI)
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
-    if ( MPI_LIBRARY MATCHES mpich OR MPI_LIBRARY MATCHES "MVAPICH" )
+    if ( MPI_mpi_LIBRARY MATCHES libmpi OR MPI_mpi_LIBRARY MATCHES "MVAPICH" )
       # find out if this is MVAPICH2
-      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      get_filename_component(_mpi_library_dir ${MPI_mpi_LIBRARY} PATH)
       find_program(MPICH2_VERSION
 	NAMES mpichversion mpich2version
 	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
@@ -169,14 +179,14 @@ if(ENABLE_OPENACC)
       if (MPICH2_VERSION)
 	execute_process(COMMAND ${MPICH2_VERSION}
           OUTPUT_VARIABLE _output)
-	if (_output MATCHES "--enable-cuda")
+    if (_output MATCHES "--enable-cuda" OR _output MATCHES "--enable-psp-cuda-awareness")
           set(MPI_CUDA TRUE)
-          message(STATUS "Found MVAPICH2 with CUDA support.")
-	endif(_output MATCHES "--enable-cuda")
+          message(STATUS "Found MVAPICH2 or ParaStationMPI with CUDA support.")
+    endif (_output MATCHES "--enable-cuda" OR _output MATCHES "--enable-psp-cuda-awareness")
       endif(MPICH2_VERSION)
-    elseif(MPI_LIBRARY MATCHES libmpi)
+    elseif(MPI_mpi_LIBRARY MATCHES libmpi)
       # find out if this is OpenMPI
-      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      get_filename_component(_mpi_library_dir ${MPI_mpi_LIBRARY} PATH)
       find_program(OMPI_INFO
 	NAMES ompi_info
 	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
@@ -193,8 +203,12 @@ if(ENABLE_OPENACC)
 
 
     if (MPI_CUDA)
-      message(STATUS "MPI<->CUDA interoperability is available and disabled by default.")
       option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
+      if(ENABLE_MPI_CUDA)
+	message(STATUS "MPI<->CUDA interoperability is available and is enabled.")
+      else(ENABLE_MPI_CUDA)
+        message(STATUS "MPI<->CUDA interoperability is available but is disabled.")
+      endif(ENABLE_MPI_CUDA)
     else(MPI_CUDA)
       message(STATUS "MPI<->CUDA interoperability does not appear to be available.")
       option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
@@ -202,6 +216,14 @@ if(ENABLE_OPENACC)
 endif(ENABLE_MPI)
 
 endif(ENABLE_OPENACC)
+
+if(ENABLE_MPI_CUDA)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} MPI_CUDA")
+  option(ENABLE_NCCL "Enable GPU communications via CUDA NCCL." off)
+  if(ENABLE_NCCL)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} CUDA_NCCL")
+  endif(ENABLE_NCCL)
+endif(ENABLE_MPI_CUDA)
 
 if(ENABLE_OPENMP)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -266,3 +288,5 @@ endif(DOXYGEN_FOUND)
 if(ENABLE_DOXYGEN)
   add_subdirectory(documentation)
 endif(ENABLE_DOXYGEN)
+
+message(STATUS "Build configured as: ${SOMA_VERSION_LONG}")

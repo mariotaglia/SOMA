@@ -217,7 +217,19 @@ int read_old_config(struct Phase *p, char *const filename)
         {
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
             p->polymers[i].bead_offset = get_new_soma_memory_offset(&(p->ph.beads), N);
+            if (p->polymers[i].bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             p->polymers[i].msd_bead_offset = get_new_soma_memory_offset(&(p->ph.msd_beads), N);
+            if (p->polymers[i].msd_bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
 
             Monomer *beads = p->ph.beads.ptr;
             beads += p->polymers[i].bead_offset;
@@ -442,7 +454,19 @@ int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id
         {
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
             p->polymers[i].bead_offset = get_new_soma_memory_offset(&(p->ph.beads), N);
+            if (p->polymers[i].bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             p->polymers[i].msd_bead_offset = get_new_soma_memory_offset(&(p->ph.msd_beads), N);
+            if (p->polymers[i].msd_bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
         }
 
     if (H5Lexists(file_id, "/beads", H5P_DEFAULT) > 0)

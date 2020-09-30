@@ -163,6 +163,7 @@ int main(int argc, char *argv[])
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
         }
     int stop_iteration = false;
+
     for (unsigned int i = 0; i < N_steps; i++)
         {
             analytics(p);
@@ -184,6 +185,7 @@ int main(int argc, char *argv[])
                 load_balance_mpi_ranks(p);
             if (p->args.N_domains_arg > 1 && p->args.rcm_update_arg > 0
                 && i % p->args.rcm_update_arg == (unsigned int)p->args.rcm_update_arg - 1)
+
                 {
                     const int missed_chains = send_domain_chains(p, false);
                     if (missed_chains != 0)
@@ -207,6 +209,7 @@ int main(int argc, char *argv[])
                                 p->info_MPI.world_rank);
                     break;
                 }
+
         }
 #if ( ENABLE_MPI == 1 )
     const int missed_chains = send_domain_chains(p, false);

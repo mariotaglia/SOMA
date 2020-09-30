@@ -151,7 +151,11 @@ uint64_t get_new_soma_memory_offset(struct SomaMemory *state, const uint64_t n)
     assert(n > 0);
     if (state->used + n >= state->length)
         if (reallocate_soma_memory(state, n + 1) != 0)
-            return UINT64_MAX;
+            {
+                fprintf(stderr, "ERROR: invalid memory extension %s:%d, %lu %lu %lu.\n", __FILE__, __LINE__,
+                        state->used, n, state->length);
+                return UINT64_MAX;
+            }
     state->used += n;
     return state->used - n;
 }

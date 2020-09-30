@@ -195,6 +195,7 @@ int monte_carlo_propagation(Phase * const p, unsigned int nsteps)
     switch (p->args.iteration_alg_arg)
         {
         case iteration_alg_arg_POLYMER:
+
             ret = mc_polymer_iteration(p, nsteps, p->mc_autotuner.value);
             break;
         case iteration_alg_arg_SET:
@@ -220,7 +221,6 @@ int monte_carlo_propagation(Phase * const p, unsigned int nsteps)
             restart_autotuner(&(p->mc_autotuner));
             restart_autotuner(&(p->cm_mc_autotuner));
         }
-
     update_density_fields(p);
     return ret;
 }
