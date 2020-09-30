@@ -266,7 +266,7 @@ void calc_MSD(const struct Phase *p, soma_scalar_t * const result)
             const unsigned int N = p->poly_arch[p->poly_type_offset[type]];
             Monomer *beads = p->ph.beads.ptr;
             beads += p->polymers[j].bead_offset;
-            Monomer *msd_beads = p->ph.beads.ptr;
+            Monomer *msd_beads = p->ph.msd_beads.ptr;
             msd_beads += p->polymers[j].msd_bead_offset;
 
             for (unsigned int k = 0; k < N; k++)
