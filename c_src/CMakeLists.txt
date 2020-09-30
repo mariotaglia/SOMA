@@ -1,6 +1,9 @@
 if(ENABLE_MPI_CUDA AND MPI_CUDA)
   add_definitions(-DENABLE_MPI_CUDA)
 endif()
+if(ENABLE_NCCL)
+  add_definitions(-DENABLE_NCCL)
+endif()
 
 set(soma_source
   ana.c
@@ -84,6 +87,10 @@ foreach(EXE SOMA CONVERT)
       target_link_libraries(${EXE} "-Bstatic_pgi")
     endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
   endif(BUILD_STATIC)
+
+  if(ENABLE_NCCL)
+    target_link_libraries(${EXE} "-lnccl")
+  endif(ENABLE_NCCL)
 
   install(TARGETS ${EXE} DESTINATION bin)
 endforeach(EXE)

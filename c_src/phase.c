@@ -129,21 +129,21 @@ int init_phase(struct Phase *const p)
 
     if (p->args.N_domains_arg > 1 && p->info_MPI.domain_rank == 0)
         {
-            p->left_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
+            p->left_tmp_buffer = (uint16_t *) malloc((p->args.domain_buffer_arg * p->ny * p->nz) * sizeof(uint16_t));
             if (p->left_tmp_buffer == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
                     return -1;
                 }
-            p->right_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
+            p->right_tmp_buffer = (uint16_t *) malloc((p->args.domain_buffer_arg * p->ny * p->nz) * sizeof(uint16_t));
             if (p->right_tmp_buffer == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
                     return -1;
                 }
         }
-
     p->fields_unified = (uint16_t *) malloc(p->n_cells_local * p->n_types * sizeof(uint16_t));
+    p->fields_unified = (uint16_t *) malloc((p->n_cells_local * p->n_types) * sizeof(uint16_t));
     if (p->fields_unified == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -303,8 +303,8 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p[0:1])
 #pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
-#pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
-#pragma acc enter data copyin(p->old_fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc enter data copyin(p->fields_unified[0:(p->n_types*p->n_cells_local)])
+#pragma acc enter data copyin(p->old_fields_unified[0:(p->n_types*p->n_cells_local)])
 #pragma acc enter data copyin(p->fields_32[0:p->n_types*p->n_cells_local])
     if (p->area51 != NULL)
         {
@@ -340,6 +340,12 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
         }
+#ifdef ENABLE_MPI_CUDA
+    //in this case also copy in the buffers:
+
+#pragma acc enter data copyin(p->left_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz) ])
+#pragma acc enter data copyin(p->right_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
+#endif                          //ENABLE_MPI_CUDA
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
@@ -409,6 +415,11 @@ int copyout_phase(struct Phase *const p)
                 }
 #pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         }
+#ifdef ENABLE_MPI_CUDA
+#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#endif                          //ENABLE_MPI_CUDA
+
 #pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma acc exit data delete(p[0:1])

@@ -144,8 +144,15 @@ int finalize_MPI(struct Info_MPI *mpi)
         MPI_Comm_free(&(mpi->SOMA_comm_domain));
     if (mpi->SOMA_comm_sim != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_sim));
+
     if (mpi->SOMA_comm_world != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
+
+#ifdef ENABLE_NCCL
+    ncclCommDestroy(mpi->SOMA_nccl_world);
+    ncclCommDestroy(mpi->SOMA_nccl_sim);
+    ncclCommDestroy(mpi->SOMA_nccl_domain);
+#endif                          //ENABLE_MPI_CUDA
 
     return MPI_Finalize();
 #else
@@ -435,7 +442,7 @@ int deserialize_mult_polymers(struct Phase *const p, const unsigned int Nsends,
     for (unsigned int i = 0; i < Nsends; i++)
         {
             assert(bytes_read < buffer_length);
-            const unsigned int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+            const int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
             bytes_read += poly_bytes;
             //Push the polymer to the system if something has been read
             if (poly_bytes > 0)

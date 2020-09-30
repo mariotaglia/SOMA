@@ -858,7 +858,19 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             p->polymers[i].type = poly_type_tmp[poly_offset + i];
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
             p->polymers[i].bead_offset = get_new_soma_memory_offset(&(p->ph.beads), N);
+            if (p->polymers[i].bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             p->polymers[i].msd_bead_offset = get_new_soma_memory_offset(&(p->ph.msd_beads), N);
+            if (p->polymers[i].msd_bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
         }
     free(poly_type_tmp);
 

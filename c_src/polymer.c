@@ -254,11 +254,23 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
 
     //Beads data
     poly->bead_offset = get_new_soma_memory_offset(&(p->ph.beads), N);
+    if (poly->bead_offset == UINT64_MAX)
+        {
+            fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                    p->info_MPI.world_rank, p->n_polymers);
+            return -1;
+        }
     memcpy(((Monomer *) p->ph.beads.ptr) + poly->bead_offset, buffer + position, N * sizeof(Monomer));
     position += N * sizeof(Monomer);
 
     //MSD data
     poly->msd_bead_offset = get_new_soma_memory_offset(&(p->ph.msd_beads), N);
+    if (poly->msd_bead_offset == UINT64_MAX)
+        {
+            fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                    p->info_MPI.world_rank, p->n_polymers);
+            return -1;
+        }
     memcpy(((Monomer *) p->ph.msd_beads.ptr) + poly->msd_bead_offset, buffer + position, N * sizeof(Monomer));
     position += N * sizeof(Monomer);
 
@@ -271,6 +283,12 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
     if (length > position)
         {
             poly->set_permutation_offset = get_new_soma_memory_offset(&(p->ph.set_permutation), p->max_n_sets);
+            if (poly->set_permutation_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             memcpy(((unsigned int *)p->ph.set_permutation.ptr) + poly->set_permutation_offset, buffer + position,
                    p->max_n_sets * sizeof(unsigned int));
             position += p->max_n_sets * sizeof(unsigned int);
@@ -279,6 +297,12 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
     if (length > position)
         {
             poly->set_states_offset = get_new_soma_memory_offset(&(p->ph.set_states), p->max_set_members);
+            if (poly->set_states_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             for (unsigned int i = 0; i < p->max_set_members; i++)
                 position +=
                     deserialize_rng_state(p, ((RNG_STATE *) p->ph.set_states.ptr) + poly->set_states_offset + i,

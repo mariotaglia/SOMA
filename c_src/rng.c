@@ -174,6 +174,12 @@ int deserialize_rng_state(struct Phase *const p, RNG_STATE * const state, const 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_MT)
         {
             state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.mt), 1);
+            if (state->alternative_rng_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             memcpy(((MERSENNE_TWISTER_STATE *) p->rh.mt.ptr) + state->alternative_rng_offset, buffer + position,
                    sizeof(MERSENNE_TWISTER_STATE));
             position += sizeof(MERSENNE_TWISTER_STATE);
@@ -182,6 +188,12 @@ int deserialize_rng_state(struct Phase *const p, RNG_STATE * const state, const 
     if (p->args.pseudo_random_number_generator_arg == pseudo_random_number_generator_arg_TT800)
         {
             state->alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.tt800), 1);
+            if (state->alternative_rng_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             memcpy(((TT800STATE *) p->rh.tt800.ptr) + state->alternative_rng_offset, buffer + position,
                    sizeof(TT800STATE));
             position += sizeof(TT800STATE);
