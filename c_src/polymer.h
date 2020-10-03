@@ -32,6 +32,7 @@ typedef struct Polymer {
     unsigned int type;          //!< \brief Type of the polymer architecture.
     RNG_STATE poly_state;       //!< \brief Struct which contains all RNGs
     Monomer rcm;                //!< center of mass of the polymer
+    uint64_t tag;               //!< unique tag of the polymer that remains constant even after sending around and storing in restart files.
     uint64_t bead_offset;       //!< \brief offset to the bead pointer for this polymer.
     uint64_t msd_bead_offset;   //!< \brief offset to the msd bead pointer for this polymer. (Typically not on device).
     uint64_t set_states_offset; //!< offset to the set_states pointer for this polymer.
