@@ -377,41 +377,40 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                             Monomer *mybead_ptr = &(beads[ibead]);
 
                             // roll normal MC trial move or force biased MC move
-                            soma_scalar_t smc_deltaE = 0.0;
+                            soma_scalar_t delta_E_bond = 0.0;
                             switch (p->args.move_type_arg)
                                 {
                                 case move_type_arg_TRIAL:
                                     trial_move(p, npoly, ibead, &dx, &dy, &dz, iwtype, myrngstate);     // normal MC move
+                                    delta_E_bond = calc_delta_bonded_energy(p, &mybead, npoly, ibead, dx, dy, dz);
                                     break;
                                 case move_type_arg_SMART:
-                                    trial_move_smc(p, npoly, ibead, &dx, &dy, &dz, &smc_deltaE, &mybead, myrngstate, iwtype);   // force biased move
+                                    trial_move_smc(p, npoly, ibead, &dx, &dy, &dz, &delta_E_bond, &mybead, myrngstate, iwtype); // force biased move
                                     break;
                                 case move_type__NULL:
                                 default:
-                                    smc_deltaE = 0.0;
+                                    delta_E_bond = 0.0;
                                     break;
                                 }
-
-                            soma_scalar_t newx = mybead.x + dx;
-                            soma_scalar_t newy = mybead.y + dy;
-                            soma_scalar_t newz = mybead.z + dz;
 
                             const int move_allowed = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx, dy, dz,
                                                                           p->args.nonexact_area51_flag);
 
-                            delta_energy = calc_delta_energy(p, npoly, &mybead, ibead, dx, dy, dz, iwtype);
-
-                            if (delta_energy != delta_energy)   // isnan(delta_energy) ) not working with PGI OpenACC
-                                {
-                                    error_flags[0] = npoly + 1;
-                                }
                             if (move_allowed)
                                 {
-                                    delta_energy += smc_deltaE;
+                                    delta_energy = delta_E_bond;
+                                    delta_energy += calc_delta_nonbonded_energy(p, &mybead, dx, dy, dz, iwtype);
+                                    if (delta_energy != delta_energy)   // isnan(delta_energy) ) not working with PGI OpenACC
+                                        {
+                                            error_flags[0] = npoly + 1;
+                                        }
 
                                     // MC roll to accept / reject
                                     if (som_accept(myrngstate, p, delta_energy) == 1)
                                         {
+                                            soma_scalar_t newx = mybead.x + dx;
+                                            soma_scalar_t newy = mybead.y + dy;
+                                            soma_scalar_t newz = mybead.z + dz;
                                             mybead_ptr->x = newx;
                                             mybead_ptr->y = newy;
                                             mybead_ptr->z = newz;
@@ -686,48 +685,151 @@ int mc_set_iteration(Phase * const p, const unsigned int nsteps, const unsigned 
 }
 
 void trial_move_smc(const Phase * p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy,
-                    soma_scalar_t * dz, soma_scalar_t * smc_deltaE, const Monomer * mybead,
+                    soma_scalar_t * dz, soma_scalar_t * delta_E_bond, const Monomer * mybead,
                     RNG_STATE * const myrngstate, const unsigned int iwtype)
 {
+    soma_scalar_t rx, ry, rz;
+    soma_normal_vector(myrngstate, p, &rx, &ry, &rz);
     soma_scalar_t x = mybead->x;
     soma_scalar_t y = mybead->y;
     soma_scalar_t z = mybead->z;
+    soma_scalar_t E_bond = 0;
+    propose_smc_move(p, ipoly, ibead, iwtype, x, y, z, rx, ry, rz, &E_bond, dx, dy, dz);
+    *delta_E_bond = E_bond;
 
-    /* R calculated from A according to: Rossky, Doll and Friedman, J.Chem.Phys 69(10)1978 */
-    const soma_scalar_t A = p->A[iwtype];
+}
+
+void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int ibead, const unsigned int iwtype,
+                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
+                      soma_scalar_t rx, soma_scalar_t ry, soma_scalar_t rz, soma_scalar_t * delta_E_bond,
+                      soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz)
+{
+    Monomer *beads = p->ph.beads.ptr;
+    beads += p->polymers[ipoly].bead_offset;
+    const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[p->polymers[ipoly].type] + ibead + 1]);
+    soma_scalar_t old_E_B = 0;
+    soma_scalar_t new_E_B = 0;
+    soma_scalar_t fx = 0.0, fy = 0.0, fz = 0.0;
+    soma_scalar_t nfx = 0.0, nfy = 0.0, nfz = 0.0;
+
+    /* Calculate bonded forces & energy before move */
+    if (start > 0)
+        {
+            unsigned int end = 0;
+            for (int i = start; end == 0; i++)
+                {
+                    const uint32_t info = p->poly_arch[i];
+                    end = get_end(info);
+                    const unsigned int bond_type = get_bond_type(info);
+                    const int offset = get_offset(info);
+
+                    const int neighbour_id = ibead + offset;
+                    const unsigned int jbead = neighbour_id;
+                    soma_scalar_t scale = 1;
+                    switch (bond_type)
+                        {
+                        case HARMONICVARIABLESCALE:
+                            scale = p->harmonic_normb_variable_scale;
+                            /* intentionally falls through */
+                        case HARMONIC:
+                            //Empty statement, because a statement after a label
+                            //has to come before any declaration
+                            ;
+
+                            soma_scalar_t bx_tmp = calc_bond_length(beads[jbead].x, x, p->Lx,
+                                                                    p->args.bond_minimum_image_convention_flag);
+                            soma_scalar_t by_tmp = calc_bond_length(beads[jbead].y, y, p->Ly,
+                                                                    p->args.bond_minimum_image_convention_flag);
+                            soma_scalar_t bz_tmp = calc_bond_length(beads[jbead].z, z, p->Lz,
+                                                                    p->args.bond_minimum_image_convention_flag);
+                            fx += bx_tmp * 2.0 * p->harmonic_normb * scale;
+                            fy += by_tmp * 2.0 * p->harmonic_normb * scale;
+                            fz += bz_tmp * 2.0 * p->harmonic_normb * scale;
+                            soma_scalar_t old_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
+                            old_E_B += p->harmonic_normb * (old_r2_tmp) * scale;
+
+                            break;
+
+                        case STIFF:
+#ifndef _OPENACC
+                            fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
+#endif                          //OPENACC
+                            break;
+
+                        default:
+#ifndef _OPENACC
+                            fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
+                                    __FILE__, __LINE__, bond_type);
+#endif                          //OPENACC
+                            break;
+                        }
+                }
+        }
+
+    /* Propose new move */
     const soma_scalar_t R = p->R[iwtype];
+    const soma_scalar_t A = p->A[iwtype];
+    *dx = A * fx + R * rx;
+    *dy = A * fy + R * ry;
+    *dz = A * fz + R * rz;
 
-    /* calculate forces in current position */
-    soma_scalar_t fx = 0.0;
-    soma_scalar_t fy = 0.0;
-    soma_scalar_t fz = 0.0;
-    add_bond_forces(p, ipoly, ibead, x, y, z, &fx, &fy, &fz);
+    /* Calculate bonded forces & energy after move */
+    if (start > 0)
+        {
+            unsigned int end = 0;
+            for (int i = start; end == 0; i++)
+                {
+                    const uint32_t info = p->poly_arch[i];
+                    end = get_end(info);
+                    const unsigned int bond_type = get_bond_type(info);
+                    const int offset = get_offset(info);
+                    const int neighbour_id = ibead + offset;
+                    const unsigned int jbead = neighbour_id;
+                    soma_scalar_t scale = 1;
+                    switch (bond_type)
+                        {
+                        case HARMONICVARIABLESCALE:
+                            scale = p->harmonic_normb_variable_scale;
+                            /* intentionally falls through */
+                        case HARMONIC:
+                            //Empty statement, because a statement after a label
+                            //has to come before any declaration
+                            ;
 
-    /* generate a normal distributed random vector */
-    soma_scalar_t rx, ry, rz;
-    soma_normal_vector(myrngstate, p, &rx, &ry, &rz);
+                            soma_scalar_t bx_tmp = calc_bond_length(beads[jbead].x, x + *dx, p->Lx,
+                                                                    p->args.bond_minimum_image_convention_flag);
+                            soma_scalar_t by_tmp = calc_bond_length(beads[jbead].y, y + *dy, p->Ly,
+                                                                    p->args.bond_minimum_image_convention_flag);
+                            soma_scalar_t bz_tmp = calc_bond_length(beads[jbead].z, z + *dz, p->Lz,
+                                                                    p->args.bond_minimum_image_convention_flag);
+                            nfx += bx_tmp * 2.0 * p->harmonic_normb * scale;
+                            nfy += by_tmp * 2.0 * p->harmonic_normb * scale;
+                            nfz += bz_tmp * 2.0 * p->harmonic_normb * scale;
+                            soma_scalar_t new_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
+                            new_E_B += p->harmonic_normb * (new_r2_tmp) * scale;
 
-    /* combine the random offset with the forces, to obtain Brownian motion */
-    *dx = A * fx + rx * R;
-    *dy = A * fy + ry * R;
-    *dz = A * fz + rz * R;
+                            break;
 
-    /* calculate proposed position */
-    x += *dx;
-    y += *dy;
-    z += *dz;
+                        case STIFF:
+#ifndef _OPENACC
+                            fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
+#endif                          //OPENACC
+                            break;
 
-    /* calculate forces in the proposed position */
-    soma_scalar_t nfx = 0.0;
-    soma_scalar_t nfy = 0.0;
-    soma_scalar_t nfz = 0.0;
-    add_bond_forces(p, ipoly, ibead, x, y, z, &nfx, &nfy, &nfz);
+                        default:
+#ifndef _OPENACC
+                            fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
+                                    __FILE__, __LINE__, bond_type);
+#endif                          //OPENACC
+                            break;
+                        }
+                }
+        }
 
-    /* calculate additional terms for scm energy change */
-    *smc_deltaE = 0.0;
-    *smc_deltaE += 0.5 * ((nfx + fx) * (*dx) + (nfy + fy) * (*dy) + (nfz + fz) * (*dz));
-
-    *smc_deltaE += 0.25 * A * ((nfx * nfx) + (nfy * nfy) + (nfz * nfz) - (fx * fx) - (fy * fy) - (fz * fz));
+    *delta_E_bond = new_E_B - old_E_B;
+    soma_scalar_t delta_E_SMC = 0.5 * ((nfx + fx) * (*dx) + (nfy + fy) * (*dy) + (nfz + fz) * (*dz)) +
+        0.25 * A * ((nfx * nfx) + (nfy * nfy) + (nfz * nfz) - (fx * fx) - (fy * fy) - (fz * fz));
+    *delta_E_bond += delta_E_SMC;
 
 }
 
@@ -848,31 +950,32 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, M
     Monomer mybead = beads[ibead];
     Monomer dx;
     dx.x = dx.y = dx.z = 0;
-    soma_scalar_t smc_deltaE = 0;
+    soma_scalar_t delta_E_bond = 0.0;
     switch (p->args.move_type_arg)
         {
         case move_type_arg_TRIAL:
             trial_move(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, iwtype, &my_state);  // normal MC move
-            smc_deltaE = 0.0;
+            delta_E_bond = calc_delta_bonded_energy(p, &mybead, chain_index, ibead, dx.x, dx.y, dx.z);
             break;
         case move_type_arg_SMART:
-            trial_move_smc(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, &smc_deltaE, &mybead, &my_state, iwtype);        // force biased move
+            trial_move_smc(p, chain_index, ibead, &dx.x, &dx.y, &dx.z, &delta_E_bond, &mybead, &my_state, iwtype);      // force biased move
             break;
         case move_type__NULL:
         default:
-            smc_deltaE = 0.0;
+            delta_E_bond = 0.0;
             break;
         }
     int error = 0;
     const int move_allowed = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx.x, dx.y, dx.z, nonexact_area51);
     // calculate energy change
-    const soma_scalar_t delta_energy =
-        calc_delta_energy(p, chain_index, &mybead, ibead, dx.x, dx.y, dx.z, iwtype) + smc_deltaE;
-    if (delta_energy != delta_energy)   //isnan(delta_energy) ) not working with PGI OpenACC
-        error = chain_index + 1;
 
     if (move_allowed)
         {
+            soma_scalar_t delta_energy = delta_E_bond;
+            delta_energy += calc_delta_nonbonded_energy(p, &mybead, dx.x, dx.y, dx.z, iwtype);
+            if (delta_energy != delta_energy)   //isnan(delta_energy) ) not working with PGI OpenACC
+                error = chain_index + 1;
+
             // MC roll to accept / reject
             if (som_accept(&my_state, p, delta_energy) == 1)
                 {
