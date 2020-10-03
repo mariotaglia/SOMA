@@ -45,7 +45,7 @@ typedef struct PolymerHeavy {
     SomaMemory msd_beads;       //!< Memory handle struct for the msd_beads data (typically not present on device)
     SomaMemory set_states;      //!< Memory handle struct for set states memory
     SomaMemory set_permutation; //!< Memory handle struct for the set permutation info
-} PolyermerHeavy;
+} PolymerHeavy;
 
 /*! \brief Frees all resources of the PolymerHeavy struct
 
@@ -84,4 +84,11 @@ int update_device_polymer_heavy(struct Phase *const p, const bool rng_flag);
 */
 int update_self_polymer_heavy(struct Phase *const p, const bool rng_flag);
 
+/*! \brief If the allocated memory twice as large as necessary, create a new fresh polymer heavy struct
+
+  \param p Phase that contains a PolymerHeavy to update
+  \param collective Is this function collectively called for the simulation SOMA_comm_sim.
+  \return error code.
+*/
+int consider_compact_polymer_heavy(struct Phase *p, const bool collective);
 #endif                          // POLYMER_HEAVY_H
