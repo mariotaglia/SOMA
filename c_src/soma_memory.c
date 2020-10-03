@@ -82,6 +82,9 @@ int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase
 
     const uint64_t new_length = state->length * 1.05 + min_increase;
     void *tmp = malloc(new_length * state->typelength);
+    if (tmp == NULL)
+        printf("ERROR: %s:%d %lu %lu %lu %d\n", __FILE__, __LINE__, state->length, min_increase, new_length,
+               (int) state->typelength);
     MALLOC_ERROR_CHECK(tmp, new_length * state->typelength);
     if (state->used > 0)
         memcpy(tmp, state->ptr, state->used * state->typelength);

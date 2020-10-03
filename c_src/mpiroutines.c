@@ -538,6 +538,7 @@ int load_balance_mpi_ranks(struct Phase *const p)
             //CopyIN/OUT not the optimal solution, but the only option I can see so far
             copyout_phase(p);
             Nsend = send_mult_polymers(p, arg_max, Nchains, p->info_MPI.SOMA_comm_domain);
+            consider_compact_polymer_heavy(p, false);
             copyin_phase(p);
         }
 
@@ -546,6 +547,7 @@ int load_balance_mpi_ranks(struct Phase *const p)
             //CopyIN/OUT not the optimal solution, but the only option I can see so far
             copyout_phase(p);
             Nsend = recv_mult_polymers(p, arg_min, p->info_MPI.SOMA_comm_domain);
+            consider_compact_polymer_heavy(p, false);
             copyin_phase(p);
         }
 
@@ -833,6 +835,7 @@ int send_domain_chains(struct Phase *const p, const bool init)
     free(recv_len);
     free(recv_buffer);
 
+    consider_compact_polymer_heavy(p, true);
     //Copy IN/OUT is not optimal, but the only option I can see so far.
     copyin_phase(p);
 
