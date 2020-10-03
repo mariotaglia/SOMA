@@ -136,6 +136,15 @@ if(ENABLE_MPI)
   if(DEFINED SOMA_PYTHON_SHEBANG)
     add_test(NAME Load-Balance WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./LoadBalance.sh)
   endif()
+
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tagA.xml ${CMAKE_CURRENT_BINARY_DIR}/tagA.xml COPYONLY)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tagB.xml ${CMAKE_CURRENT_BINARY_DIR}/tagB.xml COPYONLY)
+  
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Tag.sh.in ${CMAKE_CURRENT_BINARY_DIR}/Tag.sh)
+  if(DEFINED SOMA_PYTHON_SHEBANG)
+    add_test(NAME tags-and-type-switching WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./Tag.sh)
+  endif()
+
 endif(ENABLE_MPI)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/TestArea51.sh.in ${CMAKE_CURRENT_BINARY_DIR}/TestArea51.sh)

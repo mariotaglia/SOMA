@@ -1163,6 +1163,8 @@ class Configuration(SomaXML):
                 i += 1
             offset += self.molecule_set_list[t].N
 
+        self.poly_tag = numpy.arange(self.n_polymers[0],dtype=numpy.uint64)
+
         ## Area51 array
         self.area51 = self.create_area51()
 
@@ -1210,6 +1212,7 @@ class Configuration(SomaXML):
             create_list += [("/parameter/poly_arch_length",self.poly_arch_length)]
             create_list += [("/parameter/poly_arch",self.poly_arch.poly_arch)]
             create_list += [("/poly_type",self.poly_type)]
+            create_list += [("/poly_tag",self.poly_tag)]
             create_list += [("/parameter/density_weights",self.density_weights)]
             if type(self.cm_a) is numpy.ndarray:
                 create_list += [("/parameter/cm_a",self.cm_a)]
@@ -1270,55 +1273,47 @@ class Configuration(SomaXML):
     ## Update an existing hdf5-file with the read parameter if possible.
     ## @param filename File name of the hdf5 file. It has to exist.
     ## @return None
-    def update_hdf5(self,filename,force_polyarch=False):
+    def update_hdf5(self,filename):
         if not self.good:
             print("ERROR: not fully initialized Configurations cannot be written to hdf5.")
 
         with h5py.File(filename,"r") as f:
             ensure_list = []
             ensure_list += [("/parameter/n_polymers",self.n_polymers)]
-            ensure_list += [("/parameter/n_poly_type",self.n_poly_type)]
             for e in ensure_list:
                 data = f[e[0]][0:]
                 assert ((data == e[1]).all()),"Error "+e[0]+" property is not identical, but has to be constant."
 
-            if force_polyarch:
-                #check polymer N of old and new
-                poly = 0
-                old_polytype = f['/poly_type'][:]
-                old_polyarch = f['/parameter/poly_arch'][:]
-                old_polytypeoffset = f['/parameter/poly_type_offset'][:]
-                while poly < self.n_polymers[0]:
-                    old_type = old_polytype[poly]
-                    old_N = old_polyarch[ old_polytypeoffset[old_type] ]
-                    new_type = 0
-                    N_covered = 0
-                    for ms in self.molecule_set_list:
-                        if poly < ms.N:
-                            break
-                        new_type += 1
-                        N_covered += ms.N
-                        break
-                    new_N = self.poly_arch.poly_arch[ self.poly_arch.poly_type_offset[new_type]]
-                    assert (old_N == new_N), "Error you changed N of a polymer. This is impossible. "+str((old_N,new_N,poly))
-                    poly += 1
+            #check polymer N of old and new
+            old_polytype = f['/poly_type'][:]
+            new_polytype = copy.deepcopy(old_polytype)
+            old_polyarch = f['/parameter/poly_arch'][:]
+            old_polytypeoffset = f['/parameter/poly_type_offset'][:]
+            try:
+                old_polytag = f["/poly_tag"][:]
+            except KeyError:
+                old_polytag = np.arange(self.n_polymers[0],dtype=np.uint64)
 
-                #check poly_arch
-                data =f['/parameter/poly_arch'][0:]
-                pa = self.poly_arch.poly_arch[0:]
-                if not len(data) == len(pa) or not (data == pa).all():
-                    print("Check poly_arch for consistency.")
-                    for p_id in range(self.n_poly_type[0]):
-                        h5_N = f['/parameter/poly_arch'][ f['/parameter/poly_type_offset'][p_id] ]
-                        xml_N = self.poly_arch.poly_arch[ self.poly_arch.poly_type_offset[p_id]]
-                        assert (h5_N == xml_N),"Polymer type "+str(p_id)+" has N= "+str(h5_N)+" in existing file, but "+str(xml_N)+" in the new xml-file. This is incompatible."
-            else: #use old polyarch from file if not forced
-                self.n_types = f["/parameter/n_types"][:]
-                self.poly_arch.poly_type_offset = f["/parameter/poly_type_offset"][:]
-                self.poly_arch_length = f["/parameter/poly_arch_length"][:]
-                self.poly_arch.poly_arch = f["/parameter/poly_arch"][:]
-                self.poly_type = f["/poly_type"][:]
+            type_list = [self.molecule_set_list[0].N]
+            for ms in self.molecule_set_list[1:]:
+                type_list.append( type_list[-1] + ms.N )
 
+            for i in range(self.n_polymers[0]):
+                poly = old_polytag[i]          #use the tags to obtain the correct order of polymers
+                old_type = old_polytype[i]
+                old_N = old_polyarch[ old_polytypeoffset[old_type] ]
+
+                new_type = 0
+                while poly >= type_list[new_type]:
+                    new_type += 1
+
+                new_N = self.poly_arch.poly_arch[ self.poly_arch.poly_type_offset[new_type]]
+
+                assert (old_N == new_N), "Error you changed N of a polymer. This is impossible. "+str((old_N,new_N,poly))
+                new_polytype[i] = new_type;
+
+            self.poly_type = new_polytype
+            self.poly_tag = f["poly_tag"][:]
             self.time[0] = f["/parameter/time"][0]
             print("The time attribute will not be updated.")
 
@@ -1799,8 +1794,7 @@ def main(argv):
     parser.add_argument('-o',metavar='output_file',type=str,nargs=1,help="Name of the output file. Will be  overwritten.")
     parser.add_argument('--no-hdf5-output',action="store_true",help="Do not generate an ouput hdf5 file, but parse the input and print out user info (if not suppressed).",default=False)
     parser.add_argument('--no-user-output',action="store_true",help="Suppress user ouput.",default=False)
-    parser.add_argument('--update',action="store_true",help="Update an existing hdf5 configuration file instead of creating a new one. You are responsible, that the update is applicaple to the existing configuration. By default the polyarch configuration is not updated: use '--force-polyarch-update' a change in polyarch is desired.")
-    parser.add_argument('--force-polyarch-update',action="store_true",help="Force an update of the polyarch, when using the '--update' flag. Updating the polyarch can be dangerous if the order of polymers is changed during the run. (For example with loadbalancing or domain decoposition.")
+    parser.add_argument('--update',action="store_true",help="Update an existing hdf5 configuration file instead of creating a new one. You are responsible, that the update is applicaple to the existing configuration.")
     parser.add_argument('--dot-graph',action="store_true",help="Print string representation of the Molecules for the \"dot\" tool of the Graphviz package.")
     parser.add_argument('--ana-filename',metavar='ana filename',type=str,nargs=1,required=False,help="Output filename of the analysis hdf5 file.")
     parser.add_argument('--no-ana-output',action="store_true",help="Do not write an hdf5 analysis file.",default=False)
@@ -1847,7 +1841,7 @@ def main(argv):
         conf.write_hdf5(outfile)
 
     if not arguments['no_hdf5_output'] and arguments['update']:
-        conf.update_hdf5(outfile,arguments["force_polyarch_update"])
+        conf.update_hdf5(outfile)
 
     analysis = AnaGen.AnalysisFile(outfile,filename)
     if not arguments['no_ana_output']:

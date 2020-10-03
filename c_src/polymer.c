@@ -162,6 +162,9 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
     //Rcm data
     length += sizeof(Monomer);
 
+    //Tag information
+    length += sizeof(uint64_t);
+
     //Beads data
     length += N * sizeof(Monomer);
 
@@ -195,8 +198,13 @@ int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigne
     memcpy(buffer + position, &(poly->type), sizeof(unsigned int));
     position += sizeof(unsigned int);
 
+    //Rcm data
     memcpy(buffer + position, &(poly->rcm), sizeof(Monomer));
     position += sizeof(Monomer);
+
+    //tag data
+    memcpy(buffer + position, &(poly->tag), sizeof(uint64_t));
+    position += sizeof(uint64_t);
 
     //Beads data
     memcpy(buffer + position, ((Monomer *) p->ph.beads.ptr) + poly->bead_offset, N * sizeof(Monomer));
@@ -251,6 +259,10 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
     //RCM
     memcpy(&(poly->rcm), buffer + position, sizeof(Monomer));
     position += sizeof(Monomer);
+
+    //tag data
+    memcpy(&(poly->tag), buffer + position, sizeof(uint64_t));
+    position += sizeof(uint64_t);
 
     //Beads data
     poly->bead_offset = get_new_soma_memory_offset(&(p->ph.beads), N);

@@ -438,6 +438,7 @@ int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
             p->polymers[i].type = poly_type[i];
+            p->polymers[i].tag = n_polymer_offset + i;  //The old file format doesn't contain tags, so we create some new ones.
         }
     free(poly_type);
 
