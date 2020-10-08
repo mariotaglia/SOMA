@@ -133,7 +133,7 @@ int reseed(struct Phase *const p, const unsigned int seed);
 #define MPI_ERROR_CHECK(status,msg) if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); ;exit(status);}
 
 //! Macro to check and return error code if malloc failed.
-#define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %d\n", __FILE__, __LINE__, (int) (size)); return -1;}
+#define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %lu\n", __FILE__, __LINE__, (uint64_t) (size)); return -1;}
 #pragma acc routine(calc_bond_length) seq
 static inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,
                                              const int mic);

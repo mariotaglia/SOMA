@@ -144,8 +144,15 @@ int finalize_MPI(struct Info_MPI *mpi)
         MPI_Comm_free(&(mpi->SOMA_comm_domain));
     if (mpi->SOMA_comm_sim != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_sim));
+
     if (mpi->SOMA_comm_world != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
+
+#ifdef ENABLE_NCCL
+    ncclCommDestroy(mpi->SOMA_nccl_world);
+    ncclCommDestroy(mpi->SOMA_nccl_sim);
+    ncclCommDestroy(mpi->SOMA_nccl_domain);
+#endif                          //ENABLE_MPI_CUDA
 
     return MPI_Finalize();
 #else
@@ -435,7 +442,7 @@ int deserialize_mult_polymers(struct Phase *const p, const unsigned int Nsends,
     for (unsigned int i = 0; i < Nsends; i++)
         {
             assert(bytes_read < buffer_length);
-            const unsigned int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+            const int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
             bytes_read += poly_bytes;
             //Push the polymer to the system if something has been read
             if (poly_bytes > 0)
@@ -538,6 +545,7 @@ int load_balance_mpi_ranks(struct Phase *const p)
             //CopyIN/OUT not the optimal solution, but the only option I can see so far
             copyout_phase(p);
             Nsend = send_mult_polymers(p, arg_max, Nchains, p->info_MPI.SOMA_comm_domain);
+            consider_compact_polymer_heavy(p, false);
             copyin_phase(p);
         }
 
@@ -546,6 +554,7 @@ int load_balance_mpi_ranks(struct Phase *const p)
             //CopyIN/OUT not the optimal solution, but the only option I can see so far
             copyout_phase(p);
             Nsend = recv_mult_polymers(p, arg_min, p->info_MPI.SOMA_comm_domain);
+            consider_compact_polymer_heavy(p, false);
             copyin_phase(p);
         }
 
@@ -833,6 +842,7 @@ int send_domain_chains(struct Phase *const p, const bool init)
     free(recv_len);
     free(recv_buffer);
 
+    consider_compact_polymer_heavy(p, true);
     //Copy IN/OUT is not optimal, but the only option I can see so far.
     copyin_phase(p);
 

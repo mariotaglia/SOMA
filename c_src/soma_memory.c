@@ -82,6 +82,9 @@ int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase
 
     const uint64_t new_length = state->length * 1.05 + min_increase;
     void *tmp = malloc(new_length * state->typelength);
+    if (tmp == NULL)
+        printf("ERROR: %s:%d %lu %lu %lu %d\n", __FILE__, __LINE__, state->length, min_increase, new_length,
+               (int) state->typelength);
     MALLOC_ERROR_CHECK(tmp, new_length * state->typelength);
     if (state->used > 0)
         memcpy(tmp, state->ptr, state->used * state->typelength);
@@ -151,7 +154,11 @@ uint64_t get_new_soma_memory_offset(struct SomaMemory *state, const uint64_t n)
     assert(n > 0);
     if (state->used + n >= state->length)
         if (reallocate_soma_memory(state, n + 1) != 0)
-            return UINT64_MAX;
+            {
+                fprintf(stderr, "ERROR: invalid memory extension %s:%d, %lu %lu %lu.\n", __FILE__, __LINE__,
+                        state->used, n, state->length);
+                return UINT64_MAX;
+            }
     state->used += n;
     return state->used - n;
 }
