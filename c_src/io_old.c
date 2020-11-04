@@ -501,8 +501,8 @@ int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             if ((status =
                  H5Dread(beads_dataset, monomer_memtype, beads_memspace, beads_dataspace, plist_id, monomer_data)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
                     return status;
                 }
 
@@ -520,29 +520,29 @@ int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id
 
             if ((status = H5Tclose(monomer_memtype)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
                     return status;
                 }
 
             if ((status = H5Sclose(beads_dataspace)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
                     return status;
                 }
 
             if ((status = H5Sclose(beads_memspace)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
                     return status;
                 }
 
             if ((status = H5Dclose(beads_dataset)) < 0)
                 {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %ld\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
                     return status;
                 }
             p->bead_data_read = true;
