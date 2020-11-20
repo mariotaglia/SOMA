@@ -1800,7 +1800,7 @@ def main(argv):
     parser.add_argument('--no-ana-output',action="store_true",help="Do not write an hdf5 analysis file.",default=False)
     parser.add_argument('--area51-no-pbc',action="store_true",help="Define that Area51 GridObjects are not folded with the periodic boundary conditions. Grid sites outside the simulation box are ignored.",default=False)
     parser.add_argument('--external-field-no-pbc',action="store_true",help="Define that External_Field GridObjects are not folded with the periodic boundary conditions. Grid sites outside the simulation box are ignored.",default=False)
-    parser.add_argument('--umbrella-feld-no-pbc',action="store_true",help="Define that Umbrella_Field GridObjects are not folded with the periodic boundary conditions. Grid sites outside the simulation box are ignored.",default=False)
+    parser.add_argument('--umbrella-field-no-pbc',action="store_true",help="Define that Umbrella_Field GridObjects are not folded with the periodic boundary conditions. Grid sites outside the simulation box are ignored.",default=False)
 
 
     arguments = vars(parser.parse_args())
