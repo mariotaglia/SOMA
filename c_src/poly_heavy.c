@@ -97,7 +97,7 @@ int update_self_polymer_heavy(struct Phase *const p, const bool rng_flag)
 
 int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
 {
-    int compact = p->num_all_beads_local * 2 < p->ph.beads.length;
+    int compact = p->num_all_beads_local * 1.2 < p->ph.beads.length;
     if (collective)
         MPI_Allreduce(MPI_IN_PLACE, &compact, 1, MPI_INT, MPI_LOR, p->info_MPI.SOMA_comm_sim);
 
