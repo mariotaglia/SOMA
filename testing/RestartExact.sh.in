@@ -25,14 +25,14 @@ if [ ! $? -eq 0 ]; then
     exit -1
 fi
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 0 @ACC_FLAG@
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 0 @ACC_FLAG@
 mv end.h5 step0.h5
 
 if [ ! $? -eq 0 ]; then
     exit -5
 fi
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 1 @ACC_FLAG@
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 1 @ACC_FLAG@
 
 if [ ! $? -eq 0 ]; then
     exit -2
@@ -40,7 +40,7 @@ fi
 
 mv end.h5 norestart.h5
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c step0.h5 -r 11 -t 1 @ACC_FLAG@
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c step0.h5 -r 11 -t 1 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -3
 fi

@@ -63,6 +63,7 @@ typedef struct Info_MPI {
     int sim_rank;               //!< Rank of the simulation communicator
     int domain_size;            //!< Size of a single domain communicator
     int domain_rank;            //!< Rank of a single domain communicator
+    int gpu_id;                 //!< ID of the GPU used. if < 0 no GPU used on this rank.
 #if ( ENABLE_MPI == 1 )
 
     MPI_Comm SOMA_comm_world;   //!< Global communicator for 1 simulation

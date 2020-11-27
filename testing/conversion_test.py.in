@@ -45,7 +45,7 @@ def main(argv):
     if poly_type.sum() != 0:
         raise RuntimeError("Conversion test failed. Initial polymers are not all of type 0")
 
-    ret = sp.call([SOMA,"-c","conversion.h5","-t","100","-f","conversion_end.h5"]+additional_flags)
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","1",SOMA,"-c","conversion.h5","-t","100","-f","conversion_end.h5"]+additional_flags)
     if ret != 0: raise RuntimeError("Running conversion failed")
 
     #Check initially all polymer are type 1 (converted from type 0)

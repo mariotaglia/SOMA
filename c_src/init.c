@@ -47,9 +47,10 @@
 #include "soma_config.h"
 #include "phase.h"
 
-int set_openacc_devices(const struct Phase *const p)
+int set_openacc_devices(struct Phase *const p)
 {
     int ret = 0;
+    p->info_MPI.gpu_id = -1;
 #ifdef _OPENACC
 
     bool on_host = false;
@@ -91,6 +92,7 @@ int set_openacc_devices(const struct Phase *const p)
                             p->info_MPI.world_rank, my_gpu_rank, check_gpu);
                 }
             printf("INFO: rank %d runs GPU %u.\n", p->info_MPI.world_rank, my_gpu_rank);
+            p->info_MPI.gpu_id = my_gpu_rank;
 #ifdef ENABLE_NCCL
             ncclUniqueId id;
             if (p->info_MPI.world_rank == 0)
