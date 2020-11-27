@@ -33,6 +33,6 @@ struct Phase;
 //! \brief setup the OpenACC devices according to the commandline arguments.
 //! \param p System for which the devices are set.
 //! \return Errorcode
-int set_openacc_devices(const struct Phase *const p);
+int set_openacc_devices(struct Phase *const p);
 
 #endif                          //SOMA_INIT_H

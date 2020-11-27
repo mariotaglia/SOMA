@@ -48,16 +48,23 @@ void communicate_simple(const struct Phase *const p)
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
 #else                           //ENABLE_MPI_CUDA
 #ifdef ENABLE_NCCL
-    uint32_t *fields_32 = p->fields_32;
+    if (p->info_MPI.gpu_id >= 0)
+        {
+            uint32_t *fields_32 = p->fields_32;
 #pragma acc host_data use_device(fields_32)
-    {
-
-        // NCCL does not support unit16 so far, hence we are using
-        ncclAllReduce(fields_32, fields_32, p->n_cells_local * p->n_types, ncclUint32,
-                      ncclSum, p->info_MPI.SOMA_nccl_sim, acc_get_cuda_stream(acc_get_default_async()));
-    }
+            {
+                // NCCL does not support unit16 so far, hence we are using
+                ncclAllReduce(fields_32, fields_32, p->n_cells_local * p->n_types, ncclUint32,
+                              ncclSum, p->info_MPI.SOMA_nccl_sim, acc_get_cuda_stream(acc_get_default_async()));
+            }
 #pragma acc wait
-    copy_density_32_to_16(p);
+            copy_density_32_to_16(p);
+        }
+    else
+        {
+            MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM,
+                          p->info_MPI.SOMA_comm_sim);
+        }
 
 #else                           //ENABLE_NCCL
     uint16_t *fields_unified = p->fields_unified;
@@ -78,14 +85,26 @@ void communicate_domain_decomposition(const struct Phase *const p)
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
 
 #ifdef ENABLE_NCCL
-    uint32_t *fields_32 = p->fields_32;
+    if (p->info_MPI.gpu_id >= 0)
+        {
+            uint32_t *fields_32 = p->fields_32;
 #pragma acc host_data use_device(fields_32)
-    {
-        ncclReduce(fields_32, fields_32, p->n_cells_local * p->n_types, ncclUint32, ncclSum,
-                   0, p->info_MPI.SOMA_nccl_domain, acc_get_cuda_stream(acc_get_default_async()));
-    }
+            {
+                ncclReduce(fields_32, fields_32, p->n_cells_local * p->n_types, ncclUint32, ncclSum,
+                           0, p->info_MPI.SOMA_nccl_domain, acc_get_cuda_stream(acc_get_default_async()));
+            }
 #pragma acc wait
-    copy_density_32_to_16(p);
+            copy_density_32_to_16(p);
+        }
+    else
+        {
+            if (p->info_MPI.domain_rank == 0)
+                MPI_Reduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
+                           MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+            else
+                MPI_Reduce(p->fields_unified, NULL, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM, 0,
+                           p->info_MPI.SOMA_comm_domain);
+        }
 #endif                          //ENABLE_NCCL
 
     uint16_t *fields_unified = p->fields_unified;

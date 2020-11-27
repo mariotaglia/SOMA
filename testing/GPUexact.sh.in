@@ -28,7 +28,7 @@ fi
 # @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 0
 # mv end.h5 coord.h5
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1
 
 if [ ! $? -eq 0 ]; then
     exit -2
@@ -36,7 +36,7 @@ fi
 
 mv end.h5 cpu.h5
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1 -o0
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1 -o0
 if [ ! $? -eq 0 ]; then
     exit -3
 fi

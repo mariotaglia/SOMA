@@ -149,9 +149,12 @@ int finalize_MPI(struct Info_MPI *mpi)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
 
 #ifdef ENABLE_NCCL
-    ncclCommDestroy(mpi->SOMA_nccl_world);
-    ncclCommDestroy(mpi->SOMA_nccl_sim);
-    ncclCommDestroy(mpi->SOMA_nccl_domain);
+    if (mpi->gpu_id >= 0)
+        {
+            ncclCommDestroy(mpi->SOMA_nccl_world);
+            ncclCommDestroy(mpi->SOMA_nccl_sim);
+            ncclCommDestroy(mpi->SOMA_nccl_domain);
+        }
 #endif                          //ENABLE_MPI_CUDA
 
     return MPI_Finalize();
