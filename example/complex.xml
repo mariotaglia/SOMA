@@ -148,4 +148,15 @@
     <density_weights>
       B 1.5
     </density_weights>
+    <mobility_modifier>
+      <type>
+	MULLER_SMITH_MOBILITY
+      </type>
+      <param>
+	1 2 3 4
+      </param>
+      <poly_type_mc_freq>
+	4 5 6 7
+      </poly_type_mc_freq>
+    </mobility_modifier>
 </soma>

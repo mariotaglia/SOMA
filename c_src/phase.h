@@ -32,6 +32,7 @@ struct IndependetSets;
 #include "autotuner.h"
 #include "polymer.h"
 #include "polytype_conversion.h"
+#include "mobility.h"
 #include "self_documentation.h"
 #include "poly_heavy.h"
 #include "rng_alternative.h"
@@ -270,6 +271,7 @@ typedef struct Phase {
     unsigned int serie_length;  //!< number of time-dependent external field
 
     struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
+    struct Mobility mobility;   //!< struct containing information for density related mobility modifications
     struct SelfDocumentation sd;        //!< struct that contains all elements for the self documenation functionality
     struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.
     struct RNG_HEAVY rh;        //!< struct containing the pointer to the heavy memory of alternative PRNGs, if needed.

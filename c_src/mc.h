@@ -148,10 +148,12 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * mo
   \param delta_energy: double ( E_new - E_old ), energy change after the intended movement on the random bead
   \param p Phase construct of the simulated system
   \param rng State of the rng to use
+  \param modifier Additional factor multiplied to the acceptance probability. Must be in \f$ [0,1] \f$.
   \return true or false according to the Metropolis criteria
 */
 #pragma acc routine(som_accept) seq
-int som_accept(RNG_STATE * const rng, const struct Phase *const p, soma_scalar_t delta_energy);
+int som_accept(RNG_STATE * const rng, const struct Phase *const p, const soma_scalar_t delta_energy,
+               const soma_scalar_t modifier);
 
 /*! \brief Smart Monte-Carlo (SMC) move.  Calculate the displacement and the energy change from the forces.
 

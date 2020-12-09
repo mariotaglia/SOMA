@@ -8,9 +8,11 @@ v0.7.0 not-yet-released
 	one polymer type is converted into another. 	LS
 	* CMake python. Identify suitable python
 	environment via CMake				LS
+	* implement density dependent mobility          LS
 	* assign each polymer a unique tag
 	  the tag remains constant between runs         LS
 	* Enabling CUDA aware MPI and NCCL              LS
+	* Enabling different MC frequency for poly_types LS
 
 v0.6.2 not-yet-released
 
@@ -32,6 +34,7 @@ v0.6.2 not-yet-released
 	* implement weighting of
 	different monomer types
 	<density_weight> 		 LS
+
 
 v0.6.1 23/1/19
 	* fix a problem with memory management for
