@@ -120,6 +120,8 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
         fprintf(ftmp, "\tUmbrella field present: yes\n");
     if (p->pc.deltaMC)
         fprintf(ftmp, "\tPolytype conversion active %d\n", p->pc.deltaMC);
+    if (p->mobility.type != DEFAULT_MOBILITY)
+        fprintf(ftmp, "\tMobility modification active %d\n", p->mobility.type);
     if (p->serie_length > 1 || (p->serie_length == 1 && p->sin_serie[0] != 0))
         fprintf(ftmp, "\tTime dependent external field active: yes\n");
 

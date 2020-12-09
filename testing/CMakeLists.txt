@@ -49,6 +49,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/homo.xml ${CMAKE_CURRENT_BINARY_DIR}/
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/diblock.xml ${CMAKE_CURRENT_BINARY_DIR}/diblock.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scmf1.xml ${CMAKE_CURRENT_BINARY_DIR}/scmf1.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain.xml ${CMAKE_CURRENT_BINARY_DIR}/domain.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mobility_high_concentration_eq.xml ${CMAKE_CURRENT_BINARY_DIR}/mobility_high_concentration_eq.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mobility_high_concentration.xml ${CMAKE_CURRENT_BINARY_DIR}/mobility_high_concentration.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mobility_low_concentration_eq.xml ${CMAKE_CURRENT_BINARY_DIR}/mobility_low_concentration_eq.xml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mobility_low_concentration.xml ${CMAKE_CURRENT_BINARY_DIR}/mobility_low_concentration.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/area51.xml ${CMAKE_CURRENT_BINARY_DIR}/area51.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.xml ${CMAKE_CURRENT_BINARY_DIR}/mic.xml COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic_time.xml ${CMAKE_CURRENT_BINARY_DIR}/mic_time.xml COPYONLY)
@@ -178,6 +182,10 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/weight.py.in ${CMAKE_CURRENT_BINARY_DIR}/weight.py)
 if(DEFINED SOMA_PYTHON_SHEBANG)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_mobility.py.in ${CMAKE_CURRENT_BINARY_DIR}/test_mobility.py)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mobility.sh.in ${CMAKE_CURRENT_BINARY_DIR}/mobility.sh)
+  add_test(NAME mobility-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./mobility.sh)
+
   add_test(NAME weight-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} weight.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=${ACC_FLAG})
 endif(DEFINED SOMA_PYTHON_SHEBANG)
 

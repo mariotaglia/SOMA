@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soma version="0.2.0">
+  <interactions>
+    <kappaN>
+      30
+    </kappaN>
+    <chiN>
+      A B 0
+    </chiN>
+    <bonds>
+      A A  harmonic
+      A B  harmonic
+
+      B B  harmonic
+    </bonds>
+  </interactions>
+  <A>
+    <dt>
+      0.17
+    </dt>
+  </A>
+  <time>
+    0
+  </time>
+  <reference_Nbeads>
+    64
+  </reference_Nbeads>
+  <lxyz>
+    1.677 0.8385 0.8385
+  </lxyz>
+  <nxyz>
+    12 6 6
+  </nxyz>
+  <poly_arch>
+    175 A{64}
+    25 B{64}
+  </poly_arch>
+  <mobility_modifier>
+    <type>
+      MULLER_SMITH_MOBILITY
+    </type>
+    <param>
+      1 2 -1 1
+    </param>
+    <poly_type_mc_freq>
+      1 2
+    </poly_type_mc_freq>
+  </mobility_modifier>
+  <analysis>
+    <MSD>
+      <DeltaMC> 500 </DeltaMC>
+    </MSD>
+    <acc_ratio>
+      <DeltaMC> 500 </DeltaMC>
+    </acc_ratio>
+  </analysis>
+</soma>

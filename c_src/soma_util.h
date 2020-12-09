@@ -44,6 +44,11 @@ enum CartesionDirection {
     Z = 2,                      //!< Z direction
 };
 
+//! Enum to specify the different option of mobility modifier functions
+enum MobilityEnum {
+    DEFAULT_MOBILITY = 0,       //!< Default unchanged mobility. pacc multiplied with 1. Always.
+    MULLER_SMITH_MOBILITY = 1,  //!< Mobility reduction factor of the shape \f$ m(r) = \min(1,\sum_\alpha a_\alpha \phi_\alpha(r) + \sum_alpha b_\alpha \phi_alpha^2(r)) \f$. With parameters a and b to be set via xml/hdf5.
+};
 //!  Function to extract the bond_type for poly_arch elements.
 //!
 //! \param info poly_arch element.
