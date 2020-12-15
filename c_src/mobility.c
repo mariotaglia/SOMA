@@ -34,9 +34,9 @@ int read_mobility_hdf5(struct Phase *const p, const hid_t file_id, const hid_t p
     p->mobility.param = NULL;
 
     //Default polytype mobility
-    p->mobility.poly_type_mc_freq = (unsigned int*) malloc(p->n_poly_type * sizeof(unsigned int));
+    p->mobility.poly_type_mc_freq = (unsigned int *)malloc(p->n_poly_type * sizeof(unsigned int));
     MALLOC_ERROR_CHECK(p->mobility.poly_type_mc_freq, p->n_poly_type * sizeof(unsigned int));
-    for(unsigned int i=0; i < p->n_poly_type; i++)
+    for (unsigned int i = 0; i < p->n_poly_type; i++)
         p->mobility.poly_type_mc_freq[i] = 1;
 
     //Quick exit if no mobility is present in the file
@@ -51,16 +51,15 @@ int read_mobility_hdf5(struct Phase *const p, const hid_t file_id, const hid_t p
     enum MobilityEnum tmp_enum_type = tmp_type;
 
     //Read the poly_type_mc_freq in any case
-    status = read_hdf5(file_id,"mobility/poly_type_mc_freq",H5T_STD_U32LE,plist_id, p->mobility.poly_type_mc_freq);
+    status = read_hdf5(file_id, "mobility/poly_type_mc_freq", H5T_STD_U32LE, plist_id, p->mobility.poly_type_mc_freq);
     HDF5_ERROR_CHECK(status);
-    for(unsigned int i=0; i < p->n_poly_type; i++)
-        if( p->mobility.poly_type_mc_freq[i] == 0)
+    for (unsigned int i = 0; i < p->n_poly_type; i++)
+        if (p->mobility.poly_type_mc_freq[i] == 0)
             {
-            fprintf(stderr,"ERROR: %s:%d poly_type_mc_freq contains a 0. This is illdefined. min value is 1.\n",__FILE__,__LINE__);
-            return -2;
+                fprintf(stderr, "ERROR: %s:%d poly_type_mc_freq contains a 0. This is illdefined. min value is 1.\n",
+                        __FILE__, __LINE__);
+                return -2;
             }
-
-
 
     //Quick exit with default unmodified mobility
     if (tmp_enum_type == DEFAULT_MOBILITY)
@@ -132,7 +131,9 @@ int write_mobility_hdf5(const struct Phase *const p, const hid_t file_id, const 
     HDF5_ERROR_CHECK(status);
 
     const hsize_t n_poly_type = p->n_poly_type;
-    status = write_hdf5(1,&n_poly_type,file_id,"mobility/poly_type_mc_freq",H5T_STD_U32LE,H5T_NATIVE_UINT,plist_id,p->mobility.poly_type_mc_freq);
+    status =
+        write_hdf5(1, &n_poly_type, file_id, "mobility/poly_type_mc_freq", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                   p->mobility.poly_type_mc_freq);
 
     const hsize_t list_len = p->mobility.param_len;
     status =
@@ -159,7 +160,7 @@ int copyin_mobility(struct Phase *p)
 #pragma acc enter data copyin(p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
-    return p->n_poly_type*0;
+    return p->n_poly_type * 0;
 }
 
 int copyout_mobility(struct Phase *p)
@@ -171,7 +172,7 @@ int copyout_mobility(struct Phase *p)
 #pragma acc exit data copyout(p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
-    return p->n_poly_type*0;
+    return p->n_poly_type * 0;
 }
 
 int update_self_mobility(const struct Phase *const p)
@@ -183,7 +184,7 @@ int update_self_mobility(const struct Phase *const p)
 #pragma acc update self(p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
-    return p->n_poly_type*0;
+    return p->n_poly_type * 0;
 }
 
 int free_mobility(struct Phase *p)

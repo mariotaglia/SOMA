@@ -167,7 +167,7 @@ if(ENABLE_OPENACC)
   if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Minfo=accel")
   endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-
+  
   if(ENABLE_MPI)
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
     if ( MPI_mpi_LIBRARY MATCHES libmpi OR MPI_mpi_LIBRARY MATCHES "MVAPICH" )

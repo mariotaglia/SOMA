@@ -128,16 +128,19 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
             fprintf(stderr, "ERROR compacting msd_beads\n");
             return -2;
         }
-    if (init_soma_memory(&(new_ph.set_states), p->n_polymers * p->max_set_members, sizeof(RNG_STATE)) != 0)
-        {
+    if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
+      {
+        if (init_soma_memory(&(new_ph.set_states), p->n_polymers * p->max_set_members, sizeof(RNG_STATE)) != 0)
+          {
             fprintf(stderr, "ERROR compacting set_states\n");
             return -3;
-        }
-    if (init_soma_memory(&(new_ph.set_permutation), p->n_polymers * p->max_n_sets, sizeof(unsigned int)) != 0)
-        {
+          }
+        if (init_soma_memory(&(new_ph.set_permutation), p->n_polymers * p->max_n_sets, sizeof(unsigned int)) != 0)
+          {
             fprintf(stderr, "ERROR compacting set_permutation\n");
             return -4;
-        }
+          }
+      }
 
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {

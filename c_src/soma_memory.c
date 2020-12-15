@@ -81,7 +81,7 @@ int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase
     assert(state->typelength > 0);
 
     const uint64_t optionA = state->length * 1.05 + min_increase;
-    const uint64_t optionB = state->length + min_increase*10;
+    const uint64_t optionB = state->length + min_increase * 10;
 
     const uint64_t new_length = optionA < optionB ? optionA : optionB;
     void *tmp = malloc(new_length * state->typelength);
