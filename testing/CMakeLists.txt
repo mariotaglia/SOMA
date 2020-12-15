@@ -21,24 +21,25 @@ if(NOT DEFINED SOMA_PYTHON_SHEBANG)
   message(WARNING "An invalid python/numpy/h5py environment may prevent the execution of certain tests")
 endif()
 
+if(ENABLE_OPENACC)
+  set(NTEST_GPUS 1 CACHE STRING "Number of GPUs (per node) available for testing.")
+endif(ENABLE_OPENACC)
+
 set(ACC_FLAG "")
 if(ENABLE_OPENMP)
   set(ACC_FLAG " -n 2")
 endif(ENABLE_OPENMP)
 if(ENABLE_OPENACC)
-  if(ENABLE_MPI)
-    set(ACC_FLAG " -g ${MPIEXEC_MAX_NUMPROCS}")
-  else(ENABLE_MPI)
+  if(NTEST_GPUS GREATER 1)
+    set(ACC_FLAG " -g ${NTEST_GPUS}")
+  else(NTEST_GPUS GREATER 1)
     set(ACC_FLAG " -o 0")
-  endif(ENABLE_MPI)
+  endif(NTEST_GPUS GREATER 1)
 endif(ENABLE_OPENACC)
 
-if(ENABLE_MPI)
-  set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
-  set(MPI_PREFIX_SINGLE "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
-else(ENABLE_MPI)
-    set(MPI_PREFIX "")
-endif(ENABLE_MPI)
+
+set(MPI_PREFIX "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
+set(MPI_PREFIX_SINGLE "${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 2")
 
 
 #copy relevant files

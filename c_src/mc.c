@@ -360,8 +360,8 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                     // Rebuild bond information for this chain from bonds, or stay with linear right now?
                     Polymer *mypoly = &p->polymers[npoly];
-                    if( gpu_time % p->mobility.poly_type_mc_freq[mypoly->type] != 0)
-                        continue;                                   //EARLY LOOP EXIT FOR MOBILITY CONTRAST
+                    if (gpu_time % p->mobility.poly_type_mc_freq[mypoly->type] != 0)
+                        continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
 
                     Monomer *beads = p->ph.beads.ptr;
                     beads += mypoly->bead_offset;
@@ -419,8 +419,10 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                                     const soma_scalar_t old_mobility_modifier =
                                         get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
-                                    const soma_scalar_t new_mobility_modifier = get_mobility_modifier(p, newx, newy, newz);
-                                    const soma_scalar_t mobility_modifier = sqrt(old_mobility_modifier * new_mobility_modifier);
+                                    const soma_scalar_t new_mobility_modifier =
+                                        get_mobility_modifier(p, newx, newy, newz);
+                                    const soma_scalar_t mobility_modifier =
+                                        sqrt(old_mobility_modifier * new_mobility_modifier);
 
                                     // MC roll to accept / reject
                                     if (som_accept(myrngstate, p, delta_energy, mobility_modifier) == 1)
@@ -476,8 +478,8 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                     Polymer *const mypoly = &p->polymers[npoly];
 
                     const unsigned int poly_type = mypoly->type;
-                    if( gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
-                        continue;                                   //EARLY LOOP EXIT FOR MOBILITY CONTRAST
+                    if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
+                        continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
 
                     const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
                     const IndependetSets mySets = p->sets[poly_type];
@@ -570,8 +572,8 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
             Polymer *const mypoly = &p->polymers[chain_i];
 
             const unsigned int poly_type = mypoly->type;
-            if( gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
-                continue;                                   //EARLY LOOP EXIT FOR MOBILITY CONTRAST
+            if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
+                continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
 
             const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
             const IndependetSets mySets = p->sets[poly_type];
@@ -996,7 +998,7 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, M
 
             const soma_scalar_t old_mobility_modifier = get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
             const soma_scalar_t new_mobility_modifier =
-            get_mobility_modifier(p, mybead.x + dx.x, mybead.y + dx.y, mybead.z + dx.z);
+                get_mobility_modifier(p, mybead.x + dx.x, mybead.y + dx.y, mybead.z + dx.z);
             const soma_scalar_t mobility_modifier = sqrt(old_mobility_modifier * new_mobility_modifier);
 
             // MC roll to accept / reject

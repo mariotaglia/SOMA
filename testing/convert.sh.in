@@ -18,7 +18,7 @@
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/CONVERT coord.dat
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/CONVERT coord.dat
 value=$?
 
 if [ $value -eq 0 ]

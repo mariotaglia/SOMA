@@ -30,7 +30,7 @@ typedef struct Mobility {
     enum MobilityEnum type;     //!< Type of the mobility modifier that need to be applied.
     unsigned int param_len;     //!< Length of the parameter array
     soma_scalar_t *param;       //!< Parameter array for the mobility calculation
-    unsigned int* poly_type_mc_freq; //!< Array that contains the execution frequency for different polymer types.
+    unsigned int *poly_type_mc_freq;    //!< Array that contains the execution frequency for different polymer types.
 } Mobility;
 
 //! Helper function to copy the mobility data to the device
