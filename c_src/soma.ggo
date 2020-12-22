@@ -41,8 +41,8 @@ option "load-balance" l "Frequency of the load balancer. For homogenous architec
 option "accepted-load-inbalance" - " [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
 option "autotuner-restart-period" - "Period in which the autotuner is restarted." int typestr="period" optional default="10000"
 option "N-domains" d "Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes)" int typestr="N" optional default="1"
-option "domain-buffer" - "Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation." int typestr="N" optional default="10"
-option "rcm-update" - "Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation" int typestr="f" optional default="10"
+option "domain-buffer" - "Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation." int typestr="N" optional default="20"
+option "rcm-update" - "Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation" int typestr="f" optional default="100"
 option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="user-args" optional
 option "set-generation-algorithm" - "Option to select the algorithm to generate the indepent sets." enum typestr="SET-ALG" values="SIMPLE","FIXED-N-SETS" default="SIMPLE" optional
 option "bond-minimum-image-convention" m "Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance." flag off
