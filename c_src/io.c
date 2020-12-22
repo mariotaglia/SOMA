@@ -907,7 +907,6 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             poly_offset += my_num_poly;
 
             assert(bead_offset <= p->num_all_beads);
-            av_beads_per_rank = (p->num_all_beads - bead_offset) / (p->info_MPI.sim_size - sim_rank);
         }
     //Correct the offset by the number of the current rank
     bead_offset -= my_num_beads;
