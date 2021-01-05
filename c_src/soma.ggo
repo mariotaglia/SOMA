@@ -1,4 +1,4 @@
-#   Copyright (C) 2016-2019 Ludwig Schneider
+#   Copyright (C) 2016-2021 Ludwig Schneider
 #   Copyright (C) 2016-2017 Marcel Langenberg
 #
 # This file is part of SOMA.
@@ -19,7 +19,7 @@
 
 package "SOMA"
 version "replace-version"
-versiontext "SOMA  Copyright (C) 2016-2019 Ludwig Schneider, Ulrich Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco and more. This program comes with ABSOLUTELY NO WARRANTY; see GNU Lesser General Public License v3 for details. This is free software, and you are welcome to redistribute it under certain conditions; see GNU Lesser General Public License v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\",\n    Computer Physics Communications 235C, 463–476 (2019). \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18"
+versiontext "SOMA  Copyright (C) 2016-2021 Ludwig Schneider, Ulrich Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco and more. This program comes with ABSOLUTELY NO WARRANTY; see GNU Lesser General Public License v3 for details. This is free software, and you are welcome to redistribute it under certain conditions; see GNU Lesser General Public License v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\",\n    Computer Physics Communications 235C, 463–476 (2019). \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18"
 purpose "Running SCMF simulations and timings."
 usage "./SOMA options"
 
