@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
 
    This file is part of SOMA.
 
@@ -31,6 +31,7 @@
 #include "independent_sets.h"
 #include "mesh.h"
 #include "polytype_conversion.h"
+#include "mobility.h"
 #include "self_documentation.h"
 #include "poly_heavy.h"
 
@@ -349,6 +350,7 @@ int copyin_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyin_poly_conversion(p);
+    copyin_mobility(p);
     switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
@@ -426,6 +428,7 @@ int copyout_phase(struct Phase *const p)
 #endif                          //_OPENACC
 
     copyout_poly_conversion(p);
+    copyout_mobility(p);
     switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
@@ -492,6 +495,7 @@ int free_phase(struct Phase *const p)
         free(p->umbrella_field);
 
     free_poly_conversion(p);
+    free_mobility(p);
 
     free_self_documentation(&(p->sd));
     switch (p->args.pseudo_random_number_generator_arg)
@@ -559,6 +563,7 @@ int update_self_phase(Phase * const p, int rng_update_flag)
     //SETS are not updated to host
 
     update_self_poly_conversion(p);
+    update_self_mobility(p);
     if (rng_update_flag)
         {
             switch (p->args.pseudo_random_number_generator_arg)

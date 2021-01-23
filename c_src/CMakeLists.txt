@@ -32,6 +32,7 @@ set(soma_source
   walltime.c
   test.c
   polytype_conversion.c
+  mobility.c
   )
 
 configure_file(soma_config.h.in soma_config.h)
@@ -63,6 +64,8 @@ set(soma_header
   soma_util.h
   walltime.h
   test.h
+  polytype_conversion.h
+  mobility.h
   )
 
 add_library(soma_lib ${soma_source})

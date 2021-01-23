@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -78,6 +78,10 @@ int main(int argc, char *argv[])
     p->pc.output_type = NULL;
     p->pc.reaction_end = NULL;
     p->pc.len_reactions = 0;
+    p->mobility.type = DEFAULT_MOBILITY;
+    p->mobility.poly_type_mc_freq = NULL;
+    p->mobility.param = NULL;
+    p->mobility.param_len = 0;
 
     p->args.long_chain_threshold_arg = 1;
     init_MPI(p);

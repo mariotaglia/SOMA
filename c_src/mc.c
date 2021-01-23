@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -30,6 +30,7 @@
 #include "phase.h"
 #include "mesh.h"
 #include "independent_sets.h"
+#include "mobility.h"
 
 void trial_move(const Phase * p, const uint64_t ipoly, const int ibead,
                 soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, const unsigned int iwtype,
@@ -58,10 +59,11 @@ void trial_move_cm(const Phase * p, const uint64_t poly_type, soma_scalar_t * co
     *dz = scale * (soma_rng_soma_scalar(rng_state, p) - 0.5);
 }
 
-int som_accept(RNG_STATE * const rng, const Phase * const p, soma_scalar_t delta_energy)
+int som_accept(RNG_STATE * const rng, const Phase * const p, const soma_scalar_t delta_energy,
+               const soma_scalar_t modifier)
 {
     // \todo kBT reqired
-    const soma_scalar_t p_acc = exp(-1.0 * delta_energy);
+    const soma_scalar_t p_acc = exp(-1.0 * delta_energy) * modifier;
 
     //Use lazy eval.
     if ((p_acc > 1) || (p_acc > soma_rng_soma_scalar(rng, p)))
@@ -261,6 +263,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
 
                             soma_scalar_t delta_energy = 0;
                             int move_allowed = 1;
+                            soma_scalar_t pacc_modifier = 1;
 
                             //#pragma acc loop vector reduction(+:delta_energy) reduction(|:move_allowed)
                             //Unfortunately this has to be a seq loop, because the reduction crashes.
@@ -280,6 +283,9 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                                             // calculate energy change
                                             delta_energy +=
                                                 calc_delta_energy(p, npoly, &mybead, ibead, dx, dy, dz, iwtype);
+                                            pacc_modifier *= get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
+                                            pacc_modifier *=
+                                                get_mobility_modifier(p, mybead.x + dx, mybead.y + dy, mybead.z + dz);
                                         }
                                 }
                             if (delta_energy != delta_energy)   // isnan(delta_energy) ) not working with PGI OpanACC
@@ -287,8 +293,12 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                                     error_flags[0] = npoly + 1;
                                     move_allowed = 0;
                                 }
+
+                            //Take the sqaure root of mobility modifier m (collectively for all beads)
+                            pacc_modifier = sqrt(pacc_modifier);
+
                             //Accept Monte-Carlo call
-                            if (move_allowed && som_accept(myrngstate, p, delta_energy) == 1)
+                            if (move_allowed && som_accept(myrngstate, p, delta_energy, pacc_modifier) == 1)
                                 {
 #ifndef _OPENACC
                                     n_accepts += 1;
@@ -313,9 +323,6 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                             mypoly->poly_state = rng_state_local;
                         }
                 }
-            /* p->time += 1; */
-            /* p->n_moves += p->num_all_beads_local; */
-            /* p->n_accepts += n_accepts; */
         }
 
 #pragma acc exit data copyout(error_flags[0:1])
@@ -337,12 +344,12 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
     int error_flags[1] = { 0 }; //error_flag[0] indicates domain errors
 #pragma acc enter data copyin(error_flags[0:1])
-
     // Loop over the MC scweeps
     for (step = 0; step < nsteps; step++)
         {
             uint64_t n_polymers = p->n_polymers;
             unsigned int n_accepts = 0;
+            const unsigned int gpu_time = p->time;
 
             //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
@@ -353,6 +360,9 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                     // Rebuild bond information for this chain from bonds, or stay with linear right now?
                     Polymer *mypoly = &p->polymers[npoly];
+                    if (gpu_time % p->mobility.poly_type_mc_freq[mypoly->type] != 0)
+                        continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
+
                     Monomer *beads = p->ph.beads.ptr;
                     beads += mypoly->bead_offset;
 
@@ -395,7 +405,6 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                             const int move_allowed = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx, dy, dz,
                                                                           p->args.nonexact_area51_flag);
-
                             if (move_allowed)
                                 {
                                     delta_energy = delta_E_bond;
@@ -404,13 +413,20 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                         {
                                             error_flags[0] = npoly + 1;
                                         }
+                                    const soma_scalar_t newx = mybead.x + dx;
+                                    const soma_scalar_t newy = mybead.y + dy;
+                                    const soma_scalar_t newz = mybead.z + dz;
+
+                                    const soma_scalar_t old_mobility_modifier =
+                                        get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
+                                    const soma_scalar_t new_mobility_modifier =
+                                        get_mobility_modifier(p, newx, newy, newz);
+                                    const soma_scalar_t mobility_modifier =
+                                        sqrt(old_mobility_modifier * new_mobility_modifier);
 
                                     // MC roll to accept / reject
-                                    if (som_accept(myrngstate, p, delta_energy) == 1)
+                                    if (som_accept(myrngstate, p, delta_energy, mobility_modifier) == 1)
                                         {
-                                            soma_scalar_t newx = mybead.x + dx;
-                                            soma_scalar_t newy = mybead.y + dy;
-                                            soma_scalar_t newz = mybead.z + dz;
                                             mybead_ptr->x = newx;
                                             mybead_ptr->y = newy;
                                             mybead_ptr->z = newz;
@@ -438,20 +454,19 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                     " Restart your simulation with larger buffers. %s:%d\n", error_flags[0], __FILE__, __LINE__);
             return error_flags[0];
         }
-
     return 0;
 }
 
 int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const unsigned int tuning_parameter,
                               const int nonexact_area51, const int start_chain)
 {
-
     int error_flags[2] = { 0 }; // [0] domain error, [1] pgi_bug
 #pragma acc enter data copyin(error_flags[0:2])
     for (unsigned int step = 0; step < nsteps; step++)
         {
             const uint64_t n_polymers = p->n_polymers;
 
+            const unsigned int gpu_time = p->time;
             //Shutup compiler warning
             unsigned int n_accepts = tuning_parameter;
             n_accepts = 0;
@@ -463,6 +478,9 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                     Polymer *const mypoly = &p->polymers[npoly];
 
                     const unsigned int poly_type = mypoly->type;
+                    if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
+                        continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
+
                     const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
                     const IndependetSets mySets = p->sets[poly_type];
 
@@ -544,6 +562,8 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
     unsigned int accepted_moves_poly = 0;
 #endif                          //_OPENACC
 
+    const unsigned int gpu_time = p->time;
+
 #pragma acc enter data copyin(error_flags[0:2])
     for (unsigned int step = 0; step < nsteps; step++)
         {
@@ -552,6 +572,9 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
             Polymer *const mypoly = &p->polymers[chain_i];
 
             const unsigned int poly_type = mypoly->type;
+            if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
+                continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
+
             const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
             const IndependetSets mySets = p->sets[poly_type];
 
@@ -603,7 +626,6 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
 #ifndef _OPENACC
             n_accepts += accepted_moves_poly;
 #endif                          //_OPENACC
-            //p->time += 1;
             p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
             p->n_accepts += n_accepts;
@@ -967,8 +989,6 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, M
         }
     int error = 0;
     const int move_allowed = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx.x, dx.y, dx.z, nonexact_area51);
-    // calculate energy change
-
     if (move_allowed)
         {
             soma_scalar_t delta_energy = delta_E_bond;
@@ -976,8 +996,13 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, M
             if (delta_energy != delta_energy)   //isnan(delta_energy) ) not working with PGI OpenACC
                 error = chain_index + 1;
 
+            const soma_scalar_t old_mobility_modifier = get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
+            const soma_scalar_t new_mobility_modifier =
+                get_mobility_modifier(p, mybead.x + dx.x, mybead.y + dx.y, mybead.z + dx.z);
+            const soma_scalar_t mobility_modifier = sqrt(old_mobility_modifier * new_mobility_modifier);
+
             // MC roll to accept / reject
-            if (som_accept(&my_state, p, delta_energy) == 1)
+            if (som_accept(&my_state, p, delta_energy, mobility_modifier) == 1)
                 {
                     Monomer newx;
                     newx.x = mybead.x + dx.x;

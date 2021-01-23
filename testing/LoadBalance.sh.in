@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#   Copyright (C) 2016-2019 Ludwig Schneider
+#   Copyright (C) 2016-2021 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -28,27 +28,31 @@ if [ ! $? -eq 0 ]; then
     exit -1
 fi
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 0 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 0 @ACC_FLAG@
 mv end.h5 start.h5
+
 
 if [ ! $? -eq 0 ]; then
     exit -5
 fi
 
+echo A
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS --accepted-load-inbalance=0 -l 1 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -2
 fi
 mv end.h5 load.h5
 
+echo AA
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -3
 fi
 mv end.h5 noload.h5
 
-
-python compare_mixed_bead_data.py load.h5 noload.h5
+echo B
+${PYTHON_EXECUTABLE} compare_mixed_bead_data.py load.h5 noload.h5
+echo C
 if [ ! $? -eq 0 ]; then
     exit -4
 fi

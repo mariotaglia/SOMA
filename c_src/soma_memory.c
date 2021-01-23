@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2020 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -69,7 +69,7 @@ int free_soma_memory(struct SomaMemory *state)
 
 int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase)
 {
-    assert(min_increase > 0);
+    assert((int)min_increase > 0);
     bool needs_copyin = false;
     int error = 0;
     if (state->device_present)
@@ -81,17 +81,16 @@ int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase
     assert(state->typelength > 0);
 
     const uint64_t optionA = state->length * 1.05 + min_increase;
-    const uint64_t optionB = state->length + min_increase*10;
+    const uint64_t optionB = state->length + min_increase * 10;
 
     const uint64_t new_length = optionA < optionB ? optionA : optionB;
-    void *tmp = malloc(new_length * state->typelength);
+    void *tmp = realloc(state->ptr, new_length * state->typelength);
     if (tmp == NULL)
-        printf("ERROR: %s:%d %lu %lu %lu %d\n", __FILE__, __LINE__, state->length, min_increase, new_length,
-               (int) state->typelength);
-    MALLOC_ERROR_CHECK(tmp, new_length * state->typelength);
-    if (state->used > 0)
-        memcpy(tmp, state->ptr, state->used * state->typelength);
-    free(state->ptr);
+        {
+            printf("ERROR: %s:%d %lu %lu %lu %d\n", __FILE__, __LINE__, state->length, min_increase, new_length,
+                   (int)state->typelength);
+            return -1;
+        }
     state->ptr = tmp;
     state->length = new_length;
     if (needs_copyin)

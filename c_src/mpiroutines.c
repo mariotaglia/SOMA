@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -149,9 +149,12 @@ int finalize_MPI(struct Info_MPI *mpi)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
 
 #ifdef ENABLE_NCCL
-    ncclCommDestroy(mpi->SOMA_nccl_world);
-    ncclCommDestroy(mpi->SOMA_nccl_sim);
-    ncclCommDestroy(mpi->SOMA_nccl_domain);
+    if (mpi->gpu_id >= 0)
+        {
+            ncclCommDestroy(mpi->SOMA_nccl_world);
+            ncclCommDestroy(mpi->SOMA_nccl_sim);
+            ncclCommDestroy(mpi->SOMA_nccl_domain);
+        }
 #endif                          //ENABLE_MPI_CUDA
 
     return MPI_Finalize();
@@ -442,14 +445,24 @@ int deserialize_mult_polymers(struct Phase *const p, const unsigned int Nsends,
     for (unsigned int i = 0; i < Nsends; i++)
         {
             assert(bytes_read < buffer_length);
-            const int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+            int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+            if (poly_bytes < 0)
+                {
+                    consider_compact_polymer_heavy(p, false);
+                    poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+                }
+
             bytes_read += poly_bytes;
             //Push the polymer to the system if something has been read
             if (poly_bytes > 0)
                 push_polymer(p, &poly);
             else
-                fprintf(stderr, "ERROR: %s:%d rank %d invalid buffer length i=%d pb=%d \t %d %d %d\n",
-                        __FILE__, __LINE__, p->info_MPI.world_rank, i, poly_bytes, bytes_read, buffer_length, Nsends);
+                {
+                    fprintf(stderr, "ERROR: %s:%d rank %d invalid buffer length i=%d pb=%d \t %d %d %d\n",
+                            __FILE__, __LINE__, p->info_MPI.world_rank, i, poly_bytes, bytes_read, buffer_length,
+                            Nsends);
+                    return -1;
+                }
         }
 
     if (bytes_read != buffer_length)

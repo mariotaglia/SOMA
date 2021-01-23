@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -70,7 +70,13 @@
  - Domain decomposition as a third layer of parallelism.
  - Time dependent external field.
  - The user can define reaction zones, where one polymer type is converted into another.
+ - Self documentation. SOMA is storing a string describing each simulation run. This accumulative stored in the configuration and analysis file. This allows to track this full evolution of a simulation, even if the user changes parameter in between run.
+  In addition, SOMA allows the specification of a purpose for each simulation step e.g. "equilibration", "quench", "measurement" etc..
+ - Enable density dependent mobility modifiers by rejecting additional MC moves.
+  The reference for this method is: https://onlinelibrary.wiley.com/doi/abs/10.1002/polb.20385 Equation 33 and 34. And Equation 20.
  - Implementation of full CUDA aware MPI for domain decoposition and "normal". In addition the NCCL library for device reduction has been implemented as well to gain full speed ups from the direct device communication such that no memory transfer is needed. Both features have to be manually activated via CMake options the default is off.
+ - Enable different MC frequencies for different polymer types for a contrast in mobility.
+
 
  \subsection observables Available Observables
 
@@ -107,9 +113,6 @@ The output matrix in the hdf5 has than the dimensions 5x8, the first dimension i
  - Static-Structure-Factor: For each polymer_type: \f$ S_q = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(t)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
 
  - Dynamical-Structure-Factor: For each polymer_type: \f$ S_q(t) = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(0)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
-
-- Self documentation. SOMA is storing a string describing each simulation run. This accumulative stored in the configuration and analysis file. This allows to track this full evolution of a simulation, even if the user changes parameter in between run.
-  In addition, SOMA allows the specification of a purpose for each simulation step e.g. "equilibration", "quench", "measurement" etc..
 
  \subsection no-features Not Available Features
 

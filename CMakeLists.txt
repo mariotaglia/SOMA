@@ -167,7 +167,7 @@ if(ENABLE_OPENACC)
   if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Minfo=accel")
   endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-
+  
   if(ENABLE_MPI)
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
     if ( MPI_mpi_LIBRARY MATCHES libmpi OR MPI_mpi_LIBRARY MATCHES "MVAPICH" )
@@ -249,17 +249,24 @@ else: print('ON',file=sys.stderr,end='');")
     message(STATUS "Numpy found")
 
     set(find_h5py "
-from __future__ import print_function; import sys, os; sys.stdout = open(os.devnull, 'w');
+from __future__ import print_function; import sys, os; #sys.stdout = open(os.devnull, 'w');
 try: import h5py;
 except ImportError: print('OFF',file=sys.stderr,end='');
 else: print('ON',file=sys.stderr,end='');")
     execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${find_h5py}" ERROR_VARIABLE h5py_FOUND)
+
+    #Extra resilient h5py detection
+    string(FIND ${h5py_FOUND} "ON" ON_FOUND)
+    if( ON_FOUND GREATER -1)
+       string(SUBSTRING ${h5py_FOUND} ${ON_FOUND} 2 h5py_FOUND)
+    endif()
 
     if(${h5py_FOUND})
       message(STATUS "h5py found")
       option(INSTALL_PYTHON "${install_python_text}" ON)
       set(SOMA_PYTHON_SHEBANG "#!${PYTHON_EXECUTABLE}")
     else()
+      message(STATUS "h5py NOT found. ${h5py_FOUND}")
       option(INSTALL_PYTHON "${install_python_text}" OFF)
     endif()
   else()

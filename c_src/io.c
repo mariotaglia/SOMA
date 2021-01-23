@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
 
@@ -40,6 +40,7 @@
 #include "cmdline.h"
 #include "soma_config.h"
 #include "polytype_conversion.h"
+#include "mobility.h"
 #include "io_old.h"
 
 #if ( ENABLE_MPI == 1 )
@@ -623,6 +624,13 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
             return status;
         }
 
+    status = write_mobility_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d writing the mobility\n", __FILE__, __LINE__);
+            return status;
+        }
+
     H5Pclose(plist_id);
     if ((status = H5Fclose(file_id)) < 0)
         {
@@ -899,7 +907,6 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             poly_offset += my_num_poly;
 
             assert(bead_offset <= p->num_all_beads);
-            av_beads_per_rank = (p->num_all_beads - bead_offset) / (p->info_MPI.sim_size - sim_rank);
         }
     //Correct the offset by the number of the current rank
     bead_offset -= my_num_beads;
@@ -1395,6 +1402,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     if (status != 0)
         {
             fprintf(stderr, "ERROR: %s:%d unable to read polytype conversion information.\n", __FILE__, __LINE__);
+            return status;
+        }
+
+    status = read_mobility_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to read mobility information.\n", __FILE__, __LINE__);
             return status;
         }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#   Copyright (C) 2020 Ludwig Schneider
+#   Copyright (C) 2020-2021 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -33,7 +33,7 @@ else
 fi
 
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1 -f la.h5 --purpose="Test step 1"
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1 -f la.h5 --purpose="Test step 1"
 
 value=$?
 
@@ -60,7 +60,7 @@ else
     exit -1
 fi
 
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c la.h5 -t 1 -f la.h5 --purpose="Test step 2"
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c la.h5 -t 1 -f la.h5 --purpose="Test step 2"
 
 value=$?
 

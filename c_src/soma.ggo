@@ -1,4 +1,4 @@
-#   Copyright (C) 2016-2019 Ludwig Schneider
+#   Copyright (C) 2016-2021 Ludwig Schneider
 #   Copyright (C) 2016-2017 Marcel Langenberg
 #
 # This file is part of SOMA.
@@ -19,7 +19,7 @@
 
 package "SOMA"
 version "replace-version"
-versiontext "SOMA  Copyright (C) 2016-2019 Ludwig Schneider, Ulrich Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco and more. This program comes with ABSOLUTELY NO WARRANTY; see GNU Lesser General Public License v3 for details. This is free software, and you are welcome to redistribute it under certain conditions; see GNU Lesser General Public License v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\",\n    Computer Physics Communications 235C, 463–476 (2019). \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18"
+versiontext "SOMA  Copyright (C) 2016-2021 Ludwig Schneider, Ulrich Welling, Marcel Langenberg, Fabien Leonforte, Juan Orozco and more. This program comes with ABSOLUTELY NO WARRANTY; see GNU Lesser General Public License v3 for details. This is free software, and you are welcome to redistribute it under certain conditions; see GNU Lesser General Public License v3 for details. \n\n You are using SOMA please cite: \n * Schneider, Ludwig and Müller, Marcus \n \t \"Multi-Architecture Monte-Carlo (MC) Simulation of\n \t  Soft Coarse-Grained Polymeric Materials:\n \t  SOft coarse grained Monte-carlo Acceleration (SOMA)\",\n    Computer Physics Communications 235C, 463–476 (2019). \n  * Daoulas, Kostas Ch. and Müller, Marcus , J. Chem.Phys.2006, 125,18"
 purpose "Running SCMF simulations and timings."
 usage "./SOMA options"
 
@@ -41,8 +41,8 @@ option "load-balance" l "Frequency of the load balancer. For homogenous architec
 option "accepted-load-inbalance" - " [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers." double typestr="percent" optional default="8"
 option "autotuner-restart-period" - "Period in which the autotuner is restarted." int typestr="period" optional default="10000"
 option "N-domains" d "Number of domains for a domain decomposition. (Domain decomposition is only made linear along the X-Axes)" int typestr="N" optional default="1"
-option "domain-buffer" - "Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation." int typestr="N" optional default="10"
-option "rcm-update" - "Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation" int typestr="f" optional default="10"
+option "domain-buffer" - "Number of buffer cells which can contain ghost particles. Experiment and find the optimum for your simulation." int typestr="N" optional default="20"
+option "rcm-update" - "Frequency of the update of the molecule center of mass. If they enter the ghost layer they are sen. Experiment and find the optimum for your simulation" int typestr="f" optional default="100"
 option "user" - "Additional arguments. The usage of these arguments defined by the user. The default setting ignores the arguments." string typestr="user-args" optional
 option "set-generation-algorithm" - "Option to select the algorithm to generate the indepent sets." enum typestr="SET-ALG" values="SIMPLE","FIXED-N-SETS" default="SIMPLE" optional
 option "bond-minimum-image-convention" m "Specify the bond length used to calculate the energy. This decides, whether the bond length between two particle is calculated as the absolute distance or the minimum image distance." flag off

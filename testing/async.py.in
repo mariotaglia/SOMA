@@ -1,6 +1,6 @@
 @SOMA_PYTHON_SHEBANG@
 
-#   Copyright (C) 2016-2019 Ludwig Schneider
+#   Copyright (C) 2016-2021 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -32,7 +32,7 @@ def convert_files():
     if ret != 0: raise RuntimeError("Test failed")
 
 def run(test,extra_flags):
-    ret = sp.call([SOMA,"-c","async.h5","-t","0"])
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@", "1",SOMA,"-c","async.h5","-t","0"])
     if ret != 0: raise RuntimeError("Test failed")
     ret = sp.call(["mv","end.h5","async.h5"])
     if ret != 0: raise RuntimeError("Test failed")
