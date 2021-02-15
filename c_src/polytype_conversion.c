@@ -266,7 +266,7 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
       p->pc.is_gas[gas[i]]=1;
     for(unsigned  int i=0;i<len_liq;i++)
       p->pc.is_liq[liq[i]]=1;
-
+    p->pc.zone_end=1;
     return 0;
 }
 
@@ -465,10 +465,8 @@ int convert_polytypes(struct Phase *p)
     if (last_time >= p->time)
         return 0;
     last_time = p->time;
-
-    if(p->pc.activate_movement)
-      update_zone(p);
     
+     
     update_polymer_rcm(p);
 
     //Iterate all polymers and apply the reaction rules
@@ -493,6 +491,9 @@ int convert_polytypes(struct Phase *p)
                         }
                 }
         }
+    if(p->pc.activate_movement)
+      update_zone(p);
+
 
     return 0;
 }
@@ -512,43 +513,65 @@ void update_zone(struct Phase *p)
 
 unsigned int calculate_interface(struct Phase *p)
 {
+#pragma acc update self(p->fields_unified[:p->n_cells*p->n_types])
+  
   unsigned int interface=0;
   //one can write this nicer 
   if(p->pc.axis==0){
-    printf("HAllo\n");
-    for(unsigned int x=p->pc.zone_end;x<p->nx;x++){
-        unsigned int p_liq=0;
-        unsigned int p_gas=0;
+    for(unsigned int x=1;x<p->nx;x++){
+        soma_scalar_t p_liq=0;
+        soma_scalar_t p_gas=0;
         for(unsigned int type=0;type<p->n_types;type++){
+
             if(p->pc.is_gas[type])
             for(unsigned int y=0;y<p->ny;y++)
               for(unsigned int z=0;z<p->nz;z++)
-                p_gas+=p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
+                p_gas+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
             if(p->pc.is_liq[type])
             for(unsigned int y=0;y<p->ny;y++)
               for(unsigned int z=0;z<p->nz;z++)
-                p_liq+=p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];            
-        }        
-        if(p_liq>p_gas){
-          printf("Interface located at %i\n",x);
-          interface=x;
-          break;           
-        }            
+                p_liq+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
+        }
     }
+    for(unsigned int x=1;x<p->nx;x++){
+        soma_scalar_t p_liq=0;
+        soma_scalar_t p_gas=0;
+        for(unsigned int type=0;type<p->n_types;type++){
+
+            if(p->pc.is_gas[type])
+            for(unsigned int y=0;y<p->ny;y++)
+              for(unsigned int z=0;z<p->nz;z++)
+                p_gas+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
+            if(p->pc.is_liq[type])
+            for(unsigned int y=0;y<p->ny;y++)
+              for(unsigned int z=0;z<p->nz;z++)
+                p_liq+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
+        }
+        if(p_liq>p_gas){
+          interface=x;
+          break;
+        }
+    }
+
+    
     return interface;
-    //return p->pc.zone_end or something if wrong interface has been found
   }
+
+
+
+  
 }
 
 void resize_zone(struct Phase *p)
 {
-  
+  printf("%u %u\n",p->pc.zone_end,p->time);
   if(p->pc.axis==0){
     if(p->pc.zone_end+p->pc.distance < p->pc.interface)
       for(unsigned int x = p->pc.zone_end  ;  x < p->pc.interface-p->pc.distance  ;  x++)
         for(unsigned int y=0;y<p->ny;y++)
           for(unsigned int z=0;z<p->nz;z++)
             p->pc.array[cell_coordinate_to_index(p,x,y,z)]=1;
+    p->pc.zone_end=p->pc.interface-p->pc.distance;
         }
   
   
