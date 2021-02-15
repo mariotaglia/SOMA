@@ -32,6 +32,15 @@ typedef struct PolyConversion {
     unsigned int *output_type;  //!< Array that contains the output poly type for each reaction (product)
     unsigned int *reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
+
+  ///Things related for the mobility of the evaporation interface, for now only in 1d & on discretized space:
+  unsigned int activate_movement; //!< BOolean if polyconversion zone movement is active
+  unsigned int axis;  //!< Axis where the motion of the evaportion proceeds -- later enable negative axis for other direction
+  unsigned int position;  //!< Current (measured) position of the interface between gas and liquid
+  unsigned int distance;  //!< Desired distance between end of polyconversion box and the interface
+  unsigned int *is_gas; //!< Boolean array with length n_types indicating if type is gas (=1) or not (=0)
+  unsigned int *is_liq; //!< Boolean array with length n_types indicating if type is liquid (=1) or not (=0)
+  
 } PolyConversion;
 
 //! Helper function to copy the pc data to the device

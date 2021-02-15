@@ -29,7 +29,7 @@
 
 int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
-
+  
     p->pc.deltaMC = 0;
     p->pc.array = NULL;
     p->pc.len_reactions = 0;
@@ -214,6 +214,8 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
 
     //Enable the updat only if everything worked fine
     p->pc.deltaMC = tmp_deltaMC;
+
+
     return 0;
 }
 

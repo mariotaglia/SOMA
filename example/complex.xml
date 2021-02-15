@@ -42,7 +42,7 @@
     11 A{64}B{64}
     11 B{64}A{64}
   </poly_arch>
-    <reference_Nbeads>
+  <reference_Nbeads>
     64
   </reference_Nbeads>
   <poly_arch>
@@ -91,6 +91,21 @@
       2 1 1
       1 2 1
     </conversion_list>
+    <movement>
+      <axis>
+        0
+      </axis>
+      <gas_types>
+        2
+      </gas_types>          
+      <liquid_types>
+        0
+        1
+      </liquid_types>
+      <distance>
+        5
+      </distance>
+    </movement>
   </polyconversion>
 
   <hamiltonian>
