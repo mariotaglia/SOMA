@@ -36,6 +36,7 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     p->pc.input_type = NULL;
     p->pc.output_type = NULL;
     p->pc.reaction_end = NULL;
+    
     //Quick exit if no poly conversion is present in the file
     if (!(H5Lexists(file_id, "/polyconversion", H5P_DEFAULT) > 0))
         return 0;
@@ -212,9 +213,59 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
             return status;
         }
 
+    
     //Enable the updat only if everything worked fine
     p->pc.deltaMC = tmp_deltaMC;
 
+    ///    Movement part
+    if (!(H5Lexists(file_id, "/polyconversion/movement", H5P_DEFAULT) > 0))
+        return 0;        
+    p->pc.is_gas=calloc(p->n_types,sizeof(unsigned int));
+    p->pc.is_liq=calloc(p->n_types,sizeof(unsigned int));
+    p->pc.axis=3;
+    p->pc.position=0;
+    p->pc.distance=0;
+    status = read_hdf5(file_id, "polyconversion/movement/distance", H5T_STD_U32LE, plist_id, &p->pc.distance);
+    HDF5_ERROR_CHECK(status);
+    status = read_hdf5(file_id, "polyconversion/movement/axis", H5T_STD_U32LE, plist_id, &p->pc.axis);
+    HDF5_ERROR_CHECK(status);
+
+    hid_t  dset = H5Dopen (file_id, "polyconversion/movement/liquid_types", H5P_DEFAULT);
+    hid_t space = H5Dget_space (dset);
+    hsize_t     dims[1] = {0};
+    if((status=H5Sget_simple_extent_dims (space, dims, NULL))!=1)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return -1;
+        }
+    unsigned int len_liq=dims[0];
+    unsigned int* liq=calloc(len_liq,sizeof(unsigned int));
+    status = read_hdf5(file_id, "/polyconversion/movement/liquid_types", H5T_STD_U32LE, plist_id,liq);
+    H5Dclose (dset);
+    H5Sclose (space);
+
+    dset = H5Dopen (file_id, "polyconversion/movement/gas_types", H5P_DEFAULT);
+    space = H5Dget_space (dset);
+    dims[0] = 0;
+    if((status=H5Sget_simple_extent_dims (space, dims, NULL))!=1)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return -1;
+        }
+    unsigned int len_gas=dims[0];
+    unsigned int* gas=calloc(len_gas,sizeof(unsigned int));
+    status = read_hdf5(file_id, "/polyconversion/movement/gas_types", H5T_STD_U32LE, plist_id,gas);
+    H5Dclose (dset);
+    H5Sclose (space);
+    
+    if(  p->pc.axis<3 && len_gas>0 && len_liq>0)
+      p->pc.activate_movement=1;
+    for(unsigned int i=0;i<len_gas;i++)
+      p->pc.is_gas[gas[i]]=1;
+    for(unsigned  int i=0;i<len_liq;i++)
+      p->pc.is_liq[liq[i]]=1;
 
     return 0;
 }
@@ -246,6 +297,57 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
                    p->pc.reaction_end);
     HDF5_ERROR_CHECK(status);
 
+    if(p->pc.activate_movement==1){
+      group = H5Gcreate2(file_id, "/polyconversion/movement", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+      status =
+        write_hdf5(1, &one, file_id, "/polyconversion/movement/axis", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                   &(p->pc.axis));
+      HDF5_ERROR_CHECK(status);
+
+      status =
+        write_hdf5(1, &one, file_id, "/polyconversion/movement/distance", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                   &(p->pc.distance));
+      HDF5_ERROR_CHECK(status);
+
+      unsigned int n_gas=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_gas[i]==1)
+          n_gas+=1;
+      unsigned int *gas_types=calloc(n_gas,sizeof(unsigned int));
+      unsigned int k=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_gas[i]==1){
+          gas_types[k]=i;
+          k++;
+        }
+      const hsize_t ngas = n_gas;
+      status =
+        write_hdf5(1, &ngas, file_id, "/polyconversion/movement/gas_types", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, gas_types);
+      HDF5_ERROR_CHECK2(status, "/polyconversion/movement/gas_types");
+
+      unsigned int n_liq=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_liq[i]==1)
+          n_liq+=1;
+      unsigned int *liq_types=calloc(n_liq,sizeof(unsigned int));
+      k=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_liq[i]==1){
+          liq_types[k]=i;
+          k++;
+        }
+      const hsize_t nliq = n_liq;
+      status =
+        write_hdf5(1, &nliq, file_id, "/polyconversion/movement/liquid_types", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, liq_types);
+      HDF5_ERROR_CHECK2(status, "/polyconversion/movement/liquid_types");
+
+
+    }
+
+
+
+    
     //Write the array to disk
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;

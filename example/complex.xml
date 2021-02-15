@@ -96,11 +96,10 @@
         0
       </axis>
       <gas_types>
-        2
+        1
       </gas_types>          
       <liquid_types>
         0
-        1
       </liquid_types>
       <distance>
         5
