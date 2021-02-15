@@ -266,7 +266,15 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
       p->pc.is_gas[gas[i]]=1;
     for(unsigned  int i=0;i<len_liq;i++)
       p->pc.is_liq[liq[i]]=1;
-    p->pc.zone_end=1;
+    for(p->pc.zone_end=0;p->pc.zone_end<p->nx;p->pc.zone_end++)
+      if(p->pc.array[cell_coordinate_to_index(p,p->pc.zone_end,0,0)]==0)
+	break;
+    
+	
+    if(p->pc.zone_end<1||p->pc.zone_end>p->nx-2){
+      fprintf(stderr, "ERROR: core: %d zone_end out of bounds %s:%d code \n",
+	      p->info_MPI.world_rank, __FILE__, __LINE__);
+	}
     return 0;
 }
 
@@ -564,15 +572,17 @@ unsigned int calculate_interface(struct Phase *p)
 
 void resize_zone(struct Phase *p)
 {
-  printf("%u %u\n",p->pc.zone_end,p->time);
+  if(p->info_MPI.world_rank==0)
+    printf("%u %u\n",p->time,p->pc.interface);
   if(p->pc.axis==0){
-    if(p->pc.zone_end+p->pc.distance < p->pc.interface)
+    if((int)p->pc.zone_end < (int)p->pc.interface-(int)p->pc.distance&&(int)p->pc.interface-(int)p->pc.distance>=0){
       for(unsigned int x = p->pc.zone_end  ;  x < p->pc.interface-p->pc.distance  ;  x++)
         for(unsigned int y=0;y<p->ny;y++)
           for(unsigned int z=0;z<p->nz;z++)
             p->pc.array[cell_coordinate_to_index(p,x,y,z)]=1;
-    p->pc.zone_end=p->pc.interface-p->pc.distance;
-        }
+      p->pc.zone_end=p->pc.interface-p->pc.distance;
+    }
+  }
   
   
 }
