@@ -558,7 +558,7 @@ unsigned int calculate_interface(struct Phase *p)
 void resize_zone(struct Phase *p)
 {
   if(p->info_MPI.world_rank==0)
-    printf("At t=%u\t interface =%u\t zone_end=%u\t new_end=%u\n",p->time,p->pc.interface,p->pc.distance,p->pc.interface-p->pc.distance);
+    printf("At t=%u\t interface =%u\t zone_end=%u\t new_end=%u\n",p->time,p->pc.interface,p->pc.zone_end,p->pc.interface-p->pc.distance);
   if(p->pc.axis==0){
     if((int)p->pc.zone_end < (int)p->pc.interface-(int)p->pc.distance&&(int)p->pc.interface-(int)p->pc.distance>=0){
       for(unsigned int x = p->pc.zone_end  ;  x < p->pc.interface-p->pc.distance  ;  x++)
