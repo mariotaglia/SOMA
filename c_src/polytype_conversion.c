@@ -540,21 +540,6 @@ unsigned int calculate_interface(struct Phase *p)
               for(unsigned int z=0;z<p->nz;z++)
                 p_liq+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
         }
-    }
-    for(unsigned int x=1;x<p->nx;x++){
-        soma_scalar_t p_liq=0;
-        soma_scalar_t p_gas=0;
-        for(unsigned int type=0;type<p->n_types;type++){
-
-            if(p->pc.is_gas[type])
-            for(unsigned int y=0;y<p->ny;y++)
-              for(unsigned int z=0;z<p->nz;z++)
-                p_gas+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
-            if(p->pc.is_liq[type])
-            for(unsigned int y=0;y<p->ny;y++)
-              for(unsigned int z=0;z<p->nz;z++)
-                p_liq+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
-        }
         if(p_liq>p_gas){
           interface=x;
           break;
@@ -573,7 +558,7 @@ unsigned int calculate_interface(struct Phase *p)
 void resize_zone(struct Phase *p)
 {
   if(p->info_MPI.world_rank==0)
-    printf("%u %u\n",p->time,p->pc.interface);
+    printf("At t=%u\t interface =%u\t zone_end=%u\t new_end=%u\n",p->time,p->pc.interface,p->pc.distance,p->pc.interface-p->pc.distance);
   if(p->pc.axis==0){
     if((int)p->pc.zone_end < (int)p->pc.interface-(int)p->pc.distance&&(int)p->pc.interface-(int)p->pc.distance>=0){
       for(unsigned int x = p->pc.zone_end  ;  x < p->pc.interface-p->pc.distance  ;  x++)
