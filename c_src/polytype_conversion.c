@@ -306,17 +306,17 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
     HDF5_ERROR_CHECK(status);
 
     if(p->pc.activate_movement==1){
-      group = H5Gcreate2(file_id, "/polyconversion/movement", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      hid_t mgroup = H5Gcreate2(file_id, "/polyconversion/movement", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-      status =
+      herr_t mstatus =
         write_hdf5(1, &one, file_id, "/polyconversion/movement/axis", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
                    &(p->pc.axis));
-      HDF5_ERROR_CHECK(status);
+      HDF5_ERROR_CHECK(mstatus);
 
-      status =
+      mstatus =
         write_hdf5(1, &one, file_id, "/polyconversion/movement/distance", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
                    &(p->pc.distance));
-      HDF5_ERROR_CHECK(status);
+      HDF5_ERROR_CHECK(mstatus);
 
       unsigned int n_gas=0;
       for(unsigned int i=0;i<p->n_types;i++)
@@ -330,9 +330,9 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
           k++;
         }
       const hsize_t ngas = n_gas;
-      status =
+      mstatus =
         write_hdf5(1, &ngas, file_id, "/polyconversion/movement/gas_types", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, gas_types);
-      HDF5_ERROR_CHECK2(status, "/polyconversion/movement/gas_types");
+      HDF5_ERROR_CHECK2(mstatus, "/polyconversion/movement/gas_types");
 
       unsigned int n_liq=0;
       for(unsigned int i=0;i<p->n_types;i++)
@@ -346,10 +346,16 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
           k++;
         }
       const hsize_t nliq = n_liq;
-      status =
+      mstatus =
         write_hdf5(1, &nliq, file_id, "/polyconversion/movement/liquid_types", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, liq_types);
-      HDF5_ERROR_CHECK2(status, "/polyconversion/movement/liquid_types");
+      HDF5_ERROR_CHECK2(mstatus, "/polyconversion/movement/liquid_types");
 
+    if ((mstatus = H5Gclose(mgroup)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return mstatus;
+        }
 
     }
 
