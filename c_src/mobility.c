@@ -95,6 +95,15 @@ int read_mobility_hdf5(struct Phase *const p, const hid_t file_id, const hid_t p
                     return -2;
                 }
             break;
+        case TANH_MOBILITY:
+            if (dim_param != 2 * p->n_types + p->n_types * p->n_types)
+                {
+                    fprintf(stderr, "ERROR: %s:%d invalid number of mobility parameter for TANH\n", __FILE__, __LINE__);
+                    fprintf(stderr, "\tExpected number of parameters %d but got %d parameters.\n", 2 * p->n_types,
+                            (int)dim_param);
+                    return -3;
+                }
+            break;
         default:
             fprintf(stderr, "ERROR: reading invalid mobility type. Old SOMA version? %s:%d\n", __FILE__, __LINE__);
             return -1;
