@@ -48,6 +48,8 @@ enum CartesionDirection {
 enum MobilityEnum {
     DEFAULT_MOBILITY = 0,       //!< Default unchanged mobility. pacc multiplied with 1. Always.
     MULLER_SMITH_MOBILITY = 1,  //!< Mobility reduction factor of the shape \f$ m(r) = \min(1,\sum_\alpha a_\alpha \phi_\alpha(r) + \sum_alpha b_\alpha \phi_alpha^2(r)) \f$. With parameters a and b to be set via xml/hdf5.
+    //! Mobility reduction with the shape \f$ M_i(\{\phi_j\}) = 1/2 \left( 1 + \tanh\left(\frac{\phi_{0,i} - \sum_j a_{ij} \phi_j}{\Delta \phi_{i}}\right)\right) \f$
+    TANH_MOBILITY = 2,
 };
 //!  Function to extract the bond_type for poly_arch elements.
 //!

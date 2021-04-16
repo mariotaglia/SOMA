@@ -283,9 +283,11 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                                             // calculate energy change
                                             delta_energy +=
                                                 calc_delta_energy(p, npoly, &mybead, ibead, dx, dy, dz, iwtype);
-                                            pacc_modifier *= get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
                                             pacc_modifier *=
-                                                get_mobility_modifier(p, mybead.x + dx, mybead.y + dy, mybead.z + dz);
+                                                get_mobility_modifier(p, iwtype, mybead.x, mybead.y, mybead.z);
+                                            pacc_modifier *=
+                                                get_mobility_modifier(p, iwtype, mybead.x + dx, mybead.y + dy,
+                                                                      mybead.z + dz);
                                         }
                                 }
                             if (delta_energy != delta_energy)   // isnan(delta_energy) ) not working with PGI OpanACC
@@ -418,9 +420,9 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                     const soma_scalar_t newz = mybead.z + dz;
 
                                     const soma_scalar_t old_mobility_modifier =
-                                        get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
+                                        get_mobility_modifier(p, iwtype, mybead.x, mybead.y, mybead.z);
                                     const soma_scalar_t new_mobility_modifier =
-                                        get_mobility_modifier(p, newx, newy, newz);
+                                        get_mobility_modifier(p, iwtype, newx, newy, newz);
                                     const soma_scalar_t mobility_modifier =
                                         sqrt(old_mobility_modifier * new_mobility_modifier);
 
@@ -996,9 +998,9 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, M
             if (delta_energy != delta_energy)   //isnan(delta_energy) ) not working with PGI OpenACC
                 error = chain_index + 1;
 
-            const soma_scalar_t old_mobility_modifier = get_mobility_modifier(p, mybead.x, mybead.y, mybead.z);
+            const soma_scalar_t old_mobility_modifier = get_mobility_modifier(p, iwtype, mybead.x, mybead.y, mybead.z);
             const soma_scalar_t new_mobility_modifier =
-                get_mobility_modifier(p, mybead.x + dx.x, mybead.y + dx.y, mybead.z + dx.z);
+                get_mobility_modifier(p, iwtype, mybead.x + dx.x, mybead.y + dx.y, mybead.z + dx.z);
             const soma_scalar_t mobility_modifier = sqrt(old_mobility_modifier * new_mobility_modifier);
 
             // MC roll to accept / reject
