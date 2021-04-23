@@ -244,7 +244,11 @@ soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned 
 
             soma_scalar_t a_sum = 0;
             for (unsigned int j = 0; j < p->n_types; j++)
-                a_sum += a[particle_type * p->n_types + j] * p->field_scaling_type[j] * p->fields_unified[j];
+                {
+                    const uint64_t cellindex = coord_to_index_unified(p, x, y, z, j);
+                    a_sum +=
+                        a[particle_type * p->n_types + j] * p->field_scaling_type[j] * p->fields_unified[cellindex];
+                }
 
             return 0.5 * (1 + tanh((phi_0[particle_type] - a_sum) / delta_phi[particle_type]));
             break;
