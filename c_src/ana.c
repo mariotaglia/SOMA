@@ -917,7 +917,7 @@ int analytics(struct Phase *const p)
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
                 }
 #ifdef ENABLE_MPI_CUDA
-#pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #endif                          //ENABLE_MPI_CUDA
             //Collective IO, not yet.
             extent_density_field(p, p->fields_unified, "/density_field", H5T_NATIVE_UINT16, MPI_UINT16_T,
