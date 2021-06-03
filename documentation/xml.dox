@@ -356,4 +356,10 @@
    \f$ a_\alpha \f$ and \f$ b_\alpha \f$ are parameters to modify the result, \f$ \alpha \f$ describes the particle type. Afterwards \f$ m \f$ is clipped to the interval \f$ [0,1]\f$. Negative values are mapped onto 1 instead of 0.
    These parameter are specified as a linear list \f$ a_A, a_B, \dots, b_A, b_B \dots \f$ for the required tag \code param \endcode.
    The length of this list must be 2 * n_types.
+   - \code TANH_MOBILITY \endcode
+   The mobility is controlled via a sharp tanh tranistion. In contrast to MULLER_SMITH_MOBILITY it is possible to define one set of parameters for each type of the moving particle \f$i\f$.
+   The equation is \f$ m_i(\{\phi_j\}) = 1/2 \left( 1 + \tanh\left(\frac{\phi_{0,i} - \sum_j a_{ij} \phi_j}{\Delta \phi_{i}}\right)\right) \f$.
+   In total this equation requires \f$ 2*n_{types} + n_{types}^2 \f$ parameters, the order in which the parameters are expected is \f$\phi_{0,i}\f$, \f$\Delta \phi_i\f$, and \f$a_{i,j}\f$.
+   The parameters are can be specified in flat format, or in vector \f$\phi_{0,i}\f$, vector \f$\Delta \phi_i\f$, and matrix \f$a_{i,j}\f$ format, because white spaces are ignored.
+   It is not possible to leave out any parameter specified.
 */

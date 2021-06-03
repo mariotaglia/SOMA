@@ -52,6 +52,7 @@ hamiltonDict["SCMF1".upper()] = 1
 MobilityDict = {}
 MobilityDict["DEFAULT_MOBILITY"] = 0
 MobilityDict["MULLER_SMITH_MOBILITY"] = 1
+MobilityDict["TANH_MOBILITY"] = 2
 
 
 ## Class to Store for every Monomer name the corresponding type number and the corresponding half-bond identifier.
@@ -1728,6 +1729,10 @@ class Configuration(SomaXML):
             if self.type == MobilityDict["MULLER_SMITH_MOBILITY"]:
                 if len(self.param) != 2*ntypes:
                     raise RuntimeError("MULLER_SMITH_MOBILITY require 2*ntypes parameter, but got "+str(len(self.param),ntypes))
+
+            if self.type == MobilityDict["TANH_MOBILITY"]:
+                if len(self.param) != 2*ntypes + ntypes**2:
+                    raise RuntimeError("TANH_MOBILITY requires 2*ntypes + ntypes^2 paramters, but got "+str(len(self.param), types))
 
             if len(self.param) == 0:
                 self.param = None

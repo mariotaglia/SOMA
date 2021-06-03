@@ -95,6 +95,15 @@ int read_mobility_hdf5(struct Phase *const p, const hid_t file_id, const hid_t p
                     return -2;
                 }
             break;
+        case TANH_MOBILITY:
+            if (dim_param != 2 * p->n_types + p->n_types * p->n_types)
+                {
+                    fprintf(stderr, "ERROR: %s:%d invalid number of mobility parameter for TANH\n", __FILE__, __LINE__);
+                    fprintf(stderr, "\tExpected number of parameters %d but got %d parameters.\n", 2 * p->n_types,
+                            (int)dim_param);
+                    return -3;
+                }
+            break;
         default:
             fprintf(stderr, "ERROR: reading invalid mobility type. Old SOMA version? %s:%d\n", __FILE__, __LINE__);
             return -1;
@@ -194,11 +203,13 @@ int free_mobility(struct Phase *p)
     return 0;
 }
 
-soma_scalar_t get_mobility_modifier(const struct Phase *const p, const soma_scalar_t x, const soma_scalar_t y,
-                                    const soma_scalar_t z)
+soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned int particle_type,
+                                    const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z)
 {
     switch (p->mobility.type)
         {
+        default:
+            // intentional fall through
         case DEFAULT_MOBILITY:
             return 1;
             break;
@@ -224,6 +235,22 @@ soma_scalar_t get_mobility_modifier(const struct Phase *const p, const soma_scal
                 return 1;
 
             return modifier;
+            break;
+        case TANH_MOBILITY:
+            ;
+            const soma_scalar_t *const phi_0 = p->mobility.param;
+            const soma_scalar_t *const delta_phi = phi_0 + p->n_types;
+            const soma_scalar_t *const a = delta_phi + p->n_types;
+
+            soma_scalar_t a_sum = 0;
+            for (unsigned int j = 0; j < p->n_types; j++)
+                {
+                    const uint64_t cellindex = coord_to_index_unified(p, x, y, z, j);
+                    a_sum +=
+                        a[particle_type * p->n_types + j] * p->field_scaling_type[j] * p->fields_unified[cellindex];
+                }
+
+            return 0.5 * (1 + tanh((phi_0[particle_type] - a_sum) / delta_phi[particle_type]));
             break;
         }
 

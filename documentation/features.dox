@@ -74,6 +74,7 @@
   In addition, SOMA allows the specification of a purpose for each simulation step e.g. "equilibration", "quench", "measurement" etc..
  - Enable density dependent mobility modifiers by rejecting additional MC moves.
   The reference for this method is: https://onlinelibrary.wiley.com/doi/abs/10.1002/polb.20385 Equation 33 and 34. And Equation 20.
+  2nd method implemented based on the tanh and different for each type.
  - Implementation of full CUDA aware MPI for domain decoposition and "normal". In addition the NCCL library for device reduction has been implemented as well to gain full speed ups from the direct device communication such that no memory transfer is needed. Both features have to be manually activated via CMake options the default is off.
  - Enable different MC frequencies for different polymer types for a contrast in mobility.
 
