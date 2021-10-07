@@ -1191,8 +1191,10 @@ class Configuration(SomaXML):
         ## initialize the MobilityModifier class
         self.mobility_modifier = Configuration.MobilityModifier(self.root,self.n_types[0],self.n_poly_type[0])
 
-        ## initialize the ElectricField class
-        self.electric_field = Configuration.ElectricField(self.root,self.nxyz,self.area51)
+        ## initialize the ElectricField class & update Area51
+        self.electric_field = Configuration.ElectricField(self.root,self.nxyz,self.area51,self.args)
+        if len(self.electric_field.electrodes_array) > 0:
+            self.area51 = self.electric_field.updated_area51
 
         self.good = True
 
@@ -1293,16 +1295,16 @@ class Configuration(SomaXML):
 
             if "electric_field" in f:
                 del f["electric_field"]
-            if self.electric_field.electrodes_array is not None:
+            if len(self.electric_field.electrodes_array) > 0:
                 f.create_group("electric_field")
                 # all electrodes = children (contain GridObject[value=1] and area51_axes
                 # area51_axes contains values (0 or 1) for each axis and enlarges the geometry in given direction (if 1); adds values to self.area51
                 # requirement of minimum of two electrodes present
                 index = 0
                 for element in self.root.find("electric_field").iter("electrode"):
-                    f.create_group("electric_field/electrode")
-                    f.create_dataset("electric_field/electrode"+index+"/array",data=self.electric_field.electrodes_array[index][0],dtype=numpy.uint8)
-                    f.create_dataset("electric_field/electrode"+index+"/voltage",data=self.electric_field.electrodes_array[index][1],dtype=numpy.uint32)
+                    f.create_group("electric_field/electrode"+str(index))
+                    f.create_dataset("electric_field/electrode"+str(index)+"/array",data=self.electric_field.electrodes_array[index][0],dtype=numpy.uint8)
+                    f.create_dataset("electric_field/electrode"+str(index)+"/voltage",data=self.electric_field.electrodes_array[index][1],dtype=numpy.uint32)
                     index += 1
 
 
@@ -1878,102 +1880,115 @@ class Configuration(SomaXML):
     ## Class that parses the XML and stores the information for electrode position/voltage
     class ElectricField:
         ## Constructor of the ElectricField class. Initialized with the root of the XML parser
-        def __init__(self,root,nxyz,area51):
-            self.electrodes_array = None
-            child_list = []
+        def __init__(self,root,nxyz,area51,args):
+            self.electrodes_array = []
+            self.updated_area51 = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
+            voltage = None
+            gridobj_list = []
             knownTags = ["point_cloud","box","cylinder","sphere","exp_area51","voltage"]
             for element in root.iter("electric_field"):
-                if element.tag != "electrode":
-                    print("WARNING: Unknown element tag ("+element.tag+") found in electric_field in xml. Value will be ignored. Typo?")
-
                 for child in element:
-                    item_list = list(child.iter())
-                    if not child.tag in knownTags:
-                        print("WARNING: unknown child tag ("+child.tag+") found in electric_field in xml. Value will be ignored. Typo?") #redundant now?
-                        item_list.remove(child.tag)
+                    if child.tag != "electrode":
+                        print("WARNING: Unknown element tag ("+child.tag+") found in electric_field in xml. Value will be ignored. Typo?")
+                        continue
+
+                    item_list = [item.tag for item in list(child)]
+                    for gchild in child:
+                        if not gchild.tag in knownTags:
+                            print("WARNING: Unknown child tag ("+gchild.tag+") of element \""+child.tag+"\" found in xml. Value will be ignored. Typo?")
+                            if len(item_list) >= 1:
+                                item_list.remove(gchild.tag)
 
                     for item in item_list:
                         if item_list.count(item) > 1:
                             raise RuntimeError("No duplicate entries in electrode specification allowed, but found additional entry for \""+item+"\".")
-                    
-                    if len(item_list) != 3:
-                        raise RuntimeError("Electrodes must contain 3 elements: grid object, specification for additional area51 and voltage, but got: "+list(child.iter())+".") 
+
+                    if 'voltage' not in item_list:
+                        raise RuntimeError("Each electrode must contain entry for voltage.")
 
                     for pc in child.findall('point_cloud'):
-                        child_list.append( PointCloud(pc,1) )
+                        gridobj_list.append( PointCloud(pc,1) )
 
                     for box in child.findall('box'):
-                        child_list.append( Box(box,1) )
+                        gridobj_list.append( Box(box,1) )
 
                     for cy in child.findall('cylinder'):
-                        child_list.append( Cylinder(cy,1) )
+                        gridobj_list.append( Cylinder(cy,1) )
 
                     for sp in child.findall('sphere'):
-                        child_list.append( Sphere(sp,1) )
+                        gridobj_list.append( Sphere(sp,1) )
 
                     for voltage in child.findall('voltage'):
                         try:
-                            voltage = int(voltage.text).astype(unit32)
+                          voltage = numpy.asarray([voltage.text],dtype=numpy.uint32)
                         except ValueError:
                             raise RuntimeError("Voltage for electrode must be integer convertible but got: "+str(voltage.text)+".")
+
+                    if 'exp_area51' not in item_list:
+                        exp_area51 = [0, 0, 0]
+                    else:
+                        for entry in child.findall("exp_area51"):
+                            exp_area51 = []
+                            entry_raw = entry.text.strip().split()
+                            if len(entry.text.strip().split()) != 3:
+                                raise RuntimeError("Expand area51 for electrodes line has 3 elements: x-value=0/1, y-value=0/1, z-value=0/1, but got: "+str(entry_raw)+".")
+                            
+                            for val in entry_raw:
+                                try:
+                                    val = int(val)
+                                except ValueError:
+                                    raise RuntimeError("Axis specification for expanding area51 must be integer convertible but got: "+str(val)+".")
+                                
+                                if val == 0 or val == 1:
+                                    pass
+                                else:
+                                    raise RuntimeError("Expand area51 for electrodes value must be 0 or 1, but got: "+str(val)+".")
+                                exp_area51.append(val)
+
+                            if sum(exp_area51) > 2:
+                                raise RuntimeError("Expanding area51 of electordes in all three dimensions is omitted.")
                     
-                    array = False
-                    if len(child_list) > 0:
-                        array = numpy.zeros((self.n_types[0],self.nxyz[0],self.nxyz[1],self.nxyz[2]),dtype=numpy.uint8)
-                        for child in child_list:
-                            for k in child.get_keys():
+                    if len(gridobj_list) != 1:
+                        raise RuntimeError("Each electrode must only contain 1 grid object, but found "+str(len(gridobj_list))+".")
+                    else:
+                        array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
+                        for obj in gridobj_list:
+                            for k in obj.get_keys():
                                 (x,y,z) = k
-                                if not self.args['electric_field_no_pbc']:
-                                    (xa,ya,za) = (k[0] % self.nxyz[0],k[1] % self.nxyz[1],k[2] % self.nxyz[2])
+                                if not args['electric_field_no_pbc']:
+                                    (xa,ya,za) = (k[0] % nxyz[0],k[1] % nxyz[1],k[2] % nxyz[2])
                                 else:
                                     (xa,ya,za) = (x,y,z)
 
-                                if xa >= 0 and xa < self.nxyz[0] and ya >= 0 and ya < self.nxyz[1] and za >= 0 and  za < self.nxyz[2]:
-                                    array[xa][ya][za] += child.get( (x,y,z) )[0]
+                                if xa >= 0 and xa < nxyz[0] and ya >= 0 and ya < nxyz[1] and za >= 0 and  za < nxyz[2]:
+                                    array[xa][ya][za] += obj.get( (x,y,z) )[0]
+                        array = numpy.array(array,dtype=numpy.uint8)
 
-                        for exp_area51 in child.findall("exp_area51"):
-                            line = line.strip()
-                            if line == "" or line[0] == '#':
-                                continue
-                            axes = line.split()
-                            if len(axes) != 3:
-                                raise RuntimeError("Expand area51 for electrodes line has 3 elements: x-value=0/1, y-value=0/1, z-value=0/1, but got: "+line+".")
-                            
-                            for entry in axes:
-                                if entry != 0 or entry != 1:
-                                    raise RuntimeError("Expand area51 for electrodes value must be 0 or 1, but got: "+entry+".")
-
-                            if sum(axes) > 2:
-                                raise RuntimeError("Expanding area51 of electordes in all three dimensions is omitted.")
-
-                            tmp_array = array
-
-                            if sum(axes) > 0:
-                                for i in range(len(axes)):
-                                    if axes[i] == 1:
-                                        for x in range(tmp_array.shape[0]):
-                                            for y in range(tmp_array.shape[1]):
-                                                for z in range(tmp_array.shape[2]):
-                                                    if tmp_array[x][y][z] == 1 and numpy.sum(tmp_array[x][y][z],axis=i) != self.nxyz[i]:
+                        tmp_array = numpy.copy(array)
+                        for i in range(len(exp_area51)):
+                            if exp_area51[i] == 1:                     
+                                for x in range(array.shape[0]):
+                                    for y in range(array.shape[1]):
+                                        for z in range(array.shape[2]):
+                                            if tmp_array[x][y][z] > 0:
                                                         if i == 0:
-                                                            for k in range(self.nxyz[1]):
-                                                                for j in range(self.nxyz[2]):
-                                                                    tmp_array[x][k][j] = 1
+                                                            for k in range(nxyz[0]):
+                                                                tmp_array[k][y][z] = 1
                                                         elif i == 1:
-                                                            for k in range(self.nxyz[0]):
-                                                                for j in range(self.nxyz[2]):
-                                                                    tmp_array[k][y][j] = 1
+                                                            for k in range(nxyz[1]):
+                                                                tmp_array[x][k][z] = 1
                                                         elif i == 2:
-                                                            for k in range(self.nxyz[0]):
-                                                                for j in range(self.nxyz[1]):
-                                                                    tmp_array[k][j][z] = 1
+                                                            for k in range(nxyz[2]):
+                                                                tmp_array[x][y][k] = 1
 
-                        if type(area51) is not numpy.ndarray:
-                            area51 = numpy.zeros((self.nxyz[0],self.nxyz[1],self.nxyz[2]),dtype=numpy.int8)
+                    if type(area51) is not numpy.ndarray:
+                        area51 = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
 
-                        area51 = numpy.clip(self.area51+tmp_array,0,1)
+                    self.updated_area51 += area51 + tmp_array
+                    self.updated_area51 = numpy.clip(self.updated_area51,0,1)
 
-                        self.electrodes_array.append((array.astype(numpy.uint8), voltage))
+                    self.electrodes_array.append((array, voltage))
+                    gridobj_list.clear()
 
 
 #Late import of the module to compensate circular imports.
