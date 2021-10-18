@@ -223,6 +223,25 @@ def add_umbrella_field_conf(nxyz,n_types,t,h5file):
     string += "</Attribute>\n"
     return string
 
+def add_electric_field(nxyz,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"ElectricField\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/electric_field\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
+
+def add_electrodes(nxyz,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Electrodes\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem Format=\"HDF\" NumberType=\"UInt\" Precision=\"2\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/electrodes\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
 
 def get_area51(nxyz,arguments):
     string = ""
@@ -248,6 +267,22 @@ def get_umbrella_field(nxyz,arguments,types,t):
              string += add_umbrella_field_conf(nxyz,types,t,arguments["c"])
          f.close()
      return string
+
+def get_electric_field(nxyz,arguments):
+    string = ""
+    if arguments['c']:
+        with h5py.File(arguments['c'],"r") as f:
+            if  '/electric_field' in f:
+                string += add_electric_field(nxyz,arguments['c'])
+    return string
+
+def get_electrodes(nxyz,arguments):
+    string = ""
+    if arguments['c']:
+        with h5py.File(arguments['c'],"r") as f:
+            if  '/electrodes' in f:
+                string += add_electrodes(nxyz,arguments['c'])
+    return string
 
 def main(argv):
     parser = argparse.ArgumentParser(description="Script to create paraview input files.")
@@ -288,6 +323,8 @@ def main(argv):
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
             string += get_umbrella_field(nxyz,arguments,types,type)
         string += get_area51(nxyz,arguments)
+        string += get_electric_field(nxyz,arguments)
+        string += get_electrodes(nxyz,arguments)
         string += "</Grid>\n"
     string += "</Grid>\n"
 
