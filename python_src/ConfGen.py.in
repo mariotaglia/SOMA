@@ -1192,7 +1192,7 @@ class Configuration(SomaXML):
         self.mobility_modifier = Configuration.MobilityModifier(self.root,self.n_types[0],self.n_poly_type[0])
 
         ## initialize the ElectricField class & update Area51
-        self.electric_field = Configuration.ElectricField(self.root,self.nxyz,self.area51,self.args)
+        self.electric_field = Configuration.ElectricField(self.root,self.nxyz,self.n_types[0],self.area51,self.args)
 
         self.good = True
 
@@ -1293,7 +1293,8 @@ class Configuration(SomaXML):
 
             if "electric_field" in f:
                 del f["electric_field"]
-            if numpy.sum(self.electric_field.electrodes_array) > 0:
+            if type(self.electric_field.eps_list) is numpy.ndarray:
+                f.create_dataset("/dielectric_constants",data=self.electric_field.eps_list)
                 f.create_dataset("/electric_field",data=self.electric_field.e_field_array)
                 f.create_dataset("/electrodes",data=self.electric_field.electrodes_array)
 
@@ -1870,12 +1871,13 @@ class Configuration(SomaXML):
     ## Class that parses the XML and stores the information for electrode position/voltage
     class ElectricField:
         ## Constructor of the ElectricField class. Initialized with the root of the XML parser
-        def __init__(self,root,nxyz,area51,args):
+        def __init__(self,root,nxyz,n_types,area51,args):
             self.e_field_array = numpy.zeros(shape=nxyz,dtype=soma_type.get_soma_scalar_type())
             self.electrodes_array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
+            self.eps_list = False
             gridobj_list = []
             child_list = []
-            knownTags = ["point_cloud","box","cylinder","sphere"]
+            knownTags = ["point_cloud","box","cylinder","sphere","eps"]
             for element in root.iter("electric_field"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1895,6 +1897,20 @@ class Configuration(SomaXML):
 
                 for sp in element.findall('sphere'):
                     gridobj_list.append( Sphere(sp,1) )
+
+                if not 'eps' in child_list:
+                    print("WARNING: Dielectric constants for particles types not specified, will default to 0 for all types.")
+                    self.eps_list = numpy.zeros(shape=(n_types,),dtype= numpy.uint8)
+                else:
+                    eps_list = element.findall('eps')[0].text.strip().split()
+                    if len(eps_list) != n_types:
+                        raise RuntimeError("Amount of dielectric constants must match \"n_types\", but got "+str(len(eps_list))+" instead of "+str(n_types))
+                    for val in eps_list:
+                        try:
+                            float(val)
+                        except ValueError:
+                            raise RuntimeError("Dielectric constants for particle types must be float convertible, but got "+str(eps_list))
+                    self.eps_list = numpy.asarray(eps_list,dtype=soma_type.get_soma_scalar_type())
 
             if len(gridobj_list) == 1 and len(list(gridobj_list[0].get_keys())) == 1:
                 raise RuntimeError("A minimum of 2 electrodes must be specified, but only found 1.")
