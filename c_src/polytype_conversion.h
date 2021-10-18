@@ -28,10 +28,18 @@ typedef struct PolyConversion {
     unsigned int deltaMC;       //!< control execution frequency of the conversion
     uint8_t *array;             //!< Array that contains the reaction start index of the conversion list.
 
+    soma_scalar_t *rate;               //!< control execution probability of the conversion
     unsigned int *input_type;   //!< Array that contains the input poly type for each reaction (educt)
     unsigned int *output_type;  //!< Array that contains the output poly type for each reaction (product)
+    unsigned int *dependency_ntype; //!<Array that contains the number of  dependency indices
+    unsigned int *dependency_type_offset; //!<Array that contains the start/offset of dependency indices
+    unsigned int *dependency_type; //!<Array that contains the dependency types
     unsigned int *reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
+    unsigned int len_dependencies; //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
+
+    soma_scalar_t *local_rate;//!< Mesh Array that gives the actual execution probability of the conversion
+    
 } PolyConversion;
 
 //! Helper function to copy the pc data to the device

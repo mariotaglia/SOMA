@@ -1274,10 +1274,13 @@ class Configuration(SomaXML):
             if self.poly_conversion.delta_mc[0] != 0 :
                 f.create_group("polyconversion")
                 f.create_dataset("polyconversion/deltaMC",data=self.poly_conversion.delta_mc)
+                f.create_dataset("polyconversion/rate",data=self.poly_conversion.rate_list)
                 f.create_dataset("/polyconversion/array",data=self.poly_conversion.array,dtype=numpy.uint8)
                 f.create_dataset("/polyconversion/input_type",data=self.poly_conversion.pc_list[:,0])
                 f.create_dataset("/polyconversion/output_type",data=self.poly_conversion.pc_list[:,1])
                 f.create_dataset("/polyconversion/end",data=self.poly_conversion.pc_list[:,2])
+                f.create_dataset("/polyconversion/density_dependency",data=self.poly_conversion.ndd_list)
+                f.create_dataset("/polyconversion/density_dependency",data=self.poly_conversion.dd_list)
 
             if "mobility" in f:
                 del f["mobility"]
@@ -1617,7 +1620,11 @@ class Configuration(SomaXML):
             self.delta_mc = numpy.asarray( [0], dtype=numpy.uint32)
             child_list = []
             pc_list = []
-            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC"]
+            rate_list = []
+            dd_list = []
+            ndd_list = []
+            
+            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC","conversion_rate","density_dependency"]
             for element in root.iter("polyconversion"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1634,12 +1641,19 @@ class Configuration(SomaXML):
 
                 for sp in element.findall('sphere'):
                     child_list.append( Sphere(sp,1) )
-
-                for delta in element.findall("DeltaMC"):
+for delta in element.findall("DeltaMC"):
                     try:
                         deltaMC = int(delta.text)
                     except ValueError:
                         raise RuntimeError("DeltaMC for poly conversion must be integer convertible but got: "+str(delta.text))
+
+                conversion_rate = 1.
+                for rate in element.findall("conversion_rate"):
+                    try:
+                        conversion_rate = float(rate.text)
+                    except ValueError:
+                        raise RuntimeError("Conversion rate for poly conversion must be float convertible but got: "+str(rate.text))
+                rate_list.append(conversion_rate)
 
                 for pc in element.findall("conversion_list"):
                     for line in pc.text.split("\n"):
@@ -1666,6 +1680,23 @@ class Configuration(SomaXML):
 
                         pc_list.append([input_type,output_type,bool(end)])
 
+                
+                dd_index = -1 #No dependency by default
+                for dd in element.findall("density_dependency"):
+                    for line in pc.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        try:
+                            dd_indices = np.array(parts, dtype=int)
+                        except ValueError:
+                            raise RuntimeError("A density dependency list must consist only of integers, but got: "+line)
+
+                ndd_list.append(len(dd_indices))
+                for index in dd_indices:
+                    dd_list.append(index)
+
             pbc = True
             if len(child_list) > 0:
                 array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
@@ -1689,6 +1720,10 @@ class Configuration(SomaXML):
                 self.array = array
                 self.pc_list = pc_list
                 self.delta_mc = numpy.asarray([deltaMC],dtype=numpy.uint32)
+                self.rate_list = rate_list
+                self.ndd_list = ndd_list
+                self.dd_list = dd_list
+                
 
     ## Class that parses the XML and stores the information density dependent mobility modifications
     class MobilityModifier:
