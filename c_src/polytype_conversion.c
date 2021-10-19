@@ -117,78 +117,6 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
             return -3;
         }
 
-    bool partial_conversions;
-    if H5Lexists(p->input_file, "/polyconversion/rate")
-        {
-        partial_conversions=true
-
-        const hid_t dset_rate = H5Dopen(file_id, "/polyconversion/rate", H5P_DEFAULT);
-        HDF5_ERROR_CHECK(dset_rate);
-        const hid_t dspace_rate = H5Dget_space(dset_rate);
-        HDF5_ERROR_CHECK(dspace_rate);
-        const unsigned int ndims_rate = H5Sget_simple_extent_ndims(dspace_rate);
-        if (ndims_rate != 1)
-            {
-                fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
-                        __FILE__, __LINE__, "polyconversion/rate");
-                return -1;
-            }
-        hsize_t dim_rate;
-        status = H5Sget_simple_extent_dims(dspace_rate, &dim_rate, NULL);
-        HDF5_ERROR_CHECK(status);
-
-        const hid_t dset_ndependency = H5Dopen(file_id, "/polyconversion/n_density_dependencies", H5P_DEFAULT);
-        HDF5_ERROR_CHECK(dset_ndependency);
-        const hid_t dspace_dependency = H5Dget_space(dset_ndependency);
-        HDF5_ERROR_CHECK(dspace_ndependency);
-        const unsigned int ndims_dependency = H5Sget_simple_extent_ndims(dspace_ndependency);
-        if (ndims_ndependency != 1)
-            {
-                fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
-                        __FILE__, __LINE__, "polyconversion/density_dependency");
-                return -1;
-            }
-        hsize_t dim_ndependency;
-        status = H5Sget_simple_extent_dims(dspace_ndependency, &dim_ndependency, NULL);
-        HDF5_ERROR_CHECK(status);
-
-        const hid_t dset_dependency = H5Dopen(file_id, "/polyconversion/density_dependency", H5P_DEFAULT);
-        HDF5_ERROR_CHECK(dset_dependency);
-        const hid_t dspace_dependency = H5Dget_space(dset_dependency);
-        HDF5_ERROR_CHECK(dspace_dependency);
-        const unsigned int ndims_dependency = H5Sget_simple_extent_ndims(dspace_dependency);
-        if (ndims_dependency != 1)
-            {
-                fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
-                        __FILE__, __LINE__, "polyconversion/density_dependency");
-                return -1;
-            }
-        hsize_t dim_dependency;
-        status = H5Sget_simple_extent_dims(dspace_dependency, &dim_dependency, NULL);
-        HDF5_ERROR_CHECK(status);
-            
-        if (dim_input != dim_rate)
-            {
-                fprintf(stderr,
-                        "ERROR: %s:%d the length of the input type and rate for poly conversions is not equal %d %d\n",
-                        __FILE__, __LINE__, (int)dim_input, (int)dim_rate);
-                return -3;
-            }
-        if (dim_input != dim_ndependency)
-            {
-                fprintf(stderr,
-                        "ERROR: %s:%d the length of the input type and rate for poly conversions is not equal %d %d\n",
-                        __FILE__, __LINE__, (int)dim_input, (int)dim_rate);
-                return -3;
-            }
-        }
-    else
-        {
-        partial_conversions=false
-        hsize_t dim_rate = dim_input;
-        hsize_t dim_ndependency = dim_input;
-        hsize_t dim_dependency = 0;
-        }
 
 
     p->pc.input_type = (unsigned int *)malloc(dim_input * sizeof(unsigned int));
@@ -197,18 +125,9 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     MALLOC_ERROR_CHECK(p->pc.output_type, dim_output * sizeof(unsigned int));
     p->pc.reaction_end = (unsigned int *)malloc(dim_end * sizeof(unsigned int));
     MALLOC_ERROR_CHECK(p->pc.reaction_end, dim_end * sizeof(unsigned int));
-    p->pc.rate = (soma_scalar_t *)malloc(dim_rate * sizeof(soma_scalar_t));
-    MALLOC_ERROR_CHECK(p->pc.rate, dim_rate * sizeof(soma_scalar_t));
-    p->pc.dependency_ntype = (unsigned int *)malloc(dim_ndependency * sizeof(unsigned int));
-    MALLOC_ERROR_CHECK(p->pc.dependency_ntype, dim_ndependency * sizeof(unsigned int));
-    p->pc.dependency_type_offset = (unsigned int *)malloc(dim_ndependency * sizeof(unsigned int));
-    MALLOC_ERROR_CHECK(p->pc.dependency_type_offset, dim_ndependency * sizeof(unsigned int));
-    p->pc.dependency_type = (unsigned int **)malloc(dim_dependency * sizeof(unsigned int *));
-    MALLOC_ERROR_CHECK(p->pc.dependency_type, dim_dependency * sizeof(unsigned int *));
     
 
     p->pc.len_reactions = dim_input;
-    p->pc.len_dependencies = dim_dependency;
 
     //Actuablly read the polyconversion list data
     status = H5Dread(dset_input, H5T_STD_U32LE, H5S_ALL, H5S_ALL, plist_id, p->pc.input_type);
@@ -229,42 +148,6 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     HDF5_ERROR_CHECK(status);
     status = H5Dclose(dset_end);
     HDF5_ERROR_CHECK(status);
-    //Read rate and dependencies only if they were given, else use full conversion(rate=1) and no dependencies.
-    if(partial_conversions)
-        {
-        status = H5Dread(dset_rate, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->pc.rate);
-        HDF5_ERROR_CHECK(status);
-        status = H5Sclose(dspace_rate);
-        HDF5_ERROR_CHECK(status);
-        status = H5Dclose(dset_rate);
-        HDF5_ERROR_CHECK(status);
-        status = H5Dread(dset_ndependency, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->pc.dependency_ntype);
-        HDF5_ERROR_CHECK(status);
-        status = H5Sclose(dspace_ndependency);
-        HDF5_ERROR_CHECK(status);
-        status = H5Dclose(dset_ndpendency);
-        HDF5_ERROR_CHECK(status);
-        for(int i=1;i<dim_ndependency;i++)
-            {
-            p->pc.dependency_type_offset[i] = p->pc.dependency_type_offset[i-1] + p->pc.dependency_ntype[i-1];
-            }
-        status = H5Dread(dset_dependency, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->pc.dependency_type);
-        HDF5_ERROR_CHECK(status);
-        status = H5Sclose(dspace_dependency);
-        HDF5_ERROR_CHECK(status);
-        status = H5Dclose(dset_dpendency);
-        HDF5_ERROR_CHECK(status);
-        p->pc.dependency_type_offset[0] = 0;
-        }
-    else 
-        {
-        for(int i=0;i<dim_rate;i++)
-            {
-            p->pc.rate[i] = 1;
-            p->pc.dependency_ntype[i] = 0;
-            p->pc.ndependency_type_offset[i] = 0;
-            }
-        }
 
     //Read the array information
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -338,9 +221,113 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
                     p->info_MPI.world_rank, __FILE__, __LINE__, status);
             return status;
         }
+
+    //Enable the updat only if everything worked fine so far
+    p->pc.deltaMC = tmp_deltaMC;
+
+    //If rate is defined in the hdf5, partial conversions are activated and "rate", "n_density_dependencies", "density_dependencies" are read.
+    if(!(H5Lexists(file_id, "/polyconversion/rate", H5P_DEFAULT)>0))
+        return 0;
+
+    const hid_t dset_rate = H5Dopen(file_id, "/polyconversion/rate", H5P_DEFAULT);
+    HDF5_ERROR_CHECK(dset_rate);
+    const hid_t dspace_rate = H5Dget_space(dset_rate);
+    HDF5_ERROR_CHECK(dspace_rate);
+    const unsigned int ndims_rate = H5Sget_simple_extent_ndims(dspace_rate);
+    if (ndims_rate != 1)
+        {
+            fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
+                    __FILE__, __LINE__, "polyconversion/rate");
+            return -1;
+        }
+    hsize_t dim_rate;
+    status = H5Sget_simple_extent_dims(dspace_rate, &dim_rate, NULL);
+    HDF5_ERROR_CHECK(status);
+
+    const hid_t dset_ndependency = H5Dopen(file_id, "/polyconversion/n_density_dependencies", H5P_DEFAULT);
+    HDF5_ERROR_CHECK(dset_ndependency);
+    const hid_t dspace_ndependency = H5Dget_space(dset_ndependency);
+    HDF5_ERROR_CHECK(dspace_ndependency);
+    const unsigned int ndims_ndependency = H5Sget_simple_extent_ndims(dspace_ndependency);
+    if (ndims_ndependency != 1)
+        {
+            fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
+                    __FILE__, __LINE__, "polyconversion/density_dependency");
+            return -1;
+        }
+    hsize_t dim_ndependency;
+    status = H5Sget_simple_extent_dims(dspace_ndependency, &dim_ndependency, NULL);
+    HDF5_ERROR_CHECK(status);
+
+    const hid_t dset_dependency = H5Dopen(file_id, "/polyconversion/density_dependency", H5P_DEFAULT);
+    HDF5_ERROR_CHECK(dset_dependency);
+    const hid_t dspace_dependency = H5Dget_space(dset_dependency);
+    HDF5_ERROR_CHECK(dspace_dependency);
+    const unsigned int ndims_dependency = H5Sget_simple_extent_ndims(dspace_dependency);
+    if (ndims_dependency != 1)
+        {
+            fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
+                    __FILE__, __LINE__, "polyconversion/density_dependency");
+            return -1;
+        }
+    hsize_t dim_dependency;
+    status = H5Sget_simple_extent_dims(dspace_dependency, &dim_dependency, NULL);
+    HDF5_ERROR_CHECK(status);
+        
+    if (dim_input != dim_rate)
+        {
+            fprintf(stderr,
+                    "ERROR: %s:%d the length of the input type and rate for poly conversions is not equal %d %d\n",
+                    __FILE__, __LINE__, (int)dim_input, (int)dim_rate);
+            return -3;
+        }
+    if (dim_input != dim_ndependency)
+        {
+            fprintf(stderr,
+                    "ERROR: %s:%d the length of the input type and rate for poly conversions is not equal %d %d\n",
+                    __FILE__, __LINE__, (int)dim_input, (int)dim_rate);
+            return -3;
+        }
+
+    p->pc.rate = (soma_scalar_t *)malloc(dim_rate * sizeof(soma_scalar_t));
+    MALLOC_ERROR_CHECK(p->pc.rate, dim_rate * sizeof(soma_scalar_t));
+    p->pc.dependency_ntype = (unsigned int *)malloc(dim_ndependency * sizeof(unsigned int));
+    MALLOC_ERROR_CHECK(p->pc.dependency_ntype, dim_ndependency * sizeof(unsigned int));
+    p->pc.dependency_type_offset = (unsigned int *)malloc(dim_ndependency * sizeof(unsigned int));
+    MALLOC_ERROR_CHECK(p->pc.dependency_type_offset, dim_ndependency * sizeof(unsigned int));
+    p->pc.dependency_type = (unsigned int **)malloc(dim_dependency * sizeof(unsigned int *));
+    MALLOC_ERROR_CHECK(p->pc.dependency_type, dim_dependency * sizeof(unsigned int *));
+
+    p->pc.len_dependencies = dim_dependency;
+
+    //Read rate and dependencies:
+    status = H5Dread(dset_rate, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->pc.rate);
+    HDF5_ERROR_CHECK(status);
+    status = H5Sclose(dspace_rate);
+    HDF5_ERROR_CHECK(status);
+    status = H5Dclose(dset_rate);
+    HDF5_ERROR_CHECK(status);
+    status = H5Dread(dset_ndependency, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->pc.dependency_ntype);
+    HDF5_ERROR_CHECK(status);
+    status = H5Sclose(dspace_ndependency);
+    HDF5_ERROR_CHECK(status);
+    status = H5Dclose(dset_ndependency);
+    HDF5_ERROR_CHECK(status);
+    p->pc.dependency_type_offset[0] = 0;
+    for(int i=1;i<dim_ndependency;i++)
+        {
+        p->pc.dependency_type_offset[i] = p->pc.dependency_type_offset[i-1] + p->pc.dependency_ntype[i-1];
+        }
+    status = H5Dread(dset_dependency, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->pc.dependency_type);
+    HDF5_ERROR_CHECK(status);
+    status = H5Sclose(dspace_dependency);
+    HDF5_ERROR_CHECK(status);
+    status = H5Dclose(dset_dependency);
+    HDF5_ERROR_CHECK(status);
+
     //Density dependent rate if dependecy is activated:
     p->pc.local_rate =
-        (soma_scalar_t *) malloc(p->pc.len_conversions * (p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
+        (soma_scalar_t *) malloc(p->pc.len_reactions * (p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
                            sizeof(soma_scalar_t));
     if (p->pc.local_rate == NULL)
         {
@@ -349,8 +336,6 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
         }
 
 
-    //Enable the updat only if everything worked fine
-    p->pc.deltaMC = tmp_deltaMC;
     return 0;
 }
 
@@ -523,6 +508,24 @@ int convert_polytypes(struct Phase *p)
 
     update_polymer_rcm(p);
 
+    if(p->pc.rate == NULL)
+        {
+        return fully_convert_polytypes(p);
+        }
+    else
+        {
+        return partially_convert_polytypes(p);
+        }
+}
+
+int fully_convert_polytypes(struct Phase *p)
+{
+    //inser old function here.
+    return 0;
+}
+
+int partially_convert_polytypes(struct Phase *p)
+{
     //Update local_rate:
     for(unsigned int conv=0;conv<p->pc.len_reactions;conv++)
         {
@@ -541,24 +544,30 @@ int convert_polytypes(struct Phase *p)
 #pragma omp parallel for
                     for(unsigned int cell=0;cell<p->n_cells_local; cell++)
                         {
-                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->density_field[p->pc.dependency_type[p->pc.dependency_type_offset] * p->n_cells_local + cell]
+                        unsigned int type_offset = p->pc.dependency_type_offset;
+                        unsigned int type = p->pc.dependency_type[type_offset];
+                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
                         }
                 }
             else
                 {
+                //This is the more general version of the above else, so the top one could also be deleted.
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
                     for(unsigned int cell=0;cell<p->n_cells_local; cell++)
                         {
                         unsigned int type_offset = p->pc.dependency_type_offset;
+                        unsigned int type = p->pc.dependency_type[type_offset];
 
-                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->density_field[p->pc.dependency_type[type_offset] * p->n_cells_local + cell]
+                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
                         for(type_offset++; type_offset<p->pc.dependency_type_offset[conv] + p->pc.dependency_ntype[conv];type_offset++)
                             {
-                                p->pc.local_rate[conv * p->n_cells_local + cell] *= p->density_field[p->pc.dependency_type[type_offset] * p->n_cells_local + cell]
+                                type = p->pc.dependency_type[type_offset];
+                                p->pc.local_rate[conv * p->n_cells_local + cell] *= p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
                             }
                         }
                 }
+        }
 
             
         
@@ -568,6 +577,7 @@ int convert_polytypes(struct Phase *p)
 #pragma omp parallel
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
+            //const Polymer *mypoly = &p->polymers[poly];
             const Monomer rcm = p->polymers[poly].rcm;
             const uint64_t cell = coord_to_index(p, rcm.x, rcm.y, rcm.z);
 
@@ -579,13 +589,13 @@ int convert_polytypes(struct Phase *p)
                     soma_scalar_t probability = 0.;
                     if (p->polymers[poly].type == p->pc.input_type[i])
                         {
-                        soma_scalar_t random_number = p->polymers[poly]->random_number();
-                        probability = p->pc.local_rate[i * p->pc.len_conversions + cell];
+                        soma_scalar_t random_number = soma_rng_soma_scalar(&(p->polymers[poly].poly_state), p);
+                        probability = p->pc.local_rate[i * p->pc.len_reactions + cell];
                             
                         if(random_number < probability)
                             {
-                            p->polymers[poly].type = p->pc.output_type[i];
-                            continue;
+                            p->polymers[poly].type = (unsigned int) p->pc.output_type[i];
+                            continue; //to continue with next polymer
                             }
                         }
                     for (; !p->pc.reaction_end[i]; i++)
@@ -593,12 +603,12 @@ int convert_polytypes(struct Phase *p)
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 {
                                 soma_scalar_t norm = 1-probability;
-                                soma_scalar_t random_number = p->polymers[poly]->random_number();
-                                probability = p->pc.local_rate[i * p->pc.len_conversions + cell]/norm;
+                                soma_scalar_t random_number = soma_rng_soma_scalar(&(p->polymers[poly].poly_state), p);
+                                probability = p->pc.local_rate[i * p->pc.len_reactions + cell]/norm;
                                 if(random_number < probability)
                                     {
                                     p->polymers[poly].type = p->pc.output_type[i];
-                                    continue;
+                                    break; //to continue with next polymer
                                     }
                                 else
                                     {

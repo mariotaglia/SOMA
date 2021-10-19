@@ -86,10 +86,22 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
 int free_poly_conversion(struct Phase *p);
 
 /*! Convert polymer types according to the reaction description of the PolyConversion struct.
-  This updates the center of mass of the polymers.
+  This updates the center of mass of the polymers and chooses between full or partial (with rates) conversions.
   \param p Phase struct describing the simulation
   \return Errorcode
 */
 int convert_polytypes(struct Phase *p);
 
+/*! Fully convert polymer types according to the reaction description of the PolyConversion struct.
+  \param p Phase struct describing the simulation
+  \return Errorcode
+*/
+int fully_convert_polytypes(struct Phase *p);
+
+/*! Partially Convert polymer types according to the reaction description of the PolyConversion struct.
+ This converts the polymer only with a probability given by the rate which may depend (linearly) on the normalized density of some type (for reactions involving multiple types).
+  \param p Phase struct describing the simulation
+  \return Errorcode
+*/
+int partially_convert_polytypes(struct Phase *p);
 #endif                          //SOMA_POLYTYPE_CONVERSION_H
