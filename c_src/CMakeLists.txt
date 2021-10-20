@@ -33,6 +33,7 @@ set(soma_source
   test.c
   polytype_conversion.c
   mobility.c
+  electric_field.c
   )
 
 configure_file(soma_config.h.in soma_config.h)
@@ -66,6 +67,7 @@ set(soma_header
   test.h
   polytype_conversion.h
   mobility.h
+  electric_field.h
   )
 
 add_library(soma_lib ${soma_source})

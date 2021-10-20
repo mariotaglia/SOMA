@@ -41,6 +41,7 @@
 #include "soma_config.h"
 #include "polytype_conversion.h"
 #include "mobility.h"
+#include "electric_field.h"
 #include "io_old.h"
 
 #if ( ENABLE_MPI == 1 )
@@ -628,6 +629,13 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
     if (status != 0)
         {
             fprintf(stderr, "ERROR: %s:%d writing the mobility\n", __FILE__, __LINE__);
+            return status;
+        }
+
+    status = write_electric_field_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d writing the electric field\n", __FILE__, __LINE__);
             return status;
         }
 
@@ -1409,6 +1417,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     if (status != 0)
         {
             fprintf(stderr, "ERROR: %s:%d unable to read mobility information.\n", __FILE__, __LINE__);
+            return status;
+        }
+
+    status = read_electric_field_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to read electric field information.\n", __FILE__, __LINE__);
             return status;
         }
 
