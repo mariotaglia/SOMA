@@ -1294,7 +1294,7 @@ class Configuration(SomaXML):
             if "electric_field" in f:
                 del f["electric_field"]
             if type(self.electric_field.eps_list) is numpy.ndarray:
-                f.create_dataset("/dielectric_constants",data=self.electric_field.eps_list)
+                f.create_dataset("/parameter/dielectric_constants",data=self.electric_field.eps_list)
                 f.create_dataset("/electric_field",data=self.electric_field.e_field_array)
                 f.create_dataset("/electrodes",data=self.electric_field.electrodes_array)
 
