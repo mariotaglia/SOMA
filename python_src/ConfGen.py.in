@@ -1274,13 +1274,14 @@ class Configuration(SomaXML):
             if self.poly_conversion.delta_mc[0] != 0 :
                 f.create_group("polyconversion")
                 f.create_dataset("polyconversion/deltaMC",data=self.poly_conversion.delta_mc)
-                f.create_dataset("polyconversion/rate",data=self.poly_conversion.rate_list)
                 f.create_dataset("/polyconversion/array",data=self.poly_conversion.array,dtype=numpy.uint8)
                 f.create_dataset("/polyconversion/input_type",data=self.poly_conversion.pc_list[:,0])
                 f.create_dataset("/polyconversion/output_type",data=self.poly_conversion.pc_list[:,1])
                 f.create_dataset("/polyconversion/end",data=self.poly_conversion.pc_list[:,2])
-                f.create_dataset("/polyconversion/density_dependency",data=self.poly_conversion.ndd_list)
-                f.create_dataset("/polyconversion/density_dependency",data=self.poly_conversion.dd_list)
+                if self.poly_conversion.rate_list != []:
+                    f.create_dataset("polyconversion/rate",data=self.poly_conversion.rate_list)
+                    f.create_dataset("/polyconversion/n_density_dependency",data=self.poly_conversion.ndd_list)
+                    f.create_dataset("/polyconversion/density_dependency",data=self.poly_conversion.dd_list)
 
             if "mobility" in f:
                 del f["mobility"]
@@ -1622,7 +1623,7 @@ class Configuration(SomaXML):
             pc_list = []
             rate_list = []
             dd_list = []
-            ndd_list = []
+            raw_dd_list = []
             
             knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC","conversion_rate","density_dependency"]
             for element in root.iter("polyconversion"):
@@ -1641,19 +1642,12 @@ class Configuration(SomaXML):
 
                 for sp in element.findall('sphere'):
                     child_list.append( Sphere(sp,1) )
-for delta in element.findall("DeltaMC"):
+
+                for delta in element.findall("DeltaMC"):
                     try:
                         deltaMC = int(delta.text)
                     except ValueError:
                         raise RuntimeError("DeltaMC for poly conversion must be integer convertible but got: "+str(delta.text))
-
-                conversion_rate = 1.
-                for rate in element.findall("conversion_rate"):
-                    try:
-                        conversion_rate = float(rate.text)
-                    except ValueError:
-                        raise RuntimeError("Conversion rate for poly conversion must be float convertible but got: "+str(rate.text))
-                rate_list.append(conversion_rate)
 
                 for pc in element.findall("conversion_list"):
                     for line in pc.text.split("\n"):
@@ -1680,22 +1674,46 @@ for delta in element.findall("DeltaMC"):
 
                         pc_list.append([input_type,output_type,bool(end)])
 
-                
-                dd_index = -1 #No dependency by default
-                for dd in element.findall("density_dependency"):
-                    for line in pc.text.split("\n"):
+
+                for rt in element.findall("conversion_rate"):
+                    for line in rt.text.split("\n"):
                         line = line.strip()
                         if line == "" or line[0] == '#':
                             continue
                         parts = line.split()
+                        if len(parts) != 1:
+                            raise RuntimeError("Conversion rate should be given as single float per conversion/line. But got: "+line)
                         try:
-                            dd_indices = np.array(parts, dtype=int)
+                            conversion_rate = float(parts[0])
+                            rate_list.append(conversion_rate)
+                        except ValueError:
+                            raise RuntimeError("Conversion rate for poly conversion must be float convertible but got: "+str(rt.text))
+                assert len(rate_list) == len(pc_list), "ERROR: There should be given a rate for every conversion. Defined {} conversions, but only got {} rates.".format(len(pc_list), len(rate_list))
+                
+                for dd in element.findall("density_dependency"):
+                    for line in dd.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != len(poly_arch.poly_type_offset):
+                            raise RuntimeError("Invalid density dependence format, give dependecies for all " + str(len(poly_arch.poly_type_offset)) + "types. But got: "+len(parts))
+                        try:
+                            raw_dd_list.append(numpy.asarray(parts, dtype=int))
                         except ValueError:
                             raise RuntimeError("A density dependency list must consist only of integers, but got: "+line)
+                if raw_dd_list == []:
+                    raw_dd_list = numpy.zeros((len(pc_list), len(poly_arch.poly_type_offset)))
+                raw_dd_list = numpy.asarray(raw_dd_list, dtype=numpy.uint32)
+                ndd_list = numpy.sum(raw_dd_list, axis=1)
+                for dependencies in raw_dd_list:
+                    for i in range(len(poly_arch.poly_type_offset)):
+                        for j in range(dependencies[i]):
+                            dd_list.append(i)
+                dd_list = np.asarray(dd_list, dtype=numpy.uint32)
+                assert numpy.sum(ndd_list) == len(dd_list), "Total number of dependencies given in ndd does not match the number of dependencies in the list."
 
-                ndd_list.append(len(dd_indices))
-                for index in dd_indices:
-                    dd_list.append(index)
+                        
 
             pbc = True
             if len(child_list) > 0:

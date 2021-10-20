@@ -382,6 +382,23 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
     const hsize_t offset[3] = { my_domain * (p->nx / p->args.N_domains_arg), 0, 0 };
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
 
+    if(p->pc.rate != NULL)
+        {
+        status =
+            write_hdf5(1, &list_len, file_id, "/polyconversion/rate", H5T_NATIVE_DOUBLE, H5T_NATIVE_DOUBLE, plist_id,
+                       p->pc.rate);
+        HDF5_ERROR_CHECK(status);
+        status =
+            write_hdf5(1, &list_len, file_id, "/polyconversion/n_density_dependency", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                       p->pc.dependency_ntype);
+        HDF5_ERROR_CHECK(status);
+        const hsize_t dep_list_len = p->pc.len_dependencies;
+        status =
+            write_hdf5(1, &dep_list_len, file_id, "/polyconversion/density_dependency", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                       p->pc.dependency_type);
+        HDF5_ERROR_CHECK(status);
+        }
+
 #if ( ENABLE_MPI == 1 )
     MPI_Barrier(p->info_MPI.SOMA_comm_world);
 #endif                          //ENABLE_MPI
@@ -520,7 +537,28 @@ int convert_polytypes(struct Phase *p)
 
 int fully_convert_polytypes(struct Phase *p)
 {
-    //inser old function here.
+    //Iterate all polymers and apply the reaction rules
+#pragma acc parallel loop present(p[0:1])
+#pragma omp parallel
+    for (uint64_t poly = 0; poly < p->n_polymers; poly++)
+        {
+            const Monomer rcm = p->polymers[poly].rcm;
+            const uint64_t cell = coord_to_index(p, rcm.x, rcm.y, rcm.z);
+
+            if (p->pc.array[cell] != 0)
+                {
+                    //Minus 1 because the index in array are shifted by 1
+
+                    int i = p->pc.array[cell] - 1;
+                    if (p->polymers[poly].type == p->pc.input_type[i])
+                        p->polymers[poly].type = p->pc.output_type[i];
+                    for (; !p->pc.reaction_end[i]; i++)
+                        {
+                            if (p->polymers[poly].type == p->pc.input_type[i])
+                                p->polymers[poly].type = p->pc.output_type[i];
+                        }
+                }
+        }
     return 0;
 }
 
@@ -529,7 +567,7 @@ int partially_convert_polytypes(struct Phase *p)
     //Update local_rate:
     for(unsigned int conv=0;conv<p->pc.len_reactions;conv++)
         {
-            if(p->pc.dependency_ntype ==0)
+            if(p->pc.dependency_ntype[conv] ==0)
                 {
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
@@ -538,7 +576,7 @@ int partially_convert_polytypes(struct Phase *p)
                         p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv];
                         }
                 }
-            else if(p->pc.dependency_ntype == 1)
+            else if(p->pc.dependency_ntype[conv] == 1)
                 {
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
