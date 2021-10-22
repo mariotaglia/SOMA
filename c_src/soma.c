@@ -179,6 +179,9 @@ int main(int argc, char *argv[])
             if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1)
                 convert_polytypes(p);
 
+            if (p->ef.Epot != NULL)
+                calc_electric_field_contr(p);
+
 #if ( ENABLE_MPI == 1 )
             if (p->args.load_balance_arg > 0
                 && i % p->args.load_balance_arg == (unsigned int)p->args.load_balance_arg - 1)

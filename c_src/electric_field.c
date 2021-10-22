@@ -32,7 +32,6 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
 
     p->ef.eps = NULL;
     p->ef.eps_arr = NULL;
-    p->ef.eps_arr_tmp = NULL;
     p->ef.electrodes = NULL;
     p->ef.Epot = NULL;
     p->ef.Epot_tmp = NULL;
@@ -58,11 +57,6 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
                            sizeof(soma_scalar_t));
 
-    //Allocate ef.eps_arr_tmp
-    p->ef.eps_arr_tmp =
-        (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
-                           sizeof(soma_scalar_t));
-
     //Allocate ef.Epot_tmp
     p->ef.Epot_tmp =
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
@@ -72,6 +66,14 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.pre_deriv =
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz * 6
                            sizeof(soma_scalar_t));
+
+    //Allocate ef.H_el_field
+    p->ef.H_el_field =
+        (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
+                           sizeof(soma_scalar_t));
+
+    //Allocate ef.H_el
+    p->ef.H_el = (soma_scalar_t *) malloc(1.0 * sizeof(soma_scalar_t));
 
     //Read p->ef.eps
     p->ef.eps = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
@@ -427,7 +429,7 @@ void iterate_field(struct PHASE *const p)
                  p->ef.pre_deriv[pos6+2] * p->ef.Epot[cell_coordinate_to_index(p,x,y+1,z)]  + p->ef.pre_deriv[pos6+3] * p->ef.Epot[cell_coordinate_to_index(p,x,y-1,z)] +
                  p->ef.pre_deriv[pos6+4] * p->ef.Epot[cell_coordinate_to_index(p,x,y,z+1)]  + p->ef.pre_deriv[pos6+5] * p->ef.Epot[cell_coordinate_to_index(p,x,y,z-1)];
             }
-    memcpy(p->ef.Epot, p->ef.Epot_tmp, p->n_cells * sizeof(soma_scalar_t));         //correct?
+    memcpy(p->ef.Epot, p->ef.Epot_tmp, p->n_cells * sizeof(soma_scalar_t));         //correct or save directly in p->ef.Epot and omit ef.Epot_tmp?
 }
 
 soma_scalar_t Epot_deriv_sq(struct PHASE *const p, uint64_t x, uint64_t y, uint64_t z)
@@ -441,10 +443,22 @@ soma_scalar_t Epot_deriv_sq(struct PHASE *const p, uint64_t x, uint64_t y, uint6
 int calc_electric_field_contr(struct PHASE *const p)
 {
     uint64_t x,y,z,i;
+    soma_scalar_t t = 1.0;
     calc_dielectric_field(p);
     pre_derivatives(p);
 
     //convergence criterion to ensure acceptable values for p->ef.Epot
+    while (t <= 0.001)
+    {
+        for (uint64_t k = 0; k < p->n_cells; k++)
+        {
+            if (p->ef.electrodes[k] != 1)
+                if (t < p->ef.Epot[k]) t = p->ef.Epot[k];               // failsafe?
+        }
+
+        iterate_field(p)
+    }
+
     p->ef.H_el = 0;
 
     for (x=0; x < p->nx; x++)
@@ -452,10 +466,15 @@ int calc_electric_field_contr(struct PHASE *const p)
             for (z=0; z < p->nz; z++)
             {
                 i = cell_coordinate_to_index(p,x,y,z);
-                p->ef.H_el_field[i] = 0.5 * Epot_deriv_sq(p,x,y,z) * p->ef.eps_arr[i]; //allocate H_el
-                p->ef.H_el += p->ef.H_el_field[i]
+                p->ef.H_el_field[i] = 0.5 * Epot_deriv_sq(p,x,y,z) * p->ef.eps_arr[i];
+                p->ef.H_el += p->ef.H_el_field[i]; //necessary?
             } 
 
     //free mem?
     return 0;
 }
+
+//copyin?
+//copyout?
+//self_update?
+//free?

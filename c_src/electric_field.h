@@ -22,12 +22,11 @@
 typedef struct ElectricField{
 	soma_scalar_t *eps;				//!< Array that contains the dielectric constants for all particle types.
     soma_scalar_t *eps_arr;         //!< Array that saves information of calculated dielectric constant field.
-    soma_scalar_t *eps_arr_tmp;     //!< Temporay array that saves information of calculated dielectric constant field after MC step.
     uint8_t *electrodes;            //!< Array that contains the electrode positions.
     soma_scalar_t *Epot;            //!< Array that contains the electric potential field.
     soma_scalar_t *Epot_tmp;        //!< Temporary array that contains the electric potential field after MC step.
     soma_scalar_t *pre_deriv;       //!< Array that contains precomputed derivatives of dielectric constant field.
-    soma_scalar_t *H_el_field;       //!< Array that contains electrostatic energy contribution per cell.
+    soma_scalar_t *H_el_field;      //!< Array that contains electrostatic energy contribution per cell.
     soma_scalar_t *H_el;            //!< Sum of electrocstatic contribution.
     
 } ElectricField;
