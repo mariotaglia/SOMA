@@ -252,14 +252,14 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     if (ndims_ndependency != 1)
         {
             fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
-                    __FILE__, __LINE__, "polyconversion/density_dependency");
+                    __FILE__, __LINE__, "polyconversion/n_density_dependencies");
             return -1;
         }
     hsize_t dim_ndependency;
     status = H5Sget_simple_extent_dims(dspace_ndependency, &dim_ndependency, NULL);
     HDF5_ERROR_CHECK(status);
 
-    const hid_t dset_dependency = H5Dopen(file_id, "/polyconversion/density_dependency", H5P_DEFAULT);
+    const hid_t dset_dependency = H5Dopen(file_id, "/polyconversion/density_dependencies", H5P_DEFAULT);
     HDF5_ERROR_CHECK(dset_dependency);
     const hid_t dspace_dependency = H5Dget_space(dset_dependency);
     HDF5_ERROR_CHECK(dspace_dependency);
@@ -267,7 +267,7 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     if (ndims_dependency != 1)
         {
             fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent the data set for %s.\n",
-                    __FILE__, __LINE__, "polyconversion/density_dependency");
+                    __FILE__, __LINE__, "polyconversion/density_dependencies");
             return -1;
         }
     hsize_t dim_dependency;
@@ -327,8 +327,7 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
 
     //Density dependent rate if dependecy is activated:
     p->pc.local_rate =
-        (soma_scalar_t *) malloc(p->pc.len_reactions * (p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
-                           sizeof(soma_scalar_t));
+        (soma_scalar_t *) malloc(p->pc.len_reactions * p->n_cells_local * sizeof(soma_scalar_t));
     if (p->pc.local_rate == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -389,12 +388,12 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
                        p->pc.rate);
         HDF5_ERROR_CHECK(status);
         status =
-            write_hdf5(1, &list_len, file_id, "/polyconversion/n_density_dependency", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+            write_hdf5(1, &list_len, file_id, "/polyconversion/n_density_dependencies", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
                        p->pc.dependency_ntype);
         HDF5_ERROR_CHECK(status);
         const hsize_t dep_list_len = p->pc.len_dependencies;
         status =
-            write_hdf5(1, &dep_list_len, file_id, "/polyconversion/density_dependency", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+            write_hdf5(1, &dep_list_len, file_id, "/polyconversion/density_dependencies", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
                        p->pc.dependency_type);
         HDF5_ERROR_CHECK(status);
         }
@@ -453,10 +452,13 @@ int copyin_poly_conversion(struct Phase *p)
 #pragma acc enter data copyin(p->pc.output_type[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.reaction_end[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.rate[0:p->pc.len_reactions])
+if(p->pc.rate != NULL)
+    {
 #pragma acc enter data copyin(p->pc.dependency_ntype[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.dependency_type_offset[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.dependency_type[0:p->pc.len_dependencies])
-#pragma acc enter data copyin(p->pc.local_rate[0:p->n_cells_local])
+#pragma acc enter data copyin(p->pc.local_rate[0:p->pc.len_reactions * p->n_cells_local])
+    }
 #endif                          //_OPENACC
         }
     return 0;
@@ -471,11 +473,14 @@ int copyout_poly_conversion(struct Phase *p)
 #pragma acc exit data copyout(p->pc.input_type[0:p->pc.len_reactions])
 #pragma acc exit data copyout(p->pc.output_type[0:p->pc.len_reactions])
 #pragma acc exit data copyout(p->pc.reaction_end[0:p->pc.len_reactions])
+if(p->pc.rate != NULL)
+    {
 #pragma acc exit data copyout(p->pc.rate[0:p->pc.len_reactions])
 #pragma acc exit data copyout(p->pc.dependency_ntype[0:p->pc.len_reactions])
 #pragma acc exit data copyout(p->pc.dependency_type_offset[0:p->pc.len_reactions])
 #pragma acc exit data copyout(p->pc.dependency_type[0:p->pc.len_dependencies])
-#pragma acc exit data copyout(p->pc.local_rate[0:p->n_cells_local])
+//#pragma acc exit data copyout(p->pc.local_rate[0:p->pc.len_reactions * p->n_cells_local])
+    }
 #endif                          //_OPENACC
         }
     return 0;
@@ -490,11 +495,14 @@ int update_self_poly_conversion(const struct Phase *const p)
 #pragma acc update self(p->pc.input_type[0:p->pc.len_reactions])
 #pragma acc update self(p->pc.output_type[0:p->pc.len_reactions])
 #pragma acc update self(p->pc.reaction_end[0:p->pc.len_reactions])
+if(p->pc.rate != NULL)
+    {
 #pragma acc update self(p->pc.rate[0:p->pc.len_reactions])
 #pragma acc update self(p->pc.dependency_ntype[0:p->pc.len_reactions])
 #pragma acc update self(p->pc.dependency_type_offset[0:p->pc.len_reactions])
 #pragma acc update self(p->pc.dependency_type[0:p->pc.len_dependencies])
-#pragma acc update self(p->pc.local_rate[0:p->n_cells_local])
+//#pragma acc update self(p->pc.local_rate[0:p->pc.len_reactions * p->n_cells_local])
+    }
 #endif                          //_OPENACC
         }
     return 0;
@@ -565,47 +573,47 @@ int fully_convert_polytypes(struct Phase *p)
 int partially_convert_polytypes(struct Phase *p)
 {
     //Update local_rate:
-    for(unsigned int conv=0;conv<p->pc.len_reactions;conv++)
-        {
-            if(p->pc.dependency_ntype[conv] ==0)
-                {
-#pragma acc parallel loop present(p[:1])
-#pragma omp parallel for
-                    for(unsigned int cell=0;cell<p->n_cells_local; cell++)
-                        {
-                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv];
-                        }
-                }
-            else if(p->pc.dependency_ntype[conv] == 1)
-                {
-#pragma acc parallel loop present(p[:1])
-#pragma omp parallel for
-                    for(unsigned int cell=0;cell<p->n_cells_local; cell++)
-                        {
-                        unsigned int type_offset = p->pc.dependency_type_offset;
-                        unsigned int type = p->pc.dependency_type[type_offset];
-                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
-                        }
-                }
-            else
-                {
-                //This is the more general version of the above else, so the top one could also be deleted.
-#pragma acc parallel loop present(p[:1])
-#pragma omp parallel for
-                    for(unsigned int cell=0;cell<p->n_cells_local; cell++)
-                        {
-                        unsigned int type_offset = p->pc.dependency_type_offset;
-                        unsigned int type = p->pc.dependency_type[type_offset];
-
-                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
-                        for(type_offset++; type_offset<p->pc.dependency_type_offset[conv] + p->pc.dependency_ntype[conv];type_offset++)
-                            {
-                                type = p->pc.dependency_type[type_offset];
-                                p->pc.local_rate[conv * p->n_cells_local + cell] *= p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
-                            }
-                        }
-                }
-        }
+//    for(unsigned int conv=0;conv<p->pc.len_reactions;conv++)
+//        {
+//            if(p->pc.dependency_ntype[conv] == 0)
+//                {
+//#pragma acc parallel loop present(p[:1])
+//#pragma omp parallel for
+//                    for(uint32_t cell=0;cell<p->n_cells_local; cell++)
+//                        {
+//                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv];
+//                        }
+//                }
+//            else if(p->pc.dependency_ntype[conv] == 1)
+//                {
+//#pragma acc parallel loop present(p[:1])
+//#pragma omp parallel for
+//                    for(uint32_t cell=0;cell<p->n_cells_local; cell++)
+//                        {
+//                        unsigned int type_offset = p->pc.dependency_type_offset;
+//                        unsigned int type = p->pc.dependency_type[type_offset];
+//                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
+//                        }
+//                }
+//            else
+//                {
+//                //This is the more general version of the above else, so the top one could also be deleted.
+//#pragma acc parallel loop present(p[:1])
+//#pragma omp parallel for
+//                    for(uint32_t cell=0;cell<p->n_cells_local; cell++)
+//                        {
+//                        unsigned int type_offset = p->pc.dependency_type_offset;
+//                        unsigned int type = p->pc.dependency_type[type_offset];
+//
+//                        p->pc.local_rate[conv * p->n_cells_local + cell] = p->pc.rate[conv] * p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
+//                        for(type_offset++; type_offset<p->pc.dependency_type_offset[conv] + p->pc.dependency_ntype[conv];type_offset++)
+//                            {
+//                                type = p->pc.dependency_type[type_offset];
+//                                p->pc.local_rate[conv * p->n_cells_local + cell] *= p->fields_unified[type * p->n_cells_local + cell] * p->field_scaling_type[type];
+//                            }
+//                        }
+//                }
+//        }
 
             
         
@@ -627,12 +635,15 @@ int partially_convert_polytypes(struct Phase *p)
                     soma_scalar_t probability = 0.;
                     if (p->polymers[poly].type == p->pc.input_type[i])
                         {
-                        soma_scalar_t random_number = soma_rng_soma_scalar(&(p->polymers[poly].poly_state), p);
-                        probability = p->pc.local_rate[i * p->pc.len_reactions + cell];
+                        RNG_STATE rngstatelocal = p->polymers[poly].poly_state;
+                        RNG_STATE *myrngstate = &rngstatelocal;
+                        soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
+                        //probability = p->pc.local_rate[i * p->n_cells_local + cell];
+                        probability = p->pc.rate[i];
                             
                         if(random_number < probability)
                             {
-                            p->polymers[poly].type = (unsigned int) p->pc.output_type[i];
+                            p->polymers[poly].type = p->pc.output_type[i];
                             continue; //to continue with next polymer
                             }
                         }
@@ -641,8 +652,11 @@ int partially_convert_polytypes(struct Phase *p)
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 {
                                 soma_scalar_t norm = 1-probability;
-                                soma_scalar_t random_number = soma_rng_soma_scalar(&(p->polymers[poly].poly_state), p);
-                                probability = p->pc.local_rate[i * p->pc.len_reactions + cell]/norm;
+                                RNG_STATE rngstatelocal = p->polymers[poly].poly_state;
+                                RNG_STATE *myrngstate = &rngstatelocal;
+                                soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
+                                //probability = p->pc.local_rate[i * p->n_cells_local + cell]/norm;
+                                probability = p->pc.rate[i];
                                 if(random_number < probability)
                                     {
                                     p->polymers[poly].type = p->pc.output_type[i];
