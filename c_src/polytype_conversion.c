@@ -326,6 +326,8 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     HDF5_ERROR_CHECK(status);
 
     //Density dependent rate if dependecy is activated:
+    printf("conversion_local_rate_sizes: %d, %d", p->pc.len_reactions, p->n_cells_local);
+    fflush(stdout);
     p->pc.local_rate =
         (soma_scalar_t *) malloc(p->pc.len_reactions * p->n_cells_local * sizeof(soma_scalar_t));
     if (p->pc.local_rate == NULL)
@@ -451,9 +453,9 @@ int copyin_poly_conversion(struct Phase *p)
 #pragma acc enter data copyin(p->pc.input_type[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.output_type[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.reaction_end[0:p->pc.len_reactions])
-#pragma acc enter data copyin(p->pc.rate[0:p->pc.len_reactions])
 if(p->pc.rate != NULL)
     {
+#pragma acc enter data copyin(p->pc.rate[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.dependency_ntype[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.dependency_type_offset[0:p->pc.len_reactions])
 #pragma acc enter data copyin(p->pc.dependency_type[0:p->pc.len_dependencies])
@@ -633,16 +635,20 @@ int partially_convert_polytypes(struct Phase *p)
 
                     int i = p->pc.array[cell] - 1;
                     soma_scalar_t probability = 0.;
+                    //printf("Polymer %d, array %d, type: %d, ==?  %d%d(%d), end: %d", poly, i , p->polymers[poly].type, p->pc.input_type[p->pc.array[cell] - 1], p->pc.input_type[0], i, p->pc.reaction_end[i]);
                     if (p->polymers[poly].type == p->pc.input_type[i])
                         {
                         RNG_STATE rngstatelocal = p->polymers[poly].poly_state;
                         RNG_STATE *myrngstate = &rngstatelocal;
                         soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
+                        p->polymers[poly].poly_state = rngstatelocal;
                         //probability = p->pc.local_rate[i * p->n_cells_local + cell];
                         probability = p->pc.rate[i];
                             
+                        //printf("Probability: %f, rn: %f", probability, random_number);
                         if(random_number < probability)
                             {
+                            //printf("polymer %d has been switched", poly);
                             p->polymers[poly].type = p->pc.output_type[i];
                             continue; //to continue with next polymer
                             }
@@ -655,11 +661,14 @@ int partially_convert_polytypes(struct Phase *p)
                                 RNG_STATE rngstatelocal = p->polymers[poly].poly_state;
                                 RNG_STATE *myrngstate = &rngstatelocal;
                                 soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
+                                p->polymers[poly].poly_state = rngstatelocal;
                                 //probability = p->pc.local_rate[i * p->n_cells_local + cell]/norm;
-                                probability = p->pc.rate[i];
+                                probability = p->pc.rate[i]/norm;
+                                //printf("Probability2 : %f, rn: %f\n", probability, random_number);
                                 if(random_number < probability)
                                     {
                                     p->polymers[poly].type = p->pc.output_type[i];
+                                    //printf("polymer %d has been switched", poly);
                                     break; //to continue with next polymer
                                     }
                                 else
