@@ -562,7 +562,7 @@ int fully_convert_polytypes(struct Phase *p)
                     int i = p->pc.array[cell] - 1;
                     if (p->polymers[poly].type == p->pc.input_type[i])
                         p->polymers[poly].type = p->pc.output_type[i];
-                    for (; !p->pc.reaction_end[i]; i++)
+                    for (i++; !p->pc.reaction_end[i-1]; i++)
                         {
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 p->polymers[poly].type = p->pc.output_type[i];
@@ -631,30 +631,12 @@ int partially_convert_polytypes(struct Phase *p)
 
             if (p->pc.array[cell] != 0)
                 {
-                    //Minus 1 because the index in array are shifted by 1
-
-                    int i = p->pc.array[cell] - 1;
-                    soma_scalar_t probability = 0.;
                     //printf("Polymer %d, array %d, type: %d, ==?  %d%d(%d), end: %d", poly, i , p->polymers[poly].type, p->pc.input_type[p->pc.array[cell] - 1], p->pc.input_type[0], i, p->pc.reaction_end[i]);
-                    if (p->polymers[poly].type == p->pc.input_type[i])
-                        {
-                        RNG_STATE rngstatelocal = p->polymers[poly].poly_state;
-                        RNG_STATE *myrngstate = &rngstatelocal;
-                        soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
-                        p->polymers[poly].poly_state = rngstatelocal;
-                        //probability = p->pc.local_rate[i * p->n_cells_local + cell];
-                        probability = p->pc.rate[i];
-                            
-                        //printf("Probability: %f, rn: %f", probability, random_number);
-                        if(random_number < probability)
-                            {
-                            //printf("polymer %d has been switched", poly);
-                            p->polymers[poly].type = p->pc.output_type[i];
-                            continue; //to continue with next polymer
-                            }
-                        }
-                    for (; !p->pc.reaction_end[i]; i++)
-                        {
+                    soma_scalar_t probability = 0.;
+                    int i = p->pc.array[cell] - 1;
+                    do  {
+                            if (poly ==0)
+                                printf("Polymer 0: type=%d, reaction%d  \n", p->polymers[poly].type, i);
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 {
                                 soma_scalar_t norm = 1-probability;
@@ -664,19 +646,21 @@ int partially_convert_polytypes(struct Phase *p)
                                 p->polymers[poly].poly_state = rngstatelocal;
                                 //probability = p->pc.local_rate[i * p->n_cells_local + cell]/norm;
                                 probability = p->pc.rate[i]/norm;
-                                //printf("Probability2 : %f, rn: %f\n", probability, random_number);
+                                if (poly ==0)
+                                    printf("Probability : %f, rn: %f\n", probability, random_number);
                                 if(random_number < probability)
                                     {
                                     p->polymers[poly].type = p->pc.output_type[i];
                                     //printf("polymer %d has been switched", poly);
-                                    break; //to continue with next polymer
+                                    break; //to continue with next polymer if conversion has taken place.
                                     }
                                 else
                                     {
                                     probability += (1-norm);
                                     }
                                 }
-                        }
+                            i++;
+                        } while(!p->pc.reaction_end[i-1]);
                 }
         }
 
