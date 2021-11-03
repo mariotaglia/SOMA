@@ -631,12 +631,9 @@ int partially_convert_polytypes(struct Phase *p)
 
             if (p->pc.array[cell] != 0)
                 {
-                    //printf("Polymer %d, array %d, type: %d, ==?  %d%d(%d), end: %d", poly, i , p->polymers[poly].type, p->pc.input_type[p->pc.array[cell] - 1], p->pc.input_type[0], i, p->pc.reaction_end[i]);
                     soma_scalar_t probability = 0.;
                     int i = p->pc.array[cell] - 1;
                     do  {
-                            if (poly ==0)
-                                printf("Polymer 0: type=%d, reaction%d  \n", p->polymers[poly].type, i);
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 {
                                 soma_scalar_t norm = 1-probability;
@@ -646,12 +643,9 @@ int partially_convert_polytypes(struct Phase *p)
                                 p->polymers[poly].poly_state = rngstatelocal;
                                 //probability = p->pc.local_rate[i * p->n_cells_local + cell]/norm;
                                 probability = p->pc.rate[i]/norm;
-                                if (poly ==0)
-                                    printf("Probability : %f, rn: %f\n", probability, random_number);
                                 if(random_number < probability)
                                     {
                                     p->polymers[poly].type = p->pc.output_type[i];
-                                    //printf("polymer %d has been switched", poly);
                                     break; //to continue with next polymer if conversion has taken place.
                                     }
                                 else
