@@ -102,4 +102,33 @@ int write_hdf5(const hsize_t ndims, const hsize_t * const dims, const hid_t file
 int read_hdf5(const hid_t file_id, const char *const name, const hid_t mem_type, const hid_t plist_id,
               void *const data);
 
+/*! Helper function to write fields of custom data type (polyconversion_field, electrode_field, electric_field) to the config HDF5 file.
+    \private
+    \param p Phase describing the system.
+    \param field Field of costum data type.
+    \param dir Name of directory to write to.
+    \param h5_file_type Data type of HDF5 dataset.
+    \param h5_native_type Data type of system on disk.
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
+int write_field_custom_hdf5(struct Phase *const p, const void **field, const char *dir, const hid_t h5_file_type, const hid_t h5_native_type,
+                const hid_t file_id, const hid_t plist_id)
+
+/*! Helper function to read fields of custom data type (polyconversion_field, electrode_field, electric_field) from the config HDF5 file.
+    \private
+    \param p Phase describing the system.
+    \param field Field of costum data type.
+    \param dir Name of directory to read from.
+    \param size_type Data type of field entries.
+    \param h5_type Data type to read HDF5 entries.
+    \param mpi_type Data type to convert to for MPI communication.
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
+int read_field_custom_hdf5(struct Phase *const p, const void **field, const char *dir, const size_t size_type, const hid_t h5_type,
+                const MPI_Datatype mpi_type, const hid_t file_id, const hid_t plist_id)
+
 #endif                          //SOMA_IO_H

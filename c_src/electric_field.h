@@ -23,11 +23,14 @@ typedef struct ElectricField{
 	soma_scalar_t *eps;				//!< Array that contains the dielectric constants for all particle types.
     soma_scalar_t *eps_arr;         //!< Array that saves information of calculated dielectric constant field.
     uint8_t *electrodes;            //!< Array that contains the electrode positions.
+    uint8_t *iter_per_MC;              //!< Value that determines maximum amount of iterations to solve the electric field.
+    uint8_t *iter_limit;              //!< Value that determines the upper limit of iterations to solve the electric field.
+    soma_scalar_t *thresh_iter;     //!< Value that determines the threshold to stop iterative solution of the electric field.
     soma_scalar_t *Epot;            //!< Array that contains the electric potential field.
     soma_scalar_t *Epot_tmp;        //!< Temporary array that contains the electric potential field after MC step.
     soma_scalar_t *pre_deriv;       //!< Array that contains precomputed derivatives of dielectric constant field.
     soma_scalar_t *H_el_field;      //!< Array that contains electrostatic energy contribution per cell.
-    soma_scalar_t *H_el;            //!< Sum of electrocstatic contribution.
+    soma_scalar_t H_el;             //!< Sum of electrocstatic contribution.
     
 } ElectricField;
 
@@ -49,6 +52,14 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
 */
 int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id);
 
+/*! Helper function to resolve periodic boundaries for coordinates x,y,z.
+    \private
+    \param p Phase describing the system
+    \param x x-coordinate in 3D representation of field.
+    \param y y-coordinate in 3D representation of field.
+    \param z z-coordinate in 3D representation of field.
+*/
+uint64_t cell_to_index(const struct Phase *p, const uint64_t x, const uint64_t y, const uint64_t z)
 
 /*! Helper function to compute the dielectric field from the densities of individual particle types (welling2014, eq. 83)
     \private
@@ -65,6 +76,7 @@ void pre_derivatives(struct PHASE *const p)
 /*! Helper function to iterate solution for derivatives of the electric potential field (using precomputed derivatives for dielectric field)
     \private
     \param p Phase describing the system
+    \returns maximum of dE_pot/dr
 */
 void iterate_field(struct PHASE *const p)
 
@@ -72,8 +84,38 @@ void iterate_field(struct PHASE *const p)
     \private
     \param p Phase describing the system
     \returns |Epot/dr|^2 
+
+soma_scalar_t Epot_deriv_sq(struct PHASE *const p, uint64_t x, uint64_t y, uint64_t z) */
+
+/*! Helper function to compute the partial derivative of the electric potential field with respect to x
+    \private
+    \param p Phase describing the system
+    \param x x-coordinate in 3D representation of field.
+    \param y y-coordinate in 3D representation of field.
+    \param z z-coordinate in 3D representation of field.
+    \returns dEpot/dx
 */
-soma_scalar_t Epot_deriv_sq(struct PHASE *const p, uint64_t x, uint64_t y, uint64_t z)
+soma_scalar_t dEpotx(struct PHASE *const p, const uint64_t x, const uint64_t y, const uint64_t z)
+
+/*! Helper function to compute the partial derivative of the electric potential field with respect to y
+    \private
+    \param p Phase describing the system
+    \param x x-coordinate in 3D representation of field.
+    \param y y-coordinate in 3D representation of field.
+    \param z z-coordinate in 3D representation of field.
+    \returns dEpot/dy
+*/
+soma_scalar_t dEpoty(struct PHASE *const p, const uint64_t x, const uint64_t y, const uint64_t z)
+
+/*! Helper function to compute the partial derivative of the electric potential field with respect to z
+    \private
+    \param p Phase describing the system
+    \param x x-coordinate in 3D representation of field.
+    \param y y-coordinate in 3D representation of field.
+    \param z z-coordinate in 3D representation of field.
+    \returns dEpot/dz
+*/
+soma_scalar_t dEpotz(struct PHASE *const p, const uint64_t x, const uint64_t y, const uint64_t z)
 
 /*! Main routine, calculates electrostatic energy contribution per cell and total (welling2017, eq. 4)
     \private
