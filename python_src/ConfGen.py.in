@@ -1297,13 +1297,16 @@ class Configuration(SomaXML):
                 del f["electrodes"]
             if "parameter/dielectric_constants" in f:
                 del f["parameter/dielectric_constants"]
-            if "parameter/ef_max_iter" in f:
-                del f["parameter/ef_max_iter"]
+            if "parameter/ef_iter_per_MC" in f:
+                del f["parameter/ef_iter_per_MC"]
+            if "parameter/ef_iter_limit" in f:
+                del f["parameter/ef_iter_limit"]
             if "parameter/ef_thresh_iter" in f:
                 del f["parameter/ef_thresh_iter"]
             if type(self.electric_field.eps_list) is numpy.ndarray:
                 f.create_dataset("/parameter/dielectric_constants",data=self.electric_field.eps_list)
-                f.create_dataset("/parameter/ef_max_iter",data=self.electric_field.max_iter)
+                f.create_dataset("/parameter/ef_iter_per_MC",data=self.electric_field.iter_per_MC)
+                f.create_dataset("/parameter/ef_iter_limit",data=self.electric_field.iter_limit)
                 f.create_dataset("/parameter/ef_thresh_iter",data=self.electric_field.thresh_iter)
                 f.create_dataset("/electric_field",data=self.electric_field.e_field_array)
                 f.create_dataset("/electrodes",data=self.electric_field.electrodes_array)
@@ -1885,11 +1888,12 @@ class Configuration(SomaXML):
             self.e_field_array = numpy.zeros(shape=nxyz,dtype=soma_type.get_soma_scalar_type())
             self.electrodes_array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
             self.eps_list = False
+            self.iter_per_MC = False
+            self.iter_limit = False
             self.thresh_iter = False
-            self.max_iter = False
             gridobj_list = []
             child_list = []
-            knownTags = ["point_cloud","box","cylinder","sphere","eps","thresh_iter","max_iter"]
+            knownTags = ["point_cloud","box","cylinder","sphere","eps","thresh_iter","iter_per_MC","iter_limit"]
             for element in root.iter("electric_field"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1924,6 +1928,38 @@ class Configuration(SomaXML):
                             raise RuntimeError("Dielectric constants for particle types must be float convertible, but got "+str(eps_list)) from exception
                     self.eps_list = numpy.asarray(eps_list,dtype=soma_type.get_soma_scalar_type())
 
+                iter_per_MC_default = 200
+                if not 'iter_per_MC' in child_list:
+                    print("WARNING: Amount of iterations per MC step to solve electric field not specified, will default to "+str(iter_per_MC_default)+".")
+                    self.iter_per_MC = numpy.asarray(iter_per_MC_default,dtype=numpy.uint16)
+                else:
+                    iter_per_MC_str = ""
+                    for char in element.findall('iter_per_MC'):
+                        iter_per_MC_str += char.text
+                    
+                    iter_per_MC_str = iter_per_MC_str.strip()
+                    try:
+                        int(iter_per_MC_str)
+                    except ValueError as exception:
+                        raise RuntimeError("Amount of iterations per MC step to solve electric field must be a single integer convertible, but got \""+str(iter_per_MC_str)+"\".") from exception
+                    self.iter_per_MC = numpy.asarray(iter_per_MC_str,dtype=numpy.uint16)
+
+                iter_limit_default = 1000
+                if not 'iter_limit' in child_list:
+                    print("WARNING: Upper limit of iterations to solve electric field not specified, will default to "+str(iter_limit_default)+".")
+                    self.iter_limit = numpy.asarray(iter_limit_default,dtype=numpy.uint16)
+                else:
+                    iter_limit_str = ""
+                    for char in element.findall('iter_limit'):
+                        iter_limit_str += char.text
+                    
+                    iter_limit_str = iter_limit_str.strip()
+                    try:
+                        int(iter_limit_str)
+                    except ValueError as exception:
+                        raise RuntimeError("Upper limit of iterations to solve electric field must be a single integer convertible, but got \""+str(iter_limit_str)+"\".") from exception
+                    self.iter_limit = numpy.asarray(iter_limit_str,dtype=numpy.uint16)
+
                 thresh_default = 0.01
                 if not 'thresh_iter' in child_list:
                     print("WARNING: Iteration threshold to solve electric field not specified, will default to "+str(thresh_default)+".")
@@ -1932,29 +1968,21 @@ class Configuration(SomaXML):
                     thresh_str = ""
                     for char in element.findall('thresh_iter'):
                         thresh_str += char.text
-                    else:
-                        thresh_str = thresh_str.strip()
-                        try:
-                            float(thresh_str)
-                        except ValueError:
-                            raise RuntimeError("Iteration threshold to solve electric field must be float convertible, but got \""+str(thresh_str)+"\".")
-                        self.thresh_iter = numpy.asarray(thresh_str,dtype=soma_type.get_soma_scalar_type())
+                    
+                    thresh_str = thresh_str.strip()
+                    try:
+                        float(thresh_str)
+                    except ValueError as exception:
+                        raise RuntimeError("Iteration threshold to solve electric field must be float convertible, but got \""+str(thresh_str)+"\".") from exception
+                    self.thresh_iter = numpy.asarray(thresh_str,dtype=soma_type.get_soma_scalar_type())
 
-                max_iter_default = 200
-                if not 'max_iter' in child_list:
-                    print("WARNING: Maximal amount of iterations to solve electric field not specified, will default to "+str(max_iter_default)+".")
-                    self.max_iter = numpy.asarray(max_iter_default,dtype=numpy.uint8)
-                else:
-                    max_iter_str = ""
-                    for char in element.findall('max_iter'):
-                        max_iter_str += char.text
-                    else:
-                        max_iter_str = max_iter_str.strip()
-                        try:
-                            int(max_iter_str)
-                        except ValueError:
-                            raise RuntimeError("Maximal amount of iterations to solve electric field must be a single integer convertible, but got \""+str(max_iter_str)+"\".")
-                        self.max_iter = numpy.asarray(max_iter_str,dtype=numpy.uint8)
+            if self.thresh_iter <= 0:
+                raise RuntimeError("Iteration threshold to solve electric field must be >0.")
+
+            if self.iter_per_MC > self.iter_limit:
+                raise RuntimeError("The amount of iterations per MC step to solve the electric field (\"iter_per_MC\") must not exceed the upper limit of iterations (\"iter_limit\").")
+
+            # check thresh > 0 else runtimeerror
 
             if len(gridobj_list) == 1 and len(list(gridobj_list[0].get_keys())) == 1: # explain point cloud
                 raise RuntimeError("A minimum of 2 electrodes must be specified, but only found 1.")
