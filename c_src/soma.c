@@ -180,7 +180,15 @@ int main(int argc, char *argv[])
                 convert_polytypes(p);
 
             if (p->ef.Epot != NULL)
-                calc_electric_field_contr(p);
+            {   
+                int status = calc_electric_field_contr(p);
+                if (status != 0)
+                {
+                    fprintf(stderr, "ERROR %d in electric field convergence on rank %d.\n", status,
+                            p->info_MPI.world_rank);
+                    exit(status);
+                }
+            }
 
 #if ( ENABLE_MPI == 1 )
             if (p->args.load_balance_arg > 0
