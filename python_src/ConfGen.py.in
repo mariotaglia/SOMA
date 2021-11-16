@@ -1982,8 +1982,6 @@ class Configuration(SomaXML):
             if self.iter_per_MC > self.iter_limit:
                 raise RuntimeError("The amount of iterations per MC step to solve the electric field (\"iter_per_MC\") must not exceed the upper limit of iterations (\"iter_limit\").")
 
-            # check thresh > 0 else runtimeerror
-
             if len(gridobj_list) == 1 and len(list(gridobj_list[0].get_keys())) == 1: # explain point cloud
                 raise RuntimeError("A minimum of 2 electrodes must be specified, but only found 1.")
             else:

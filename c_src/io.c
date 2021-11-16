@@ -138,7 +138,7 @@ int write_area51_hdf5(const struct Phase *const p, const hid_t file_id, const hi
     \param name Name of the field.
     \return Errorcode
 */
-int write_field_hdf5(struct Phase *const p, const hid_t file_id,
+int write_field_hdf5(const struct Phase *const p, const hid_t file_id,
                      const hid_t plist_id, const soma_scalar_t * const field, const char *name)
 {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -208,7 +208,7 @@ int write_field_hdf5(struct Phase *const p, const hid_t file_id,
     \param plist_id Access properties to use.
     \return Errorcode
 */
-int write_field_custom_hdf5(struct Phase *const p, const void **field, const char *dir, const hid_t h5_file_type, const hid_t h5_native_type,
+int write_field_custom_hdf5(const struct Phase *const p, void **field, const char *dir, const hid_t h5_file_type, const hid_t h5_native_type,
                 const hid_t file_id, const hid_t plist_id)
 {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -230,6 +230,7 @@ int write_field_custom_hdf5(struct Phase *const p, const void **field, const cha
     MPI_Barrier(p->info_MPI.SOMA_comm_world);
 #endif                          //ENABLE_MPI
 
+    int status;
     if ((status =
          H5Dwrite(dataset, h5_native_type, memspace, dataspace, plist_id, *field + ghost_buffer_size)) < 0)
         {
@@ -259,13 +260,9 @@ int write_field_custom_hdf5(struct Phase *const p, const void **field, const cha
             return status;
         }
 
-    if ((status = H5Gclose(group)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
+    return 0;
 }
+
 /*! Helper function to write the polytypes to disk.
 
 \private
@@ -938,14 +935,14 @@ int read_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_
     \param p Phase describing the system.
     \param field Field of costum data type.
     \param dir Name of directory to read from.
-    \param size_type Data type of field entries.
+    \param size_type Size of data type of field entries.
     \param h5_type Data type to read HDF5 entries.
     \param mpi_type Data type to convert to for MPI communication.
     \param file_id File identifier of open HDF5 file.
     \param plist_id Access properties to use.
     \return Errorcode
 */
-int read_field_custom_hdf5(struct Phase *const p, const void **field, const char *dir, const size_t size_type, const hid_t h5_type,
+int read_field_custom_hdf5(struct Phase *const p, void **field, const char *dir, const size_t size_type, const hid_t h5_type,
                 const MPI_Datatype mpi_type, const hid_t file_id, const hid_t plist_id)
 {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -953,10 +950,9 @@ int read_field_custom_hdf5(struct Phase *const p, const void **field, const char
 
     const hsize_t hsize_memspace[3] = { p->nx / p->args.N_domains_arg, p->ny, p->nz };
     hid_t memspace = H5Screate_simple(3, hsize_memspace, NULL);
-    hid_t dataset = H5Dopen2(file_id, *dir, H5P_DEFAULT);
-    *field =
-        (void *)malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
-                           sizeof(size_type));
+    hid_t dataset = H5Dopen2(file_id, dir, H5P_DEFAULT);
+    // *field = (void *)malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz * sizeof(size_type));
+    *field = (void *)malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz * size_type);
     if (*field == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -986,7 +982,19 @@ int read_field_custom_hdf5(struct Phase *const p, const void **field, const char
     MPI_Request req[4];
     MPI_Status stat[4];
 
-    size_type *ptr = *field + ghost_buffer_size;                                                                  
+    // switch(dt)
+    // {
+    //     case SOMA_SCALAR_T:
+    //         (soma_scalar_t*) *ptr;
+    //     case UINT8_T:
+    //         (uint8_t*) *ptr;
+    //     case UINT32_T:
+    //         (uint32_t*) ptr;
+    //     case UINT64_T:
+    //         (uint64_t*) ptr;
+    // }
+    // soma_scalar_t *ptr = *field + ghost_buffer_size;
+    void *ptr = *field + ghost_buffer_size;                                                              
     MPI_Isend(ptr, ghost_buffer_size, mpi_type, left_neigh_rank, 0, p->info_MPI.SOMA_comm_sim, req + 0);
     ptr = *field + ((p->nx / p->args.N_domains_arg) * p->ny * p->nz);
     MPI_Isend(ptr, ghost_buffer_size, mpi_type, right_neigh_rank, 1, p->info_MPI.SOMA_comm_sim, req + 1);
@@ -1020,6 +1028,8 @@ int read_field_custom_hdf5(struct Phase *const p, const void **field, const char
                     p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
+
+    return 0;
 }
 
 /*! Helper function to read the beads information from the input files of version 1.

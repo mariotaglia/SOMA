@@ -32,6 +32,7 @@
 #include "mesh.h"
 #include "polytype_conversion.h"
 #include "mobility.h"
+#include "electric_field.h"
 #include "self_documentation.h"
 #include "poly_heavy.h"
 
@@ -496,6 +497,7 @@ int free_phase(struct Phase *const p)
 
     free_poly_conversion(p);
     free_mobility(p);
+    free_electric_field(p);
 
     free_self_documentation(&(p->sd));
     switch (p->args.pseudo_random_number_generator_arg)
