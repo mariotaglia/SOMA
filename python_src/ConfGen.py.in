@@ -1976,11 +1976,11 @@ class Configuration(SomaXML):
                         raise RuntimeError("Iteration threshold to solve electric field must be float convertible, but got \""+str(thresh_str)+"\".") from exception
                     self.thresh_iter = numpy.asarray(thresh_str,dtype=soma_type.get_soma_scalar_type())
 
-            if self.thresh_iter <= 0:
-                raise RuntimeError("Iteration threshold to solve electric field must be >0.")
+                if self.thresh_iter <= 0:
+                    raise RuntimeError("Iteration threshold to solve electric field must be >0.")
 
-            if self.iter_per_MC > self.iter_limit:
-                raise RuntimeError("The amount of iterations per MC step to solve the electric field (\"iter_per_MC\") must not exceed the upper limit of iterations (\"iter_limit\").")
+                if self.iter_per_MC > self.iter_limit:
+                    raise RuntimeError("The amount of iterations per MC step to solve the electric field (\"iter_per_MC\") must not exceed the upper limit of iterations (\"iter_limit\").")
 
             if len(gridobj_list) == 1 and len(list(gridobj_list[0].get_keys())) == 1: # explain point cloud
                 raise RuntimeError("A minimum of 2 electrodes must be specified, but only found 1.")
@@ -1997,15 +1997,15 @@ class Configuration(SomaXML):
                             self.e_field_array[xa][ya][za] += obj.get( (x,y,z) )[0]
                             self.electrodes_array[xa][ya][za] += 1
             
-            if numpy.max(self.electrodes_array) >= 2:
-                print("WARNING: Electrodes overlap in current configuration.")
+                if numpy.max(self.electrodes_array) >= 2:
+                    print("WARNING: Electrodes overlap in current configuration.")
 
-            self.electrodes_array = numpy.clip(self.electrodes_array,0,1)
+                self.electrodes_array = numpy.clip(self.electrodes_array,0,1)
 
-            if type(area51) is not numpy.ndarray:
-                print("WARNING: No Area51 specified in xml. Particles may be found at electrode positions.")
-            elif numpy.sum(area51) != numpy.sum( numpy.clip((area51+self.electrodes_array),0,1)):
-                print("WARNING: Area51 does not cover position of all electrodes. Particles may be found at electrode positions.")
+                if type(area51) is not numpy.ndarray:
+                    print("WARNING: No Area51 specified in xml. Particles may be found at electrode positions.")
+                elif numpy.sum(area51) != numpy.sum( numpy.clip((area51+self.electrodes_array),0,1)):
+                    print("WARNING: Area51 does not cover position of all electrodes. Particles may be found at electrode positions.")
 
 
 #Late import of the module to compensate circular imports.

@@ -308,7 +308,10 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
 
 int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
-    //Write dielectric constants data
+    //Quick exit for no poly conversions
+    if (p->ef.iter_per_MC == 0)
+        return 0;
+        //Write dielectric constants data
     const hsize_t one = 1;
     hsize_t n_types_size = p->n_types;
     hid_t status;
