@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
 
     const unsigned int N_steps = p->args.timesteps_arg;
     /* read in configuration with routine from io */
+
     const int read = read_config_hdf5(p, p->args.coord_file_arg);
     MPI_ERROR_CHECK(read, "Cannot read coord file.");
     /* initialize phase */
@@ -166,6 +167,16 @@ int main(int argc, char *argv[])
 
     for (unsigned int i = 0; i < N_steps; i++)
         {
+            if (p->ef.Epot != NULL)
+            {   
+                int status = calc_electric_field_contr(p);
+                if (status != 0)
+                {
+                    fprintf(stderr, "ERROR %d in electric field convergence on rank %d.\n", status,
+                            p->info_MPI.world_rank);
+                    exit(status);
+                }
+            }
             analytics(p);
             const int mc_error = monte_carlo_propagation(p, 1);
             if (mc_error != 0)
@@ -179,16 +190,6 @@ int main(int argc, char *argv[])
             if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1)
                 convert_polytypes(p);
 
-            if (p->ef.Epot != NULL)
-            {   
-                int status = calc_electric_field_contr(p);
-                if (status != 0)
-                {
-                    fprintf(stderr, "ERROR %d in electric field convergence on rank %d.\n", status,
-                            p->info_MPI.world_rank);
-                    exit(status);
-                }
-            }
 
 #if ( ENABLE_MPI == 1 )
             if (p->args.load_balance_arg > 0

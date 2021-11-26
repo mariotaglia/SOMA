@@ -51,7 +51,7 @@ int test_particle_types(const struct Phase *const p)
                 }
         }
     if (p->info_MPI.world_rank == 0)
-        printf("INFO: At t= %d particle_type test test passed\n", p->time);
+        printf("INFO: At t= %d particle_type test passed\n", p->time);
     return 0;
 }
 

@@ -27,9 +27,9 @@ typedef struct ElectricField{
 	soma_scalar_t *eps;				//!< Array that contains the dielectric constants for all particle types.
     soma_scalar_t *eps_arr;         //!< Array that saves information of calculated dielectric constant field.
     uint8_t *electrodes;            //!< Array that contains the electrode positions.
-    uint8_t *iter_per_MC;           //!< Value that determines maximum amount of iterations to solve the electric field.
-    uint8_t *iter_limit;            //!< Value that determines the upper limit of iterations to solve the electric field.
-    soma_scalar_t *thresh_iter;     //!< Value that determines the threshold to stop iterative solution of the electric field.
+    uint64_t iter_per_MC;           //!< Value that determines maximum amount of iterations to solve the electric field.
+    uint64_t iter_limit;            //!< Value that determines the upper limit of iterations to solve the electric field.
+    soma_scalar_t thresh_iter;      //!< Value that determines the threshold to stop iterative solution of the electric field.
     soma_scalar_t *Epot;            //!< Array that contains the electric potential field.
     soma_scalar_t *Epot_tmp;        //!< Temporary array that contains the electric potential field after MC step.
     soma_scalar_t *pre_deriv;       //!< Array that contains precomputed derivatives of dielectric constant field.
@@ -99,7 +99,7 @@ soma_scalar_t Epot_deriv_sq(struct Phase *const p, uint64_t x, uint64_t y, uint6
     \param z z-coordinate in 3D representation of field.
     \returns dEpot/dx
 */
-soma_scalar_t dEpotx(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z);
+soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the partial derivative of the electric potential field with respect to y
     \private
@@ -109,7 +109,7 @@ soma_scalar_t dEpotx(struct Phase *const p, const uint64_t x, const uint64_t y, 
     \param z z-coordinate in 3D representation of field.
     \returns dEpot/dy
 */
-soma_scalar_t dEpoty(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z);
+soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the partial derivative of the electric potential field with respect to z
     \private
@@ -119,13 +119,18 @@ soma_scalar_t dEpoty(struct Phase *const p, const uint64_t x, const uint64_t y, 
     \param z z-coordinate in 3D representation of field.
     \returns dEpot/dz
 */
-soma_scalar_t dEpotz(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z);
+soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Main routine, calculates electrostatic energy contribution per cell and total (welling2017, eq. 4)
     \private
     \param p Phase describing the system
     \returns Errorcode
 */
+
+soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+
 int calc_electric_field_contr(struct Phase *const p);
 
 /*! Helper function to free the CPU memory resources of the pc struct. The function gets automatically called by free_phase().
@@ -134,5 +139,12 @@ int calc_electric_field_contr(struct Phase *const p);
   \return Errorcode
   */
 int free_electric_field(struct Phase *const p);
+
+/*! Helper function to track various parameter for debugging purposes.
+  \private
+  \param p Initialized Phase that is in the process of deallocating its resources.
+  \param k Amount of iterations to solve electrical potential field.
+  */
+void tests(struct Phase *const p, uint64_t k);
 
 #endif                          //SOMA_ELECTRIC_FIELD_H

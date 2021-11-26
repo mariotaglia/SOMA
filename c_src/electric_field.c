@@ -33,9 +33,9 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.eps = NULL;
     p->ef.eps_arr = NULL;
     p->ef.electrodes = NULL;
-    p->ef.iter_per_MC = NULL;
-    p->ef.iter_limit = NULL;
-    p->ef.thresh_iter = NULL;
+    p->ef.iter_per_MC = 0;
+    p->ef.iter_limit = 0;
+    p->ef.thresh_iter = 0.0;
     p->ef.Epot = NULL;
     p->ef.Epot_tmp = NULL;
     p->ef.pre_deriv = NULL;
@@ -77,8 +77,8 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
 
     //Allocate partial derivatives array
     p->ef.pre_deriv =
-        (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz * 6 *
-                           sizeof(soma_scalar_t));
+        (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
+                           6 * sizeof(soma_scalar_t));
      if (p->ef.pre_deriv == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -102,39 +102,38 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
             return -1;
         }
-    status = read_hdf5(file_id, "/parameter/dielectric_constants", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.eps));
+    status = read_hdf5(file_id, "/parameter/dielectric_constants", H5T_SOMA_NATIVE_SCALAR, plist_id, p->ef.eps);
     HDF5_ERROR_CHECK2(status, "/parameter/dielectric_constants");
 
     //Read p->ef.iter_per_MC
-    p->ef.iter_per_MC = (uint8_t * const)malloc(sizeof(uint8_t));
-    if (p->ef.iter_per_MC == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    // p->ef.iter_per_MC = (uint8_t * const)malloc(sizeof(uint8_t));
+    // if (p->ef.iter_per_MC == NULL)
+    //     {
+    //         fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+    //         return -1;
+    //     }
     status = read_hdf5(file_id, "/parameter/ef_iter_per_MC", H5T_NATIVE_UINT, plist_id, &(p->ef.iter_per_MC));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_per_MC");
 
     //Read p->ef.iter_limit
-    p->ef.iter_limit = (uint8_t * const)malloc(sizeof(uint8_t));
-    if (p->ef.iter_limit == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    // p->ef.iter_limit = (uint8_t * const)malloc(sizeof(uint8_t));
+    // if (p->ef.iter_limit == NULL)
+    //     {
+    //         fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+    //         return -1;
+    //     }
     status = read_hdf5(file_id, "/parameter/ef_iter_limit", H5T_NATIVE_UINT, plist_id, &(p->ef.iter_limit));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_limit");
 
     //Read p->ef.thresh_iter
-    p->ef.thresh_iter = (soma_scalar_t * const)malloc(sizeof(soma_scalar_t));
-    if (p->ef.thresh_iter == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    // p->ef.thresh_iter = (soma_scalar_t * const)malloc(sizeof(soma_scalar_t));
+    // if (p->ef.thresh_iter == NULL)
+    //     {
+    //         fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+    //         return -1;
+    //     }
     status = read_hdf5(file_id, "/parameter/ef_thresh_iter", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.thresh_iter));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_thresh_iter");
-
 
     //Read electrode array
     status = read_field_custom_hdf5(p, (void **) &(p->ef.electrodes), "/electrodes", sizeof(uint8_t), H5T_STD_U8LE, MPI_UINT8_T, file_id, plist_id);
@@ -217,7 +216,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
-        } */                                                                                                               
+        }*/                                                                                                              
 
     //Read electric potential field
     status = read_field_custom_hdf5(p, (void **) &(p->ef.Epot), "/electric_field", sizeof(soma_scalar_t), H5T_SOMA_NATIVE_SCALAR,
@@ -300,7 +299,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;  
-        } */                                                                                                                          //
+        } */
     return 0;   
 }
 
@@ -463,7 +462,7 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
     return 0;
 }
 
-uint64_t cell_to_index(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z)         // Error if domain decomposition active
+uint64_t cell_to_index(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z)         // Missing: Error if domain decomposition active
 {
     int64_t xt=x; //changed from uint64_t to int64_t because otherwise xt < 0 always false
     int64_t yt=y;
@@ -516,7 +515,7 @@ void pre_derivatives(struct Phase *const p)
             for (z=0; z < p->nz; z++)
             {
                 i = cell_to_index(p,x,y,z);
-                pos6  =  x * p->ny * p->nz + y * p->nz + z * 6;
+                pos6 = (x * p->ny * p->nz + y * p->nz + z) * 6;
                 cr = 1.0/(24.0 * p->ef.eps_arr[i]);
 
                 epsx = cr * ( p->ef.eps_arr[cell_to_index(p,x+1,y,z)] - p->ef.eps_arr[cell_to_index(p,x-1,y,z)] );
@@ -535,7 +534,7 @@ void pre_derivatives(struct Phase *const p)
 soma_scalar_t iterate_field(struct Phase *const p)
 {
     uint64_t x,y,z,i,pos6;
-    soma_scalar_t dEpot = 0.0;
+    soma_scalar_t dEpot_abs = 0.0;
     soma_scalar_t max = 0.0;
 
     for (x=0; x < p->nx; x++)
@@ -550,13 +549,32 @@ soma_scalar_t iterate_field(struct Phase *const p)
                 }
                 else
                 {   
-                    pos6  =  x * p->ny * p->nz + y * p->nz + z * 6;
-                    p->ef.Epot_tmp[i] = p->ef.pre_deriv[pos6+0] * p->ef.Epot[cell_to_index(p,x+1,y,z)] + p->ef.pre_deriv[pos6+1] * p->ef.Epot[cell_to_index(p,x-1,y,z)] +
-                     p->ef.pre_deriv[pos6+2] * p->ef.Epot[cell_to_index(p,x,y+1,z)]  + p->ef.pre_deriv[pos6+3] * p->ef.Epot[cell_to_index(p,x,y-1,z)] +
-                     p->ef.pre_deriv[pos6+4] * p->ef.Epot[cell_to_index(p,x,y,z+1)]  + p->ef.pre_deriv[pos6+5] * p->ef.Epot[cell_to_index(p,x,y,z-1)];
-                    
-                    dEpot = (dEpotx(p,x,y,z) + dEpoty(p,x,y,z) + dEpotz(p,x,y,z));
-                    if (max <  dEpot) max = dEpot;
+                    pos6 = (x * p->ny * p->nz + y * p->nz + z) * 6;
+                    p->ef.Epot_tmp[i] = 
+                    p->ef.pre_deriv[pos6+0] * p->ef.Epot[cell_to_index(p,x+1,y,z)] + p->ef.pre_deriv[pos6+1] * p->ef.Epot[cell_to_index(p,x-1,y,z)] +
+                    p->ef.pre_deriv[pos6+2] * p->ef.Epot[cell_to_index(p,x,y+1,z)] + p->ef.pre_deriv[pos6+3] * p->ef.Epot[cell_to_index(p,x,y-1,z)] +
+                    p->ef.pre_deriv[pos6+4] * p->ef.Epot[cell_to_index(p,x,y,z+1)] + p->ef.pre_deriv[pos6+5] * p->ef.Epot[cell_to_index(p,x,y,z-1)];
+
+                    // p->ef.Epot_tmp[i] = (1.0 / 6.0) * (
+                    //                      p->ef.Epot[cell_to_index(p,x+1,y,z)] + p->ef.Epot[cell_to_index(p,x-1,y,z)] + 
+                    //                      p->ef.Epot[cell_to_index(p,x,y+1,z)] + p->ef.Epot[cell_to_index(p,x,y-1,z)] +
+                    //                      p->ef.Epot[cell_to_index(p,x,y,z+1)] + p->ef.Epot[cell_to_index(p,x,y,z-1)]) +
+                    //                     (1.0 / (24.0 * p->ef.eps_arr[i])) * (
+                    //                      (p->ef.eps_arr[cell_to_index(p,x+1,y,z)] - p->ef.eps_arr[cell_to_index(p,x-1,y,z)]) *                        
+                    //                      (p->ef.Epot[cell_to_index(p,x+1,y,z)] - p->ef.Epot[cell_to_index(p,x-1,y,z)]) +
+                    //                      (p->ef.eps_arr[cell_to_index(p,x,y+1,z)] - p->ef.eps_arr[cell_to_index(p,x,y-1,z)]) *                        
+                    //                      (p->ef.Epot[cell_to_index(p,x,y+1,z)] - p->ef.Epot[cell_to_index(p,x,y-1,z)]) +
+                    //                      (p->ef.eps_arr[cell_to_index(p,x,y,z+1)] - p->ef.eps_arr[cell_to_index(p,x,y,z-1)]) *                        
+                    //                      (p->ef.Epot[cell_to_index(p,x,y,z+1)] - p->ef.Epot[cell_to_index(p,x,y,z-1)]) );
+                    dEpot_abs = 0.0;
+
+                    dEpot_abs = (d2Epotx(p,p->ef.Epot_tmp,x,y,z) + d2Epoty(p,p->ef.Epot_tmp,x,y,z) +
+                                 d2Epotz(p,p->ef.Epot_tmp,x,y,z)) * p->ef.eps_arr[i];
+                    //scalar product
+                    dEpot_abs += (dEpotx(p,p->ef.Epot_tmp,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) +
+                                  dEpoty(p,p->ef.Epot_tmp,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) +
+                                  dEpotz(p,p->ef.Epot_tmp,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z)) ;
+                    if (max <  dEpot_abs) max = dEpot_abs;
                 }
             }
 
@@ -575,37 +593,83 @@ soma_scalar_t Epot_deriv_sq(struct PHASE *const p, const uint64_t x, const uint6
     return(dEpotx * dEpotx + dEpoty * dEpoty + dEpotz * dEpotz);
 }*/
 
-soma_scalar_t dEpotx(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z)
+soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
 {
-    return (p->ef.Epot[(x+1) * p->ny * p->nz + y * p->nz + z] - p->ef.Epot[(x-1) * p->ny * p->nz + y * p->nz + z]) * 0.5 * p->nx / p->Lx;
+    //Resolve periodic boundaries
+    int64_t xp = x + 1;
+    int64_t xm = x - 1;
+    if (xp >= p->nx) xp -= p->nx;
+    if (xm < 0) xm += p->nx;
+    return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * 0.5 * p->nx / p->Lx;
 }
 
-soma_scalar_t dEpoty(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z)
+soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
 {
-    return (p->ef.Epot[x * p->ny * p->nz + (y+1) * p->nz + z] - p->ef.Epot[x * p->ny * p->nz + (y-1) * p->nz + z]) * 0.5 * p->ny / p->Ly;
+    int64_t yp = y + 1;
+    int64_t ym = y - 1;
+    if (yp >= p->ny) yp -= p->ny;
+    if (ym < 0) ym += p->ny;
+    return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * 0.5 * p->ny / p->Ly;
 }
 
-soma_scalar_t dEpotz(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z)
+soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
 {
-    return (p->ef.Epot[x * p->ny * p->nz + y * p->nz + (z+1)] - p->ef.Epot[x * p->ny * p->nz + y * p->nz + (z-1)]) * 0.5 * p->nz / p->Lz;
+    int64_t zp = z + 1;
+    int64_t zm = z - 1;
+    if (zp >= p->nz) zp -= p->nz;
+    if (zm < 0) zm += p->nz;
+    return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * 0.5 * p->nz / p->Lz;
+}
+
+soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
+{
+    //Resolve periodic boundaries
+    int64_t xp = x + 1;
+    int64_t xm = x - 1;
+    if (xp >= p->nx) xp -= p->nx;
+    if (xm < 0) xm += p->nx;
+    return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - (2 * e_field[(x) * p->ny * p->nz + y * p->nz + z]) + 
+            e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * (p->nx / p->Lx) * (p->nx / p->Lx);
+}
+
+soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
+{
+    int64_t yp = y + 1;
+    int64_t ym = y - 1;
+    if (yp >= p->ny) yp -= p->ny;
+    if (ym < 0) ym += p->ny;
+    return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - (2 * e_field[x * p->ny * p->nz + (y) * p->nz + z]) +
+            e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * (p->ny / p->Ly) * (p->ny / p->Ly);
+}
+
+soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
+{
+    int64_t zp = z + 1;
+    int64_t zm = z - 1;
+    if (zp >= p->nz) zp -= p->nz;
+    if (zm < 0) zm += p->nz;
+    return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - (2 * e_field[x * p->ny * p->nz + y * p->nz + (z)]) +
+            e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * (p->nz / p->Lz) * (p->nz / p->Lz);
 }
 
 int calc_electric_field_contr(struct Phase *const p)
 {
     uint64_t x,y,z,i;
-    soma_scalar_t t = *p->ef.thresh_iter;
-    uint8_t k = 0;
+    soma_scalar_t t = p->ef.thresh_iter;
+    soma_scalar_t dEpot_sq;
+    uint64_t k = 0;
     calc_dielectric_field(p);
     pre_derivatives(p);
-
-    //convergence criterion to ensure acceptable values for p->ef.Epot
-    while (t >= *p->ef.thresh_iter && k <= *p->ef.iter_limit)         
+    
+    //Convergence criterion to ensure acceptable values for p->ef.Epot
+    while (t >= p->ef.thresh_iter && k < p->ef.iter_limit)
     {                                                   
         t = iterate_field(p);
         k +=1;
+        // printf("%.5f\n",t);
     }
 
-    if (k > *p->ef.iter_per_MC) return -1; //Check if input for max iterations is exceeded
+    if (k > p->ef.iter_per_MC) return -1; //Check if input for max iterations is exceeded
 
     p->ef.H_el = 0;
 
@@ -614,12 +678,19 @@ int calc_electric_field_contr(struct Phase *const p)
             for (z=0; z < p->nz; z++)
             {
                 i = cell_to_index(p,x,y,z);
-                //p->ef.H_el_field[i] = 0.5 * Epot_deriv_sq(p,x,y,z) * p->ef.eps_arr[i];
-                p->ef.H_el_field[i] = 0.5 * (dEpotx(p,x,y,z) * dEpotx(p,x,y,z) + dEpoty(p,x,y,z) * dEpoty(p,x,y,z) + 
-                                        dEpotz(p,x,y,z) * dEpotz(p,x,y,z)) * p->ef.eps_arr[i];
+                // p->ef.H_el_field[i] = 0.5 * Epot_deriv_sq(p,x,y,z) * p->ef.eps_arr[i];
+                dEpot_sq = dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.Epot,x,y,z) + dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.Epot,x,y,z) +
+                            dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.Epot,x,y,z);
+                p->ef.H_el_field[i] = 0.5 * dEpot_sq * p->ef.eps_arr[i];
                 p->ef.H_el += p->ef.H_el_field[i]; //log in ana
-            } 
+                // printf("%.3f\n",p->ef.H_el_field[i]);
+            }
 
+    // tests(p,k);
+    if (p->ef.H_el != p->ef.H_el)
+    {
+        return -1;
+    }
     return 0;
 }
 
@@ -630,9 +701,6 @@ int free_electric_field(struct Phase *const p)
     free(p->ef.pre_deriv);
     free(p->ef.H_el_field);
     free(p->ef.eps);
-    free(p->ef.iter_per_MC);
-    free(p->ef.iter_limit);
-    free(p->ef.thresh_iter);
     free(p->ef.electrodes);
     free(p->ef.Epot);
 
@@ -644,3 +712,31 @@ int free_electric_field(struct Phase *const p)
 //self_update?
 
 
+void tests(struct Phase *const p,uint64_t k)
+{
+    uint64_t sum_electrodes = 0;
+    soma_scalar_t sum_Epot = 0.0;
+    soma_scalar_t sum_eps_arr = 0.0;
+    soma_scalar_t sum_pre_deriv = 0.0;
+    for (uint64_t o = 0; o < p->n_cells; o++)
+    {
+        sum_electrodes += p->ef.electrodes[o];
+        sum_Epot += p->ef.Epot[o];
+        sum_eps_arr += p->ef.eps_arr[o];
+        for (uint8_t l = 0; l < 6; l++)
+            sum_pre_deriv += p->ef.pre_deriv[o+l];
+    }
+
+    printf("=====\n");
+    printf("Iterations per MC: %ld\n",p->ef.iter_per_MC);
+    printf("Iteration limit: %ld\n",p->ef.iter_limit);
+    printf("Iteration threshold: %.5f\n",p->ef.thresh_iter);
+    printf("Iterations for current step: %ld\n", k);
+    printf("Sum electrode array: %ld\n",sum_electrodes);
+    printf("Sum Epot array: %.3f\n",sum_Epot);
+    printf("Sum epsilon array: %.3f\n",sum_eps_arr);
+    printf("Sum pre deriv array: %.3f\n",sum_pre_deriv);
+    printf("Iterations to solve EF: %ld\n", k);
+    printf("Sum el contr: %.3f\n",p->ef.H_el);
+    printf("=====\n");
+}
