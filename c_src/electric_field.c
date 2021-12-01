@@ -477,7 +477,7 @@ int calc_electric_field_contr(struct Phase *const p)
                 // printf("%.3f\n",p->ef.H_el_field[i]);
             }
 
-    tests(p,k);
+    // tests(p,k);
     if (p->ef.H_el != p->ef.H_el)
     {
         return -1;
@@ -513,16 +513,16 @@ void tests(struct Phase *const p,uint64_t k)
             sum_pre_deriv += p->ef.pre_deriv[o+l];
     }
 
-    // printf("=====\n");
-    // printf("Iterations per MC: %ld\n",p->ef.iter_per_MC);
-    // printf("Iteration limit: %ld\n",p->ef.iter_limit);
-    // printf("Iteration threshold: %.5f\n",p->ef.thresh_iter);
-    // printf("Iterations for current step: %ld\n", k);
-    // printf("Sum electrode array: %ld\n",sum_electrodes);
-    // printf("Sum Epot array: %.3f\n",sum_Epot);
-    // printf("Sum epsilon array: %.3f\n",sum_eps_arr);
-    // printf("Sum pre deriv array: %.3f\n",sum_pre_deriv);
-    // printf("Iterations to solve EF: %ld\n", k);
+    printf("=====\n");
+    printf("Iterations per MC: %ld\n",p->ef.iter_per_MC);
+    printf("Iteration limit: %ld\n",p->ef.iter_limit);
+    printf("Iteration threshold: %.5f\n",p->ef.thresh_iter);
+    printf("Iterations for current step: %ld\n", k);
+    printf("Sum electrode array: %ld\n",sum_electrodes);
+    printf("Sum Epot array: %.3f\n",sum_Epot);
+    printf("Sum epsilon array: %.3f\n",sum_eps_arr);
+    printf("Sum pre deriv array: %.3f\n",sum_pre_deriv);
+    printf("Iterations to solve EF: %ld\n", k);
     printf("Sum el contr: %.3f\n",p->ef.H_el);
-    // printf("=====\n");
+    printf("=====\n");
 }
