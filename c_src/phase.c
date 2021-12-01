@@ -352,6 +352,7 @@ int copyin_phase(struct Phase *const p)
 
     copyin_poly_conversion(p);
     copyin_mobility(p);
+    copyin_electric_field(p);
     switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
@@ -430,6 +431,7 @@ int copyout_phase(struct Phase *const p)
 
     copyout_poly_conversion(p);
     copyout_mobility(p);
+    copyout_electric_field(p);
     switch (p->args.pseudo_random_number_generator_arg)
         {
         case pseudo_random_number_generator__NULL:
@@ -566,6 +568,7 @@ int update_self_phase(Phase * const p, int rng_update_flag)
 
     update_self_poly_conversion(p);
     update_self_mobility(p);
+    update_self_electric_field(p);
     if (rng_update_flag)
         {
             switch (p->args.pseudo_random_number_generator_arg)

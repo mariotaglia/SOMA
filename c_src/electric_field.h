@@ -56,6 +56,27 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
 */
 int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id);
 
+/*! Helper function to copy the ef data to the device
+    \private
+    \param p Fully CPU initialized Phase struct
+    \return Errorcode
+*/
+int copyin_electric_field(struct Phase *p);
+
+/*! Helper function delete the ef data from the device and copy it to the CPU memory
+    \private
+    \param p Fully CPU initialized Phase struct
+    \return Errorcode
+*/
+int copyout_electric_field(struct Phase *p);
+
+/*! Helper function to update the host with the ef data
+    \private
+    \param p Fully initialized Phase struct
+    \return Errorcode
+*/
+int update_self_electric_field(const struct Phase *const p);
+
 /*! Helper function to resolve periodic boundaries for coordinates x,y,z.
     \private
     \param p Phase describing the system
@@ -64,25 +85,6 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
     \param z z-coordinate in 3D representation of field.
 */
 uint64_t cell_to_index(struct Phase *p, const uint64_t x, const uint64_t y, const uint64_t z);
-
-/*! Helper function to compute the dielectric field from the densities of individual particle types (welling2014, eq. 83)
-    \private
-    \param p Phase describing the system
-*/
-void calc_dielectric_field(struct Phase *const p);
-
-/*! Helper funtion to precompute derivatives for dielectric field (welling2014, eq. 85)
-    \private
-    \param p Phase describing the system
-*/
-void pre_derivatives(struct Phase *const p);
-
-/*! Helper function to iterate solution for derivatives of the electric potential field (using precomputed derivatives for dielectric field)
-    \private
-    \param p Phase describing the system
-    \returns maximum of dE_pot/dr
-*/
-soma_scalar_t iterate_field(struct Phase *const p);
 
 /*! Helper function to compute the square of the derivative of the electric potential field
     \private
@@ -121,16 +123,59 @@ soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t * e_field, const uint6
 */
 soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
+/*! Helper function to compute the second partial derivative of the electric potential field with respect to x
+    \private
+    \param p Phase describing the system
+    \param x x-coordinate in 3D representation of field.
+    \param y y-coordinate in 3D representation of field.
+    \param z z-coordinate in 3D representation of field.
+    \returns d2Epot/dx^2
+*/
+soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+
+/*! Helper function to compute the second partial derivative of the electric potential field with respect to y
+    \private
+    \param p Phase describing the system
+    \param x x-coordinate in 3D representation of field.
+    \param y y-coordinate in 3D representation of field.
+    \param z z-coordinate in 3D representation of field.
+    \returns d2Epot/dy^2
+*/
+soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+
+/*! Helper function to compute the second partial derivative of the electric potential field with respect to z
+    \private
+    \param p Phase describing the system
+    \param x x-coordinate in 3D representation of field.
+    \param y y-coordinate in 3D representation of field.
+    \param z z-coordinate in 3D representation of field.
+    \returns d2Epot/dz^2
+*/
+soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+
+/*! Helper function to compute the dielectric field from the densities of individual particle types (welling2014, eq. 83)
+    \private
+    \param p Phase describing the system
+*/
+void calc_dielectric_field(struct Phase *const p);
+
+/*! Helper funtion to precompute derivatives for dielectric field (welling2014, eq. 85)
+    \private
+    \param p Phase describing the system
+*/
+void pre_derivatives(struct Phase *const p);
+
+/*! Helper function to iterate solution for derivatives of the electric potential field (using precomputed derivatives for dielectric field)
+    \private
+    \param p Phase describing the system
+    \returns maximum of dE_pot/dr
+*/
+soma_scalar_t iterate_field(struct Phase *const p);
 /*! Main routine, calculates electrostatic energy contribution per cell and total (welling2017, eq. 4)
     \private
     \param p Phase describing the system
     \returns Errorcode
 */
-
-soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
-soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
-soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
-
 int calc_electric_field_contr(struct Phase *const p);
 
 /*! Helper function to free the CPU memory resources of the pc struct. The function gets automatically called by free_phase().
