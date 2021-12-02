@@ -186,6 +186,10 @@ typedef struct Phase {
     //!    const unsigned int type = get_particle_type(
     //!                                 p->poly_arch[poly_type_offset[poly_type] + mono_index + 1] );
     //!    \endcode
+    //!    or alternatively here with the general function that also considers whether monomer_type soma memory is written:
+    //!    \code
+    //!    const unsigned int type = get_particle_type_general(p, n_polymer, n_monomer);(
+    //!    \endcode
     //!    If you want to create an element of the monomer region in
     //!    poly_arch, you can call get_info_bl().
     //!  - The final information is the actual bondlist. Each element of
@@ -234,6 +238,9 @@ typedef struct Phase {
 
     //! Indiciates, whether bead data have been read from the input file.
     bool bead_data_read;
+    //
+    //! Indiciates, whether monomer type data has been read from the input file.
+    bool mt_data_read;
 
     //! Maximum distance a particle can move, without accidentically
     //!passing trough an area51 wall.
@@ -271,6 +278,7 @@ typedef struct Phase {
     unsigned int serie_length;  //!< number of time-dependent external field
 
     struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
+    struct MonoConversion mtc;   //!< struct containing the information for the monomer type convsersion
     struct Mobility mobility;   //!< struct containing information for density related mobility modifications
     struct SelfDocumentation sd;        //!< struct that contains all elements for the self documenation functionality
     struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.

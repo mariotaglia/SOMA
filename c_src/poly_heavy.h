@@ -42,6 +42,7 @@ struct Phase;
  */
 typedef struct PolymerHeavy {
     SomaMemory beads;           //!< Memory handle struct for the beads data
+    SomaMemory monomer_types;   //!< Memory handle struct for the monomer type if monomer conversion is switched on.
     SomaMemory msd_beads;       //!< Memory handle struct for the msd_beads data (typically not present on device)
     SomaMemory set_states;      //!< Memory handle struct for set states memory
     SomaMemory set_permutation; //!< Memory handle struct for the set permutation info

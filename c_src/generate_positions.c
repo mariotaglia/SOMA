@@ -227,3 +227,27 @@ int generate_new_beads(struct Phase *const p)
     memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
     return 0;
 }
+
+int generate_monomer_type_array(struct Phase *const p)
+{
+    //Maybe add a test here, whether monomer type initialized here are really the ones we are looking for (if h5-file contains them, they are differeny from the architecture.)
+    //Also: only let main rank do this??
+
+    for (uint64_t i = 0; i < p->n_polymers; i++)
+        {
+            Polymer *const poly = &(p->polymers[i]);
+            const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
+            u_int8_t *monomer_type = p->ph.monomer_types.ptr;
+            monomer_type += poly->bead_offset;
+
+            for(unsigned int j = 0; j < N; j++)
+                {
+                    monomer_type[j] = get_particle_type(p->poly_arch[p->poly_arch_offset[poly->type]] + 1 + j);
+                }
+        }
+    return 0;
+}
+
+
+
+

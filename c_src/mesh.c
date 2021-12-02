@@ -252,7 +252,7 @@ int update_density_fields(const struct Phase *const p)
             for (unsigned int j = 0; j < N; j++)
                 {               /*Loop over monomers */
                     const unsigned int monotype =
-                        get_particle_type(p->poly_arch[p->poly_type_offset[p->polymers[i].type] + 1 + j]);
+                        get_particle_type_general(p, i, j);
 
                     const unsigned int index = coord_to_index_unified(p, beads[j].x, beads[j].y, beads[j].z, monotype);
                     if (index < p->n_cells_local * p->n_types)

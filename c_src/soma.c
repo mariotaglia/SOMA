@@ -138,6 +138,11 @@ int main(int argc, char *argv[])
             //Reset the RNG to initial starting conditions.
             reseed(p, p->args.rng_seed_arg);
         }
+    if (!p->mt_data_read && p->mtc.DeltaMC !=0)
+        {
+            const int create_mt_array = generate_monotype_array(p);
+            MPI_ERROR_CHECK(create_mt_array, "Cannot genrate monomer type array.");
+        }
 #if ( ENABLE_MPI == 1 )
     const int init_domain_chains_status = send_domain_chains(p, true);
     MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
