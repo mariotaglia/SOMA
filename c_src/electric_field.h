@@ -33,8 +33,9 @@ typedef struct ElectricField{
     soma_scalar_t *Epot;            //!< Array that contains the electric potential field.
     soma_scalar_t *Epot_tmp;        //!< Temporary array that contains the electric potential field after MC step.
     soma_scalar_t *pre_deriv;       //!< Array that contains precomputed derivatives of dielectric constant field.
-    soma_scalar_t *H_el_field;      //!< Array that contains electrostatic energy contribution per cell.
-    soma_scalar_t H_el;             //!< Sum of electrocstatic contribution.
+    soma_scalar_t *H_el_field;      //!< Array that contains cell-wise contribution to electrostatic energy hamiltonian.
+    soma_scalar_t H_el;             //!< Electrostatic energy hamiltonia
+    soma_scalar_t *omega_field_el;  //!< Array that contains electrotatic energy contribution to omega fields.
     
 } ElectricField;
 
@@ -171,7 +172,8 @@ void pre_derivatives(struct Phase *const p);
     \returns maximum of dE_pot/dr
 */
 soma_scalar_t iterate_field(struct Phase *const p);
-/*! Main routine, calculates electrostatic energy contribution per cell and total (welling2017, eq. 4)
+
+/*! Main routine, calculates electrostatic energy contribution per cell and total (welling2017, eq. 7)
     \private
     \param p Phase describing the system
     \returns Errorcode
