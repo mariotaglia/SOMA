@@ -38,6 +38,7 @@
 #include "walltime.h"
 #include "generate_positions.h"
 #include "polytype_conversion.h"
+#include "monotype_conversion.h"
 
 //! Main Function of the Executable SOMA
 //! \private

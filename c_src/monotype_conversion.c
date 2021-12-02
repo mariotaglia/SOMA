@@ -589,7 +589,7 @@ int partially_convert_monotypes(struct Phase *p)
                                         }
                                         if(random_number < probability)
                                             {
-                                            p->ph.monomer_types.ptr[p->polymers[poly].monomer_type_offset + i] = p->mtc.output_type[i];
+                                            p->ph.monomer_types.ptr[p->polymers[poly].bead_offset + i] = p->mtc.output_type[i];
                                             break; //to continue with next polymer if conversion has taken place.
                                             }
                                         else

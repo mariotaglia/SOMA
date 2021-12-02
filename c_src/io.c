@@ -40,6 +40,7 @@
 #include "cmdline.h"
 #include "soma_config.h"
 #include "polytype_conversion.h"
+#include "monotype_conversion.h"
 #include "mobility.h"
 #include "io_old.h"
 
@@ -1177,44 +1178,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
         }
     else
         p->bead_data_read = false;
-    return 0;
-}
 
-/*! General helper function to read the beads information from the input file if available.
-
-This function wraps the different actual reading functions and selects the appropriate one according to the file version.
-\private
-\param p Phase struct which is going to be initialized.
-\param file_id opened HDF5 file handle to read from.
-\param plist_id HDF5 property list to read with.
-\return Errorcode.
-*/
-int read_beads(struct Phase *p, const hid_t file_id, const hid_t plist_id)
-{
-    hid_t status;
-    unsigned int version = 0;
-    if (H5Lexists(file_id, "/version", H5P_DEFAULT) > 0)
-        {
-            status = read_hdf5(file_id, "/version", H5T_NATIVE_UINT, plist_id, &version);
-            HDF5_ERROR_CHECK2(status, "version");
-        }
-    switch (version)
-        {
-        case 0:
-            return read_beads0(p, file_id, plist_id);
-            break;
-        case 1:
-            return read_beads1(p, file_id, plist_id);
-            break;
-        default:
-            fprintf(stderr, "ERROR: invalid file version %u  %s:%d\n", version, __FILE__, __LINE__);
-            return -1;
-        }
-    return 0;
-}
-
-int read_monomer_types(struct Phase *const p, const hid_t file_id, const hid_t plist_id)
-{
     if (H5Lexists(file_id, "/monomer_types", H5P_DEFAULT) > 0)
         {
             init_soma_memory(&(p->ph.monomer_types), p->num_all_beads_local, sizeof(uint8_t));
@@ -1275,18 +1239,52 @@ int read_monomer_types(struct Phase *const p, const hid_t file_id, const hid_t p
                     const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
                     for (unsigned int j = 0; j < N; j++)
                         {
-                            assert(bead_mem_counter < p->num_all_beads_local);
-                            mts[j] = mt_data[bead_mem_counter];
-                            bead_mem_counter += 1;
+                            assert(mt_mem_counter < p->num_all_beads_local);
+                            mts[j] = mt_data[mt_mem_counter];
+                            mt_mem_counter += 1;
                         }
                 }
-            assert(bead_mem_counter == p->num_all_beads_local);
+            assert(mt_mem_counter == p->num_all_beads_local);
             free(mt_data);
 
             p->mt_data_read = true;
         }
     else
         p->mt_data_read = false;
+    return 0;
+}
+
+/*! General helper function to read the beads information from the input file if available.
+
+This function wraps the different actual reading functions and selects the appropriate one according to the file version.
+\private
+\param p Phase struct which is going to be initialized.
+\param file_id opened HDF5 file handle to read from.
+\param plist_id HDF5 property list to read with.
+\return Errorcode.
+*/
+int read_beads(struct Phase *p, const hid_t file_id, const hid_t plist_id)
+{
+    hid_t status;
+    unsigned int version = 0;
+    if (H5Lexists(file_id, "/version", H5P_DEFAULT) > 0)
+        {
+            status = read_hdf5(file_id, "/version", H5T_NATIVE_UINT, plist_id, &version);
+            HDF5_ERROR_CHECK2(status, "version");
+        }
+    switch (version)
+        {
+        case 0:
+            return read_beads0(p, file_id, plist_id);
+            break;
+        case 1:
+            return read_beads1(p, file_id, plist_id);
+            break;
+        default:
+            fprintf(stderr, "ERROR: invalid file version %u  %s:%d\n", version, __FILE__, __LINE__);
+            return -1;
+        }
+    return 0;
 }
 
 int read_config_hdf5(struct Phase *const p, const char *filename)
@@ -1448,9 +1446,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     status = read_beads(p, file_id, plist_id);
     HDF5_ERROR_CHECK2(status, "total beads read");
-
-    status = read_monomer_types(p, file_id, plist_id); //Only if necessary and dataset is defined in h5-file.
-    HDF5_ERROR_CHECK2(status, "total monomer types read");
 
     p->area51 = NULL;
     p->external_field_unified = NULL;

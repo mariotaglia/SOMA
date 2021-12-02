@@ -31,6 +31,7 @@
 #include "independent_sets.h"
 #include "mesh.h"
 #include "polytype_conversion.h"
+#include "monotype_conversion.h"
 #include "mobility.h"
 #include "self_documentation.h"
 #include "poly_heavy.h"

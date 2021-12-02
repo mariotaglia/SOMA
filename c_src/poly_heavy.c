@@ -34,7 +34,7 @@ int free_polymer_heavy(struct Phase *const p)
 {
     int status = 0;
     status |= free_soma_memory(&(p->ph.beads));
-    status |= free_soma_memory(&(p->ph.mononmer_types));
+    status |= free_soma_memory(&(p->ph.monomer_types));
     status |= free_soma_memory(&(p->ph.msd_beads));
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
         {
@@ -48,7 +48,7 @@ int copyin_polymer_heavy(struct Phase *const p)
 {
     int status = 0;
     status |= copyin_soma_memory(&(p->ph.beads));
-    status |= copyin_soma_memory(&(p->ph.mononmer_types));
+    status |= copyin_soma_memory(&(p->ph.monomer_types));
     status |= copyin_soma_memory(&(p->ph.msd_beads));
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
        {
@@ -62,7 +62,7 @@ int copyout_polymer_heavy(struct Phase *const p)
 {
     int status = 0;
     status |= copyout_soma_memory(&(p->ph.beads));
-    status |= copyout_soma_memory(&(p->ph.mononmer_types));
+    status |= copyout_soma_memory(&(p->ph.monomer_types));
     status |= copyout_soma_memory(&(p->ph.msd_beads));
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
         {
@@ -76,7 +76,7 @@ int update_device_polymer_heavy(struct Phase *const p, const bool rng_flag)
 {
     int status = 0;
     status |= update_device_soma_memory(&(p->ph.beads));
-    status |= update_device_soma_memory(&(p->ph.mononmer_types));
+    status |= update_device_soma_memory(&(p->ph.monomer_types));
     status |= update_device_soma_memory(&(p->ph.msd_beads));
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET && rng_flag)
         {
@@ -112,12 +112,9 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
     const bool beads_device = p->ph.beads.device_present;
     if (beads_device)
         copyout_soma_memory(&(p->ph.beads));
-    if(p->ph.monomer_types.ptr != NULL)
-        {
-            const bool monomer_types_device = p->ph.monomer_types.device_present;
-            if (monomer_types_device)
-                copyout_soma_memory(&(p->ph.monomer_types));
-        }
+    const bool monomer_types_device = p->ph.monomer_types.device_present; //We do not need to check if its necessary here, simly will not be set if not existent
+    if (monomer_types_device)
+        copyout_soma_memory(&(p->ph.monomer_types));
     const bool msd_beads_device = p->ph.msd_beads.device_present;
     if (msd_beads_device)
         copyout_soma_memory(&(p->ph.msd_beads));
@@ -160,7 +157,7 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
             if (init_soma_memory(&(new_ph.set_permutation), p->n_polymers * p->max_n_sets, sizeof(unsigned int)) != 0)
                 {
                     fprintf(stderr, "ERROR compacting set_permutation\n");
-                    return -4;Monomer
+                    return -4;
                 }
         }
 
@@ -175,19 +172,18 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
             new_beads += new_bead_offset;
 
             memcpy(new_beads, old_beads, N * sizeof(Monomer));
-            p->polymers[i].bead_offset = new_bead_offset;
 
             if (p->ph.monomer_types.ptr != NULL)
                 {
-                    uint64_t new_monomer_type_offset = get_new_soma_memory_offset(&(new_ph.monomer_types), N);
                     uint8_t *old_monomer_types = p->ph.monomer_types.ptr;
-                    old_monomer_types += p->polymers[i].monomer_type_offset;
+                    old_monomer_types += p->polymers[i].bead_offset;
                     uint8_t *new_monomer_types = new_ph.monomer_types.ptr;
-                    new_beads += new_monomer_type_offset;
+                    new_monomer_types += new_bead_offset;
 
                     memcpy(new_monomer_types, old_monomer_types, N * sizeof(uint8_t));
-                    p->polymers[i].monomer_type_offset = new_monomer_type_offset;
                 }
+
+            p->polymers[i].bead_offset = new_bead_offset;
 
 
             uint64_t new_msd_bead_offset = get_new_soma_memory_offset(&(new_ph.msd_beads), N);

@@ -579,7 +579,7 @@ int partially_convert_polytypes(struct Phase *p)
                                 soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
                                 p->polymers[poly].poly_state = rngstatelocal;
                                 probability = p->pc.rate[i]/norm;
-                                for(unsigned int j=0; j<p->pc.dependency_ntypes[i]; j++)
+                                for(unsigned int j=0; j<p->pc.dependency_ntype[i]; j++)
                                 {
                                     unsigned int type_offset = p->pc.dependency_type_offset[i];
                                     unsigned int dependency_type = p->pc.dependency_type[type_offset+j];

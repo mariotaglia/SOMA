@@ -271,7 +271,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                             for (unsigned int ibead = 0; ibead < myN; ibead++)
                                 {
                                     const Monomer mybead = beads[ibead];
-                                    const unsigned int iwtype = get_particle_type_general(p, poly, ibead);
+                                    const unsigned int iwtype = get_particle_type_general(p, npoly, ibead);
                                         
 
                                     const int tmp = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx, dy, dz,
@@ -383,7 +383,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                             // pick a random bead.
                             ibead = soma_rng_uint(myrngstate, p) % myN;
                             const unsigned int iwtype =
-                                get_particle_type_general(p, npoly, ibead]);
+                                get_particle_type_general(p, npoly, ibead);
 
                             Monomer mybead = beads[ibead];
                             Monomer *mybead_ptr = &(beads[ibead]);

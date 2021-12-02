@@ -16,8 +16,8 @@
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SOMA_POLYTYPE_CONVERSION_H
-#define SOMA_POLYTYPE_CONVERSION_H
+#ifndef SOMA_MONOTYPE_CONVERSION_H
+#define SOMA_MONOTYPE_CONVERSION_H
 
 #include "soma_config.h"
 #include "soma_util.h"
@@ -38,7 +38,7 @@ typedef struct MonoConversion {
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
     unsigned int len_dependencies; //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
 
-} PolyConversion;
+} MonoConversion;
 
 //! Helper function to copy the pc data to the device
 //! \private
