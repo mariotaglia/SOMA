@@ -712,6 +712,13 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
             return status;
         }
 
+    status = write_mono_conversion_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d writing the monotype conversion\n", __FILE__, __LINE__);
+            return status;
+        }
+
     status = write_mobility_hdf5(p, file_id, plist_id);
     if (status != 0)
         {
@@ -1179,13 +1186,14 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
     else
         p->bead_data_read = false;
 
+    init_soma_memory(&(p->ph.monomer_types), 0, sizeof(uint8_t)); //such that p->ph.monomer_types.ptr == NULL.
     if (H5Lexists(file_id, "/monomer_types", H5P_DEFAULT) > 0)
         {
             init_soma_memory(&(p->ph.monomer_types), p->num_all_beads_local, sizeof(uint8_t));
 
             //  Read the monomer type data into a tempory array that matches the file layout
             uint8_t *const mt_data =
-                (uint8_t* const)malloc(p->num_all_beads_local * 3 * sizeof(uint8_t));
+                (uint8_t* const)malloc(p->num_all_beads_local * sizeof(uint8_t));
             if (mt_data == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -1251,6 +1259,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
         }
     else
         p->mt_data_read = false;
+        printf("No monomer type data found. Will generate it if monotype_conversions are turned on.\n");
     return 0;
 }
 
@@ -1563,6 +1572,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     if (status != 0)
         {
             fprintf(stderr, "ERROR: %s:%d unable to read polytype conversion information.\n", __FILE__, __LINE__);
+            return status;
+        }
+
+    status = read_mono_conversion_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to read monotype conversion information.\n", __FILE__, __LINE__);
             return status;
         }
 

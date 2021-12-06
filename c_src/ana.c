@@ -1099,7 +1099,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
                     for (unsigned int mono = 0; mono < poly_length; mono++)
                         {
                             const unsigned int particle_type =
-                                get_particle_type_general(p, poly, mono);
+                                get_particle_type(p, poly, mono);
                             // Monomer position at t.
                             soma_scalar_t x = beads[mono].x;
                             soma_scalar_t y = beads[mono].y;

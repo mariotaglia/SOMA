@@ -139,9 +139,9 @@ int main(int argc, char *argv[])
             //Reset the RNG to initial starting conditions.
             reseed(p, p->args.rng_seed_arg);
         }
-    if (!p->mt_data_read && p->mtc.DeltaMC !=0)
+    if (!p->mt_data_read && p->mtc.deltaMC > 0)
         {
-            const int create_mt_array = generate_monotype_array(p);
+            const int create_mt_array = generate_monomer_type_array(p);
             MPI_ERROR_CHECK(create_mt_array, "Cannot genrate monomer type array.");
         }
 #if ( ENABLE_MPI == 1 )
@@ -184,6 +184,9 @@ int main(int argc, char *argv[])
 
             if (p->pc.deltaMC > 0 && i % p->pc.deltaMC == (unsigned int)p->pc.deltaMC - 1)
                 convert_polytypes(p);
+
+            if (p->mtc.deltaMC > 0 && i % p->mtc.deltaMC == (unsigned int)p->mtc.deltaMC - 1)
+                convert_monotypes(p);
 
 #if ( ENABLE_MPI == 1 )
             if (p->args.load_balance_arg > 0

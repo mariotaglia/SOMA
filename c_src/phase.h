@@ -184,12 +184,7 @@ typedef struct Phase {
     //!    The other information is the particle type of your monomer of interest.
     //!    You can access this information with the following snippet:
     //!    \code
-    //!    const unsigned int type = get_particle_type(
-    //!                                 p->poly_arch[poly_type_offset[poly_type] + mono_index + 1] );
-    //!    \endcode
-    //!    or alternatively here with the general function that also considers whether monomer_type soma memory is written:
-    //!    \code
-    //!    const unsigned int type = get_particle_type_general(p, n_polymer, n_monomer);(
+    //!    const unsigned int type = get_particle_type(p, n_polymer, n_monomer);(
     //!    \endcode
     //!    If you want to create an element of the monomer region in
     //!    poly_arch, you can call get_info_bl().

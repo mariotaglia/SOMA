@@ -251,11 +251,10 @@ int update_density_fields(const struct Phase *const p)
 #pragma acc loop vector
             for (unsigned int j = 0; j < N; j++)
                 {               /*Loop over monomers */
-                    const unsigned int monotype =
-                        get_particle_type_general(p, i, j);
+                    const unsigned int monotype = get_particle_type(p, i, j);
 
                     const unsigned int index = coord_to_index_unified(p, beads[j].x, beads[j].y, beads[j].z, monotype);
-                    if (index < p->n_cells_local * p->n_types)
+                    if (index < p->n_cells_local * p->n_types) //isnt this only a reliable test for the last monomer type??
                         {
 #pragma acc atomic update
 #pragma omp atomic

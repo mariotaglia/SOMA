@@ -1186,10 +1186,10 @@ class Configuration(SomaXML):
         self.density_weights = self.create_density_weights()
 
         ## initialize the poly conversion class
-        self.poly_conversion = Configuration.PolyConversion(self.root,self.nxyz,self.poly_arch)
+        self.poly_conversion = Configuration.PolyConversion(self.root,self.nxyz,self.poly_arch,self.types)
 
         ## initialize the mono conversion class
-        self.mono_conversion = Configuration.MonoConversion(self.root,self.nxyz,self.poly_arch)
+        self.mono_conversion = Configuration.MonoConversion(self.root,self.nxyz,self.poly_arch,self.types)
 
         ## initalize the MobilityModifier class
         self.mobility_modifier = Configuration.MobilityModifier(self.root,self.n_types[0],self.n_poly_type[0])
@@ -1289,7 +1289,7 @@ class Configuration(SomaXML):
 
             if "monoconversion" in f:
                 del f["monoconversion"]
-            if self.poly_conversion.delta_mc[0] != 0 :
+            if self.mono_conversion.delta_mc[0] != 0 :
                 f.create_group("monoconversion")
                 f.create_dataset("monoconversion/deltaMC",data=self.mono_conversion.delta_mc)
                 f.create_dataset("/monoconversion/array",data=self.mono_conversion.array,dtype=numpy.uint8)
@@ -1634,7 +1634,7 @@ class Configuration(SomaXML):
     ## Class that parses the XML and stores the information for poly conversion zones
     class PolyConversion:
         ## Constructor of the PolyConversion class. Initialized with the root of the XML parser
-        def __init__(self,root,nxyz,poly_arch):
+        def __init__(self,root,nxyz,poly_arch,knownTypes):
             self.array = None
             self.pc_list = None
             self.delta_mc = numpy.asarray( [0], dtype=numpy.uint32)
@@ -1716,8 +1716,8 @@ class Configuration(SomaXML):
                         if line == "" or line[0] == '#':
                             continue
                         parts = line.split()
-                        if len(parts) != len(poly_arch.poly_type_offset):
-                            raise RuntimeError("Invalid density dependence format, give dependecies for all " + str(len(poly_arch.poly_type_offset)) + "types. But got: "+len(parts))
+                        if len(parts) != knownTypes.n_types_exact:
+                            raise RuntimeError("Invalid density dependence format, give dependecies for all " + self.knownTypes.n_types_exact + "types. But got: "+len(parts))
                         try:
                             raw_dd_list.append(numpy.asarray(parts, dtype=int))
                         except ValueError:
@@ -1764,7 +1764,7 @@ class Configuration(SomaXML):
     ## Class that parses the XML and stores the information for poly conversion zones
     class MonoConversion:
         ## Constructor of the PolyConversion class. Initialized with the root of the XML parser
-        def __init__(self,root,nxyz,poly_arch):
+        def __init__(self,root,nxyz,poly_arch,knownTypes):
             self.array = None
             self.pc_list = None
             self.delta_mc = numpy.asarray( [0], dtype=numpy.uint32)
@@ -1805,21 +1805,13 @@ class Configuration(SomaXML):
                             continue
                         parts = line.split()
                         if len(parts) != 3:
-                            raise RuntimeError("A conversion list line has 3 elements: input_type output_type end_of_reaction=0/1. But got: "+line)
+                            raise RuntimeError("A conversion list line for monomer conversion has 3 elements: input_monomer_name output_monomer_name end_of_reaction=0/1. But got: "+line)
                         try:
-                            input_type = int(parts[0])
-                            output_type = int(parts[1])
+                            input_type = knownTypes.get_exact(parts[0])
+                            output_type = knownTypes.get_exact(parts[1])
                             end = int(parts[2])
                         except ValueError:
-                            raise RuntimeError("A conversion list must consist of 3 integer, but got: "+line)
-                        if input_type > len(poly_arch.poly_type_offset):
-                            RuntimeError("Invalid poly input type "+str(input_type)+". Only "+str(len(poly_arch.poly_type_offset))+" poly types known.")
-                        if output_type > len(poly_arch.poly_type_offset):
-                            RuntimeError("Invalid poly output type "+str(output_type)+". Only "+str(len(poly_arch.poly_type_offset))+" poly types known.")
-                        Ninput = poly_arch.poly_arch[poly_arch.poly_type_offset[input_type]]
-                        Noutput = poly_arch.poly_arch[poly_arch.poly_type_offset[output_type]]
-                        if Ninput != Noutput:
-                            RuntimeError("Invalid conserion attempt! Input type "+str(input_type)+" has "+str(Ninput)+" beads but output type "+str(output_type)+" has "+str(Noutput)+" types.")
+                            raise RuntimeError("A conversion list must consist of valid monomer type names and 1 integer, but got: "+line)
 
                         pc_list.append([input_type,output_type,bool(end)])
 
@@ -1846,8 +1838,8 @@ class Configuration(SomaXML):
                         if line == "" or line[0] == '#':
                             continue
                         parts = line.split()
-                        if len(parts) != len(poly_arch.poly_type_offset):
-                            raise RuntimeError("Invalid density dependence format, give dependecies for all " + str(len(poly_arch.poly_type_offset)) + "types. But got: "+len(parts))
+                        if len(parts) != knownTypes.n_types_exact:
+                            raise RuntimeError("Invalid density dependence format, give dependecies for all " + str(knownTypes.n_types_exact) + "types. But got: "+len(parts))
                         try:
                             raw_dd_list.append(numpy.asarray(parts, dtype=int))
                         except ValueError:

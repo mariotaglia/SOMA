@@ -242,7 +242,7 @@ int generate_monomer_type_array(struct Phase *const p)
 
             for(unsigned int j = 0; j < N; j++)
                 {
-                    monomer_type[j] = get_particle_type(p->poly_arch[p->poly_type_offset[poly->type]] + 1 + j);
+                    monomer_type[j] = get_particle_type_of_poly_arch(p->poly_arch[p->poly_type_offset[poly->type] + 1 + j]);
                 }
         }
     return 0;

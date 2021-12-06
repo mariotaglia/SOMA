@@ -174,6 +174,10 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
     //poly RNG state
     length += rng_state_serial_length(p);
 
+    //Monomer types (if necessary)
+    if (p->ph.monomer_types.ptr != NULL)
+        length += N * sizeof(uint8_t);
+
     if (poly->set_permutation_offset != UINT64_MAX)
         length += p->max_n_sets * sizeof(unsigned int);
 
@@ -216,6 +220,14 @@ int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigne
 
     // Poly state
     position += serialize_rng_state(p, &(poly->poly_state), buffer + position);
+
+    //Monomer types data
+    if (p->ph.monomer_types.ptr != NULL)
+        {
+            memcpy(buffer + position, ((uint8_t *) p->ph.monomer_types.ptr) + poly->bead_offset, N * sizeof(uint8_t));
+            position += N * sizeof(uint8_t);
+        }
+
 
     // Set permutation
     if (poly->set_permutation_offset != UINT64_MAX)
@@ -291,6 +303,15 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
 
     poly->set_permutation_offset = UINT64_MAX;
     poly->set_states_offset = UINT64_MAX;
+
+
+    //Monomer types data
+    if (p->ph.monomer_types.ptr != NULL)
+        {
+            memcpy(((uint8_t *) p->ph.monomer_types.ptr) + poly->bead_offset, buffer + position, N * sizeof(uint8_t));
+            position += N * sizeof(uint8_t);
+        }
+
     // If there is more data in the buffer, this polymer carries set information.
     if (length > position)
         {

@@ -102,4 +102,83 @@ int fully_convert_polytypes(struct Phase *p);
   \return Errorcode
 */
 int partially_convert_polytypes(struct Phase *p);
+
+typedef struct MonoConversion {
+    unsigned int deltaMC;       //!< control execution frequency of the conversion
+    uint8_t *array;             //!< Array that contains the reaction start index of the conversion list.
+
+    unsigned int *input_type;   //!< Array that contains the input mono type for each reaction (educt)
+    unsigned int *output_type;  //!< Array that contains the output mono type for each reaction (product)
+    unsigned int *reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
+    soma_scalar_t *rate;               //!< control execution probability of the conversion
+    unsigned int *dependency_ntype; //!<Array that contains the number of  dependency indices
+    unsigned int *dependency_type_offset; //!<Array that contains the start/offset of dependency indices
+    unsigned int *dependency_type; //!<Array that contains the dependency types
+    unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
+    unsigned int len_dependencies; //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
+
+} MonoConversion;
+
+//! Helper function to copy the mtc data to the device
+//! \private
+//! \param p Fully CPU initialized Phase struct
+//! \return Errorcode
+int copyin_mono_conversion(struct Phase *p);
+
+//! Helper function delete the mtc data from the device and copy it to the CPU memory
+//! \private
+//! \param p Fully CPU initialized Phase struct
+//! \return Errorcode
+int copyout_mono_conversion(struct Phase *p);
+
+//! Helper function to update the host with the mtc data
+//! \private
+//! \param p Fully initialized Phase struct
+//! \return Errorcode
+int update_self_mono_conversion(const struct Phase *const p);
+
+/*! Helper function to read the conversion array from the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
+int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const hid_t plist_id);
+
+/*! Helper function to write the monoconversion array to the config HDF5 file.
+    \private
+    \param p Phase describing the system
+    \param file_id File identifier of open HDF5 file.
+    \param plist_id Access properties to use.
+    \return Errorcode
+*/
+int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id);
+
+/*! Helper function to free the CPU memory resources of the mtc struct. The function gets automatically called by free_phase().
+  \private
+  \param p Initialized Phase that is in the process of deallocating its resources.
+  \return Errorcode
+*/
+int free_mono_conversion(struct Phase *p);
+
+/*! Convert monomer types according to the reaction description of the MonoConversion struct.
+  This updates the center of mass of the monomers and chooses between full or partial (with rates) conversions.
+  \param p Phase struct describing the simulation
+  \return Errorcode
+*/
+int convert_monotypes(struct Phase *p);
+
+/*! Fully convert monomer types according to the reaction description of the MonoConversion struct.
+  \param p Phase struct describing the simulation
+  \return Errorcode
+*/
+int fully_convert_monotypes(struct Phase *p);
+
+/*! Partially Convert monomer types according to the reaction description of the MonoConversion struct.
+ This converts the monomer only with a probability given by the rate which may depend (linearly) on the normalized density of some type (for reactions involving multiple types).
+  \param p Phase struct describing the simulation
+  \return Errorcode
+*/
+int partially_convert_monotypes(struct Phase *p);
 #endif                          //SOMA_POLYTYPE_CONVERSION_H

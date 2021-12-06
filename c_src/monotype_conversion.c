@@ -571,7 +571,7 @@ int partially_convert_monotypes(struct Phase *p)
                         {
                             soma_scalar_t probability = 0.;
                             int i = p->mtc.array[cell] - 1;
-                            uint8_t monotype = get_particle_type_general(p, poly, i);
+                            uint8_t monotype = get_particle_type(p, poly, i);
                             do  {
                                     if (monotype == p->mtc.input_type[i])
                                         {
