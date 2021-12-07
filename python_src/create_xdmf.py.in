@@ -223,12 +223,22 @@ def add_umbrella_field_conf(nxyz,n_types,t,h5file):
     string += "</Attribute>\n"
     return string
 
-def add_electric_field(nxyz,h5file):
+def add_epot_field(nxyz,h5file):
     string =""
-    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"ElectricField\">\n"
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"EpotField\">\n"
     string += "<!-- Result will be 3 dimensions -->"
     string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-    string += h5file+":/electric_field\n"
+    string += h5file+":/epot_field\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
+
+def add_dielectric_field(nxyz,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"DielectricField\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/dielectric_field\n"
     string +="</DataItem>\n"
     string += "</Attribute>\n"
     return string
@@ -239,6 +249,16 @@ def add_electrodes(nxyz,h5file):
     string += "<!-- Result will be 3 dimensions -->"
     string += "<DataItem Format=\"HDF\" NumberType=\"UInt\" Precision=\"2\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
     string += h5file+":/electrodes\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
+
+def add_H_el_field(nxyz,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"ElHamilField\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/H_el_field\n"
     string +="</DataItem>\n"
     string += "</Attribute>\n"
     return string
@@ -268,12 +288,20 @@ def get_umbrella_field(nxyz,arguments,types,t):
          f.close()
      return string
 
-def get_electric_field(nxyz,arguments):
+def get_epot_field(nxyz,arguments):
     string = ""
     if arguments['c']:
         with h5py.File(arguments['c'],"r") as f:
-            if  '/electric_field' in f:
-                string += add_electric_field(nxyz,arguments['c'])
+            if  '/epot_field' in f:
+                string += add_epot_field(nxyz,arguments['c'])
+    return string
+
+def get_dielectric_field(nxyz,arguments):
+    string = ""
+    if arguments['c']:
+        with h5py.File(arguments['c'],"r") as f:
+            if  '/dielectric_field' in f:
+                string += add_dielectric_field(nxyz,arguments['c'])
     return string
 
 def get_electrodes(nxyz,arguments):
@@ -282,6 +310,14 @@ def get_electrodes(nxyz,arguments):
         with h5py.File(arguments['c'],"r") as f:
             if  '/electrodes' in f:
                 string += add_electrodes(nxyz,arguments['c'])
+    return string
+
+def get_H_el_field(nxyz,arguments):
+    string = ""
+    if arguments['c']:
+        with h5py.File(arguments['c'],"r") as f:
+            if  '/H_el_field' in f:
+                string += add_H_el_field(nxyz,arguments['c'])
     return string
 
 def main(argv):
@@ -323,8 +359,10 @@ def main(argv):
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
             string += get_umbrella_field(nxyz,arguments,types,type)
         string += get_area51(nxyz,arguments)
-        string += get_electric_field(nxyz,arguments)
+        string += get_epot_field(nxyz,arguments)
+        string += get_dielectric_field(nxyz,arguments)
         string += get_electrodes(nxyz,arguments)
+        string += get_H_el_field(nxyz,arguments)
         string += "</Grid>\n"
     string += "</Grid>\n"
 
