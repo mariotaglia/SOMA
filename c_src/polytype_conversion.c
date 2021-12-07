@@ -541,15 +541,12 @@ int fully_convert_polytypes(struct Phase *p)
             if (p->pc.array[cell] != 0)
                 {
                     //Minus 1 because the index in array are shifted by 1
-
                     int i = p->pc.array[cell] - 1;
-                    if (p->polymers[poly].type == p->pc.input_type[i])
-                        p->polymers[poly].type = p->pc.output_type[i];
-                    for (i++; !p->pc.reaction_end[i-1]; i++)
-                        {
+                    do {
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 p->polymers[poly].type = p->pc.output_type[i];
-                        }
+                            i++;
+                    } while(!p->pc.reaction_end[i-1]);
                 }
         }
     return 0;
@@ -562,8 +559,8 @@ int partially_convert_polytypes(struct Phase *p)
 #pragma omp parallel
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
-            //const Polymer *mypoly = &p->polymers[poly];
-            const Monomer rcm = p->polymers[poly].rcm;
+            const Polymer *mypoly = p->polymers + poly;
+            const Monomer rcm = mypoly->rcm;
             const uint64_t cell = coord_to_index(p, rcm.x, rcm.y, rcm.z);
 
             if (p->pc.array[cell] != 0)
@@ -571,23 +568,21 @@ int partially_convert_polytypes(struct Phase *p)
                     soma_scalar_t probability = 0.;
                     int i = p->pc.array[cell] - 1;
                     do  {
-                            if (p->polymers[poly].type == p->pc.input_type[i])
+                            if (mypoly->type == p->pc.input_type[i])
                                 {
                                 soma_scalar_t norm = 1-probability;
-                                RNG_STATE rngstatelocal = p->polymers[poly].poly_state;
-                                RNG_STATE *myrngstate = &rngstatelocal;
-                                soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
-                                p->polymers[poly].poly_state = rngstatelocal;
-                                probability = p->pc.rate[i]/norm;
+                                probability = p->pc.rate[i];
                                 for(unsigned int j=0; j<p->pc.dependency_ntype[i]; j++)
                                 {
                                     unsigned int type_offset = p->pc.dependency_type_offset[i];
                                     unsigned int dependency_type = p->pc.dependency_type[type_offset+j];
                                     probability *= p->fields_unified[dependency_type * p->n_cells_local + cell] * p->field_scaling_type[dependency_type];
                                 }
+                                probability /= norm;
+                                soma_scalar_t random_number = soma_rng_soma_scalar(&(mypoly->poly_state), p);
                                 if(random_number < probability)
                                     {
-                                    p->polymers[poly].type = p->pc.output_type[i];
+                                    mypoly->type = p->pc.output_type[i];
                                     break; //to continue with next polymer if conversion has taken place.
                                     }
                                 else
@@ -1109,20 +1104,24 @@ int fully_convert_monotypes(struct Phase *p)
 #pragma omp parallel
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
-            const Monomer rcm = p->polymers[poly].rcm; //this is outdated.
-            const uint64_t cell = coord_to_index(p, rcm.x, rcm.y, rcm.z);
-
-            if (p->mtc.array[cell] != 0)
+            const Polymer *polymer = p->polymers + poly;
+            const unsigned int N = poly_arch[p->poly_type_offset[polymer->type]];
+            for(unsigned int mono=0;mono<N;mono++)
                 {
-                    //Minus 1 because the index in array are shifted by 1
+                    const Monomer pos = ((Monomer*)p->ph.beads.ptr)[polymer->bead_offset]; //this is outdated.
+                    const uint64_t cell = coord_to_index(p, pos.x, pos.y, pos.z);
 
-                    int i = p->mtc.array[cell] - 1;
-                    if (p->polymers[poly].type == p->mtc.input_type[i])
-                        p->polymers[poly].type = p->mtc.output_type[i];
-                    for (i++; !p->mtc.reaction_end[i-1]; i++)
+                    if (p->mtc.array[cell] != 0)
                         {
-                            if (p->polymers[poly].type == p->mtc.input_type[i])
-                                p->polymers[poly].type = p->mtc.output_type[i];
+                            //Minus 1 because the index in array are shifted by 1
+
+                            int i = p->mtc.array[cell] - 1;
+                            unsigned int monotype = get_particle_type(p, poly, mono);
+                            do {
+                                if (monotype == p->mtc.input_type[i])
+                                    ((uint8_t*)p->ph.monomer_types.ptr)[polymer->bead_offset + mono] = p->mtc.output_type[i];
+                                i++;
+                            } while(!p->mtc.reaction_end[i-1]);
                         }
                 }
         }
@@ -1137,37 +1136,35 @@ int partially_convert_monotypes(struct Phase *p)
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
                             //iteration over polymer 
-            //const Polymer *mypoly = &p->polymers[poly];
-            const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[poly].type]];
-            for(unsigned int i=0; i<N; i++)
+            const Polymer *mypoly = p->polymers + poly;
+            const unsigned int N = p->poly_arch[p->poly_type_offset[mypoly->type]];
+            for(unsigned int mono=0; mono<N; mono++)
                 {
                            //iteration over monomers
-                    const Monomer pos = ((Monomer*)p->ph.beads.ptr)[p->polymers[poly].bead_offset + i]; //Read Monomer position
+                    const Monomer pos = ((Monomer*)p->ph.beads.ptr)[mypoly->bead_offset + mono]; //Read Monomer position
                     const uint64_t cell = coord_to_index(p, pos.x, pos.y, pos.z);
 
                     if (p->mtc.array[cell] != 0)
                         {
                             soma_scalar_t probability = 0.;
                             int i = p->mtc.array[cell] - 1;
-                            uint8_t monotype = get_particle_type(p, poly, i);
+                            unsigned int monotype = get_particle_type(p, poly, mono);
                             do  {
                                     if (monotype == p->mtc.input_type[i])
                                         {
                                         soma_scalar_t norm = 1-probability;
-                                        RNG_STATE rngstatelocal = p->polymers[poly].poly_state;
-                                        RNG_STATE *myrngstate = &rngstatelocal;
-                                        soma_scalar_t random_number = soma_rng_soma_scalar(myrngstate, p);
-                                        p->polymers[poly].poly_state = rngstatelocal;
-                                        probability = p->mtc.rate[i]/norm;
+                                        probability = p->mtc.rate[i];
                                         for(unsigned int j=0; j<p->mtc.dependency_ntype[i]; j++)
                                         {
                                             unsigned int type_offset = p->mtc.dependency_type_offset[i];
                                             unsigned int dependency_type = p->mtc.dependency_type[type_offset+j];
                                             probability *= p->fields_unified[dependency_type * p->n_cells_local + cell] * p->field_scaling_type[dependency_type];
                                         }
+                                        probability /= norm;
+                                        soma_scalar_t random_number = soma_rng_soma_scalar(&(mypoly->poly_state), p);
                                         if(random_number < probability)
                                             {
-                                            ((uint8_t*)p->ph.monomer_types.ptr)[p->polymers[poly].bead_offset + i] = (uint8_t)p->mtc.output_type[i];
+                                            ((uint8_t*)p->ph.monomer_types.ptr)[mypoly->bead_offset + mono] = (uint8_t)p->mtc.output_type[i];
                                             break; //to continue with next polymer if conversion has taken place.
                                             }
                                         else
@@ -1176,7 +1173,7 @@ int partially_convert_monotypes(struct Phase *p)
                                             }
                                         }
                                     i++;
-                                } while(!p->mtc.reaction_end[i-1]);
+                            } while(!p->mtc.reaction_end[i-1]);
                         }
                 }
         }
