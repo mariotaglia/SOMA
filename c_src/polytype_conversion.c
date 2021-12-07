@@ -582,7 +582,7 @@ int partially_convert_polytypes(struct Phase *p)
                                 soma_scalar_t random_number = soma_rng_soma_scalar(&(mypoly->poly_state), p);
                                 if(random_number < probability)
                                     {
-                                    mypoly->type = p->pc.output_type[i];
+                                    p->polymers[poly].type = p->pc.output_type[i];//got modifiable lvalue compile error when using mypoly->type = ... and was not able to fix this otherwise.
                                     break; //to continue with next polymer if conversion has taken place.
                                     }
                                 else
@@ -600,7 +600,15 @@ int partially_convert_polytypes(struct Phase *p)
 
 int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
-
+#ifndef ENABLE_MONOTYPE_CONVERSIONS
+    //Check whether  mono conversion is present in the file:
+    if ((H5Lexists(file_id, "/monoconversion", H5P_DEFAULT) > 0))
+        {
+            fprintf(stderr, "ERROR: %s:%d monotype conversions are defined in h5-file but compile option was not chosen for it.\n",
+                    __FILE__, __LINE__);
+            return -1;
+        }
+#else //ifdef ENABLE_MONOTYPE_CONVERSIONS
     p->mtc.deltaMC = 0;
     p->mtc.array = NULL;
     p->mtc.len_reactions = 0;
@@ -895,11 +903,13 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     status = H5Dclose(dset_dependency);
     HDF5_ERROR_CHECK(status);
 
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
 int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     //Quick exit for no mono conversions
     if (p->mtc.deltaMC == 0)
         return 0;
@@ -998,11 +1008,13 @@ int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
             return status;
         }
 
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
 int copyin_mono_conversion(struct Phase *p)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     if (p->mtc.deltaMC != 0)
         {
 #ifdef _OPENACC
@@ -1020,11 +1032,13 @@ if(p->mtc.rate != NULL)
     }
 #endif                          //_OPENACC
         }
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
 int copyout_mono_conversion(struct Phase *p)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     if (p->mtc.deltaMC != 0)
         {
 #ifdef _OPENACC
@@ -1041,11 +1055,13 @@ if(p->mtc.rate != NULL)
     }
 #endif                          //_OPENACC
         }
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
 int update_self_mono_conversion(const struct Phase *const p)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     if (p->mtc.deltaMC != 0)
         {
 #ifdef _OPENACC
@@ -1062,11 +1078,13 @@ if(p->mtc.rate != NULL)
     }
 #endif                          //_OPENACC
         }
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
 int free_mono_conversion(struct Phase *p)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     free(p->mtc.array);
     free(p->mtc.input_type);
     free(p->mtc.output_type);
@@ -1076,11 +1094,13 @@ int free_mono_conversion(struct Phase *p)
     free(p->mtc.dependency_type_offset);
     free(p->mtc.dependency_type);
 
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
 int convert_monotypes(struct Phase *p)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     //Quick exit for
     static unsigned int last_time = 0;
     if (last_time >= p->time)
@@ -1095,10 +1115,14 @@ int convert_monotypes(struct Phase *p)
         {
         return partially_convert_monotypes(p);
         }
+#else //ENABLE_MONOTYPE_CONVERSIONS
+    return 0;
+#endif //ENABLE_MONOTYPE_CONVERSIONS
 }
 
 int fully_convert_monotypes(struct Phase *p)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
 #pragma omp parallel
@@ -1125,11 +1149,13 @@ int fully_convert_monotypes(struct Phase *p)
                         }
                 }
         }
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
 int partially_convert_monotypes(struct Phase *p)
 {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
 #pragma omp parallel
@@ -1178,5 +1204,6 @@ int partially_convert_monotypes(struct Phase *p)
                 }
         }
 
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }

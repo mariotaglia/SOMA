@@ -433,14 +433,8 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
                     p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
-    return status;
-}
 
-int write_monomer_types(const struct Phase *const p, hid_t file_id, const hid_t plist_id)
-{
-    if(p->ph.monomer_types.ptr == NULL) //Quick exit if not required.
-        return 0;
-    hid_t status;
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     hsize_t hsize_mt_dataspace[1] = { p->num_all_beads };
     hid_t mt_dataspace = H5Screate_simple(1, hsize_mt_dataspace, NULL);
     hsize_t hsize_mt_memspace[1] = { p->num_all_beads_local };
@@ -517,6 +511,7 @@ int write_monomer_types(const struct Phase *const p, hid_t file_id, const hid_t 
                     p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return status;
 }
 
@@ -671,9 +666,6 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
 
     status = write_beads(p, file_id, plist_id);
     HDF5_ERROR_CHECK2(status, "write beads");
-
-    status = write_monomer_types(p, file_id, plist_id);
-    HDF5_ERROR_CHECK2(status, "write monomer_types");
 
     if (p->area51)
         {
@@ -1186,9 +1178,10 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
     else
         p->bead_data_read = false;
 
-    init_soma_memory(&(p->ph.monomer_types), 0, sizeof(uint8_t)); //such that p->ph.monomer_types.ptr == NULL.
+    /* Read monomer types from file if present:*/
     if (H5Lexists(file_id, "/monomer_types", H5P_DEFAULT) > 0)
         {
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
             init_soma_memory(&(p->ph.monomer_types), p->num_all_beads_local, sizeof(uint8_t));
 
             //  Read the monomer type data into a tempory array that matches the file layout
@@ -1255,11 +1248,13 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             assert(mt_mem_counter == p->num_all_beads_local);
             free(mt_data);
 
-            p->mt_data_read = true;
+#else //ENABLE_MONOTYPE_CONVERSIONS
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n", p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return -1;
+#endif //ENABLE_MONOTYPE_CONVERSIONS
         }
     else
         p->mt_data_read = false;
-        printf("No monomer type data found. Will generate it if monotype_conversions are turned on.\n");
     return 0;
 }
 

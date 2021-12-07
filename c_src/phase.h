@@ -274,7 +274,9 @@ typedef struct Phase {
     unsigned int serie_length;  //!< number of time-dependent external field
 
     struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     struct MonoConversion mtc;   //!< struct containing the information for the monomer type convsersion
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     struct Mobility mobility;   //!< struct containing information for density related mobility modifications
     struct SelfDocumentation sd;        //!< struct that contains all elements for the self documenation functionality
     struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.

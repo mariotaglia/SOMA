@@ -230,9 +230,7 @@ int generate_new_beads(struct Phase *const p)
 
 int generate_monomer_type_array(struct Phase *const p)
 {
-    //Maybe add a test here, whether monomer type initialized here are really the ones we are looking for (if h5-file contains them, they are differeny from the architecture.)
-    //Also: only let main rank do this??
-
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
             Polymer *const poly = &(p->polymers[i]);
@@ -245,6 +243,7 @@ int generate_monomer_type_array(struct Phase *const p)
                     monomer_type[j] = get_particle_type_of_poly_arch(p->poly_arch[p->poly_type_offset[poly->type] + 1 + j]);
                 }
         }
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 
