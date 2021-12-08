@@ -35,7 +35,7 @@ int free_polymer_heavy(struct Phase *const p)
     int status = 0;
     status |= free_soma_memory(&(p->ph.beads));
     status |= free_soma_memory(&(p->ph.msd_beads));
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     status |= free_soma_memory(&(p->ph.monomer_types));
 #endif //ENABLE_MONOTYPE_CONVERSIONS
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
@@ -51,7 +51,7 @@ int copyin_polymer_heavy(struct Phase *const p)
     int status = 0;
     status |= copyin_soma_memory(&(p->ph.beads));
     status |= copyin_soma_memory(&(p->ph.msd_beads));
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     status |= copyin_soma_memory(&(p->ph.monomer_types));
 #endif //ENABLE_MONOTYPE_CONVERSIONS
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
@@ -67,7 +67,7 @@ int copyout_polymer_heavy(struct Phase *const p)
     int status = 0;
     status |= copyout_soma_memory(&(p->ph.beads));
     status |= copyout_soma_memory(&(p->ph.msd_beads));
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     status |= copyout_soma_memory(&(p->ph.monomer_types));
 #endif //ENABLE_MONOTYPE_CONVERSIONS
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
@@ -83,7 +83,7 @@ int update_device_polymer_heavy(struct Phase *const p, const bool rng_flag)
     int status = 0;
     status |= update_device_soma_memory(&(p->ph.beads));
     status |= update_device_soma_memory(&(p->ph.msd_beads));
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     status |= update_device_soma_memory(&(p->ph.monomer_types));
 #endif //ENABLE_MONOTYPE_CONVERSIONS
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET && rng_flag)
@@ -99,7 +99,7 @@ int update_self_polymer_heavy(struct Phase *const p, const bool rng_flag)
     int status = 0;
     status |= update_self_soma_memory(&(p->ph.beads));
     status |= update_self_soma_memory(&(p->ph.msd_beads));
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     status |= update_self_soma_memory(&(p->ph.monomer_types));
 #endif //ENABLE_MONOTYPE_CONVERSIONS
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET && rng_flag)
@@ -125,7 +125,7 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
     const bool msd_beads_device = p->ph.msd_beads.device_present;
     if (msd_beads_device)
         copyout_soma_memory(&(p->ph.msd_beads));
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     const bool monomer_types_device = p->ph.monomer_types.device_present;
     if (monomer_types_device)
         copyout_soma_memory(&(p->ph.monomer_types));
@@ -143,7 +143,7 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
             fprintf(stderr, "ERROR compacting beads\n");
             return -1;
         }
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (init_soma_memory(&(new_ph.monomer_types), p->num_all_beads_local, sizeof(uint8_t)) != 0)
        {
            fprintf(stderr, "ERROR compacting beads\n");
@@ -182,7 +182,7 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
 
             memcpy(new_beads, old_beads, N * sizeof(Monomer));
 
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
             uint8_t *old_monomer_types = p->ph.monomer_types.ptr;
             old_monomer_types += p->polymers[i].bead_offset;
             uint8_t *new_monomer_types = new_ph.monomer_types.ptr;
@@ -227,7 +227,7 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
     p->ph = new_ph;
     if (beads_device)
         copyin_soma_memory(&(p->ph.beads));
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (monomer_types_device)
         copyin_soma_memory(&(p->ph.monomer_types));
 #endif //ENABLE_MONOTYPE_CONVERSIONS

@@ -175,7 +175,7 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
     length += rng_state_serial_length(p);
 
     //Monomer types (if necessary)
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     length += N * sizeof(uint8_t);
 #endif //ENABLE_MONOTYPE_CONVERSIONS
 
@@ -223,7 +223,7 @@ int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigne
     position += serialize_rng_state(p, &(poly->poly_state), buffer + position);
 
     //Monomer types data
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     memcpy(buffer + position, ((uint8_t *) p->ph.monomer_types.ptr) + poly->bead_offset, N * sizeof(uint8_t));
     position += N * sizeof(uint8_t);
 #endif //ENABLE_MONOTYPE_CONVERSIONS
@@ -304,7 +304,7 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
     poly->set_permutation_offset = UINT64_MAX;
     poly->set_states_offset = UINT64_MAX;
 
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Monomer types data
     memcpy(((uint8_t *) p->ph.monomer_types.ptr) + poly->bead_offset, buffer + position, N * sizeof(uint8_t));
     position += N * sizeof(uint8_t);

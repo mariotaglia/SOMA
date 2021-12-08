@@ -32,6 +32,7 @@ set(soma_source
   walltime.c
   test.c
   polytype_conversion.c
+  monotype_conversion.c
   mobility.c
   )
 
@@ -65,6 +66,7 @@ set(soma_header
   walltime.h
   test.h
   polytype_conversion.h
+  monotype_conversion.h
   mobility.h
   )
 

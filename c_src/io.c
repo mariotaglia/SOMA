@@ -434,7 +434,7 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
             return status;
         }
 
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     hsize_t hsize_mt_dataspace[1] = { p->num_all_beads };
     hid_t mt_dataspace = H5Screate_simple(1, hsize_mt_dataspace, NULL);
     hsize_t hsize_mt_memspace[1] = { p->num_all_beads_local };
@@ -443,7 +443,7 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
     hid_t mt_dataset = H5Dcreate2(file_id, "/monomer_types", H5T_SOMA_FILE_SCALAR, mt_dataspace,
                                      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-    uint64_t bead_offset = 0;
+    bead_offset = 0;
 #if ( ENABLE_MPI == 1 )
     //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
     MPI_Scan((uint64_t *) & (p->num_all_beads_local), &bead_offset, 1, MPI_UINT64_T, MPI_SUM,
@@ -463,7 +463,7 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
             return -1;
         }
     //Transfer intenal bead data to SOMA data format
-    uint64_t bead_mem_counter = 0;
+    bead_mem_counter = 0;
 
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
@@ -1179,10 +1179,10 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
         p->bead_data_read = false;
 
     /* Read monomer types from file if present:*/
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
+    init_soma_memory(&(p->ph.monomer_types), p->num_all_beads_local, sizeof(uint8_t));
     if (H5Lexists(file_id, "/monomer_types", H5P_DEFAULT) > 0)
         {
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
-            init_soma_memory(&(p->ph.monomer_types), p->num_all_beads_local, sizeof(uint8_t));
 
             //  Read the monomer type data into a tempory array that matches the file layout
             uint8_t *const mt_data =
@@ -1248,13 +1248,18 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             assert(mt_mem_counter == p->num_all_beads_local);
             free(mt_data);
 
+        } else {
+        p->mt_data_read = false;
+        }
 #else //ENABLE_MONOTYPE_CONVERSIONS
+    if (H5Lexists(file_id, "/monomer_types", H5P_DEFAULT) > 0)
+        {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n", p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return -1;
-#endif //ENABLE_MONOTYPE_CONVERSIONS
-        }
-    else
+        } else {
         p->mt_data_read = false;
+        }
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
 

@@ -67,7 +67,7 @@ int get_bondlist_offset(const int32_t info_bl)
 
 unsigned int get_particle_type(struct Phase *const p, const uint64_t i, const unsigned int j)
 {
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
         return  (unsigned int)((uint8_t*)p->ph.monomer_types.ptr)[p->polymers[i].bead_offset + j];
 #else //ENABLE_MONOTYPE_CONVERSIONS
         return get_particle_type_of_poly_arch(p->poly_arch[p->poly_type_offset[p->polymers[i].type] + 1 + j]);

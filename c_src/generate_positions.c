@@ -230,12 +230,17 @@ int generate_new_beads(struct Phase *const p)
 
 int generate_monomer_type_array(struct Phase *const p)
 {
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
+    if (p->info_MPI.sim_rank == 0)
+    {
+        printf("Since monomer type data was not given in h5-file, will now produce monomer_types data from poly arch.\n");
+        fflush(stdout);
+    }
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
             Polymer *const poly = &(p->polymers[i]);
             const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-            u_int8_t *monomer_type = p->ph.monomer_types.ptr;
+            uint8_t *monomer_type = p->ph.monomer_types.ptr;
             monomer_type += poly->bead_offset;
 
             for(unsigned int j = 0; j < N; j++)
@@ -244,6 +249,12 @@ int generate_monomer_type_array(struct Phase *const p)
                 }
         }
 #endif //ENABLE_MONOTYPE_CONVERSIONS
+    if ( p->bead_data_read == true )
+        {       //update density fields, if bead data is already present. 
+            update_device_polymer_heavy(p, false);
+            update_density_fields(p);
+            memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
+        } 
     return 0;
 }
 
