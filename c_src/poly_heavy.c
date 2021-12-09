@@ -181,18 +181,18 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
             new_beads += new_bead_offset;
 
             memcpy(new_beads, old_beads, N * sizeof(Monomer));
-
-#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
-            uint8_t *old_monomer_types = p->ph.monomer_types.ptr;
-            old_monomer_types += p->polymers[i].bead_offset;
-            uint8_t *new_monomer_types = new_ph.monomer_types.ptr;
-            new_monomer_types += new_bead_offset;
-
-            memcpy(new_monomer_types, old_monomer_types, N * sizeof(uint8_t));
-#endif //ENABLE_MONOTYPE_CONVERSIONS
-
             p->polymers[i].bead_offset = new_bead_offset;
 
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
+            uint64_t new_monomer_type_offset = get_new_soma_memory_offset(&(new_ph.monomer_types), N);
+            uint8_t *old_monomer_types = p->ph.monomer_types.ptr;
+            old_monomer_types += p->polymers[i].monomer_type_offset;
+            uint8_t *new_monomer_types = new_ph.monomer_types.ptr;
+            new_monomer_types += new_monomer_type_offset;
+
+            memcpy(new_monomer_types, old_monomer_types, N * sizeof(uint8_t));
+            p->polymers[i].monomer_type_offset = new_monomer_type_offset;
+#endif //ENABLE_MONOTYPE_CONVERSIONS
 
             uint64_t new_msd_bead_offset = get_new_soma_memory_offset(&(new_ph.msd_beads), N);
             Monomer *old_msd_beads = p->ph.msd_beads.ptr;

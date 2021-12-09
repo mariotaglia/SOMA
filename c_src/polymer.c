@@ -224,7 +224,7 @@ int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigne
 
     //Monomer types data
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
-    memcpy(buffer + position, ((uint8_t *) p->ph.monomer_types.ptr) + poly->bead_offset, N * sizeof(uint8_t));
+    memcpy(buffer + position, ((uint8_t *) p->ph.monomer_types.ptr) + poly->monomer_type_offset, N * sizeof(uint8_t));
     position += N * sizeof(uint8_t);
 #endif //ENABLE_MONOTYPE_CONVERSIONS
 
@@ -306,7 +306,14 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
 
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Monomer types data
-    memcpy(((uint8_t *) p->ph.monomer_types.ptr) + poly->bead_offset, buffer + position, N * sizeof(uint8_t));
+    poly->monomer_type_offset = get_new_soma_memory_offset(&(p->ph.monomer_types), N);
+    if (poly->monomer_type_offset == UINT64_MAX)
+        {
+            fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                    p->info_MPI.world_rank, p->n_polymers);
+            return -1;
+        }
+    memcpy(((uint8_t *) p->ph.monomer_types.ptr) + poly->monomer_type_offset, buffer + position, N * sizeof(uint8_t));
     position += N * sizeof(uint8_t);
 #endif //ENABLE_MONOTYPE_CONVERSIONS
 

@@ -443,16 +443,8 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
     hid_t mt_dataset = H5Dcreate2(file_id, "/monomer_types", H5T_SOMA_FILE_SCALAR, mt_dataspace,
                                      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-    bead_offset = 0;
-#if ( ENABLE_MPI == 1 )
-    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
-    MPI_Scan((uint64_t *) & (p->num_all_beads_local), &bead_offset, 1, MPI_UINT64_T, MPI_SUM,
-             p->info_MPI.SOMA_comm_sim);
-    bead_offset -= p->num_all_beads_local;
-#endif                          //ENABLE_MPI
-
     mt_dataspace = H5Dget_space(mt_dataset);
-    hsize_t hsize_mt_offset[1] = { bead_offset};
+    hsize_t hsize_mt_offset[1] = { bead_offset}; //bead_offset same as above
     H5Sselect_hyperslab(mt_dataspace, H5S_SELECT_SET, hsize_mt_offset, NULL, hsize_mt_memspace, NULL);
 
     uint8_t *const mt_data =
@@ -468,7 +460,7 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
             uint8_t *mts = p->ph.monomer_types.ptr;
-            mts += p->polymers[i].bead_offset;
+            mts += p->polymers[i].monomer_type_offset;
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
 
             for (unsigned int j = 0; j < N; j++)
@@ -1181,6 +1173,17 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
     /* Read monomer types from file if present:*/
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     init_soma_memory(&(p->ph.monomer_types), p->num_all_beads_local, sizeof(uint8_t));
+    for(uint64_t i = 0; i < p->n_polymers; i++)
+        {
+            const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+            p->polymers[i].monomer_type_offset = get_new_soma_memory_offset(&(p->ph.monomer_types), N);
+            if (p->polymers[i].monomer_type_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
+        }
     if (H5Lexists(file_id, "/monomer_types", H5P_DEFAULT) > 0)
         {
 
@@ -1197,7 +1200,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             hid_t mt_memspace = H5Screate_simple(1, hsize_mt_memspace, NULL);
             hid_t mt_dataset = H5Dopen2(file_id, "/monomer_types", H5P_DEFAULT);
             hid_t mt_dataspace = H5Dget_space(mt_dataset);
-            hsize_t hsize_mt_offset[1] = { bead_offset, 0 };
+            hsize_t hsize_mt_offset[1] = { bead_offset, 0 }; //bead_offset should be the same as monomer_type_offset
             H5Sselect_hyperslab(mt_dataspace, H5S_SELECT_SET, hsize_mt_offset, NULL, hsize_mt_memspace, NULL);
 
             if ((status =
@@ -1235,7 +1238,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             for (uint64_t i = 0; i < p->n_polymers; i++)
                 {
                     uint8_t *mts = p->ph.monomer_types.ptr;
-                    mts += p->polymers[i].bead_offset;
+                    mts += p->polymers[i].monomer_type_offset;
 
                     const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
                     for (unsigned int j = 0; j < N; j++)
@@ -1247,6 +1250,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
                 }
             assert(mt_mem_counter == p->num_all_beads_local);
             free(mt_data);
+            p->mt_data_read = true;
 
         } else {
         p->mt_data_read = false;

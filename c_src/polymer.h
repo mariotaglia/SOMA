@@ -35,6 +35,9 @@ typedef struct Polymer {
     uint64_t tag;               //!< unique tag of the polymer that remains constant even after sending around and storing in restart files.
     uint64_t bead_offset;       //!< \brief offset to the bead pointer for this polymer.
     uint64_t msd_bead_offset;   //!< \brief offset to the msd bead pointer for this polymer. (Typically not on device).
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
+    uint64_t monomer_type_offset;//!< \brief offset to the monomer_types pointer for this polymer.
+#endif //ENABLE_MONOTYPE_CONVERSIONS
     uint64_t set_states_offset; //!< offset to the set_states pointer for this polymer.
     uint64_t set_permutation_offset;    //!< offset to the set_permutation pointer for this polymer.
 } Polymer;
