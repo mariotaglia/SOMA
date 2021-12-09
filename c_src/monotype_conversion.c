@@ -561,13 +561,12 @@ int fully_convert_monotypes(struct Phase *p)
             const unsigned int N = p->poly_arch[p->poly_type_offset[polymer->type]];
             for(unsigned int mono=0;mono<N;mono++)
                 {
-                    const Monomer pos = ((Monomer*)p->ph.beads.ptr)[polymer->bead_offset]; //this is outdated.
+                    const Monomer pos = ((Monomer*)p->ph.beads.ptr)[polymer->bead_offset + mono];
                     const uint64_t cell = coord_to_index(p, pos.x, pos.y, pos.z);
 
                     if (p->mtc.array[cell] != 0)
                         {
                             //Minus 1 because the index in array are shifted by 1
-
                             int i = p->mtc.array[cell] - 1;
                             unsigned int monotype = get_particle_type(p, poly, mono);
                             do {
@@ -619,7 +618,7 @@ int partially_convert_monotypes(struct Phase *p)
                                         soma_scalar_t random_number = soma_rng_soma_scalar(&(mypoly->poly_state), p);
                                         if(random_number < probability)
                                             {
-                                            ((uint8_t*)p->ph.monomer_types.ptr)[mypoly->bead_offset + mono] = (uint8_t)p->mtc.output_type[i];
+                                            ((uint8_t*)p->ph.monomer_types.ptr)[mypoly->monomer_type_offset + mono] = (uint8_t)p->mtc.output_type[i];
                                             break; //to continue with next polymer if conversion has taken place.
                                             }
                                         else
