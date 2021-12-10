@@ -61,58 +61,58 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
                            sizeof(soma_scalar_t));
     if (p->ef.eps_arr == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    {
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+        return -1;
+    }
 
     //Allocate ef.Epot_tmp
     p->ef.Epot_tmp =
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
                            sizeof(soma_scalar_t));
-     if (p->ef.Epot_tmp == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    if (p->ef.Epot_tmp == NULL)
+    {
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+        return -1;
+    }
 
     //Allocate partial derivatives array
     p->ef.pre_deriv =
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz * 6 *
                           sizeof(soma_scalar_t));
-     if (p->ef.pre_deriv == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    if (p->ef.pre_deriv == NULL)
+    {
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+        return -1;
+    }
 
     //Allocate ef.H_el_field
     p->ef.H_el_field =
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
                            sizeof(soma_scalar_t));
-     if (p->ef.H_el_field == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    if (p->ef.H_el_field == NULL)
+    {
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+        return -1;
+    }
 
     //Allocate ef.omega_field_el
     p->ef.omega_field_el =
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz * p->n_types *
                            sizeof(soma_scalar_t));
-     if (p->ef.omega_field_el == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    if (p->ef.omega_field_el == NULL)
+    {
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+        return -1;
+    }
 
     //Read p->ef.eps
     p->ef.eps = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
     if (p->ef.eps == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
+    {
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+        return -1;
+    }
     status = read_hdf5(file_id, "/parameter/dielectric_constants", H5T_SOMA_NATIVE_SCALAR, plist_id, p->ef.eps);
     HDF5_ERROR_CHECK2(status, "/parameter/dielectric_constants");
 
@@ -131,19 +131,19 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     //Read electrode array
     status = read_field_custom_hdf5(p, (void **) &(p->ef.electrodes), "/electrodes", sizeof(uint8_t), H5T_STD_U8LE, MPI_UINT8_T, file_id, plist_id);
     if (status != 0)
-        {
-            fprintf(stderr, "ERROR: failed to read electrode field %s:%d.\n", __FILE__, __LINE__);
-            return status;
-        }                                                                             // Substitute with function in io.c                                                                                                             
+    {
+        fprintf(stderr, "ERROR: failed to read electrode field %s:%d.\n", __FILE__, __LINE__);
+        return status;
+    }                                                                             // Substitute with function in io.c                                                                                                             
 
     //Read electric potential field
     status = read_field_custom_hdf5(p, (void **) &(p->ef.Epot), "/electric_field", sizeof(soma_scalar_t), H5T_SOMA_NATIVE_SCALAR,
                                             MPI_SOMA_SCALAR, file_id, plist_id);
     if (status != 0)
-        {
-            fprintf(stderr, "ERROR: failed to read electric potential field %s:%d.\n", __FILE__, __LINE__);
-            return status;
-        }
+    {
+        fprintf(stderr, "ERROR: failed to read electric potential field %s:%d.\n", __FILE__, __LINE__);
+        return status;
+    }
 
     return 0;   
 }
@@ -155,7 +155,7 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
     //Quick exit for no poly conversions
     if (p->ef.iter_per_MC == 0)
         return 0;
-        //Write dielectric constants data
+    //Write dielectric constants data
     const hsize_t one = 1;
     hsize_t n_types_size = p->n_types;
     hid_t status;
@@ -182,34 +182,34 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
     //Write electrodes field
     status = write_field_custom_hdf5(p, (void **) &(p->ef.electrodes), "/electrodes", H5T_STD_U8LE, H5T_NATIVE_UINT8, file_id, plist_id);
     if (status != 0)
-        {
-            fprintf(stderr, "ERROR: failed to write electrode field %s:%d.\n", __FILE__, __LINE__);
-            return status;
-        }
+    {
+        fprintf(stderr, "ERROR: failed to write electrode field %s:%d.\n", __FILE__, __LINE__);
+        return status;
+    }
 
     //Write electric potential field array
     status = write_field_custom_hdf5(p, (void **) &(p->ef.Epot), "/epot_field", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, file_id, plist_id);
     if (status != 0)
-        {
-            fprintf(stderr, "ERROR: failed to write electric potential field %s:%d.\n", __FILE__, __LINE__);
-            return status;
-        }
+    {
+        fprintf(stderr, "ERROR: failed to write electric potential field %s:%d.\n", __FILE__, __LINE__);
+        return status;
+    }
 
     //Write dielectric field array
     status = write_field_custom_hdf5(p, (void **) &(p->ef.eps_arr), "/dielectric_field", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, file_id, plist_id);
     if (status != 0)
-        {
-            fprintf(stderr, "ERROR: failed to write dielectric field %s:%d.\n", __FILE__, __LINE__);
-            return status;
-        }
+    {
+        fprintf(stderr, "ERROR: failed to write dielectric field %s:%d.\n", __FILE__, __LINE__);
+        return status;
+    }
 
     //Write electrostatic hamiltonian field array
     status = write_field_custom_hdf5(p, (void **) &(p->ef.H_el_field), "/H_el_field", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, file_id, plist_id);
     if (status != 0)
-        {
-            fprintf(stderr, "ERROR: failed to write dielectric field %s:%d.\n", __FILE__, __LINE__);
-            return status;
-        }
+    {
+        fprintf(stderr, "ERROR: failed to write dielectric field %s:%d.\n", __FILE__, __LINE__);
+        return status;
+    }
 
     return 0;
 }
@@ -228,10 +228,10 @@ int copyin_electric_field(struct Phase *p)
 #pragma acc enter data copyin(p->ef.thresh_iter)
 #pragma acc enter data copyin(p->ef.Epot[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.Epot_tmp[0:p->n_cells_local])
-#pragma acc enter data copyin(p->ef.pre_deriv[0:p->n_cells_local])
+#pragma acc enter data copyin(p->ef.pre_deriv[0:p->n_cells_local*6])
 #pragma acc enter data copyin(p->ef.H_el_field[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.H_el)
-#pragma acc enter data copyin(p->ef.omega_fields_el[0:(p->n_cells_local*p->n_types)])
+#pragma acc enter data copyin(p->ef.omega_field_el[0:(p->n_cells_local*p->n_types)])
 #endif                          //_OPENACC
         }
     return 0;
@@ -250,10 +250,10 @@ int copyout_electric_field(struct Phase *p)
 #pragma acc exit data copyout(p->ef.thresh_iter)
 #pragma acc exit data copyout(p->ef.Epot[0:p->n_cells_local])
 #pragma acc exit data copyout(p->ef.Epot_tmp[0:p->n_cells_local])
-#pragma acc exit data copyout(p->ef.pre_deriv[0:p->n_cells_local])
+#pragma acc exit data copyout(p->ef.pre_deriv[0:p->n_cells_local*6])
 #pragma acc exit data copyout(p->ef.H_el_field[0:p->n_cells_local])
 #pragma acc exit data copyout(p->ef.H_el)
-#pragma acc exit data copyout(p->ef.omega_fields_el[0:(p->n_cells_local*p->n_types)])
+#pragma acc exit data copyout(p->ef.omega_field_el[0:(p->n_cells_local*p->n_types)])
 #endif                          //_OPENACC
         }
     return 0;
@@ -272,10 +272,10 @@ int update_self_electric_field(const struct Phase *const p)
 #pragma acc update self(p->ef.thresh_iter)
 #pragma acc update self(p->ef.Epot[0:p->n_cells_local])
 #pragma acc update self(p->ef.Epot_tmp[0:p->n_cells_local])
-#pragma acc update self(p->ef.pre_deriv[0:p->n_cells_local])
+#pragma acc update self(p->ef.pre_deriv[0:p->n_cells_local*6])
 #pragma acc update self(p->ef.H_el_field[0:p->n_cells_local])
 #pragma acc update self(p->ef.H_el)
-#pragma acc update self(p->ef.omega_fields_el[0:(p->n_cells_local*p->n_types)])
+#pragma acc update self(p->ef.omega_field_el[0:(p->n_cells_local*p->n_types)])
 #endif                          //_OPENACC
         }
     return 0;
@@ -364,10 +364,10 @@ void calc_dielectric_field(struct Phase *const p)
 {
     // soma_scalar_t eps_0 = 1.0;
     // soma_scalar_t tmp_frac_n, tmp_eps_n;
-    soma_scalar_t tmp_phi_n, tmp_eps_phi_n;
+    // soma_scalar_t tmp_phi_n, tmp_eps_phi_n;
 
-#pragma acc parallel loop present(p[0:1]) private(tmp_phi_n) private(tmp_eps_phi_n)
-#pragma omp parallel for private(tmp_phi_n) private(tmp_eps_phi_n)
+#pragma acc parallel loop present(p[0:1])
+#pragma omp parallel for
     for (uint64_t i = 0; i < p-> n_cells; i++)
     {
         if (p->ef.electrodes[i] == 1)
@@ -389,8 +389,8 @@ void calc_dielectric_field(struct Phase *const p)
             // p->ef.eps_arr[i] = eps_0 * tmp_frac_n + tmp_eps_n;
 
             // Calculation according to welling2014 eq. 82, density independent expression
-            tmp_phi_n = 0.0;
-            tmp_eps_phi_n = 0.0;
+            soma_scalar_t tmp_phi_n = 0.0;
+            soma_scalar_t tmp_eps_phi_n = 0.0;
             
             for (uint8_t n = 0; n < p->n_types; n++)
             {
@@ -405,7 +405,7 @@ void calc_dielectric_field(struct Phase *const p)
 
 void pre_derivatives(struct Phase *const p)
 {
-    // soma_scalar_t cr, epsx, epsy, epsz;                      // declared inside loops, problematic to reinitialize?
+    // soma_scalar_t cr, epsx, epsy, epsz;                   
     // uint64_t i, pos6;
 
 #pragma acc parallel loop present(p[0:1]) collapse(3)
@@ -518,7 +518,7 @@ int calc_electric_field_contr(struct Phase *const p)
             for (uint64_t z=0; z < p->nz; z++)
             {
                 uint64_t i = cell_to_index(p,x,y,z);
-                 if (p->ef.electrodes[i] == 1)
+                if (p->ef.electrodes[i] == 1)
                 {
                     p->ef.Epot_tmp[i] = p->ef.Epot[i]; 
                 }
@@ -533,7 +533,6 @@ int calc_electric_field_contr(struct Phase *const p)
 
                     for (uint8_t m = 0; m < p->n_types; m++)
                     {   
-
                         soma_scalar_t phi_sum = 0.0;
                         soma_scalar_t diff_part = 0.0;
 
@@ -549,7 +548,7 @@ int calc_electric_field_contr(struct Phase *const p)
                             }
                         }
 
-                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * p->num_all_beads);  
+                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->num_all_beads);  
 
                         // eps_res = 0.0;
                         // phi_other = 0.0;
