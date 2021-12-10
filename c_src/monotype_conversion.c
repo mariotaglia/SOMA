@@ -382,14 +382,14 @@ int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
             } else { //no dependencies --> empty dataset, so only create, don't write.
                 herr_t status;
                 const hid_t dataspace = H5Screate_simple(1, &dep_list_len, NULL);
-                HDF5_ERROR_CHECK2(dataspace, name);
+                HDF5_ERROR_CHECK(dataspace);
                 const hid_t dataset = H5Dcreate2(file_id, "/monoconversion/density_dependencies", H5T_STD_U32LE, dataspace,
                                                  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-                HDF5_ERROR_CHECK2(dataset, name);
+                HDF5_ERROR_CHECK(dataset);
                 status = H5Sclose(dataspace);
-                HDF5_ERROR_CHECK2(status, name);
+                HDF5_ERROR_CHECK(status);
                 status = H5Dclose(dataset);
-                HDF5_ERROR_CHECK2(status, name);
+                HDF5_ERROR_CHECK(status);
             }
         }
 
@@ -604,6 +604,7 @@ int partially_convert_monotypes(struct Phase *p)
                             //iteration over polymer 
             const Polymer *mypoly = p->polymers + poly;
             const unsigned int N = p->poly_arch[p->poly_type_offset[mypoly->type]];
+            // potentially tell acc not to parallelize this, because random number generator of polymers.
             for(unsigned int mono=0; mono<N; mono++)
                 {
                            //iteration over monomers
