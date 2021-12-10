@@ -354,6 +354,35 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
                    p->pc.reaction_end);
     HDF5_ERROR_CHECK(status);
 
+    if(p->pc.rate != NULL)
+        {
+        status =
+            write_hdf5(1, &list_len, file_id, "/polyconversion/rate", H5T_NATIVE_DOUBLE, H5T_NATIVE_DOUBLE, plist_id,
+                       p->pc.rate);
+        HDF5_ERROR_CHECK(status);
+        status =
+            write_hdf5(1, &list_len, file_id, "/polyconversion/n_density_dependencies", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                       p->pc.dependency_ntype);
+        HDF5_ERROR_CHECK(status);
+        const hsize_t dep_list_len = p->pc.len_dependencies;
+        if ( dep_list_len > 0 )
+            {
+                status = write_hdf5(1, &dep_list_len, file_id, "/polyconversion/density_dependencies", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, p->pc.dependency_type);
+                HDF5_ERROR_CHECK(status);
+            } else { //no dependencies --> empty dataset, so only create, don't write.
+                herr_t status;
+                const hid_t dataspace = H5Screate_simple(1, &dep_list_len, NULL);
+                HDF5_ERROR_CHECK2(dataspace, name);
+                const hid_t dataset = H5Dcreate2(file_id, "/polyconversion/density_dependencies", H5T_STD_U32LE, dataspace,
+                                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+                HDF5_ERROR_CHECK2(dataset, name);
+                status = H5Sclose(dataspace);
+                HDF5_ERROR_CHECK2(status, name);
+                status = H5Dclose(dataset);
+                HDF5_ERROR_CHECK2(status, name);
+            }
+        }
+
     //Write the array to disk
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
@@ -369,23 +398,6 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
     dataspace = H5Dget_space(dataset);
     const hsize_t offset[3] = { my_domain * (p->nx / p->args.N_domains_arg), 0, 0 };
     H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, hsize_memspace, NULL);
-
-    if(p->pc.rate != NULL)
-        {
-        status =
-            write_hdf5(1, &list_len, file_id, "/polyconversion/rate", H5T_NATIVE_DOUBLE, H5T_NATIVE_DOUBLE, plist_id,
-                       p->pc.rate);
-        HDF5_ERROR_CHECK(status);
-        status =
-            write_hdf5(1, &list_len, file_id, "/polyconversion/n_density_dependencies", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
-                       p->pc.dependency_ntype);
-        HDF5_ERROR_CHECK(status);
-        const hsize_t dep_list_len = p->pc.len_dependencies;
-        status =
-            write_hdf5(1, &dep_list_len, file_id, "/polyconversion/density_dependencies", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
-                       p->pc.dependency_type);
-        HDF5_ERROR_CHECK(status);
-        }
 
 #if ( ENABLE_MPI == 1 )
     MPI_Barrier(p->info_MPI.SOMA_comm_world);

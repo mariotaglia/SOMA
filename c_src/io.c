@@ -440,7 +440,7 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
     hsize_t hsize_mt_memspace[1] = { p->num_all_beads_local };
     hid_t mt_memspace = H5Screate_simple(1, hsize_mt_memspace, NULL);
 
-    hid_t mt_dataset = H5Dcreate2(file_id, "/monomer_types", H5T_SOMA_FILE_SCALAR, mt_dataspace,
+    hid_t mt_dataset = H5Dcreate2(file_id, "/monomer_types", H5T_STD_U8LE, mt_dataspace,
                                      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     mt_dataspace = H5Dget_space(mt_dataset);
@@ -474,7 +474,7 @@ int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id
     assert(bead_mem_counter == p->num_all_beads_local);
 
     if ((status =
-         H5Dwrite(mt_dataset, H5T_SOMA_NATIVE_SCALAR, mt_memspace, mt_dataspace, plist_id, mt_data)) < 0)
+         H5Dwrite(mt_dataset, H5T_NATIVE_UINT8, mt_memspace, mt_dataspace, plist_id, mt_data)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
                     p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
@@ -1204,7 +1204,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             H5Sselect_hyperslab(mt_dataspace, H5S_SELECT_SET, hsize_mt_offset, NULL, hsize_mt_memspace, NULL);
 
             if ((status =
-                 H5Dread(mt_dataset, H5T_SOMA_NATIVE_SCALAR, mt_memspace, mt_dataspace, plist_id,
+                 H5Dread(mt_dataset, H5T_NATIVE_UINT8, mt_memspace, mt_dataspace, plist_id,
                          mt_data)) < 0)
                 {
                     fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
