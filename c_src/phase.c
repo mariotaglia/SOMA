@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
 
    This file is part of SOMA.
 
@@ -26,16 +26,20 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include <sys/time.h>
 #include "init.h"
 #include "independent_sets.h"
 #include "mesh.h"
+#include "polytype_conversion.h"
+#include "mobility.h"
+#include "self_documentation.h"
+#include "poly_heavy.h"
 
 int init_phase(struct Phase *const p)
 {
-    print_version(p->info_MPI.world_rank);
     p->present_on_device = false;
     p->start_time = p->time;
-    p->start_clock = time(NULL);
+    gettimeofday(&(p->start_clock), NULL);
     p->n_accepts = 0;
     p->n_moves = 0;
     p->n_tries_cm = 0;
@@ -50,14 +54,42 @@ int init_phase(struct Phase *const p)
     n_polymer_offset -= p->n_polymers;
 #endif                          //ENABLE_MPI
 
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            /* intentionally falls through */
+        case pseudo_random_number_generator_arg_PCG32:
+            init_soma_memory(&(p->rh.mt), 0, 0);
+            init_soma_memory(&(p->rh.tt800), 0, 0);
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            init_soma_memory(&(p->rh.mt), p->n_polymers, sizeof(MERSENNE_TWISTER_STATE));
+            init_soma_memory(&(p->rh.tt800), 0, 0);
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            init_soma_memory(&(p->rh.mt), 0, 0);
+            init_soma_memory(&(p->rh.tt800), p->n_polymers, sizeof(TT800STATE));
+            break;
+        }
     for (uint64_t i = 0; i < p->n_polymers; i++)
         {
-            p->polymers[i].set_states = NULL;
-            p->polymers[i].set_permutation = NULL;
-
-            allocate_rng_state(&(p->polymers[i].poly_state), p->args.pseudo_random_number_generator_arg);
-            seed_rng_state(&(p->polymers[i].poly_state), p->args.rng_seed_arg,
-                           i + n_polymer_offset, p->args.pseudo_random_number_generator_arg);
+            p->polymers[i].set_states_offset = UINT64_MAX;
+            p->polymers[i].set_permutation_offset = UINT64_MAX;
+            switch (p->args.pseudo_random_number_generator_arg)
+                {
+                case pseudo_random_number_generator__NULL:
+                    /* intentionally falls through */
+                case pseudo_random_number_generator_arg_PCG32:
+                    p->polymers[i].poly_state.alternative_rng_offset = UINT64_MAX;
+                    break;
+                case pseudo_random_number_generator_arg_MT:
+                    p->polymers[i].poly_state.alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.mt), 1);
+                    break;
+                case pseudo_random_number_generator_arg_TT800:
+                    p->polymers[i].poly_state.alternative_rng_offset = get_new_soma_memory_offset(&(p->rh.tt800), 1);
+                    break;
+                }
+            seed_rng_state(&(p->polymers[i].poly_state), p->args.rng_seed_arg, i + n_polymer_offset, p);
         }
 
     // Max safe move distance
@@ -98,21 +130,21 @@ int init_phase(struct Phase *const p)
 
     if (p->args.N_domains_arg > 1 && p->info_MPI.domain_rank == 0)
         {
-            p->left_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
+            p->left_tmp_buffer = (uint16_t *) malloc((p->args.domain_buffer_arg * p->ny * p->nz) * sizeof(uint16_t));
             if (p->left_tmp_buffer == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
                     return -1;
                 }
-            p->right_tmp_buffer = (uint16_t *) malloc(p->args.domain_buffer_arg * p->ny * p->nz * sizeof(uint16_t));
+            p->right_tmp_buffer = (uint16_t *) malloc((p->args.domain_buffer_arg * p->ny * p->nz) * sizeof(uint16_t));
             if (p->right_tmp_buffer == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
                     return -1;
                 }
         }
-
     p->fields_unified = (uint16_t *) malloc(p->n_cells_local * p->n_types * sizeof(uint16_t));
+    p->fields_unified = (uint16_t *) malloc((p->n_cells_local * p->n_types) * sizeof(uint16_t));
     if (p->fields_unified == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -145,42 +177,15 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->num_bead_type = (uint64_t *) malloc(p->n_types * sizeof(uint64_t));
-    if (p->num_bead_type == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    p->num_bead_type_local = (uint64_t *) malloc(p->n_types * sizeof(uint64_t));
-    if (p->num_bead_type_local == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    p->field_scaling_type = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
-    if (p->field_scaling_type == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
     // Set all values to zero
-
     p->num_all_beads = 0;
     p->num_all_beads_local = 0;
-    for (unsigned int i = 0; i < p->n_types; i++)
-        p->num_bead_type_local[i] = 0;
+
     // Determine number of  different bead types
     for (uint64_t j = 0; j < p->n_polymers; j++)
         {                       /*Loop over polymers */
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[j].type]];
-            for (unsigned int k = 0; k < N; k++)
-                {               /*Loop over monomers */
-                    const unsigned int type =
-                        get_particle_type(p->poly_arch[p->poly_type_offset[p->polymers[j].type] + 1 + k]);
-                    p->num_bead_type_local[type] += 1;
-                    p->num_all_beads_local += 1;
-                }
+            p->num_all_beads_local += N;
         }
 #if ( ENABLE_MPI == 1 )
     // Share p->num_all_beads
@@ -189,16 +194,6 @@ int init_phase(struct Phase *const p)
     p->num_all_beads = p->num_all_beads_local;
 #endif                          //ENABLE_MPI
 
-    // Share p->num_bead_type
-    for (unsigned int i = 0; i < p->n_types; i++)
-        {
-#if ( ENABLE_MPI == 1 )
-            MPI_Allreduce(&(p->num_bead_type_local[i]), &(p->num_bead_type[i]),
-                          1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#else
-            p->num_bead_type[i] = p->num_bead_type_local[i];
-#endif                          //ENABLE_MPI
-        }
     // Check if uint16_t density field is enough
     soma_scalar_t check_short = p->num_all_beads / p->n_cells;
 
@@ -231,9 +226,13 @@ int init_phase(struct Phase *const p)
     MPI_Allreduce(MPI_IN_PLACE, &ncells, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #endif                          //ENABLE_MPI
 
+    p->n_accessible_cells = ncells;
     // Loop to calculate scaling parameter
+    // Note the *= the field is initialized with the density weights in read_hdf5_config.
+    // default value = 1.
     for (unsigned int i = 0; i < p->n_types; i++)
-        p->field_scaling_type[i] = (ncells / ((soma_scalar_t) p->num_all_beads));
+        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads));
+
     // Info for Ulrich: programm does take excluded volume into account now!
     p->n_accepts = 0;
     p->n_moves = 0;
@@ -274,6 +273,16 @@ int init_phase(struct Phase *const p)
             memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
         }
 
+    p->sd.Ndoc = 0;
+    p->sd.simdoc = NULL;
+    p->sd.simdoc_internal = NULL;
+    if (p->args.coord_file_arg != NULL) //This is only set to NULL if convert is used.
+        {
+            init_self_documentation(p, p->args.coord_file_arg, &(p->sd));
+        }
+    if (p->info_MPI.world_rank == 0)
+        print_self_documentation(&(p->sd), stdout);
+
     int ret = 0;
     if (p->args.coord_file_arg != NULL) //Is it a full init Phase?
         ret = init_ana(p, p->args.ana_file_arg, p->args.coord_file_arg);
@@ -295,8 +304,8 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p[0:1])
 #pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
-#pragma acc enter data copyin(p->fields_unified[0:p->n_types*p->n_cells_local])
-#pragma acc enter data copyin(p->old_fields_unified[0:p->n_types*p->n_cells_local])
+#pragma acc enter data copyin(p->fields_unified[0:(p->n_types*p->n_cells_local)])
+#pragma acc enter data copyin(p->old_fields_unified[0:(p->n_types*p->n_cells_local)])
 #pragma acc enter data copyin(p->fields_32[0:p->n_types*p->n_cells_local])
     if (p->area51 != NULL)
         {
@@ -312,8 +321,6 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
-#pragma acc enter data copyin(p->num_bead_type[0:p->n_types])
-#pragma acc enter data copyin(p->num_bead_type_local[0:p->n_types])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
 #pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
@@ -334,12 +341,30 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
         }
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            copyin_polymer(p, poly);
-        }
+#ifdef ENABLE_MPI_CUDA
+    //in this case also copy in the buffers:
+
+#pragma acc enter data copyin(p->left_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz) ])
+#pragma acc enter data copyin(p->right_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
+#endif                          //ENABLE_MPI_CUDA
 #endif                          //_OPENACC
+
+    copyin_poly_conversion(p);
+    copyin_mobility(p);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            copyin_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            copyin_soma_memory(&(p->rh.tt800));
+            break;
+        }
+    copyin_polymer_heavy(p);
 
     p->present_on_device = true;
     return p->n_polymers * 0 + 1;
@@ -372,8 +397,6 @@ int copyout_phase(struct Phase *const p)
 #pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
 #pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
-#pragma acc exit data copyout(p->num_bead_type[0:p->n_types])
-#pragma acc exit data copyout(p->num_bead_type_local[0:p->n_types])
 #pragma acc exit data copyout(p->A[0:p->n_types])
 #pragma acc exit data copyout(p->R[0:p->n_types])
 #pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
@@ -394,15 +417,32 @@ int copyout_phase(struct Phase *const p)
                 }
 #pragma acc exit data copyout(p->sets[0:p->n_poly_type])
         }
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            copyout_polymer(p, poly);
-        }
+#ifdef ENABLE_MPI_CUDA
+#pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#endif                          //ENABLE_MPI_CUDA
+
 #pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma acc exit data delete(p[0:1])
 #endif                          //_OPENACC
+
+    copyout_poly_conversion(p);
+    copyout_mobility(p);
+    switch (p->args.pseudo_random_number_generator_arg)
+        {
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            copyout_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            copyout_soma_memory(&(p->rh.tt800));
+            break;
+        }
+    copyout_polymer_heavy(p);
 
     p->present_on_device = false;
     return p->n_polymers * 0 + 1;
@@ -420,8 +460,6 @@ int free_phase(struct Phase *const p)
     free(p->fields_unified);
     free(p->old_fields_unified);
     free(p->fields_32);
-    free(p->num_bead_type);
-    free(p->num_bead_type_local);
     free(p->field_scaling_type);
     free(p->k_umbrella);
     free(p->A);
@@ -442,40 +480,44 @@ int free_phase(struct Phase *const p)
             free(p->sets);
         }
 
-    /* free polymers */
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            Polymer *const poly = &(p->polymers[i]);
-            free_polymer(p, poly);
-        }
-
     free(p->polymers);
-
     free(p->poly_type_offset);
     free(p->poly_arch);
-
     free(p->xn);
 
     if (p->area51 != NULL)
-        {
-            free(p->area51);
-        }
+        free(p->area51);
 
     if (p->external_field_unified != NULL)
-        {
-            free(p->external_field_unified);
-        }
+        free(p->external_field_unified);
 
     if (p->umbrella_field != NULL)
+        free(p->umbrella_field);
+
+    free_poly_conversion(p);
+    free_mobility(p);
+
+    free_self_documentation(&(p->sd));
+    switch (p->args.pseudo_random_number_generator_arg)
         {
-            free(p->umbrella_field);
+        case pseudo_random_number_generator__NULL:
+            break;
+        case pseudo_random_number_generator_arg_PCG32:
+            break;
+        case pseudo_random_number_generator_arg_MT:
+            free_soma_memory(&(p->rh.mt));
+            break;
+        case pseudo_random_number_generator_arg_TT800:
+            free_soma_memory(&(p->rh.tt800));
+            break;
         }
+    free_polymer_heavy(p);
 
     close_ana(&(p->ana_info));
     return 0;
 }
 
-int update_self_phase(const Phase * const p, int rng_update_flag)
+int update_self_phase(Phase * const p, int rng_update_flag)
 {
     static unsigned int last_time_call = 0;
     if (last_time_call == 0 || p->time > last_time_call)
@@ -485,10 +527,9 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
 
     // Not pointer members are expected to not change on device
 #pragma acc update self(p->xn[0:p->n_types*p->n_types])
+#pragma acc update self(p->polymers[0:p->n_polymers])
 
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        update_self_polymer(p, p->polymers + i, rng_update_flag);
-
+    update_self_polymer_heavy(p, rng_update_flag);
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #pragma acc update self(p->old_fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc update self(p->fields_32[0:p->n_types*p->n_cells_local])
@@ -508,8 +549,6 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
         }
 
 #pragma acc update self(p->tempfield[0:p->n_cells_local])
-#pragma acc update self(p->num_bead_type[0:p->n_types])
-#pragma acc update self(p->num_bead_type_local[0:p->n_types])
 #pragma acc update self(p->A[0:p->n_types])
 #pragma acc update self(p->R[0:p->n_types])
 #pragma acc update self(p->field_scaling_type[0:p->n_types])
@@ -522,6 +561,25 @@ int update_self_phase(const Phase * const p, int rng_update_flag)
         }
 
     //SETS are not updated to host
+
+    update_self_poly_conversion(p);
+    update_self_mobility(p);
+    if (rng_update_flag)
+        {
+            switch (p->args.pseudo_random_number_generator_arg)
+                {
+                case pseudo_random_number_generator__NULL:
+                    break;
+                case pseudo_random_number_generator_arg_PCG32:
+                    break;
+                case pseudo_random_number_generator_arg_MT:
+                    update_self_soma_memory(&(p->rh.mt));
+                    break;
+                case pseudo_random_number_generator_arg_TT800:
+                    update_self_soma_memory(&(p->rh.tt800));
+                    break;
+                }
+        }
 
     return p->n_polymers * 0 + 1;
 }

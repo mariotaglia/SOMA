@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
 
@@ -32,323 +32,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif                          //_OPENMP
 #include "mesh.h"
 #include "cmdline.h"
 #include "soma_config.h"
-
-int read_old_config(struct Phase *p, char *const filename)
-{
-    FILE *inputfile;
-
-    /* open input file */
-    if ((inputfile = fopen(filename, "r")) == NULL)
-        {
-
-            fprintf(stderr, "Cannot open coord file %s\n", filename);
-            return -1;
-
-        }
-    if (p->info_MPI.world_size != 1)
-        {                       //Make sure this is only called for single core processes.
-            fprintf(stderr, "ERROR: convert can only be called with a single MPI-core.\n");
-            return -11;
-        }
-
-    int iread, NX, NY, NZ, S, HYDRO, LEBD, TCHECK, TWRITE, VCHECK, ZA, ZB, ZC;
-    unsigned int NpolyA, NmonoA, NpolyB, NmonoB, NpolyC, NmonoC;
-    soma_scalar_t chiN, deltaN, kappaN, stiff, hN1, gN1, fN1, phia, phib, phic,
-        D0, LY, LZ, time, F, f, xiN, gdot, forceN, kNcphi, dtcphi, Neq, Nav, Ntdgl, kT, dummy, dt;
-    char *Cdummy;
-    char cdummy[1024];
-    unsigned int i, j;
-
-    Cdummy = &cdummy[0];
-
-    /* read first line of coord.dat */
-    iread = fscanf(inputfile,
-#if (SINGLE_PRECISION == 1)
-                   "chiN = %g; deltaN = %g; kappaN = %g; stiff = %g; hN1 = %g; gN1 = %g; fN1 = %g; phia = %g; phib = %g; phic = %g; D0 = %g; LY = %g; LZ = %g; N = %d %d %d; S = %d;\n",
-#else                           //SINGLE_PRECISION
-                   "chiN = %lg; deltaN = %lg; kappaN = %lg; stiff = %lg; hN1 = %lg; gN1 = %lg; fN1 = %lg; phia = %lg; phib = %lg; phic = %lg; D0 = %lg; LY = %lg; LZ = %lg; N = %d %d %d; S = %d;\n",
-#endif                          //SINGLE_PRECISION
-                   &chiN, &deltaN, &kappaN, &stiff, &hN1, &gN1, &fN1, &phia,
-                   &phib, &phic, &D0, &LY, &LZ, &NX, &NY, &NZ, &S);
-
-    if (iread != 17)
-        {
-            fprintf(stderr, "Old io ERROR: %s:%d. (%d)\n", __FILE__, __LINE__, iread);
-            return -1;
-        }
-
-    /* read second line of coord.dat */
-    iread = fscanf(inputfile,
-#if (SINGLE_PRECISION == 1)
-                   "time =  %g; F = %g ( %g ); f = %g; xiN = %g; dt*N/xi = %g; gdot = %g; forceN = %g; kNcphi = %g; dtcphi = %g; Neq = %g; Nav = %g; Ntdgl = %g; kT = %g; HYDRO = %d; LEBD = %d; TCHECK = %d; TWRITE = %d; VCHECK = %d;\n",
-#else                           //SINGLE_PRECISION
-                   "time =  %lg; F = %lg ( %lg ); f = %lg; xiN = %lg; dt*N/xi = %lg; gdot = %lg; forceN = %lg; kNcphi = %lg; dtcphi = %lg; Neq = %lg; Nav = %lg; Ntdgl = %lg; kT = %lg; HYDRO = %d; LEBD = %d; TCHECK = %d; TWRITE = %d; VCHECK = %d;\n",
-#endif                          //SINGLE_PRECISION
-                   &time, &F, &dummy, &f, &xiN, &dt, &gdot, &forceN, &kNcphi,
-                   &dtcphi, &Neq, &Nav, &Ntdgl, &kT, &HYDRO, &LEBD, &TCHECK, &TWRITE, &VCHECK);
-    if (iread != 19)
-        {
-            fprintf(stderr, "Old io ERROR: %s:%d. (%d)\n", __FILE__, __LINE__, iread);
-            return -2;
-        }
-
-    /* read third line of coord.dat - free comment */
-    Cdummy = fgets(Cdummy, 1024, inputfile);
-
-    /* read fourth line of coord.dat */
-    iread =
-        fscanf(inputfile, "%u %u %d  %u %u %d  %u %u %d\n", &NpolyA,
-               &NmonoA, &ZA, &NpolyB, &NmonoB, &ZB, &NpolyC, &NmonoC, &ZC);
-    if (iread != 9)
-        {
-            fprintf(stderr, "Old io ERROR: %s:%d. (%d)\n", __FILE__, __LINE__, iread);
-            return -3;
-        }
-
-    p->reference_Nbeads = NmonoA;
-
-    /* use the values we need */
-
-    p->nx = NX;
-    p->ny = NY;
-    p->nz = NZ;
-    p->n_cells = NX * NY * NZ;
-    p->Lx = D0;
-    p->Ly = LY;
-    p->Lz = LZ;
-    p->time = time;
-
-    p->n_polymers = NpolyA;
-    p->n_polymers_storage = p->n_polymers;
-    assert(p->info_MPI.world_size == 1);        //Make sure this is only called for single core processes.
-    p->n_polymers_global = p->n_polymers;
-    p->n_types = 2;
-
-    /* Assuming same diffusion constant for all monomers for this input file, but value can vary! */
-    p->A = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
-    if (p->A == NULL)
-        {
-            fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
-            return -4;
-        }
-    p->A[0] = dt / p->reference_Nbeads;
-    p->A[1] = dt / p->reference_Nbeads;
-
-    /* allocate XN interaction matrix */
-    p->xn = (soma_scalar_t *) malloc(p->n_types * p->n_types * sizeof(soma_scalar_t));
-    if (p->xn == NULL)
-        {
-            fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
-            return -4;
-        }
-
-    /* set parameters */
-    p->xn[0 * p->n_types + 0] = kappaN;
-    p->xn[1 * p->n_types + 1] = kappaN;
-    p->xn[0 * p->n_types + 1] = deltaN;
-    p->xn[1 * p->n_types + 0] = deltaN;
-
-    //Create the polymer architecture list.
-    //The old formate supports only 1 architecture -- a linear chain.
-    p->n_poly_type = 1;
-    p->poly_type_offset = (int *)malloc(p->n_poly_type * sizeof(int));
-    if (p->poly_type_offset == NULL)
-        {
-            fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
-            return -4;
-        }
-    p->poly_type_offset[0] = 0;
-    //Length = 1(N) + N(mono) + 4 (+1,-1,+1-1)
-    p->poly_arch_length = 1 + NmonoA + 4;
-
-    p->poly_arch = (uint32_t *) malloc(p->poly_arch_length * sizeof(uint32_t));
-    if (p->poly_arch == NULL)
-        {
-            fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
-            return -4;
-        }
-
-    //Set up the architecture
-    p->poly_arch[0] = NmonoA;
-
-    p->poly_arch[0 + 1] = get_info_bl(NmonoA + 4, 0);
-    for (unsigned int i = 1; i < NmonoA - 1; i++)
-        {
-            p->poly_arch[i + 1] = get_info_bl(NmonoA + 3, 0);
-        }
-    p->poly_arch[NmonoA] = get_info_bl(NmonoA + 1, 0);
-
-    //Last monomer
-    int end, offset, bond_type, info;
-    bond_type = HARMONIC;
-    end = 1;
-    offset = -1;
-    info = get_info(offset, bond_type, end);
-    p->poly_arch[NmonoA + 1] = info;
-    //First monomer
-    end = 1;
-    offset = 1;
-    info = get_info(offset, bond_type, end);
-    p->poly_arch[NmonoA + 2] = info;
-    //Middle monomers
-    end = 0;
-    offset = -1;
-    info = get_info(offset, bond_type, end);
-    p->poly_arch[NmonoA + 3] = info;
-
-    end = 1;
-    offset = 1;
-    info = get_info(offset, bond_type, end);
-    assert(NmonoA + 4 == p->poly_arch_length - 1);
-    p->poly_arch[NmonoA + 4] = info;
-
-    /* allocate space for polymers */
-    p->polymers = (Polymer *) malloc(p->n_polymers_storage * sizeof(Polymer));
-    if (p->polymers == NULL)
-        {
-            fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
-            return -4;
-        }
-
-    /* read in chains and set up particle data */
-    for (i = 0; i < p->n_polymers; i++)
-        {
-            p->polymers[i].beads = (Monomer *) malloc(NmonoA * sizeof(Monomer));
-            if (p->polymers[i].beads == NULL)
-                {
-                    fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
-                    return -4;
-                }
-            p->polymers[i].msd_beads = (Monomer *) malloc(NmonoA * sizeof(Monomer));
-            if (p->polymers[i].msd_beads == NULL)
-                {
-                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-                    return -1;
-                }
-
-            p->polymers[i].type = 0;
-            /* read the monomers of this chain */
-            for (j = 0; j < NmonoA; j++)
-                {
-                    unsigned int tmp;
-                    iread = fscanf(inputfile,
-#if (SINGLE_PRECISION == 1)
-                                   "%g %g %g %u\n",
-#else                           //SINGLE_PRECISION
-                                   "%lg %lg %lg %u\n",
-#endif                          //SINGLE_PRECISION
-                                   &p->polymers[i].beads[j].x,
-                                   &p->polymers[i].beads[j].y, &p->polymers[i].beads[j].z, &tmp);
-                    if (iread != 4)
-                        {
-                            fprintf(stderr, "Old io ERROR: %s:%d. (%d)\n", __FILE__, __LINE__, iread);
-                            return -6;
-                        }
-
-                    tmp -= 1;   //First type in conf is 1. First type in program is 0
-
-                    //! \warning Assumed is that all polymers have the same
-                    //! type. This includes, that the particle type
-                    //! distribution is for all polymers identical. (The last
-                    //! specified in the input format.)
-                    uint32_t *const type_info = &(p->poly_arch[p->poly_type_offset[p->polymers[i].type] + j + 1]);
-                    const int offset_bl = get_bondlist_offset(*type_info);
-                    // Overwrite the type info every single step.
-                    *type_info = get_info_bl(offset_bl, tmp);
-                }
-        }
-    p->bead_data_read = true;
-    fclose(inputfile);
-
-    p->area51 = NULL;
-    p->external_field_unified = NULL;
-    p->umbrella_field = NULL;
-    p->hamiltonian = SCMF0;
-    p->k_umbrella = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
-    if (p->k_umbrella == NULL)
-        {
-            fprintf(stderr, "Malloc problem %s:%d\n", __FILE__, __LINE__);
-            return -4;
-        }
-    memset(p->k_umbrella, 0, p->n_types * sizeof(soma_scalar_t));
-
-    p->harmonic_normb_variable_scale = 1;
-    p->cm_a = NULL;             // Deactivate CM movement with the old file format.
-
-    return 0;
-}
-
-int read_old_geometry(struct Phase *p, const char *filename)
-{
-    if (p->args.N_domains_arg != 1)
-        {
-            fprintf(stderr, "ERROR: read_old_geometry works only with a single domain.\n");
-            return -1;
-        }
-
-    /* check if also an old style geometry needs to be included */
-    FILE *geofile = fopen(filename, "rb");
-    if (geofile != NULL)
-        {
-            p->external_field_unified = (soma_scalar_t *) malloc(p->n_types * p->n_cells * sizeof(soma_scalar_t *));
-            if (p->external_field_unified == NULL)
-                {
-                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-                    return -1;
-                }
-
-            p->area51 = (uint8_t *) malloc(p->n_cells * sizeof(uint8_t));
-            if (p->area51 == NULL)
-                {
-                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-                    return -1;
-                }
-            int x, y, z;
-            soma_scalar_t wall, field, dielectric, compute_efield, fixed_potential;;
-
-            // in the original definition external fields are symmetric to the two species
-            for (unsigned int k = 0; k < p->n_cells; k++)
-                {
-#if (SINGLE_PRECISION == 1)
-                    const int iread = fscanf(geofile, "%d %d %d %g %g %g %g %g", &x, &y, &z, &wall, &field, &dielectric,
-                                             &compute_efield, &fixed_potential);
-#else                           //SINGLE_PRECISION
-                    const int iread =
-                        fscanf(geofile, "%d %d %d %lg %lg %lg %lg %lg", &x, &y, &z, &wall, &field, &dielectric,
-                               &compute_efield, &fixed_potential);
-#endif                          //SINGLE_PRECISION
-                    if (iread != 8)
-                        {
-                            fprintf(stderr, "Geometry io ERROR: %s:%d. (%d)\n", __FILE__, __LINE__, iread);
-                            return -1;
-                        }
-                    if (wall > 0)
-                        {
-                            p->area51[k] = 0;
-                        }
-                    else
-                        {
-                            p->area51[k] = 1;
-                        }
-                    p->external_field_unified[cell_to_index_unified(p, k, 0)] = field;
-                    p->external_field_unified[cell_to_index_unified(p, k, 1)] = -field;
-                }
-            fclose(geofile);
-        }
-    else
-        {
-            fprintf(stderr, "WARNING: Passed geometry file %s unreadable. Geometry will be ignored.\n", filename);
-            p->area51 = NULL;
-            p->external_field_unified = NULL;
-        }
-    return 0;
-}
+#include "polytype_conversion.h"
+#include "mobility.h"
+#include "io_old.h"
 
 #if ( ENABLE_MPI == 1 )
 #include <mpi.h>
@@ -444,7 +137,7 @@ int write_area51_hdf5(const struct Phase *const p, const hid_t file_id, const hi
     \param name Name of the field.
     \return Errorcode
 */
-int write_field_hdf5(const struct Phase *const p, const hid_t file_id,
+int write_field_hdf5(struct Phase *const p, const hid_t file_id,
                      const hid_t plist_id, const soma_scalar_t * const field, const char *name)
 {
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
@@ -503,9 +196,248 @@ int write_field_hdf5(const struct Phase *const p, const hid_t file_id,
     return 0;
 }
 
-int write_config_hdf5(const struct Phase *const p, const char *filename)
+/*! Helper function to write the polytypes to disk.
+
+\private
+\param p Phase construct to write the polytypes from
+\param file_id HDF5 file handle, opened and ready to write.
+\param plist_id poperty list to be used for writing the file.
+\return Errorcode
+*/
+int write_poly_type(const struct Phase *const p, hid_t file_id, const hid_t plist_id)
 {
-    if( strcmp(filename,"/dev/null") == 0) //exit if no file should be written
+    hid_t status;
+    //Determine the offset, for each process.
+    uint64_t n_polymer_offset = 0;
+#if ( ENABLE_MPI == 1 )
+    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
+    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+    n_polymer_offset -= p->n_polymers;
+#endif                          //ENABLE_MPI
+
+    unsigned int *const poly_type = (unsigned int *const)malloc(p->n_polymers_storage * sizeof(unsigned int));
+    if (poly_type == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    for (uint64_t i = 0; i < p->n_polymers; i++)
+        poly_type[i] = p->polymers[i].type;
+
+    hsize_t hsize_polymers_global = p->n_polymers_global;
+    hid_t poly_type_dataspace = H5Screate_simple(1, &(hsize_polymers_global), NULL);
+    hsize_t hsize_polymers = p->n_polymers;
+    hid_t poly_type_memspace = H5Screate_simple(1, &(hsize_polymers), NULL);
+
+    hid_t poly_type_dataset = H5Dcreate2(file_id, "/poly_type", H5T_STD_U32LE, poly_type_dataspace,
+                                         H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    poly_type_dataspace = H5Dget_space(poly_type_dataset);
+    hsize_t hsize_polymers_offset = n_polymer_offset;
+    H5Sselect_hyperslab(poly_type_dataspace, H5S_SELECT_SET, &(hsize_polymers_offset), NULL, &(hsize_polymers), NULL);
+
+    if ((status =
+         H5Dwrite(poly_type_dataset, H5T_NATIVE_UINT, poly_type_memspace,
+                  poly_type_dataspace, plist_id, poly_type)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    free(poly_type);
+    if ((status = H5Sclose(poly_type_dataspace)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    if ((status = H5Sclose(poly_type_memspace)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    if ((status = H5Dclose(poly_type_dataset)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+    return status;
+}
+
+/*! Helper function to write the poly_tags to disk.
+
+\private
+\param p Phase construct to write the polytypes from
+\param file_id HDF5 file handle, opened and ready to write.
+\param plist_id poperty list to be used for writing the file.
+\return Errorcode
+*/
+int write_poly_tag(const struct Phase *const p, hid_t file_id, const hid_t plist_id)
+{
+    hid_t status;
+    //Determine the offset, for each process.
+    uint64_t n_polymer_offset = 0;
+#if ( ENABLE_MPI == 1 )
+    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
+    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+    n_polymer_offset -= p->n_polymers;
+#endif                          //ENABLE_MPI
+
+    uint64_t *const poly_tag = (uint64_t * const)malloc(p->n_polymers_storage * sizeof(uint64_t));
+    if (poly_tag == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    for (uint64_t i = 0; i < p->n_polymers; i++)
+        poly_tag[i] = p->polymers[i].tag;
+
+    hsize_t hsize_polymers_global = p->n_polymers_global;
+    hid_t poly_tag_dataspace = H5Screate_simple(1, &(hsize_polymers_global), NULL);
+    hsize_t hsize_polymers = p->n_polymers;
+    hid_t poly_tag_memspace = H5Screate_simple(1, &(hsize_polymers), NULL);
+
+    hid_t poly_tag_dataset = H5Dcreate2(file_id, "/poly_tag", H5T_STD_U64LE, poly_tag_dataspace,
+                                        H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    poly_tag_dataspace = H5Dget_space(poly_tag_dataset);
+    hsize_t hsize_polymers_offset = n_polymer_offset;
+    H5Sselect_hyperslab(poly_tag_dataspace, H5S_SELECT_SET, &(hsize_polymers_offset), NULL, &(hsize_polymers), NULL);
+
+    if ((status =
+         H5Dwrite(poly_tag_dataset, H5T_NATIVE_UINT64, poly_tag_memspace, poly_tag_dataspace, plist_id, poly_tag)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    free(poly_tag);
+    if ((status = H5Sclose(poly_tag_dataspace)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    if ((status = H5Sclose(poly_tag_memspace)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    if ((status = H5Dclose(poly_tag_dataset)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+    return status;
+}
+
+/*! Helper function to write the heavy beads dataset to file. With multiple ranks, MPI-IO is used.
+
+\private
+\param p Phase struct intiliazied, ready to write.
+\param file_id opened HDF5 file handle to write to.
+\param plist_id property list for HDF5 writing.
+\return Errorcode
+*/
+int write_beads(const struct Phase *const p, hid_t file_id, const hid_t plist_id)
+{
+    hid_t status;
+    hsize_t hsize_beads_dataspace[2] = { p->num_all_beads, 3 };
+    hid_t beads_dataspace = H5Screate_simple(2, hsize_beads_dataspace, NULL);
+    hsize_t hsize_beads_memspace[2] = { p->num_all_beads_local, 3 };
+    hid_t beads_memspace = H5Screate_simple(2, hsize_beads_memspace, NULL);
+
+    hid_t beads_dataset = H5Dcreate2(file_id, "/beads", H5T_SOMA_FILE_SCALAR, beads_dataspace,
+                                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    uint64_t bead_offset = 0;
+#if ( ENABLE_MPI == 1 )
+    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
+    MPI_Scan((uint64_t *) & (p->num_all_beads_local), &bead_offset, 1, MPI_UINT64_T, MPI_SUM,
+             p->info_MPI.SOMA_comm_sim);
+    bead_offset -= p->num_all_beads_local;
+#endif                          //ENABLE_MPI
+
+    beads_dataspace = H5Dget_space(beads_dataset);
+    hsize_t hsize_beads_offset[2] = { bead_offset, 0 };
+    H5Sselect_hyperslab(beads_dataspace, H5S_SELECT_SET, hsize_beads_offset, NULL, hsize_beads_memspace, NULL);
+
+    soma_scalar_t *const monomer_data =
+        (soma_scalar_t * const)malloc(p->num_all_beads_local * 3 * sizeof(soma_scalar_t));
+    if (monomer_data == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    //Transfer intenal bead data to SOMA data format
+    uint64_t bead_mem_counter = 0;
+
+    for (uint64_t i = 0; i < p->n_polymers; i++)
+        {
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[i].bead_offset;
+            const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+
+            for (unsigned int j = 0; j < N; j++)
+                {
+                    assert(bead_mem_counter < p->num_all_beads_local);
+                    monomer_data[bead_mem_counter * 3 + 0] = beads[j].x;
+                    monomer_data[bead_mem_counter * 3 + 1] = beads[j].y;
+                    monomer_data[bead_mem_counter * 3 + 2] = beads[j].z;
+
+                    bead_mem_counter += 1;
+                }
+        }
+    assert(bead_mem_counter == p->num_all_beads_local);
+
+    if ((status =
+         H5Dwrite(beads_dataset, H5T_SOMA_NATIVE_SCALAR, beads_memspace, beads_dataspace, plist_id, monomer_data)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    free(monomer_data);
+
+    if ((status = H5Sclose(beads_dataspace)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    if ((status = H5Sclose(beads_memspace)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+
+    if ((status = H5Dclose(beads_dataset)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+            return status;
+        }
+    return status;
+}
+
+int write_config_hdf5(struct Phase *const p, const char *filename)
+{
+    if (strcmp(filename, "/dev/null") == 0)     //exit if no file should be written
         return 0;
     // Copy polymer data from device to host
     update_self_phase(p, 0);
@@ -532,8 +464,14 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
     hid_t parameter_group = H5Gcreate2(file_id, "/parameter", H5P_DEFAULT, H5P_DEFAULT,
                                        H5P_DEFAULT);
 
-    //Write number of polymers
     const hsize_t one = 1;
+    // Write the version number of the fileformat (hard coded) change if the version changes.
+    // A version change make the file incompatible to read/write
+    const unsigned int version = 1;
+    status = write_hdf5(1, &one, file_id, "/version", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &version);
+    HDF5_ERROR_CHECK2(status, "/version");
+
+    //Write number of polymers
     status =
         write_hdf5(1, &one, file_id, "/parameter/n_polymers", H5T_STD_U64LE, H5T_NATIVE_UINT64, plist_id,
                    &(p->n_polymers_global));
@@ -546,7 +484,7 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
 
     status =
         write_hdf5(1, &one, file_id, "/parameter/n_types", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &(p->n_types));
-    HDF5_ERROR_CHECK2(status, "/parameter/reference_Nbeads");
+    HDF5_ERROR_CHECK2(status, "/parameter/n_types");
 
     //Number of types
     hsize_t xn_dim[2] = { p->n_types, p->n_types };
@@ -555,10 +493,22 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
     HDF5_ERROR_CHECK2(status, "/parameter/xn");
 
     //A data
-    hsize_t a_size = p->n_types;
+    hsize_t n_types_size = p->n_types;
     status =
-        write_hdf5(1, &a_size, file_id, "/parameter/A", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, p->A);
+        write_hdf5(1, &n_types_size, file_id, "/parameter/A", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
+                   p->A);
     HDF5_ERROR_CHECK2(status, "/parameter/A");
+
+    //Convert field_scaling_type to density weight for writing
+    for (unsigned int i = 0; i < p->n_types; i++)
+        p->field_scaling_type[i] /= (p->n_accessible_cells / (soma_scalar_t) p->num_all_beads);
+    status =
+        write_hdf5(1, &n_types_size, file_id, "/parameter/density_weights", H5T_SOMA_FILE_SCALAR,
+                   H5T_SOMA_NATIVE_SCALAR, plist_id, p->field_scaling_type);
+    HDF5_ERROR_CHECK2(status, "/parameter/density_weights");
+    //Convert the density weights back to field_scaling_type
+    for (unsigned int i = 0; i < p->n_types; i++)
+        p->field_scaling_type[i] *= (p->n_accessible_cells / (soma_scalar_t) p->num_all_beads);
 
     //time
     status = write_hdf5(1, &one, file_id, "/parameter/time", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &(p->time));
@@ -568,10 +518,10 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
                         H5T_STD_I32LE, H5T_NATIVE_INT, plist_id, &(p->hamiltonian));
     HDF5_ERROR_CHECK2(status, "parameter/hamiltonian");
 
-    a_size = p->n_types;
+    n_types_size = p->n_types;
     status =
-        write_hdf5(1, &a_size, file_id, "/parameter/k_umbrella", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
-                   p->k_umbrella);
+        write_hdf5(1, &n_types_size, file_id, "/parameter/k_umbrella", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR,
+                   plist_id, p->k_umbrella);
     HDF5_ERROR_CHECK2(status, "parameter/k_umbrella");
 
     //Nx Ny Nz
@@ -625,164 +575,17 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
     if ((status = H5Gclose(parameter_group)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
+    status = write_poly_type(p, file_id, plist_id);
+    HDF5_ERROR_CHECK2(status, "write poly type");
 
-    //Write out the polymers
-    //Determine the offset, for each process.
-    uint64_t n_polymer_offset = 0;
-#if ( ENABLE_MPI == 1 )
-    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
-    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-    n_polymer_offset -= p->n_polymers;
-#endif                          //ENABLE_MPI
+    status = write_poly_tag(p, file_id, plist_id);
+    HDF5_ERROR_CHECK2(status, "write poly tag");
 
-    unsigned int *const poly_type = (unsigned int *const)malloc(p->n_polymers_storage * sizeof(unsigned int));
-    if (poly_type == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        poly_type[i] = p->polymers[i].type;
-
-    hsize_t hsize_polymers_global = p->n_polymers_global;
-    if (hsize_polymers_global != p->n_polymers_global)
-        {
-            fprintf(stderr, "\n\n ERROR: %s:%d unhandled uint64 overflow.\n\n\n", __FILE__, __LINE__);
-            return -1;
-        }
-    hid_t poly_type_dataspace = H5Screate_simple(1, &(hsize_polymers_global), NULL);
-    hsize_t hsize_polymers = p->n_polymers;
-    hid_t poly_type_memspace = H5Screate_simple(1, &(hsize_polymers), NULL);
-
-    hid_t poly_type_dataset = H5Dcreate2(file_id, "/poly_type", H5T_STD_U32LE, poly_type_dataspace,
-                                         H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-    poly_type_dataspace = H5Dget_space(poly_type_dataset);
-    hsize_t hsize_polymers_offset = n_polymer_offset;
-    H5Sselect_hyperslab(poly_type_dataspace, H5S_SELECT_SET, &(hsize_polymers_offset), NULL, &(hsize_polymers), NULL);
-
-    if ((status =
-         H5Dwrite(poly_type_dataset, H5T_NATIVE_UINT, poly_type_memspace,
-                  poly_type_dataspace, plist_id, poly_type)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    free(poly_type);
-    if ((status = H5Sclose(poly_type_dataspace)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Sclose(poly_type_memspace)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Dclose(poly_type_dataset)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    unsigned int max_n_beads = 0;
-    for (unsigned int i = 0; i < p->n_poly_type; i++)
-        {
-            const unsigned int N = p->poly_arch[p->poly_type_offset[i]];
-            if (max_n_beads < N)
-                max_n_beads = N;
-        }
-
-    hsize_t hsize_beads_dataspace[2] = { p->n_polymers_global, max_n_beads };
-    hid_t beads_dataspace = H5Screate_simple(2, hsize_beads_dataspace, NULL);
-    hsize_t hsize_beads_memspace[2] = { p->n_polymers, max_n_beads };
-    hid_t beads_memspace = H5Screate_simple(2, hsize_beads_memspace, NULL);
-
-    hid_t monomer_filetype = get_monomer_filetype();
-
-    hid_t beads_dataset = H5Dcreate2(file_id, "/beads", monomer_filetype, beads_dataspace,
-                                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-    beads_dataspace = H5Dget_space(beads_dataset);
-    hsize_t hsize_beads_offset[2] = { n_polymer_offset, 0 };
-    H5Sselect_hyperslab(beads_dataspace, H5S_SELECT_SET, hsize_beads_offset, NULL, hsize_beads_memspace, NULL);
-
-    hid_t monomer_memtype = get_monomer_memtype();
-
-    //Monomer monomer_data[p->n_polymers][max_n_beads];
-    Monomer *const monomer_data = (Monomer * const)malloc(p->n_polymers * max_n_beads * sizeof(Monomer));
-    if (monomer_data == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    memset(monomer_data, 0, p->n_polymers * max_n_beads * sizeof(Monomer));
-
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
-            memcpy(monomer_data + i * max_n_beads, p->polymers[i].beads, N * sizeof(Monomer));
-        }
-    /* for(unsigned int j=0; j < p->polymers[i].N; j++) */
-    /*    { */
-    /*      assert( j < max_n_beads ); */
-    /*      monomer_data[i*max_n_beads+j] = p->polymers[i].beads[j]; */
-    /*    } */
-
-    if ((status =
-         H5Dwrite(beads_dataset, monomer_memtype, beads_memspace, beads_dataspace, plist_id, monomer_data)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    free(monomer_data);
-    if ((status = H5Tclose(monomer_memtype)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Tclose(monomer_filetype)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Sclose(beads_dataspace)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Sclose(beads_memspace)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Dclose(beads_dataset)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
+    status = write_beads(p, file_id, plist_id);
+    HDF5_ERROR_CHECK2(status, "write beads");
 
     if (p->area51)
         {
@@ -814,14 +617,50 @@ int write_config_hdf5(const struct Phase *const p, const char *filename)
                 }
         }
 
+    status = write_poly_conversion_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d writing the polytype conversion\n", __FILE__, __LINE__);
+            return status;
+        }
+
+    status = write_mobility_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d writing the mobility\n", __FILE__, __LINE__);
+            return status;
+        }
+
     H5Pclose(plist_id);
     if ((status = H5Fclose(file_id)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
+    //Synchronize the closing of the file
+    MPI_Barrier(p->info_MPI.SOMA_comm_sim);
+
+    // Variable length data is not supported with parallel IO.
+    // So we just reopen the file on one rank and write it anyways.
+    if (p->info_MPI.sim_rank == 0)
+        {
+            hid_t file_id = H5Fopen(filename, H5F_ACC_RDWR, H5P_DEFAULT);
+            status = file_id;
+            if (status < 0)
+                {
+                    fprintf(stderr, "ERROR: HDF5 %s:%s:%d\n", __func__, __FILE__, __LINE__);
+                    return -1;
+                }
+            add_self_documentation_to_hdf5(&(p->sd), file_id, H5P_DEFAULT);
+            if ((status = H5Fclose(file_id)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    return status;
+                }
+        }
     return status;
 }
 
@@ -869,7 +708,7 @@ int read_area51_hdf5(struct Phase *const p, const hid_t file_id, const hid_t pli
     if ((status = H5Dread(dataset, H5T_STD_U8LE, memspace, dataspace, plist_id, p->area51 + ghost_buffer_size)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
@@ -901,21 +740,21 @@ int read_area51_hdf5(struct Phase *const p, const hid_t file_id, const hid_t pli
     if ((status = H5Sclose(dataspace)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
     if ((status = H5Sclose(memspace)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
     if ((status = H5Dclose(dataset)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
@@ -966,7 +805,7 @@ int read_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_
             if ((status = H5Dread(dataset, H5T_SOMA_NATIVE_SCALAR, memspace, dataspace, plist_id, ptr)) < 0)
                 {
                     fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
                     return status;
                 }
 
@@ -995,7 +834,7 @@ int read_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_
             if ((status = H5Sclose(dataspace)) < 0)
                 {
                     fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
                     return status;
                 }
         }
@@ -1003,17 +842,287 @@ int read_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_
     if ((status = H5Sclose(memspace)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
     if ((status = H5Dclose(dataset)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
+    return 0;
+}
+
+/*! Helper function to read the beads information from the input files of version 1.
+
+\private
+\param p Phase struct which is going to be initialized.
+\param file_id opened HDF5 file handle to read from.
+\param plist_id HDF5 property list to read with.
+\return Errorcode.
+*/
+int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id)
+{
+    hid_t status;
+    //temporary load poly type to calculate polymer distribution
+    unsigned int *poly_type_tmp = (unsigned int *)malloc(p->n_polymers_global * sizeof(unsigned int));
+    if (poly_type_tmp == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    status = read_hdf5(file_id, "/poly_type", H5T_NATIVE_UINT, plist_id, poly_type_tmp);
+    HDF5_ERROR_CHECK2(status, "poly_type tmp global read");
+    p->num_all_beads = 0;
+    for (uint64_t i = 0; i < p->n_polymers_global; i++)
+        {
+            const unsigned int N = p->poly_arch[p->poly_type_offset[poly_type_tmp[i]]];
+            p->num_all_beads += N;
+        }
+
+    //Distribute the polymers to the different cores according to bead length.
+    uint64_t av_beads_per_rank = p->num_all_beads / p->info_MPI.sim_size;
+    uint64_t bead_offset = 0;
+    uint64_t poly_offset = 0;
+    uint64_t my_num_beads = 0;
+    uint64_t my_num_poly = 0;
+
+    // distribute the number of polymer to the ranks
+    // store only the offset of all previous beads and polymers
+    // Loop only the previous ranks and the rank itself
+    for (int sim_rank = 0; sim_rank < p->info_MPI.sim_rank + 1; sim_rank++)
+        {
+            my_num_poly = 0;
+            my_num_beads = 0;
+            while (my_num_beads < av_beads_per_rank && poly_offset + my_num_poly < p->n_polymers_global)
+                {
+                    const unsigned int N = p->poly_arch[p->poly_type_offset[poly_type_tmp[poly_offset + my_num_poly]]];
+                    my_num_beads += N;
+                    my_num_poly += 1;
+                }
+            bead_offset += my_num_beads;
+            poly_offset += my_num_poly;
+
+            assert(bead_offset <= p->num_all_beads);
+        }
+    //Correct the offset by the number of the current rank
+    bead_offset -= my_num_beads;
+    poly_offset -= my_num_poly;
+    //Make sure all polymers and beads are read
+    if (p->info_MPI.sim_rank == p->info_MPI.sim_size - 1)
+        {
+            my_num_poly = p->n_polymers_global - poly_offset;
+            my_num_beads = p->num_all_beads - bead_offset;
+        }
+
+    /* printf("DEBUG %s:%d (remove) sim rank: %d bead_offset: %d poly_offset: %d num_beads: %d num_poly: %d\n", __FILE__, */
+    /*        __LINE__, p->info_MPI.sim_rank, (int)bead_offset, (int)poly_offset, (int)my_num_beads, (int)my_num_poly); */
+
+    p->n_polymers = my_num_poly;
+    p->n_polymers_storage = p->n_polymers;
+
+    p->polymers = (Polymer *) malloc(p->n_polymers_storage * sizeof(Polymer));
+    if (p->polymers == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    p->num_all_beads_local = my_num_beads;
+
+    uint64_t *poly_tag = NULL;
+    if (H5Lexists(file_id, "/poly_tag", H5P_DEFAULT) > 0)
+        {
+            poly_tag = (uint64_t *) malloc(p->n_polymers * sizeof(uint64_t));
+            if (poly_tag == NULL)
+                {
+                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+                    return -1;
+                }
+            hsize_t hsize_polymers = p->n_polymers;
+            hsize_t hsize_polymers_offset = poly_offset;
+            hid_t poly_tag_memspace = H5Screate_simple(1, &(hsize_polymers), NULL);
+            hid_t poly_tag_dataset = H5Dopen2(file_id, "/poly_tag", H5P_DEFAULT);
+            hid_t poly_tag_dataspace = H5Dget_space(poly_tag_dataset);
+            H5Sselect_hyperslab(poly_tag_dataspace, H5S_SELECT_SET, &(hsize_polymers_offset), NULL, &(hsize_polymers),
+                                NULL);
+
+            if ((status =
+                 H5Dread(poly_tag_dataset, H5T_NATIVE_UINT64, poly_tag_memspace, poly_tag_dataspace, plist_id,
+                         poly_tag)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+
+            if ((status = H5Sclose(poly_tag_memspace)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+
+            if ((status = H5Dclose(poly_tag_dataset)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+
+            if ((status = H5Sclose(poly_tag_dataspace)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+        }                       //poly_tag
+
+    init_soma_memory(&(p->ph.beads), p->num_all_beads_local, sizeof(Monomer));
+    init_soma_memory(&(p->ph.msd_beads), p->num_all_beads_local, sizeof(Monomer));
+
+    for (uint64_t i = 0; i < p->n_polymers; i++)
+        {
+            p->polymers[i].type = poly_type_tmp[poly_offset + i];
+            if (poly_tag == NULL)       //No tag infor available because older file format
+                p->polymers[i].tag = poly_offset + i;
+            else
+                p->polymers[i].tag = poly_tag[i];
+
+            const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+            p->polymers[i].bead_offset = get_new_soma_memory_offset(&(p->ph.beads), N);
+            if (p->polymers[i].bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
+            p->polymers[i].msd_bead_offset = get_new_soma_memory_offset(&(p->ph.msd_beads), N);
+            if (p->polymers[i].msd_bead_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
+        }
+    free(poly_type_tmp);
+
+    if (H5Lexists(file_id, "/beads", H5P_DEFAULT) > 0)
+        {
+
+            //  Read the bead data into a tempory array that matches the file layout
+            soma_scalar_t *const monomer_data =
+                (soma_scalar_t * const)malloc(p->num_all_beads_local * 3 * sizeof(soma_scalar_t));
+            if (monomer_data == NULL)
+                {
+                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+                    return -1;
+                }
+
+            hsize_t hsize_beads_memspace[2] = { p->num_all_beads_local, 3 };
+            hid_t beads_memspace = H5Screate_simple(2, hsize_beads_memspace, NULL);
+            hid_t beads_dataset = H5Dopen2(file_id, "/beads", H5P_DEFAULT);
+            hid_t beads_dataspace = H5Dget_space(beads_dataset);
+            hsize_t hsize_beads_offset[2] = { bead_offset, 0 };
+            H5Sselect_hyperslab(beads_dataspace, H5S_SELECT_SET, hsize_beads_offset, NULL, hsize_beads_memspace, NULL);
+
+            if ((status =
+                 H5Dread(beads_dataset, H5T_SOMA_NATIVE_SCALAR, beads_memspace, beads_dataspace, plist_id,
+                         monomer_data)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+
+            if ((status = H5Sclose(beads_dataspace)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+
+            if ((status = H5Sclose(beads_memspace)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+
+            if ((status = H5Dclose(beads_dataset)) < 0)
+                {
+                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                            p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
+                    return status;
+                }
+
+            //Transfer the memory of the temporary array into the polymer structs.
+            uint64_t bead_mem_counter = 0;
+            for (uint64_t i = 0; i < p->n_polymers; i++)
+                {
+                    Monomer *beads = p->ph.beads.ptr;
+                    beads += p->polymers[i].bead_offset;
+                    Monomer *msd_beads = p->ph.msd_beads.ptr;
+                    msd_beads += p->polymers[i].msd_bead_offset;
+
+                    const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+                    for (unsigned int j = 0; j < N; j++)
+                        {
+                            assert(bead_mem_counter < p->num_all_beads_local);
+                            beads[j].x = monomer_data[bead_mem_counter * 3 + 0];
+                            beads[j].y = monomer_data[bead_mem_counter * 3 + 1];
+                            beads[j].z = monomer_data[bead_mem_counter * 3 + 2];
+
+                            msd_beads[j].x = monomer_data[bead_mem_counter * 3 + 0];
+                            msd_beads[j].y = monomer_data[bead_mem_counter * 3 + 1];
+                            msd_beads[j].z = monomer_data[bead_mem_counter * 3 + 2];
+
+                            bead_mem_counter += 1;
+                        }
+                }
+            assert(bead_mem_counter == p->num_all_beads_local);
+            free(monomer_data);
+
+            p->bead_data_read = true;
+        }
+    else
+        p->bead_data_read = false;
+    return 0;
+}
+
+/*! General helper function to read the beads information from the input file if available.
+
+This function wraps the different actual reading functions and selects the appropriate one according to the file version.
+\private
+\param p Phase struct which is going to be initialized.
+\param file_id opened HDF5 file handle to read from.
+\param plist_id HDF5 property list to read with.
+\return Errorcode.
+*/
+int read_beads(struct Phase *p, const hid_t file_id, const hid_t plist_id)
+{
+    hid_t status;
+    unsigned int version = 0;
+    if (H5Lexists(file_id, "/version", H5P_DEFAULT) > 0)
+        {
+            status = read_hdf5(file_id, "/version", H5T_NATIVE_UINT, plist_id, &version);
+            HDF5_ERROR_CHECK2(status, "version");
+        }
+    switch (version)
+        {
+        case 0:
+            return read_beads0(p, file_id, plist_id);
+            break;
+        case 1:
+            return read_beads1(p, file_id, plist_id);
+            break;
+        default:
+            fprintf(stderr, "ERROR: invalid file version %u  %s:%d\n", version, __FILE__, __LINE__);
+            return -1;
+        }
     return 0;
 }
 
@@ -1027,7 +1136,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         H5Pset_fapl_mpio(plist_id, p->info_MPI.SOMA_comm_sim, MPI_INFO_NULL);
 #endif                          //ENABLE_MPI
 
-    //Create a new h5 file and overwrite the content.
     hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, plist_id);
     H5Pclose(plist_id);
     plist_id = H5Pcreate(H5P_DATASET_XFER);
@@ -1038,22 +1146,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
 
     status = read_hdf5(file_id, "/parameter/n_polymers", H5T_NATIVE_UINT64, plist_id, &(p->n_polymers_global));
     HDF5_ERROR_CHECK2(status, "/parameter/n_polymers");
-
-    //Distribute the polymers to the different cores.
-    uint64_t n_polymers = p->n_polymers_global / p->info_MPI.sim_size;
-    if ((unsigned int)p->info_MPI.sim_rank < p->n_polymers_global % p->info_MPI.sim_size)
-        n_polymers += 1;
-    p->n_polymers = n_polymers;
-    p->n_polymers_storage = p->n_polymers;
-    uint64_t n_polymer_offset = 0;
-#if ( ENABLE_MPI == 1 )
-    //Cast for MPI_Scan, since some openmpi impl. need a non-const. version.
-    MPI_Scan((uint64_t *) & (p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-    n_polymer_offset -= p->n_polymers;
-#endif                          //ENABLE_MPI
-
-    if (p->info_MPI.sim_rank == p->info_MPI.sim_size - 1)
-        assert(p->n_polymers + n_polymer_offset == p->n_polymers_global);
 
     status = read_hdf5(file_id, "/parameter/reference_Nbeads", H5T_NATIVE_UINT, plist_id, &(p->reference_Nbeads));
     HDF5_ERROR_CHECK2(status, "/parameter/reference_Nbeads");
@@ -1191,158 +1283,8 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
             p->harmonic_normb_variable_scale = 1.;
         }
 
-    //Allocate memory for almost everything of PHASE
-    //Polymers (only the local copies).
-    p->polymers = (Polymer *) malloc(p->n_polymers_storage * sizeof(Polymer));
-    if (p->polymers == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-    //Read in polymer related data, only the locally needed info
-    unsigned int *const poly_type = (unsigned int *const)malloc(p->n_polymers_storage * sizeof(unsigned int));
-    if (poly_type == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-    hsize_t hsize_polymers = p->n_polymers;
-    hsize_t hsize_polymers_offset = n_polymer_offset;
-    hid_t poly_type_memspace = H5Screate_simple(1, &(hsize_polymers), NULL);
-    hid_t poly_type_dataset = H5Dopen2(file_id, "/poly_type", H5P_DEFAULT);
-    hid_t poly_type_dataspace = H5Dget_space(poly_type_dataset);
-    H5Sselect_hyperslab(poly_type_dataspace, H5S_SELECT_SET, &(hsize_polymers_offset), NULL, &(hsize_polymers), NULL);
-
-    if ((status =
-         H5Dread(poly_type_dataset, H5T_NATIVE_UINT, poly_type_memspace, poly_type_dataspace, plist_id, poly_type)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Sclose(poly_type_memspace)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Dclose(poly_type_dataset)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    if ((status = H5Sclose(poly_type_dataspace)) < 0)
-        {
-            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
-            return status;
-        }
-
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            p->polymers[i].type = poly_type[i];
-        }
-    free(poly_type);
-
-    //Allocate space for monomers
-    for (uint64_t i = 0; i < p->n_polymers; i++)
-        {
-            const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
-            p->polymers[i].beads = (Monomer *) malloc(N * sizeof(Monomer));
-            if (p->polymers[i].beads == NULL)
-                {
-                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-                    return -1;
-                }
-            p->polymers[i].msd_beads = (Monomer *) malloc(N * sizeof(Monomer));
-            if (p->polymers[i].msd_beads == NULL)
-                {
-                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-                    return -1;
-                }
-        }
-
-    if (H5Lexists(file_id, "/beads", H5P_DEFAULT) > 0)
-        {
-
-            //Get the data for the polymers
-            //get the dimension
-            unsigned int max_n_beads = 0;
-            for (unsigned int i = 0; i < p->n_poly_type; i++)
-                {
-                    const unsigned int N = p->poly_arch[p->poly_type_offset[i]];
-                    if (max_n_beads < N)
-                        max_n_beads = N;
-                }
-
-            Monomer *const monomer_data = (Monomer * const)malloc(p->n_polymers * max_n_beads * sizeof(Monomer));
-            if (monomer_data == NULL)
-                {
-                    fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-                    return -1;
-                }
-
-            hsize_t hsize_beads_memspace[2] = { p->n_polymers, max_n_beads };
-            hid_t beads_memspace = H5Screate_simple(2, hsize_beads_memspace, NULL);
-            hid_t beads_dataset = H5Dopen2(file_id, "/beads", H5P_DEFAULT);
-            hid_t beads_dataspace = H5Dget_space(beads_dataset);
-            hsize_t hsize_beads_offset[2] = { n_polymer_offset, 0 };
-            H5Sselect_hyperslab(beads_dataspace, H5S_SELECT_SET, hsize_beads_offset, NULL, hsize_beads_memspace, NULL);
-
-            hid_t monomer_memtype = get_monomer_memtype();
-
-            if ((status =
-                 H5Dread(beads_dataset, monomer_memtype, beads_memspace, beads_dataspace, plist_id, monomer_data)) < 0)
-                {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
-                    return status;
-                }
-
-            for (uint64_t i = 0; i < p->n_polymers; i++)
-                {
-                    const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
-                    memcpy(p->polymers[i].beads, monomer_data + i * max_n_beads, N * sizeof(Monomer));
-                    memcpy(p->polymers[i].msd_beads, monomer_data + i * max_n_beads, N * sizeof(Monomer));
-                }
-            free(monomer_data);
-
-            if ((status = H5Tclose(monomer_memtype)) < 0)
-                {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
-                    return status;
-                }
-
-            if ((status = H5Sclose(beads_dataspace)) < 0)
-                {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
-                    return status;
-                }
-
-            if ((status = H5Sclose(beads_memspace)) < 0)
-                {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
-                    return status;
-                }
-
-            if ((status = H5Dclose(beads_dataset)) < 0)
-                {
-                    fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                            p->info_MPI.world_rank, __FILE__, __LINE__, status);
-                    return status;
-                }
-            p->bead_data_read = true;
-        }
-    else
-        p->bead_data_read = false;
+    status = read_beads(p, file_id, plist_id);
+    HDF5_ERROR_CHECK2(status, "total beads read");
 
     p->area51 = NULL;
     p->external_field_unified = NULL;
@@ -1456,10 +1398,40 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                 }
         }
 
+    status = read_poly_conversion_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to read polytype conversion information.\n", __FILE__, __LINE__);
+            return status;
+        }
+
+    status = read_mobility_hdf5(p, file_id, plist_id);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to read mobility information.\n", __FILE__, __LINE__);
+            return status;
+        }
+
+    p->field_scaling_type = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
+    if (p->field_scaling_type == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+    if (H5Lexists(file_id, "/parameter/density_weights", H5P_DEFAULT) > 0)
+        {
+            hid_t status = read_hdf5(file_id, "/parameter/density_weights", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                                     p->field_scaling_type);
+            HDF5_ERROR_CHECK2(status, "/parameter/density_weights");
+        }
+    else
+        for (unsigned int i = 0; i < p->n_types; i++)
+            p->field_scaling_type[i] = 1;
+
     if ((status = H5Fclose(file_id)) < 0)
         {
             fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
-                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+                    p->info_MPI.world_rank, __FILE__, __LINE__, (int)status);
             return status;
         }
 
@@ -1473,30 +1445,29 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps)
     static double last_sec = 0;
     if (last_time == 0)
         last_time = p->start_time;
-#if ( ENABLE_MPI == 1 )
     if (last_sec == 0)
-        last_sec = MPI_Wtime();
-#else
-    if (last_sec == 0)
-        last_sec = time(NULL);
-#endif                          //( ENABLE_MPI == 1 )
+        {
+            struct timeval last_tv;
+            gettimeofday(&last_tv, NULL);
+            last_sec = last_tv.tv_sec + last_tv.tv_usec * 1e-6;
+        }
 
-    const time_t now = time(NULL);
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
     if (last_print == 0)
-        last_print = now;
-    const unsigned int second = now - p->start_clock;
+        last_print = now.tv_sec;
+    const double second = now.tv_sec - p->start_clock.tv_sec + (now.tv_usec - p->start_clock.tv_usec) * 1e-6;
     const unsigned int steps_done = p->time - p->start_time;
-    const time_t end = p->start_clock + second * (Nsteps) / (soma_scalar_t) steps_done;
-#if ( ENABLE_MPI == 1 )
-    const double now_sec = MPI_Wtime();
-#else
-    const double now_sec = time(NULL);
-#endif                          //ENABLE_MPI
+    const time_t end = p->start_clock.tv_sec + second * (Nsteps) / (soma_scalar_t) steps_done;
+
+    const double now_sec = now.tv_sec + now.tv_usec * 1e-6;
+
     const double sec = now_sec - last_sec;
     p->tps_elapsed_time += sec;
     p->tps_elapsed_steps += p->time - last_time;
 
-    if (p->args.screen_output_interval_arg > 0 && now - last_print >= p->args.screen_output_interval_arg)
+    if (p->args.screen_output_interval_arg > 0 && now.tv_sec - last_print >= p->args.screen_output_interval_arg)
         {
             const double tps = p->tps_elapsed_steps / p->tps_elapsed_time;
             p->tps_elapsed_time = 1. / tps;
@@ -1504,11 +1475,11 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps)
 
             if (p->info_MPI.sim_rank == 0)
                 {
-                    fprintf(stdout, "Rank %i:Running for %u [s] | TPS %g | steps-to-go: %u | ETA: %s",
+                    fprintf(stdout, "Rank %i:Running for %g [s] | TPS %g | steps-to-go: %u | ETA: %s",
                             p->info_MPI.world_rank, second, tps, Nsteps - steps_done, ctime(&end));
                     fflush(stdout);
                 }
-            last_print = now;
+            last_print = now.tv_sec;
             last_time = p->time;
             last_sec = now_sec;
         }

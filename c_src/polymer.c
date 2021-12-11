@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
 
  This file is part of SOMA.
 
@@ -28,70 +28,6 @@
 #endif                          //_OPENACC
 #include "phase.h"
 
-int free_polymer(const struct Phase *const p, Polymer * const poly)
-{
-    free(poly->beads);
-    free(poly->msd_beads);
-    deallocate_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
-
-    if (poly->set_states != NULL)
-        {
-            for (unsigned int j = 0; j < p->max_set_members; j++)
-                {
-                    deallocate_rng_state(poly->set_states + j, p->args.pseudo_random_number_generator_arg);
-                    free(poly->set_states[j].mt_state);
-                    free(poly->set_states[j].tt800_state);
-                }
-            free(poly->set_states);
-            free(poly->set_permutation);
-        }
-    return 0;
-}
-
-int copyin_polymer(struct Phase *const p, Polymer * const poly)
-{
-    const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-#pragma acc enter data copyin(poly->beads[0:N])
-#pragma acc enter data copyin(poly->msd_beads[0:N])
-    copyin_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
-
-    if (poly->set_permutation != NULL)
-        {
-#pragma acc enter data copyin(poly->set_permutation[0:p->max_n_sets])
-        }
-
-    if (poly->set_states != NULL)
-        {
-#pragma acc enter data copyin(poly->set_states[0:p->max_set_members])
-            for (unsigned int j = 0; j < p->max_set_members; j++)
-                {
-                    copyin_rng_state(poly->set_states + j, p->args.pseudo_random_number_generator_arg);
-                }
-        }
-    return 0 + 1 * N * 0;
-}
-
-int copyout_polymer(struct Phase *const p, Polymer * const poly)
-{
-    const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-#pragma acc exit data copyout(poly->beads[0:N])
-#pragma acc exit data copyout(poly->msd_beads[0:N])
-    copyout_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
-    if (poly->set_permutation != NULL)
-        {
-#pragma acc exit data copyout(poly->set_permutation[0:p->max_n_sets])
-        }
-    if (poly->set_states != NULL)
-        {
-            for (unsigned int j = 0; j < p->max_set_members; j++)
-                {
-                    copyout_rng_state(poly->set_states + j, p->args.pseudo_random_number_generator_arg);
-                }
-#pragma acc exit data copyout(poly->set_states[0:p->max_set_members])
-        }
-    return 0 * N;
-}
-
 int reallocate_polymer_mem(struct Phase *const p, uint64_t new_storage)
 {
     if (p->present_on_device)
@@ -115,7 +51,7 @@ int reallocate_polymer_mem(struct Phase *const p, uint64_t new_storage)
             fprintf(stderr, "ERROR: %s:%d reallocate malloc %ld\n", __FILE__, __LINE__, new_storage);
             return -1;
         }
-//#pragma acc update self(p->polymers[0:p->n_polymers_storage])
+
     memcpy(tmp_poly, p->polymers, p->n_polymers_storage * sizeof(Polymer));
 
     free(p->polymers);
@@ -145,12 +81,7 @@ int push_polymer(struct Phase *const p, const Polymer * const poly)
     p->n_polymers += 1;
 
     const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-    for (unsigned int k = 0; k < N; k++)
-        {
-            const unsigned int type = get_particle_type(p->poly_arch[p->poly_type_offset[poly->type] + 1 + k]);
-            p->num_bead_type_local[type] += 1;
-            p->num_all_beads_local += 1;
-        }
+    p->num_all_beads_local += N;
     return 0;
 }
 
@@ -181,12 +112,7 @@ int pop_polymer(struct Phase *const p, const uint64_t poly_id, Polymer * const p
             memcpy(p->polymers + poly_id, p->polymers + p->n_polymers, sizeof(Polymer));
         }
     const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-    for (unsigned int k = 0; k < N; k++)
-        {
-            const unsigned int type = get_particle_type(p->poly_arch[p->poly_type_offset[poly->type] + 1 + k]);
-            p->num_bead_type_local[type] -= 1;
-            p->num_all_beads_local -= 1;
-        }
+    p->num_all_beads_local -= N;
 
     return 0;
 }
@@ -236,6 +162,9 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
     //Rcm data
     length += sizeof(Monomer);
 
+    //Tag information
+    length += sizeof(uint64_t);
+
     //Beads data
     length += N * sizeof(Monomer);
 
@@ -245,16 +174,16 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
     //poly RNG state
     length += rng_state_serial_length(p);
 
-    if (poly->set_permutation != NULL)
+    if (poly->set_permutation_offset != UINT64_MAX)
         length += p->max_n_sets * sizeof(unsigned int);
 
-    if (poly->set_states != NULL)
+    if (poly->set_states_offset != UINT64_MAX)
         length += p->max_set_members * rng_state_serial_length(p);
 
     return length;
 }
 
-int serialize_polymer(const struct Phase *const p, const Polymer * const poly, unsigned char *const buffer)
+int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigned char *const buffer)
 {
     const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
     unsigned int position = 0;
@@ -269,36 +198,44 @@ int serialize_polymer(const struct Phase *const p, const Polymer * const poly, u
     memcpy(buffer + position, &(poly->type), sizeof(unsigned int));
     position += sizeof(unsigned int);
 
+    //Rcm data
     memcpy(buffer + position, &(poly->rcm), sizeof(Monomer));
     position += sizeof(Monomer);
 
+    //tag data
+    memcpy(buffer + position, &(poly->tag), sizeof(uint64_t));
+    position += sizeof(uint64_t);
+
     //Beads data
-    memcpy(buffer + position, poly->beads, N * sizeof(Monomer));
+    memcpy(buffer + position, ((Monomer *) p->ph.beads.ptr) + poly->bead_offset, N * sizeof(Monomer));
     position += N * sizeof(Monomer);
 
     //MSD data
-    memcpy(buffer + position, poly->msd_beads, N * sizeof(Monomer));
+    memcpy(buffer + position, ((Monomer *) p->ph.msd_beads.ptr) + poly->msd_bead_offset, N * sizeof(Monomer));
     position += N * sizeof(Monomer);
 
     // Poly state
     position += serialize_rng_state(p, &(poly->poly_state), buffer + position);
 
     // Set permutation
-    if (poly->set_permutation != NULL)
+    if (poly->set_permutation_offset != UINT64_MAX)
         {
-            memcpy(buffer + position, poly->set_permutation, p->max_n_sets * sizeof(unsigned int));
+            memcpy(buffer + position, ((unsigned int *)p->ph.set_permutation.ptr) + poly->set_permutation_offset,
+                   p->max_n_sets * sizeof(unsigned int));
             position += p->max_n_sets * sizeof(unsigned int);
         }
 
-    if (poly->set_states != NULL)
+    if (poly->set_states_offset != UINT64_MAX)
         for (unsigned int i = 0; i < p->max_set_members; i++)
-            position += serialize_rng_state(p, poly->set_states + i, buffer + position);
+            position +=
+                serialize_rng_state(p, ((RNG_STATE *) p->ph.set_states.ptr) + poly->set_states_offset + i,
+                                    buffer + position);
 
     assert(position == length);
     return position;
 }
 
-int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const unsigned char *const buffer)
+int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsigned char *const buffer)
 {
     unsigned int position = 0;
 
@@ -323,46 +260,69 @@ int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const
     memcpy(&(poly->rcm), buffer + position, sizeof(Monomer));
     position += sizeof(Monomer);
 
-    //Beads data
-    poly->beads = (Monomer *) malloc(N * sizeof(Monomer));
-    MALLOC_ERROR_CHECK(poly->beads, N * sizeof(Monomer));
+    //tag data
+    memcpy(&(poly->tag), buffer + position, sizeof(uint64_t));
+    position += sizeof(uint64_t);
 
-    memcpy(poly->beads, buffer + position, N * sizeof(Monomer));
+    //Beads data
+    poly->bead_offset = get_new_soma_memory_offset(&(p->ph.beads), N);
+    if (poly->bead_offset == UINT64_MAX)
+        {
+            fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                    p->info_MPI.world_rank, p->n_polymers);
+            return -1;
+        }
+    memcpy(((Monomer *) p->ph.beads.ptr) + poly->bead_offset, buffer + position, N * sizeof(Monomer));
     position += N * sizeof(Monomer);
 
     //MSD data
-    poly->msd_beads = (Monomer *) malloc(N * sizeof(Monomer));
-    MALLOC_ERROR_CHECK(poly->msd_beads, N * sizeof(Monomer));
-
-    memcpy(poly->msd_beads, buffer + position, N * sizeof(Monomer));
+    poly->msd_bead_offset = get_new_soma_memory_offset(&(p->ph.msd_beads), N);
+    if (poly->msd_bead_offset == UINT64_MAX)
+        {
+            fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                    p->info_MPI.world_rank, p->n_polymers);
+            return -1;
+        }
+    memcpy(((Monomer *) p->ph.msd_beads.ptr) + poly->msd_bead_offset, buffer + position, N * sizeof(Monomer));
     position += N * sizeof(Monomer);
 
     // Poly state
     position += deserialize_rng_state(p, &(poly->poly_state), buffer + position);
 
-    poly->set_permutation = NULL;
-    poly->set_states = NULL;
+    poly->set_permutation_offset = UINT64_MAX;
+    poly->set_states_offset = UINT64_MAX;
     // If there is more data in the buffer, this polymer carries set information.
     if (length > position)
         {
-            poly->set_permutation = (unsigned int *)malloc(p->max_n_sets * sizeof(unsigned int));
-            MALLOC_ERROR_CHECK(poly->set_permutation, p->max_n_sets * sizeof(unsigned int));
-
-            memcpy(poly->set_permutation, buffer + position, p->max_n_sets * sizeof(unsigned int));
+            poly->set_permutation_offset = get_new_soma_memory_offset(&(p->ph.set_permutation), p->max_n_sets);
+            if (poly->set_permutation_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
+            memcpy(((unsigned int *)p->ph.set_permutation.ptr) + poly->set_permutation_offset, buffer + position,
+                   p->max_n_sets * sizeof(unsigned int));
             position += p->max_n_sets * sizeof(unsigned int);
         }
 
     if (length > position)
         {
-            poly->set_states = (RNG_STATE *) malloc(p->max_set_members * sizeof(RNG_STATE));
-            MALLOC_ERROR_CHECK(poly->set_states, p->max_set_members * sizeof(RNG_STATE));
-
+            poly->set_states_offset = get_new_soma_memory_offset(&(p->ph.set_states), p->max_set_members);
+            if (poly->set_states_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
             for (unsigned int i = 0; i < p->max_set_members; i++)
-                position += deserialize_rng_state(p, poly->set_states + i, buffer + position);
+                position +=
+                    deserialize_rng_state(p, ((RNG_STATE *) p->ph.set_states.ptr) + poly->set_states_offset + i,
+                                          buffer + position);
         }
     else
         {
-            assert(poly->set_permutation == NULL);
+            assert(poly->set_permutation_offset == UINT64_MAX);
         }
     if (position != length)
         {
@@ -373,31 +333,6 @@ int deserialize_polymer(const struct Phase *const p, Polymer * const poly, const
         }
 
     return position;
-}
-
-int update_self_polymer(const struct Phase *const p, Polymer * const poly, int rng_update_flag)
-{
-    const unsigned int N = p->poly_arch[p->poly_type_offset[poly->type]];
-#pragma acc update self(poly->beads[0:N])
-    if (poly->set_permutation != NULL)
-        {
-#pragma acc update self(poly->set_permutation[0:p->max_n_sets])
-        }
-    if (rng_update_flag)
-        {
-            update_self_rng_state(&(poly->poly_state), p->args.pseudo_random_number_generator_arg);
-            if (poly->set_states != NULL)
-                {
-#pragma acc update self(poly->set_states[0:p->max_set_members])
-                    for (unsigned int j = 0; j < p->max_set_members; j++)
-                        {
-                            update_self_rng_state(poly->set_states + j, p->args.pseudo_random_number_generator_arg);
-                        }
-                }
-        }
-#pragma acc update self(poly->type)
-#pragma acc update self(poly->rcm)
-    return 0 + 1 * N * 0;
 }
 
 int update_polymer_rcm(struct Phase *const p)
@@ -416,11 +351,14 @@ int update_polymer_rcm(struct Phase *const p)
             Polymer *const mypoly = &(p->polymers[npoly]);
             const unsigned int N = p->poly_arch[p->poly_type_offset[mypoly->type]];
             Monomer rcm = make_monomer(0, 0, 0);
+            Monomer *beads = p->ph.beads.ptr;
+            beads += mypoly->bead_offset;
+
             for (unsigned int i = 0; i < N; i++)
                 {
-                    rcm.x += mypoly->beads[i].x;
-                    rcm.y += mypoly->beads[i].y;
-                    rcm.z += mypoly->beads[i].z;
+                    rcm.x += beads[i].x;
+                    rcm.y += beads[i].y;
+                    rcm.z += beads[i].z;
                 }
             rcm.x /= N;
             rcm.y /= N;

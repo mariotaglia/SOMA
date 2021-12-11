@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -35,12 +35,12 @@
 
     \section example Example Input File
 
-    The input format is based on <a
-    href="https://en.wikipedia.org/wiki/XML">xml</a> and for the
+    The input format is based on <a href="https://en.wikipedia.org/wiki/XML">xml</a> and for the
     description we use an ASCII representation of Molecules that is
-    inspired by the <a
-    href="http://jcheminf.springeropen.com/articles/10.1186/1758-2946-3-1">Curley-Smiles</a>
+    inspired by the <a href="http://jcheminf.springeropen.com/articles/10.1186/1758-2946-3-1">Curley-Smiles</a>
     standard.
+
+
     \note We do not cover the full Curley-Smiles spectrum and we have our own flavor.
 
     An example input for a small system of linear diblock-copolymers may look like:
@@ -64,7 +64,6 @@
        types the parsing will fail.
        \note \f$ N \f$ of \f$ \chi N \f$ and \f$ \kappa N\f$ refers to the reference N.
      - \code <bonds>\endcode Specifies the bond type between any half-bond type. The syntax is line based and expectes "typeA typeB bond-type".
-
     - \code <A> \endcode Defines the mobility of the different particle
       types in the smart Monte-Carlo moves. The syntax is line based and
       expects "type value", where value is the friction of the Langevin
@@ -105,6 +104,10 @@
       - \code DeltaMC \endcode Each obs has an DeltaMC field. This specifies how often in MC steps this obs is analysed.
       - \code end_mono \endcode Is a special attribute of the "Re" observable. Specifying which monomers of a polytype are considered as "end-monomers".
         Matrix shape, should be n_poly_types x 2. The first dimension is counting the poly_type the second start and end monomer. Refer the complex example for an example.
+      - \code <dynamical_structure_factor> (<static_structure_factor>) \endcode measures the dynamical structure factor (static structure factor) of each type of polymer and save if to ana file.
+        - \code <DeltaMC> \endcode defines the frequency where the RCMs are checked and the rules applied.
+        - \code <q> \endcode defines the norm of the scattering vector. With given norm q, the dynamical structure factor will be calculated with randomly generated q_x,q_y,q_z(three components of the scattering vector) uniformly distributed in spherical coordinate. This measurement will be repeated N times and the result is the average of the N values. The number of random scattering vector N is set to 32 as default and can be changed as command line argument when starting SOMA.
+
 
     \subsection confgen.py The Conversion Script.
     This example should give you a rough overview over the input
@@ -289,8 +292,7 @@
      units, not in units of Re. That includes \<point\> tags and \<radius\>
      tags. Your input has to be integer, except \<radius\>.
 
-
-    This tags helps you to specify forbidden
+    This tag helps you to specify forbidden
     areas for the monomers on your grid. This can be useful if you
     want to simulate in confinements or you don't want to you periodic
     boundary conditions. For this purpose 4 different GridObject are available.
@@ -317,6 +319,47 @@
       - \code <sin> \endcode is the array containing the prefactor of the sine series.
   \note Objects that leave the grid are mapped back via periodic boundary conditions.
 
+  - \code <polyconversion> \endcode allows to define zones where the type of a polymer can be switched.
+    If the center of mass is inside of one of the so defined zones its type is switched according to the switching rules.
+    The definition of these rules and how the switching rules are defined is implemented via 3 different kinds of subtags in the XML.
+      - \code <DeltaMC> \endcode defines the frequency where the RCMs are checked and the rules applied.
+      -\code <cylinder> <box> <sphere> <point_cloud> \endcode work exactly as with area51 or external field.
+       They define the zone where the switching rules are applied.
+       The value has only one entry and defines the switching rules for that reason.
+       To be precise: the value indicates the starting index for the \code <conversion_list> \endcode.
+       For example a 0 means to start reading at the beginning of that list.
+       The user may define multiple zones with different indices. If zones overlap, the last zone overwrites the previous index value.
+      - \code <conversion_list> \endcode defines the reactions.
+        There are always 3 numbers. The first defines the original polymer type the educt of the reaction. The second defines the product of the reaction. Both have to fulfill the restriction, that they enumerate valid polymer types. In addition, the number of beads between input and output must be the same.
+	The number is read as boolean and indicates if there is another reaction. If it is false (0), the next line is also applied for the currect reaction zone cell. Otherwise no further reactions are applied.
 
+  - \code <density_weights> \endcode Weight the beads differently as a function of their type. (Multiplication of \f$\phi_i\f$)
+   The default weight is 1 for each type. The weights are automatically normalized such that the sum of the weights equals the number of types in the system.
+   The normalization assures that the part of the hamiltonian that restrains the density fluctuations can compare to the total density to 1.
+   Weights of 0 are possible, but probably not recommended. All weights zero or negative weights are obviously not an option.
+     \warning It is recommended to use the the SCMF1 hamiltonian, since the SCFM0 expects a unit density implicitly in the  \f$ \chi N\f$ -term.
 
+  - \code <mobility_modifier> \endcode
+   There are two option here and both can be used simultaneously.
+   The first option is to vary the MC frequency as a function polymer type.
+   \code <poly_type_mc_freq> \endcode
+   This tag expects a list of integer frequencies. \code time % freq == 0 \endcode is the condition that an MC move is performed.
+   The list has to have as many entries as polymer types in the configuration.
+
+   The second option is to choose different density dependent:
+   Allows the modification of mobility as a function of the density surrounding the particles. This is achieved by multiplying a modification factor to the acceptance probabilty.
+   This factor can only be in the range [0,1] and must fulfill detailed balance. Unfortunately, this can only slow particles down.
+   At the moment two different types are implemented and to be specified with the \code type \endcode tag.
+   - \code DEFAULT_MOBILITY \endcode no modification (default)
+   - \code MULLER_SMITH_MOBILITY \endcode The mobility depends on the density in the current grid cell. https://onlinelibrary.wiley.com/doi/abs/10.1002/polb.20385 Equation 33 and 34. And Equation 20.
+   The modifier is calculated as follows: \f$ m(r) = \frac{1}{\sum_{\alpha} a_\alpha \phi_\alpha(r) + b_\alpha \phi^2_\alpha (r)} \f$
+   \f$ a_\alpha \f$ and \f$ b_\alpha \f$ are parameters to modify the result, \f$ \alpha \f$ describes the particle type. Afterwards \f$ m \f$ is clipped to the interval \f$ [0,1]\f$. Negative values are mapped onto 1 instead of 0.
+   These parameter are specified as a linear list \f$ a_A, a_B, \dots, b_A, b_B \dots \f$ for the required tag \code param \endcode.
+   The length of this list must be 2 * n_types.
+   - \code TANH_MOBILITY \endcode
+   The mobility is controlled via a sharp tanh tranistion. In contrast to MULLER_SMITH_MOBILITY it is possible to define one set of parameters for each type of the moving particle \f$i\f$.
+   The equation is \f$ m_i(\{\phi_j\}) = 1/2 \left( 1 + \tanh\left(\frac{\phi_{0,i} - \sum_j a_{ij} \phi_j}{\Delta \phi_{i}}\right)\right) \f$.
+   In total this equation requires \f$ 2*n_{types} + n_{types}^2 \f$ parameters, the order in which the parameters are expected is \f$\phi_{0,i}\f$, \f$\Delta \phi_i\f$, and \f$a_{i,j}\f$.
+   The parameters are can be specified in flat format, or in vector \f$\phi_{0,i}\f$, vector \f$\Delta \phi_i\f$, and matrix \f$a_{i,j}\f$ format, because white spaces are ignored.
+   It is not possible to leave out any parameter specified.
 */

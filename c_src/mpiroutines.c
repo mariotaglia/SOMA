@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -118,13 +118,21 @@ int init_MPI(struct Phase *p)
 
     uint32_t fixed_seed;
     if (!p->args.rng_seed_given || p->args.rng_seed_arg < 0)
-        fixed_seed = time(NULL);
+        {
+            uint32_t time_bytes = time(NULL);
+            fixed_seed = time_bytes;
+#if __GLIBC__ > 2 || __GLIBC_MINOR__ > 24
+#include <sys/random.h>
+            uint32_t entropy_bytes;
+            if (getentropy(&entropy_bytes, sizeof(uint32_t)) == 0)
+                fixed_seed ^= entropy_bytes;
+#endif                          //__GLIBC
+
+        }
     else
         fixed_seed = p->args.rng_seed_arg;
     MPI_Bcast(&fixed_seed, 1, MPI_UINT32_T, 0, p->info_MPI.SOMA_comm_sim);
     p->args.rng_seed_arg = fixed_seed;
-    if (p->info_MPI.sim_rank == 0)
-        printf("All %d ranks use fixed seed %u.\n", p->info_MPI.sim_size, p->args.rng_seed_arg);
 #endif                          //ENABLE_MPI
     return 0;
 }
@@ -136,8 +144,18 @@ int finalize_MPI(struct Info_MPI *mpi)
         MPI_Comm_free(&(mpi->SOMA_comm_domain));
     if (mpi->SOMA_comm_sim != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_sim));
+
     if (mpi->SOMA_comm_world != MPI_COMM_NULL)
         MPI_Comm_free(&(mpi->SOMA_comm_world));
+
+#ifdef ENABLE_NCCL
+    if (mpi->gpu_id >= 0)
+        {
+            ncclCommDestroy(mpi->SOMA_nccl_world);
+            ncclCommDestroy(mpi->SOMA_nccl_sim);
+            ncclCommDestroy(mpi->SOMA_nccl_domain);
+        }
+#endif                          //ENABLE_MPI_CUDA
 
     return MPI_Finalize();
 #else
@@ -170,9 +188,12 @@ double mpi_divergence(struct Phase *const p)
 {
     if (p->args.load_balance_arg == 0)
         return 0;
-    const double start = MPI_Wtime();
+    struct timeval start_tv, end_tv;
+    gettimeofday(&start_tv, NULL);
+    const double start = start_tv.tv_sec + start_tv.tv_usec * 1e-6;
     MPI_Barrier(p->info_MPI.SOMA_comm_domain);
-    const double end = MPI_Wtime();
+    gettimeofday(&end_tv, NULL);
+    const double end = end_tv.tv_sec + end_tv.tv_usec * 1e-6;
     p->info_MPI.domain_divergence_sec += (end - start);
     p->info_MPI.domain_divergence_counter += 1;
     return end - start;
@@ -187,11 +208,6 @@ int collective_global_update(struct Phase *const p)
     // Total number of beads
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->num_all_beads)
-
-    //Beads per type
-    MPI_Allreduce(p->num_bead_type_local, p->num_bead_type,
-                  p->n_types, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#pragma acc update device(p->num_bead_type[0:p->n_types])
 
     update_density_fields(p);
     return 0;
@@ -238,9 +254,6 @@ int send_polymer_chain(struct Phase *const p, const uint64_t poly_id, const int 
                     __FILE__, __LINE__, p->info_MPI.world_rank, bytes_written, buffer_length);
             return -3;
         }
-
-    //After serialization the polymer deep memory can be freed.
-    free_polymer(p, &poly);
 
     //Send the buffer to destination.
     MPI_Send(buffer, buffer_length, MPI_UNSIGNED_CHAR, destination, 0, comm);
@@ -343,8 +356,6 @@ int send_mult_polymers(struct Phase *const p, const int destination, unsigned in
                                     __FILE__, __LINE__, p->info_MPI.world_rank, poly_len, poly_theo_len);
                             return -5;
                         }
-                    //After serialization the polymer deep memory can be freed.
-                    free_polymer(p, &poly);
                     bytes_written += poly_bytes;
                 }
 
@@ -434,14 +445,24 @@ int deserialize_mult_polymers(struct Phase *const p, const unsigned int Nsends,
     for (unsigned int i = 0; i < Nsends; i++)
         {
             assert(bytes_read < buffer_length);
-            const unsigned int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+            int poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+            if (poly_bytes < 0)
+                {
+                    consider_compact_polymer_heavy(p, false);
+                    poly_bytes = deserialize_polymer(p, &poly, buffer + bytes_read);
+                }
+
             bytes_read += poly_bytes;
             //Push the polymer to the system if something has been read
             if (poly_bytes > 0)
                 push_polymer(p, &poly);
             else
-                fprintf(stderr, "ERROR: %s:%d rank %d invalid buffer length i=%d pb=%d \t %d %d %d\n",
-                        __FILE__, __LINE__, p->info_MPI.world_rank, i, poly_bytes, bytes_read, buffer_length, Nsends);
+                {
+                    fprintf(stderr, "ERROR: %s:%d rank %d invalid buffer length i=%d pb=%d \t %d %d %d\n",
+                            __FILE__, __LINE__, p->info_MPI.world_rank, i, poly_bytes, bytes_read, buffer_length,
+                            Nsends);
+                    return -1;
+                }
         }
 
     if (bytes_read != buffer_length)
@@ -537,6 +558,7 @@ int load_balance_mpi_ranks(struct Phase *const p)
             //CopyIN/OUT not the optimal solution, but the only option I can see so far
             copyout_phase(p);
             Nsend = send_mult_polymers(p, arg_max, Nchains, p->info_MPI.SOMA_comm_domain);
+            consider_compact_polymer_heavy(p, false);
             copyin_phase(p);
         }
 
@@ -545,6 +567,7 @@ int load_balance_mpi_ranks(struct Phase *const p)
             //CopyIN/OUT not the optimal solution, but the only option I can see so far
             copyout_phase(p);
             Nsend = recv_mult_polymers(p, arg_min, p->info_MPI.SOMA_comm_domain);
+            consider_compact_polymer_heavy(p, false);
             copyin_phase(p);
         }
 
@@ -652,8 +675,6 @@ int extract_chains_per_domain(struct Phase *const p, const int *domain_lookup_li
                                             __FILE__, __LINE__, p->info_MPI.world_rank, poly_len, poly_theo_len);
                                     return -5;
                                 }
-                            //After serialization the polymer deep memory can be freed.
-                            free_polymer(p, &poly);
                             buffer_offsets[domain_index] += poly_bytes;
                         }
                 }
@@ -834,6 +855,7 @@ int send_domain_chains(struct Phase *const p, const bool init)
     free(recv_len);
     free(recv_buffer);
 
+    consider_compact_polymer_heavy(p, true);
     //Copy IN/OUT is not optimal, but the only option I can see so far.
     copyin_phase(p);
 

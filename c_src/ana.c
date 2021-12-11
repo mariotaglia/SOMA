@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -52,13 +52,14 @@ void calc_Re(const struct Phase *p, soma_scalar_t * const result)
     for (uint64_t npoly = 0; npoly < p->n_polymers; npoly++)
         {
             const unsigned int type = p->polymers[npoly].type;
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[npoly].bead_offset;
 
             const unsigned int start = p->end_mono[type * 2 + 0];
             const unsigned int end = p->end_mono[type * 2 + 1];
-            const soma_scalar_t dx = p->polymers[npoly].beads[start].x - p->polymers[npoly].beads[end].x;
-            const soma_scalar_t dy = p->polymers[npoly].beads[start].y - p->polymers[npoly].beads[end].y;
-            const soma_scalar_t dz = p->polymers[npoly].beads[start].z - p->polymers[npoly].beads[end].z;
-
+            const soma_scalar_t dx = beads[start].x - beads[end].x;
+            const soma_scalar_t dy = beads[start].y - beads[end].y;
+            const soma_scalar_t dz = beads[start].z - beads[end].z;
             result[type * 4 + 0] += dx * dx + dy * dy + dz * dz;
             result[type * 4 + 1] += dx * dx;
             result[type * 4 + 2] += dy * dy;
@@ -124,6 +125,8 @@ void calc_Rg(const struct Phase *p, soma_scalar_t * const result)
         {
             const unsigned int type = p->polymers[ipoly].type;
             const unsigned int N = p->poly_arch[p->poly_type_offset[type]];
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[ipoly].bead_offset;
             soma_scalar_t xcm = 0.;
             soma_scalar_t ycm = 0.;
             soma_scalar_t zcm = 0.;
@@ -132,9 +135,9 @@ void calc_Rg(const struct Phase *p, soma_scalar_t * const result)
             soma_scalar_t z2 = 0.;
             for (unsigned int ibead = 0; ibead < N; ibead++)
                 {
-                    const soma_scalar_t x1 = p->polymers[ipoly].beads[ibead].x;
-                    const soma_scalar_t y1 = p->polymers[ipoly].beads[ibead].y;
-                    const soma_scalar_t z1 = p->polymers[ipoly].beads[ibead].z;
+                    const soma_scalar_t x1 = beads[ibead].x;
+                    const soma_scalar_t y1 = beads[ibead].y;
+                    const soma_scalar_t z1 = beads[ibead].z;
                     xcm += x1;
                     ycm += y1;
                     zcm += z1;
@@ -179,43 +182,40 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
     // loop over local chains
     for (uint64_t ipoly = 0; ipoly < p->n_polymers; ipoly++)
         {
-            const Polymer *const poly = &(p->polymers[ipoly]);
-            const unsigned int type = poly->type;
+            const unsigned int type = p->polymers[ipoly].type;
             const unsigned int N = p->poly_arch[p->poly_type_offset[type]];
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[ipoly].bead_offset;
 
             // loop over beads in this chain
             for (unsigned int ibead = 0; ibead < N; ibead++)
                 {
-
-                    const soma_scalar_t x1 = poly->beads[ibead].x;
-                    const soma_scalar_t y1 = poly->beads[ibead].y;
-                    const soma_scalar_t z1 = poly->beads[ibead].z;
+                    const soma_scalar_t x1 = beads[ibead].x;
+                    const soma_scalar_t y1 = beads[ibead].y;
+                    const soma_scalar_t z1 = beads[ibead].z;
 
                     // loop over bonds of this bead
                     const int start = get_bondlist_offset(p->poly_arch[p->poly_type_offset[type] + ibead + 1]);
                     if (start > 0)
                         {
-                            int i = start;
-                            int end;
-                            do
+                            int end = 0;
+                            for (int i = start; end == 0; i++)
                                 {
-                                    const uint32_t bn = p->poly_arch[i++];
-                                    const int info = bn;
+                                    const int info = p->poly_arch[i];
                                     end = get_end(info);
                                     const int offset = get_offset(info);
                                     const int neighbour_id = ibead + offset;
                                     const unsigned int jbead = neighbour_id;
 
-                                    const soma_scalar_t x2 = p->polymers[ipoly].beads[jbead].x;
-                                    const soma_scalar_t y2 = p->polymers[ipoly].beads[jbead].y;
-                                    const soma_scalar_t z2 = p->polymers[ipoly].beads[jbead].z;
-                                    
-				   
+                                    const soma_scalar_t x2 = beads[jbead].x;
+                                    const soma_scalar_t y2 = beads[jbead].y;
+                                    const soma_scalar_t z2 = beads[jbead].z;
+
                                     const int mic_flag = p->args.bond_minimum_image_convention_flag;
 
-				    const soma_scalar_t bx = calc_bond_length(x2,x1,p->Lx,mic_flag);
-				    const soma_scalar_t by = calc_bond_length(y2,y1,p->Ly,mic_flag);
-				    const soma_scalar_t bz = calc_bond_length(z2,z1,p->Lz,mic_flag);
+                                    const soma_scalar_t bx = calc_bond_length(x2, x1, p->Lx, mic_flag);
+                                    const soma_scalar_t by = calc_bond_length(y2, y1, p->Ly, mic_flag);
+                                    const soma_scalar_t bz = calc_bond_length(z2, z1, p->Lz, mic_flag);
 
                                     result[type * 6 + 0] += bx * bx;
                                     result[type * 6 + 1] += by * by;
@@ -224,7 +224,7 @@ void calc_anisotropy(const struct Phase *p, soma_scalar_t * const result)
                                     result[type * 6 + 4] += by * bz;
                                     result[type * 6 + 5] += bz * bx;
                                     counter[type] += 1;
-                            } while (end == 0);
+                                }
                         }
                 }
         }
@@ -264,19 +264,24 @@ void calc_MSD(const struct Phase *p, soma_scalar_t * const result)
             soma_scalar_t mz_c = 0.;
             const unsigned int type = p->polymers[j].type;
             const unsigned int N = p->poly_arch[p->poly_type_offset[type]];
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[j].bead_offset;
+            Monomer *msd_beads = p->ph.msd_beads.ptr;
+            msd_beads += p->polymers[j].msd_bead_offset;
+
             for (unsigned int k = 0; k < N; k++)
                 {               /*Loop over monomers */
-                    const soma_scalar_t tx = p->polymers[j].msd_beads[k].x - p->polymers[j].beads[k].x;
-                    const soma_scalar_t ty = p->polymers[j].msd_beads[k].y - p->polymers[j].beads[k].y;
-                    const soma_scalar_t tz = p->polymers[j].msd_beads[k].z - p->polymers[j].beads[k].z;
+                    const soma_scalar_t tx = msd_beads[k].x - beads[k].x;
+                    const soma_scalar_t ty = msd_beads[k].y - beads[k].y;
+                    const soma_scalar_t tz = msd_beads[k].z - beads[k].z;
 
                     // Add up values for chain diffusion
-                    tx_c += p->polymers[j].beads[k].x;
-                    ty_c += p->polymers[j].beads[k].y;
-                    tz_c += p->polymers[j].beads[k].z;
-                    mx_c += p->polymers[j].msd_beads[k].x;
-                    my_c += p->polymers[j].msd_beads[k].y;
-                    mz_c += p->polymers[j].msd_beads[k].z;
+                    tx_c += beads[k].x;
+                    ty_c += beads[k].y;
+                    tz_c += beads[k].z;
+                    mx_c += msd_beads[k].x;
+                    my_c += msd_beads[k].y;
+                    mz_c += msd_beads[k].z;
 
                     counter[type * 2 + 0] += 1;
                     result[type * 8 + 0] += tx * tx;
@@ -376,6 +381,9 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
             const unsigned int type = p->polymers[poly].type;
             const unsigned int N = p->poly_arch[p->poly_type_offset[type]];
 
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[poly].bead_offset;
+
             for (unsigned int mono = 0; mono < N; mono++)
                 {
 
@@ -383,11 +391,10 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 
                     if (start > 0)
                         {
-                            int i = start;
-                            unsigned int end;
-                            do
+                            unsigned int end = 0;
+                            for (int i = start; end == 0; i++)
                                 {
-                                    const uint32_t info = p->poly_arch[i++];
+                                    const uint32_t info = p->poly_arch[i];
                                     end = get_end(info);
                                     const unsigned int bond_type = get_bond_type(info);
                                     const int offset = get_offset(info);
@@ -395,16 +402,15 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                                         {
                                             const int mono_j = mono + offset;
                                             const int mic_flag = p->args.bond_minimum_image_convention_flag;
-                                            const soma_scalar_t dx = calc_bond_length(p->polymers[poly].beads[mono].x,
-                                                                                      p->polymers[poly].beads[mono_j].x,
+                                            const soma_scalar_t dx = calc_bond_length(beads[mono].x, beads[mono_j].x,
                                                                                       p->Lx,
                                                                                       mic_flag);
-                                            const soma_scalar_t dy = calc_bond_length(p->polymers[poly].beads[mono].y,
-                                                                                      p->polymers[poly].beads[mono_j].y,
+                                            const soma_scalar_t dy = calc_bond_length(beads[mono].y,
+                                                                                      beads[mono_j].y,
                                                                                       p->Ly,
                                                                                       mic_flag);
-                                            const soma_scalar_t dz = calc_bond_length(p->polymers[poly].beads[mono].z,
-                                                                                      p->polymers[poly].beads[mono_j].z,
+                                            const soma_scalar_t dz = calc_bond_length(beads[mono].z,
+                                                                                      beads[mono_j].z,
                                                                                       p->Lz,
                                                                                       mic_flag);
 
@@ -434,7 +440,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                                             assert(bond_type < NUMBER_SOMA_BOND_TYPES);
                                             bonded_energy[bond_type] += energy;
                                         }
-                            } while (end == 0);
+                                }
                         }
                 }
         }
@@ -515,8 +521,8 @@ int extent_ana_by_field(const soma_scalar_t * const data, const uint64_t n_data,
     return 0;
 }
 
-int extent_density_field(const struct Phase *const p, const void *const field_pointer, const char *const field_name,
-                         hid_t hdf5_type, const MPI_Datatype mpi_type, const size_t data_size)
+int extent_density_field_old(const struct Phase *const p, const void *const field_pointer, const char *const field_name,
+                             hid_t hdf5_type, const MPI_Datatype mpi_type, const size_t data_size)
 {
     const char *const name = field_name;
     update_density_fields(p);
@@ -646,6 +652,130 @@ int extent_density_field(const struct Phase *const p, const void *const field_po
                 }
         }
 
+    return 0;
+}
+
+int extent_density_field(const struct Phase *const p, void *const field_pointer, const char *const field_name,
+                         hid_t hdf5_type, const MPI_Datatype mpi_type, const size_t data_size)
+{
+    const char *const name = field_name;
+    update_density_fields(p);
+
+    const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
+    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
+
+    if (p->info_MPI.sim_rank == 0)
+        {
+            //Gather all data on the sim_rank_0
+            void *full_array = field_pointer;   // If only a single MPI rank is used, no gathering is needed
+#if ( ENABLE_MPI == 1 )
+            if (p->info_MPI.sim_size > 1)
+                {
+                    full_array = malloc(p->n_types * p->nx * p->ny * p->nz * sizeof(data_size));
+                    if (full_array == NULL)
+                        {
+                            fprintf(stderr, "Malloc ERROR %s:%d\n", __FILE__, __LINE__);
+                            return -1;
+                        }
+                    for (unsigned int type = 0; type < p->n_types; type++)
+                        {
+                            MPI_Gather(field_pointer + ghost_buffer_size * data_size +
+                                       type * p->n_cells_local * data_size, buffer_size, mpi_type,
+                                       full_array + type * p->nx * p->ny * p->nz * data_size, buffer_size, mpi_type, 0,
+                                       p->ana_info.inter_domain_communicator);
+                        }
+#endif                          //ENABLE_MPI
+                }
+            //Now all data is on simrank 0, so write it to disk
+            herr_t status;
+
+            hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
+            HDF5_ERROR_CHECK(plist_id);
+
+            //Open the dataset and space
+            hid_t dset = H5Dopen(p->ana_info.file_id, name, H5P_DEFAULT);
+            HDF5_ERROR_CHECK(dset);
+            hid_t d_space = H5Dget_space(dset);
+            HDF5_ERROR_CHECK(d_space);
+
+            // Extent the dimesion of the density field.
+            const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
+            if (ndims != 5)
+                {
+                    fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent density field %s.\n",
+                            __FILE__, __LINE__, name);
+                    return -1;
+                }
+            hsize_t dims[5];    //ndims
+            status = H5Sget_simple_extent_dims(d_space, dims, NULL);
+            HDF5_ERROR_CHECK(status);
+
+            hsize_t dims_new[5];        //ndims
+            dims_new[0] = dims[0] + 1;
+            dims_new[1] = p->n_types;
+            assert(dims[1] == p->n_types);
+            dims_new[2] = p->nx;
+            assert(dims[2] == p->nx);
+            dims_new[3] = p->ny;
+            assert(dims[3] == p->ny);
+            dims_new[4] = dims[4];
+            assert(dims[4] == p->nz);
+
+            status = H5Dset_extent(dset, dims_new);
+            HDF5_ERROR_CHECK(status);
+
+            status = H5Sclose(d_space);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dclose(dset);
+            HDF5_ERROR_CHECK(status);
+
+            //Open the new filespace
+            dset = H5Dopen(p->ana_info.file_id, name, H5P_DEFAULT);
+            HDF5_ERROR_CHECK(dset);
+            hid_t filespace = H5Dget_space(dset);
+            HDF5_ERROR_CHECK(filespace);
+
+            hsize_t dims_memspace[5];   //ndims
+            dims_memspace[0] = dims_new[0] - dims[0];
+            dims_memspace[1] = p->n_types;
+            dims_memspace[2] = p->nx;
+            dims_memspace[3] = p->ny;
+            dims_memspace[4] = p->nz;
+            hid_t memspace = H5Screate_simple(ndims, dims_memspace, NULL);
+
+            hsize_t dims_offset[5];     //ndims
+            dims_offset[0] = dims[0];
+            for (unsigned int i = 1; i < 5; i++)
+                dims_offset[i] = 0;
+
+            filespace = H5Dget_space(dset);
+            HDF5_ERROR_CHECK(filespace);
+
+            status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, dims_offset, NULL, dims_memspace, NULL);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dwrite(dset, hdf5_type, memspace, filespace, plist_id, full_array);
+            HDF5_ERROR_CHECK(status);
+
+            status = H5Sclose(memspace);
+            HDF5_ERROR_CHECK(status);
+
+            status = H5Sclose(filespace);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dclose(dset);
+            HDF5_ERROR_CHECK(status);
+            if (p->info_MPI.sim_size > 1)
+                free(full_array);
+        }
+    else if (p->info_MPI.domain_rank == 0)
+        {
+#if ( ENABLE_MPI == 1 )
+            for (unsigned int type = 0; type < p->n_types; type++)
+                {
+                    MPI_Gather(field_pointer + ghost_buffer_size * data_size + type * p->n_cells_local * data_size,
+                               buffer_size, mpi_type, NULL, 0, mpi_type, 0, p->ana_info.inter_domain_communicator);
+                }
+#endif                          //ENABLE_MPI
+        }
     return 0;
 }
 
@@ -786,7 +916,9 @@ int analytics(struct Phase *const p)
                 {
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
                 }
-
+#ifdef ENABLE_MPI_CUDA
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#endif                          //ENABLE_MPI_CUDA
             //Collective IO, not yet.
             extent_density_field(p, p->fields_unified, "/density_field", H5T_NATIVE_UINT16, MPI_UINT16_T,
                                  sizeof(uint16_t));
@@ -875,7 +1007,6 @@ int analytics(struct Phase *const p)
                     return -1;
                 }
         }
-
     return 0;
 }
 
@@ -930,7 +1061,6 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             return -1;
         }
     memset(tmp, 0, n_random_q * p->n_polymers * q_size * p->n_types * p->n_types * sizeof(soma_scalar_t));
-    enum enum_pseudo_random_number_generator arg_rng_type = p->args.pseudo_random_number_generator_arg;
 
 #pragma acc enter data copyin(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
 #pragma acc enter data copyin(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types]) async
@@ -941,6 +1071,11 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             const unsigned int poly_type = p->polymers[poly].type;
             unsigned int poly_length = p->poly_arch[p->poly_type_offset[poly_type]];
             RNG_STATE *const s = &(p->polymers[poly].poly_state);
+            Monomer *beads = p->ph.beads.ptr;
+            beads += p->polymers[poly].bead_offset;
+            Monomer *msd_beads = p->ph.msd_beads.ptr;
+            msd_beads += p->polymers[poly].msd_bead_offset;
+
             //random q generation
 
 #pragma acc loop                //be careful, seq?
@@ -950,11 +1085,11 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma acc loop seq
                     for (unsigned int random_i = 0; random_i < index_random_q; random_i++)
                         {
-                            rng1 = soma_rng_uint(s, arg_rng_type);
-                            rng2 = soma_rng_uint(s, arg_rng_type);
+                            rng1 = soma_rng_uint(s, p);
+                            rng2 = soma_rng_uint(s, p);
                         }
-                    rng1 = (uint32_t) soma_rng_uint(s, arg_rng_type) / (soma_scalar_t) soma_rng_uint_max();
-                    rng2 = (uint32_t) soma_rng_uint(s, arg_rng_type) / (soma_scalar_t) soma_rng_uint_max();
+                    rng1 = (uint32_t) soma_rng_uint(s, p) / (soma_scalar_t) soma_rng_uint_max();
+                    rng2 = (uint32_t) soma_rng_uint(s, p) / (soma_scalar_t) soma_rng_uint_max();
                     soma_scalar_t theta = 2 * M_PI * rng1;
                     soma_scalar_t phi = acos(1 - 2 * rng2);
                     soma_scalar_t unit_q_x = sin(phi) * cos(theta);
@@ -966,9 +1101,9 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
                             const unsigned int particle_type =
                                 get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + mono]);
                             // Monomer position at t.
-                            soma_scalar_t x = p->polymers[poly].beads[mono].x;
-                            soma_scalar_t y = p->polymers[poly].beads[mono].y;
-                            soma_scalar_t z = p->polymers[poly].beads[mono].z;
+                            soma_scalar_t x = beads[mono].x;
+                            soma_scalar_t y = beads[mono].y;
+                            soma_scalar_t z = beads[mono].z;
 #pragma acc loop seq
                             for (unsigned int index_q = 0; index_q < q_size; index_q++)
                                 {
@@ -986,9 +1121,9 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
                                             break;
                                         case DYNAMICAL_STRUCTURE_FACTOR:
                                             ;
-                                            soma_scalar_t x_0 = p->polymers[poly].msd_beads[mono].x;
-                                            soma_scalar_t y_0 = p->polymers[poly].msd_beads[mono].y;
-                                            soma_scalar_t z_0 = p->polymers[poly].msd_beads[mono].z;
+                                            soma_scalar_t x_0 = msd_beads[mono].x;
+                                            soma_scalar_t y_0 = msd_beads[mono].y;
+                                            soma_scalar_t z_0 = msd_beads[mono].z;
                                             soma_scalar_t qr_msd =
                                                 q_array[index_q] * (unit_q_x * x_0 + unit_q_y * y_0 + unit_q_z * z_0);
                                             result_tmp[index_random_q * p->n_polymers * q_size * p->n_types * 4 +

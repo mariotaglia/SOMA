@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -33,7 +33,7 @@
 //! Number of elements that are tried for the autotuner.
 //! \warning There is a problem with one kernel, if you increase this.
 //! \todo Ask PGI about this.
-#define AUTO_TUNER_N_ELEMENTS  12U
+#define AUTO_TUNER_N_ELEMENTS  16U
 
 //! \brief Autotuner to struct to hold data, which is necessary to determine
 //! an optimal parameter for ACC kernels.

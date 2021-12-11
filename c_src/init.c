@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016-2017 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -47,40 +47,10 @@
 #include "soma_config.h"
 #include "phase.h"
 
-int print_version(const int rank)
-{
-    if (rank == 0)
-        {
-            //Sytem
-            fprintf(stdout, "system is %s with C std %ld.\n", get_soma_system_info(), __STDC_VERSION__);
-
-            //SOMA git
-            fprintf(stdout, "GIT version of SOMA is %s compiled on %s %s.\n", get_soma_version(), __DATE__, __TIME__);
-
-            //HDF5
-            unsigned int majnum = 0, minnum = 0, relnum = 0;
-            H5get_libversion(&majnum, &minnum, &relnum);
-            fprintf(stdout, "HDF5 version is %u.%u.%u\n", majnum, minnum, relnum);
-#if ( ENABLE_MPI == 1 )
-#ifdef MPI_MAX_LIBRARY_VERSION_STRING
-            //MPI
-            char mpi_version[MPI_MAX_LIBRARY_VERSION_STRING];
-            int length;
-            MPI_Get_library_version(mpi_version, &length);
-            int mpi_maj = 0, mpi_min = 0;
-            MPI_Get_version(&mpi_maj, &mpi_min);
-            fprintf(stdout, "MPI version: %s %d.%d\n", mpi_version, mpi_maj, mpi_min);
-#else
-            fprintf(stdout, "No MPI lib version available.\n");
-#endif                          //mpi_max_library_version_string
-#endif                          //( ENABLE_MPI == 1 )
-        }
-    return 0;
-}
-
-int set_openacc_devices(const struct Phase *const p)
+int set_openacc_devices(struct Phase *const p)
 {
     int ret = 0;
+    p->info_MPI.gpu_id = -1;
 #ifdef _OPENACC
 
     bool on_host = false;
@@ -122,6 +92,25 @@ int set_openacc_devices(const struct Phase *const p)
                             p->info_MPI.world_rank, my_gpu_rank, check_gpu);
                 }
             printf("INFO: rank %d runs GPU %u.\n", p->info_MPI.world_rank, my_gpu_rank);
+            p->info_MPI.gpu_id = my_gpu_rank;
+#ifdef ENABLE_NCCL
+            ncclUniqueId id;
+            if (p->info_MPI.world_rank == 0)
+                ncclGetUniqueId(&id);
+            MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, p->info_MPI.SOMA_comm_world);
+            ncclCommInitRank(&(p->info_MPI.SOMA_nccl_world), p->info_MPI.world_size, id, p->info_MPI.world_rank);
+
+            if (p->info_MPI.sim_rank == 0)
+                ncclGetUniqueId(&id);
+            MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, p->info_MPI.SOMA_comm_sim);
+            ncclCommInitRank(&(p->info_MPI.SOMA_nccl_sim), p->info_MPI.sim_size, id, p->info_MPI.sim_rank);
+
+            if (p->info_MPI.domain_rank == 0)
+                ncclGetUniqueId(&id);
+            MPI_Bcast(&id, sizeof(id), MPI_BYTE, 0, p->info_MPI.SOMA_comm_domain);
+            ncclCommInitRank(&(p->info_MPI.SOMA_nccl_domain), p->info_MPI.domain_size, id, p->info_MPI.domain_rank);
+#endif                          //ENABLE_MPI_CUDA
+
         }
     if (p->args.omp_threads_given && p->info_MPI.world_rank == 0)
         {

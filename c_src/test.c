@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
 
  This file is part of SOMA.
 
@@ -30,55 +30,6 @@
 #include "mc.h"
 #include "independent_sets.h"
 
-int test_read_write_hdf5(const struct Phase *const p)
-{
-    int status;
-    unsigned int syserror;
-    if ((status = write_config_hdf5(p, "/tmp/p1.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-#if ( ENABLE_MPI == 1 )
-    MPI_Barrier(p->info_MPI.SOMA_comm_sim);
-#endif                          //ENABLE_MPI
-
-    struct Phase phase2;
-    struct Phase *const p2 = &phase2;
-    p2->info_MPI = p->info_MPI;
-    if ((status = read_config_hdf5(p2, "/tmp/p1.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-    init_phase(p2);
-
-    if ((status = write_config_hdf5(p2, "/tmp/p2.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-    free_phase(p2);
-
-    //Maybe the system() approach is not the best. But I think for testing purposes this is fine.
-    if ((status = system("h5diff /tmp/p1.h5 /tmp/p2.h5")) != 0)
-        {
-            fprintf(stderr, "ERROR: test_read_write_hdf5 %s:%d\n", __FILE__, __LINE__);
-            return status;
-        }
-    //Clean up files
-    syserror = system("rm -f /tmp/p1.h5");
-    if (syserror != 0)
-        fprintf(stderr, "ERROR: removing p1.h5 failed\n");
-    syserror = system("rm -f /tmp/p2.h5");
-    if (syserror != 0)
-        fprintf(stderr, "ERROR: removing p2.h5 failed\n");
-
-    if (p->info_MPI.world_rank == 0)
-        printf("INFO: At t= %d read_write_hdf5 test passed\n", p->time);
-    return 0;
-}
-
 int test_particle_types(const struct Phase *const p)
 {
     for (uint64_t i = 0; i < p->n_poly_type; i++)
@@ -108,25 +59,22 @@ int test_area51_violation(const struct Phase *const p)
 {
     if (p->area51 != NULL)
         {
-
             for (uint64_t i = 0; i < p->n_polymers; i++)
                 {
                     const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+                    Monomer *beads = p->ph.beads.ptr;
+                    beads += p->polymers[i].bead_offset;
                     for (unsigned int j = 0; j < N; j++)
                         {
-                            const uint64_t index = coord_to_index(p, p->polymers[i].beads[j].x,
-                                                                  p->polymers[i].beads[j].y,
-                                                                  p->polymers[i].beads[j].z);
+                            const uint64_t index = coord_to_index(p, beads[j].x, beads[j].y, beads[j].z);
                             if (index >= p->n_cells_local)
                                 {
                                     fprintf(stderr, "ERROR: domain Error %d %d. Particle out of domain %s:%d\n", (int)i,
                                             j, __FILE__, __LINE__);
                                     int x, y, z;
-                                    coord_to_cell_coordinate(p, p->polymers[i].beads[j].x, p->polymers[i].beads[j].y,
-                                                             p->polymers[i].beads[j].z, &x, &y, &z);
+                                    coord_to_cell_coordinate(p, beads[j].x, beads[j].y, beads[j].z, &x, &y, &z);
                                     fprintf(stderr, "\t %d %f %f %f\t %d %d %d\t %d %d\t %f %f %f\n",
-                                            p->info_MPI.world_rank, p->polymers[i].beads[j].x,
-                                            p->polymers[i].beads[j].y, p->polymers[i].beads[j].z, x, y, z,
+                                            p->info_MPI.world_rank, beads[j].x, beads[j].y, beads[j].z, x, y, z,
                                             p->local_nx_low, p->local_nx_high, p->polymers[i].rcm.x,
                                             p->polymers[i].rcm.y, p->polymers[i].rcm.z);
                                     return index;
@@ -178,17 +126,16 @@ int test_independet_sets(const struct Phase *const p)
                                         get_bondlist_offset(p->poly_arch[p->poly_type_offset[poly_type] + pj + 1]);
                                     if (start > 0)
                                         {
-                                            unsigned int i = start;
-                                            unsigned int end;
-                                            do
+                                            unsigned int end = 0;
+                                            for (int i = start; end == 0; i++)
                                                 {
-                                                    const uint32_t info = p->poly_arch[i++];
+                                                    const uint32_t info = p->poly_arch[i];
                                                     end = get_end(info);
                                                     const int offset = get_offset(info);
                                                     const unsigned n_id = pj + offset;
                                                     if (n_id == pi)
                                                         n_neigh++;
-                                            } while (end == 0);
+                                                }
                                         }
                                 }
                             if (p->info_MPI.domain_rank == 0 && n_neigh > 0)
@@ -215,10 +162,12 @@ int test_area51_exact(const struct Phase *const p)
             for (uint64_t i = 0; i < p->n_polymers; i++)
                 {
                     const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
+                    Monomer *beads = p->ph.beads.ptr;
+                    beads += p->polymers[i].bead_offset;
                     for (unsigned int j = 0; j < N - 1; j++)
                         {
-                            const Monomer a = p->polymers[i].beads[j];
-                            const Monomer b = p->polymers[i].beads[j + 1];
+                            const Monomer a = beads[j];
+                            const Monomer b = beads[j + 1];
                             Monomer dx;
                             dx.x = b.x - a.x;
                             dx.y = b.y - a.y;
@@ -282,4 +231,61 @@ int test_chains_in_domain(struct Phase *const p)
                        p->info_MPI.world_rank / p->info_MPI.sim_rank, violations);
         }
     return violations;
+}
+
+int test_poly_conversion(struct Phase *const p)
+{
+    if (p->pc.deltaMC == 0)
+        return 0;
+    for (unsigned int i = 0; i < p->pc.len_reactions; i++)
+        {
+            const unsigned int in = p->pc.input_type[i];
+            const unsigned int out = p->pc.output_type[i];
+            if (in >= p->n_poly_type)
+                {
+                    fprintf(stderr, "ERROR: %d polytype input %d %d %d exceeds the number of known polymer types.\n",
+                            p->info_MPI.sim_rank, i, in, p->n_poly_type);
+                    return -1;
+                }
+            if (out >= p->n_poly_type)
+                {
+                    fprintf(stderr, "ERROR: %d polytype output %d %d %d exceeds the number of known polymer types.\n",
+                            p->info_MPI.sim_rank, i, out, p->n_poly_type);
+                    return -1;
+                }
+
+            const unsigned int Nin = p->poly_arch[p->poly_type_offset[in]];
+            const unsigned int Nout = p->poly_arch[p->poly_type_offset[out]];
+            if (Nin != Nout)
+                {
+                    fprintf(stderr,
+                            "ERROR: %d polytype conversion between to polymer types of different length. %i %d %d\n",
+                            p->info_MPI.sim_rank, i, Nin, Nout);
+                    return -2;
+                }
+        }
+    if (p->pc.len_reactions > 0)
+        {
+            if (!p->pc.reaction_end[p->pc.len_reactions - 1])
+                {
+                    fprintf(stderr,
+                            "ERROR: %d the last element of the reaction list for the polymer conversion should have the end flag set.\n",
+                            p->info_MPI.sim_rank);
+                    return -3;
+                }
+        }
+    unsigned int maximum = 0;
+    for (unsigned int i = 0; i < p->n_cells_local; i++)
+        if (p->pc.array[i] > maximum)
+            maximum = p->pc.array[i];
+    if (maximum > p->pc.len_reactions)
+        {
+            fprintf(stderr,
+                    "ERROR: %d the reaction array contains values that are invalid to the corresponding list. %d %d\n",
+                    p->info_MPI.sim_rank, maximum, p->pc.len_reactions);
+            return -4;
+        }
+    if (p->info_MPI.sim_rank == 0)
+        printf("INFO: At t = %d polytype conversion test passed.\n", p->time);
+    return 0;
 }

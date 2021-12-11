@@ -1,0 +1,25 @@
+BootStrap: docker
+From: docker://nvcr.io/nvidia/nvhpc:20.11-devel-cuda11.1-ubuntu20.04
+
+%post
+        apt-get -y update
+        apt-get -y install gcc cmake libhdf5-openmpi-dev git python3 python3-h5py libopenmpi-dev
+        git clone https://gitlab.com/InnocentBug/SOMA.git
+        cd SOMA
+        mkdir build
+        cd build
+        git checkout master
+	export CC=/opt/nvidia/hpc_sdk/Linux_x86_64/20.11/compilers/bin/nvc
+        cmake -DCMAKE_INSTALL_PREFIX=../install -DENABLE_DOMAIN_DECOMPOSITION=ON -DPYTHON_EXECUTABLE=`which python3` ..
+        make
+        make install
+
+%environment
+        export PATH=$PATH:/SOMA/install/bin:/SOMA/install/python-script
+
+%runscript
+        SOMA "$@"
+
+%labels
+        Author Ludwig Schneider
+        

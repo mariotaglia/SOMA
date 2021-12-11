@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
 
  This file is part of SOMA.
 
@@ -37,6 +37,20 @@ enum Hamiltonian {
     SCMF1 = 1,                  //!< Alternative SCMF hamiltonian, especially for more than 2 types. For details refer doc of update_omega_fields_scmf1().
 };
 
+//! Enum to classify different cartesian directions
+enum CartesionDirection {
+    X = 0,                      //!< X direction
+    Y = 1,                      //!< Y direction
+    Z = 2,                      //!< Z direction
+};
+
+//! Enum to specify the different option of mobility modifier functions
+enum MobilityEnum {
+    DEFAULT_MOBILITY = 0,       //!< Default unchanged mobility. pacc multiplied with 1. Always.
+    MULLER_SMITH_MOBILITY = 1,  //!< Mobility reduction factor of the shape \f$ m(r) = \min(1,\sum_\alpha a_\alpha \phi_\alpha(r) + \sum_alpha b_\alpha \phi_alpha^2(r)) \f$. With parameters a and b to be set via xml/hdf5.
+    //! Mobility reduction with the shape \f$ M_i(\{\phi_j\}) = 1/2 \left( 1 + \tanh\left(\frac{\phi_{0,i} - \sum_j a_{ij} \phi_j}{\Delta \phi_{i}}\right)\right) \f$
+    TANH_MOBILITY = 2,
+};
 //!  Function to extract the bond_type for poly_arch elements.
 //!
 //! \param info poly_arch element.
@@ -126,7 +140,7 @@ int reseed(struct Phase *const p, const unsigned int seed);
 #define MPI_ERROR_CHECK(status,msg) if(status != 0){fprintf(stderr, "ERROR: MPI abort Name: %s %s:%d: %d\n",msg, __FILE__, __LINE__,(int)status); ;exit(status);}
 
 //! Macro to check and return error code if malloc failed.
-#define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %d\n", __FILE__, __LINE__, (int) (size)); return -1;}
+#define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %lu\n", __FILE__, __LINE__, (uint64_t) (size)); return -1;}
 #pragma acc routine(calc_bond_length) seq
 static inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,
                                              const int mic);

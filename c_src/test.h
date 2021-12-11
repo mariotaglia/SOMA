@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
 
  This file is part of SOMA.
 
@@ -23,15 +23,6 @@
 
 #include "soma_config.h"
 struct Phase;
-
-//! Test the read and write functionality for a given phase.
-//!
-//! \param p Phase which is used for the testing.
-//! \warning This can only succeed with suffiecient diskspace and of
-//! the cmd tool h5diff is installed. /tmp/p1.h5 and /tmp/p2.h5 are
-//! going to be accessed.
-//! \return Errorcode.
-int test_read_write_hdf5(const struct Phase *const p);
 
 //! Test the particle types to be in bounds
 //!
@@ -64,4 +55,10 @@ int test_independet_sets(const struct Phase *const p);
 //! \param p Phase to check
 //! \return Errorcode
 int test_chains_in_domain(struct Phase *const p);
+
+//! Test polyconversion type setup
+//!
+//! \param p Phase to check
+//! \return Errorcode
+int test_poly_conversion(struct Phase *const p);
 #endif                          //SOMA_TEST_H

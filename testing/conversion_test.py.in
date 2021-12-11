@@ -1,0 +1,61 @@
+@SOMA_PYTHON_SHEBANG@
+
+#   Copyright (C) 2016-2021 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+import sys
+sys.path.append( @SOMA_PYTHON_DIR@ )
+import h5py
+import numpy as np
+import argparse
+import subprocess as sp
+
+SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
+CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+
+def main(argv):
+    parser = argparse.ArgumentParser(description = "Perform test to check the correct statistic results of SOMA.")
+    parser.add_argument('--additional-flags',metavar="add-flags",type=str,help="Additional flags you might want to pass to SOMA for all tests.",default="" )
+    arguments =  parser.parse_args()
+
+    additional_flags =[]
+    for element in arguments.additional_flags.split():
+        if len(element) > 0:
+            additional_flags.append(element.strip())
+
+    ret = sp.call([CONFGEN,"-i","conversion.xml","--no-ana-output"])
+    if ret != 0: raise RuntimeError("Conversion init failed")
+
+    #Check initially all polymer are type 0
+    with h5py.File("conversion.h5","r") as f:
+        poly_type = f["poly_type"][:]
+    if poly_type.sum() != 0:
+        raise RuntimeError("Conversion test failed. Initial polymers are not all of type 0")
+
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","1",SOMA,"-c","conversion.h5","-t","100","-f","conversion_end.h5"]+additional_flags)
+    if ret != 0: raise RuntimeError("Running conversion failed")
+
+    #Check initially all polymer are type 1 (converted from type 0)
+    with h5py.File("conversion_end.h5","r") as f:
+        poly_type = f["poly_type"][:]
+    if poly_type.sum() != poly_type.shape[0]:
+        raise RuntimeError("Conversion test failed. Final polymers are not all of type 1")
+
+    return 0
+
+if __name__ == "__main__":
+    ret = main(sys.argv)
+    exit(ret)

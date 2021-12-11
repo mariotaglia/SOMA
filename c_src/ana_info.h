@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
 
  This file is part of SOMA.
 
@@ -47,6 +47,9 @@ typedef struct Ana_Info {
     char *filename;             //!< filename of the analysis file.
     char *coord_filename;       //!< filename of the configuration files.
     hid_t file_id;              //!< HDF5 file specifier for the ana file. Only valid for current_core == 0. No MPI/IO
+#if (ENABLE_MPI == 1)
+    MPI_Comm inter_domain_communicator; //!< communicator that enables communication between different sim ranks to store density fields
+#endif                          //ENABLE_MPI
 } Ana_Info;
 
 //! \brief Initialization of the information needed for analysis routines.

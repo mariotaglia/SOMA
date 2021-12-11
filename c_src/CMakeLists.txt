@@ -1,6 +1,9 @@
 if(ENABLE_MPI_CUDA AND MPI_CUDA)
   add_definitions(-DENABLE_MPI_CUDA)
 endif()
+if(ENABLE_NCCL)
+  add_definitions(-DENABLE_NCCL)
+endif()
 
 set(soma_source
   ana.c
@@ -12,17 +15,24 @@ set(soma_source
   independent_sets.c
   init.c
   io.c
+  io_old.c
   mc.c
   mesh.c
   monomer.c
   mpiroutines.c
   phase.c
   polymer.c
+  poly_heavy.c
   rng.c
+  self_documentation.c
+  rng_alternative.c
   soma_config.c
+  soma_memory.c
   soma_util.c
   walltime.c
   test.c
+  polytype_conversion.c
+  mobility.c
   )
 
 configure_file(soma_config.h.in soma_config.h)
@@ -39,16 +49,23 @@ set(soma_header
   independent_sets.h
   init.h
   io.h
+  io_old.h
   mc.h
   mesh.h
   monomer.h
   mpiroutines.h
   phase.h
   polymer.h
+  poly_heavy.h
   rng.h
+  self_documentation.h
+  rng_alternative.h
+  soma_memory.h
   soma_util.h
   walltime.h
   test.h
+  polytype_conversion.h
+  mobility.h
   )
 
 add_library(soma_lib ${soma_source})
@@ -73,6 +90,10 @@ foreach(EXE SOMA CONVERT)
       target_link_libraries(${EXE} "-Bstatic_pgi")
     endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
   endif(BUILD_STATIC)
+
+  if(ENABLE_NCCL)
+    target_link_libraries(${EXE} "-lnccl")
+  endif(ENABLE_NCCL)
 
   install(TARGETS ${EXE} DESTINATION bin)
 endforeach(EXE)

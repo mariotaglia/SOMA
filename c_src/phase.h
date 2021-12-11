@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -31,6 +31,12 @@ struct IndependetSets;
 #include "soma_util.h"
 #include "autotuner.h"
 #include "polymer.h"
+#include "polytype_conversion.h"
+#include "mobility.h"
+#include "self_documentation.h"
+#include "poly_heavy.h"
+#include "rng_alternative.h"
+#include <sys/time.h>
 
 //! Value of Pi.
 #ifndef M_PI
@@ -92,8 +98,6 @@ typedef struct Phase {
     soma_scalar_t *external_field_unified;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
     soma_scalar_t *umbrella_field;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
-    uint64_t *num_bead_type;    /*!< \brief stores the number of beads of a specific type */
-    uint64_t *num_bead_type_local;      /*!< \brief stores the number of beads of a specific type locally (for this mpi-core) */
 
     soma_scalar_t *A;           /*!< \brief stores the diffusion constants for each type */
     soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
@@ -112,6 +116,7 @@ typedef struct Phase {
     unsigned int time;          /*!< \brief MC steps into the simulation */
     uint64_t num_all_beads;     //!< Number of all monomer/beads in the global system
     uint64_t num_all_beads_local;       //!< Number of all monomer/beads on the local MPI core
+    uint64_t n_accessible_cells;        //!< Global number of cells of the grid that are accessible by particles (not-area51)
 
     unsigned int nx;            /*!< \brief x-spatial discretization */
     unsigned int ny;            /*!< \brief y-spatial discretization */
@@ -223,7 +228,7 @@ typedef struct Phase {
     //! \brief clock value close to the start of SOMA.
     //!
     //! Not exactly at the start, but at the beginnig of init_values().
-    time_t start_clock;
+    struct timeval start_clock;
     //! \brief Start time of this simulation.
     unsigned int start_time;
 
@@ -265,6 +270,11 @@ typedef struct Phase {
     soma_scalar_t period;       //!< period of the time-dependent external field
     unsigned int serie_length;  //!< number of time-dependent external field
 
+    struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
+    struct Mobility mobility;   //!< struct containing information for density related mobility modifications
+    struct SelfDocumentation sd;        //!< struct that contains all elements for the self documenation functionality
+    struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.
+    struct RNG_HEAVY rh;        //!< struct containing the pointer to the heavy memory of alternative PRNGs, if needed.
 } Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
@@ -286,7 +296,7 @@ int copyin_phase(struct Phase *const p);
   \param rng_update_flag The flag deciding whether rng_state will be updated
   \return Errorcode
  */
-int update_self_phase(const Phase * const p, int rng_update_flag);
+int update_self_phase(Phase * const p, int rng_update_flag);
 
 //! Copy all data out from the DEVICE
 //! \param p Pointer to phase to copy out

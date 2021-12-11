@@ -1,18 +1,36 @@
 Change log of the development of SOMA.
 Please add your contributions.
 
-v0.7.0 not-yet-released
+v0.7.0 21/12/11
+	* allow or mobility modifications.
+	  tanh and muller-smith LS
+	* Enable self documentation features	        LS
+	* Reactions. The user defines zones, where
+	one polymer type is converted into another. 	LS
+	* CMake python. Identify suitable python
+	environment via CMake				LS
+	* implement density dependent mobility          LS
+	* assign each polymer a unique tag
+	  the tag remains constant between runs         LS
+	* Enabling CUDA aware MPI and NCCL              LS
+	* Enabling different MC frequency for poly_types LS
 
-
-v0.6.2 not-yet-released
+	BUGFIXES
 
 	* fix problem with exact area51 genration
-	of polymers and its test.        MM and LS
+	of polymers and its test.        		MM and LS
 	* enable extra SOMA_C_FLAGS as
-	environment added to C_FLAGS	LS
-	* fix problem with calculation of the 
-	bond-anisotropy for closed chains, while 
-	using minimum image convention.	Leon Frangen
+	environment added to C_FLAGS	 LS
+	* fix problem with calculation of the
+	bond-anisotropy for closed chains, while
+	using minimum image convention.			Leon Frangen
+	* fix problem of unintentionally updating
+	with the polyarch with reorderd poly IDs
+	and ConfGen.py --update
+	WARNING: new default: no update of polyarch 	LS
+	* implement weighting of
+	different monomer types
+	<density_weight> 		 LS
 
 v0.6.1 23/1/19
 	* fix a problem with memory management for
@@ -58,7 +76,7 @@ v0.6.0 19/12/18
 	  time options. See doc for
 	  details
 	* Force an indention style      LS
-	
+
 	remove:
 	* signal management             LS
 

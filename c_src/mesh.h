@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -199,6 +199,7 @@ void update_omega_fields(const struct Phase *const p);
 //! \param p Phase configuration to update.
 //! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}}\frac{k_i}{2} \left(\phi_i(r)-s_i(r)\right)^2 + \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} (\sum_{i} ^{n_{types}} \phi_i(r) - 1)^2 - \sum_{i<j}^{n_{types}} \frac{\chi_{i,j}N_{ref}}{4} (\phi_i(r) - \phi_j(r))^2 \f]
 //! \f[  \frac{\omega_k(c)}{k_BT} = \frac{N}{k_BT \rho_0 \Delta L^3}\frac{\partial H(c)}{k_BT \partial \phi_k} = \sum_i^{n_{types}} k_i\left(\phi_i(c)-s_i(c)\right) + f_k(c) + \kappa (\sum_i^{n_{types}} \phi_i(c)-1) - \sum_{i< k}^{n_{types}} \frac{\chi_{i,k}}{2} (\phi_k(c)-\phi_i(c))   \f]
+//! \note In case of the use of the density_weights every \f$\phi_i\f$ is multiplied with its weight \f$w_i\f$. For this Hamiltonian weights differing from 1 are not recommended -- use SCMF1 instead.
 void update_omega_fields_scmf0(const struct Phase *const p);
 
 //! Function to calculate the omega fields for hamiltonian scmf1.
@@ -206,6 +207,7 @@ void update_omega_fields_scmf0(const struct Phase *const p);
 //! \param p Phase configuration to update.
 //! \f[\frac{H}{k_BT } = \frac{\rho_0}{N_{ref}}\int_V D(\{r\}) \sum_i^{n_{types}} \frac{k_i}{2} \left(\phi_i(r)-s_i(r)\right)^2+ \sum_i^{n_{types}} \phi_i(r) f_i(r) + \frac{\kappa N_{ref}}{2} \left(\sum_{i} ^{n_{types}} \phi_i(r) - 1\right)^2 + \sum_{i< j}^{n_{types}} \chi_{i,j}N_{ref} \phi_i(r) \phi_j(r) \f]
 //! \f[ \omega_k(c) = \frac{N_{ref}}{k_BT\rho_0 \Delta L^3}\frac{\partial H(c)}{\partial \phi_k} = \sum_i^{n_{types}} k_i\left(\phi_i(c)-s_i(c)\right)+ f_k(c) + \kappa \left(\sum_i^{n_{types}} \phi_i(c)-1\right) + \sum_{i< k}^{n_{types}} \chi_{i,k} \phi_i(c)   \f]
+//! \note In case of the use of the density_weights every \f$\phi_i\f$ is multiplied with its weight \f$w_i\f$.
 void update_omega_fields_scmf1(const struct Phase *const p);
 
 #endif                          //SOMA_MESH_H

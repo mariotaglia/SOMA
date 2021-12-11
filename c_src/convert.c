@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -32,6 +32,7 @@
 #include "mpiroutines.h"
 #include "init.h"
 #include "test.h"
+#include "io_old.h"
 
 //! \file convert.c
 //! \brief Implementation of CONVERT executable.
@@ -71,6 +72,17 @@ int main(int argc, char *argv[])
 
     p->args.N_domains_arg = 1;
     p->args.domain_buffer_arg = 0;
+    p->pc.deltaMC = 0;
+    p->pc.array = NULL;
+    p->pc.input_type = NULL;
+    p->pc.output_type = NULL;
+    p->pc.reaction_end = NULL;
+    p->pc.len_reactions = 0;
+    p->mobility.type = DEFAULT_MOBILITY;
+    p->mobility.poly_type_mc_freq = NULL;
+    p->mobility.param = NULL;
+    p->mobility.param_len = 0;
+
     p->args.long_chain_threshold_arg = 1;
     init_MPI(p);
 

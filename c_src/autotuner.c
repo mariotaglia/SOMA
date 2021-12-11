@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2019 Ludwig Schneider
+/* Copyright (C) 2016-2021 Ludwig Schneider
    Copyright (C) 2016 Ulrich Welling
    Copyright (C) 2016 Marcel Langenberg
    Copyright (C) 2016 Fabien Leonforte
@@ -32,11 +32,12 @@
 #endif                          //ENABLE_MPI
 #include <stdbool.h>
 #include <time.h>
+#include <sys/time.h>
 
 //! Step size between different elements.
 static const unsigned int AUTO_TUNER_STEP = 16;
 //! Number of iterations an autotuner runs, before an optimal value is determined.
-static const unsigned int AUTO_TUNER_ITERATIONS = 2000;
+static const unsigned int AUTO_TUNER_ITERATIONS = 1000;
 
 int init_autotuner(Autotuner * a)
 {
@@ -67,12 +68,14 @@ int start_autotuner(Autotuner * a)
         }
     assert(a->next_trial < AUTO_TUNER_N_ELEMENTS);
     a->value = a->trials[a->next_trial];
-#if ( ENABLE_MPI == 1 )
-    a->last_start = MPI_Wtime();
-#else
-    a->last_start = time(NULL);
-#endif
+
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    const double time = tv.tv_sec + tv.tv_usec * 1e-6;
+    a->last_start = time;
     a->started = true;
+
     return 0;
 }
 
@@ -81,11 +84,10 @@ int end_autotuner(Autotuner * a)
     assert(a);
     if (a->equilibrated)
         return 0;
-#if ( ENABLE_MPI == 1 )
-    const double end = MPI_Wtime();
-#else
-    const double end = time(NULL);
-#endif                          //ENABLE_MPI
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    const double end = tv.tv_sec + tv.tv_usec * 1e-6;
+
     if (!a->started)
         {
             fprintf(stderr, "ERROR: %s:%d No started Autotuner end.\n", __FILE__, __LINE__);

@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 2.8.0 FATAL_ERROR)
+#cmake_minimum_required(VERSION 3.13.4 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.11.0 FATAL_ERROR)
 
 include(CheckCCompilerFlag)
 
@@ -7,7 +8,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
   # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug")
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "Debug" "RelWithDebInfo")
 endif()
 if( ${CMAKE_VERSION} VERSION_GREATER "3.7.0" )
   if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0")
@@ -28,14 +29,15 @@ else (SOMA_GIT_VERSION)
   set(SOMA_VERSION_LONG "${SOMA_VERSION}-unknown")
 endif (SOMA_GIT_VERSION)
 
-set(SOMA_SYSTEM_INFO "${CMAKE_SYSTEM} ${CMAKE_SYSTEM_PROCESSOR} ${CMAKE_C_COMPILER_ID}")
+set(SOMA_SYSTEM_INFO "${CMAKE_SYSTEM} with ${CMAKE_C_COMPILER_ID} for ${CMAKE_SYSTEM_PROCESSOR} ")
 
 #set extra flags from environment
 set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} $ENV{SOMA_C_FLAGS}" CACHE STRING "" FORCE)
 
 #Set proper release flags for PGI.
 if( "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
-  set( CMAKE_C_FLAGS_RELEASE "-O0 -DNDEBUG" CACHE STRING "" FORCE)
+  set( CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING "" FORCE)
+  set( CMAKE_C_FLAGS_RELWITHDEBINFO "-g -O0 -DNDEBUG" CACHE STRING "" FORCE)
 endif()
 
 
@@ -95,6 +97,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   option(ENABLE_SANITIZE_DEBUG "Activate gcc sanitize debug plugins (undefined and address)." OFF)
   if(ENABLE_SANITIZE_DEBUG)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=undefined -fsanitize=address")
+    set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} SANITIZE_DEBUG")
+
   endif(ENABLE_SANITIZE_DEBUG)
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
@@ -110,16 +114,23 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
   SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
 
-
+find_package(OpenACC)
 #Set up options build options
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  option(ENABLE_NVIDIA_GPU "Activate NVIDIA GPUs as OpenACC accelerator." ON)
-  option(ENABLE_OPENMP "Activate OpenMP for shared memory system parallelism." OFF)
-else("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  option(ENABLE_NVIDIA_GPU "Activate NVIDIA GPUs as OpenACC accelerator." OFF)
-  option(ENABLE_OPENMP "Activate OpenMP for shared memory system parallelism." ON)
-endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+if(OpenACC_C_FOUND)
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    option(ENABLE_OPENACC "Activate OpenACC for  accelerators." OFF)
+  else("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    option(ENABLE_OPENACC "Activate OpenACC for  accelerators." ON)
+  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+endif(OpenACC_C_FOUND)
 
+if(NOT ENABLE_OPENACC)
+find_package(OpenMP)
+endif(NOT ENABLE_OPENACC)
+
+if(OpenMP_C_FOUND)
+  option(ENABLE_OPENMP "Activate OpenMP for shared memory system parallelism." ON)
+endif(OpenMP_C_FOUND)
 
 option(SINGLE_PRECISION  "Single precision floats for real values. Otherwise double precision." OFF)
 
@@ -130,33 +141,38 @@ else()
 endif()
 
 option(ENABLE_MIC "Activate compilation with minimum image convention for bond distances" OFF)
+if(ENABLE_MIC)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} MIC")
+endif(ENABLE_MIC)
+
 option(ENABLE_DOMAIN_DECOMPOSITION "Activate compilation with domain decomposition support." OFF)
+if(ENABLE_DOMAIN_DECOMPOSITION)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} DOMAIN_DECOMPOSITION")
+endif(ENABLE_DOMAIN_DECOMPOSITION)
+
 if( !ENABLE_MPI)
   if(ENABLE_DOMAIN_DECOMPOSITION)
     message(SEND_ERROR "Domain decomposition requires enabled MPI")
   endif(ENABLE_DOMAIN_DECOMPOSITION)
 endif( !ENABLE_MPI )
 
-if( ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
+if( ENABLE_OPENACC AND ENABLE_OPENMP )
   message(SEND_ERROR "SOMA can be compiled with either OpenACC or OpenMP, not both.")
-endif(ENABLE_NVIDIA_GPU AND ENABLE_OPENMP )
+endif(ENABLE_OPENACC AND ENABLE_OPENMP )
 
-if(ENABLE_NVIDIA_GPU)
-  find_package(CUDA REQUIRED QUIET)
+if(ENABLE_OPENACC)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenACC_C_FLAGS}")
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} OpenACC")
 
-  if(CUDA_VERSION_MAJOR VERSION_LESS 8)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ta=nvidia,host")
-  else(CUDA_VERSION_MAJOR VERSION_LESS 8)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ta=nvidia:cuda${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR},host")
-  endif(CUDA_VERSION_MAJOR VERSION_LESS 8)
-
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Minfo=accel")
-
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Minfo=accel")
+  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
+  
   if(ENABLE_MPI)
     # now perform some more in-depth tests of whether the MPI library supports CUDA memory
-    if ( MPI_LIBRARY MATCHES mpich OR MPI_LIBRARY MATCHES "MVAPICH" )
+    if ( MPI_mpi_LIBRARY MATCHES libmpi OR MPI_mpi_LIBRARY MATCHES "MVAPICH" )
       # find out if this is MVAPICH2
-      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      get_filename_component(_mpi_library_dir ${MPI_mpi_LIBRARY} PATH)
       find_program(MPICH2_VERSION
 	NAMES mpichversion mpich2version
 	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
@@ -164,14 +180,14 @@ if(ENABLE_NVIDIA_GPU)
       if (MPICH2_VERSION)
 	execute_process(COMMAND ${MPICH2_VERSION}
           OUTPUT_VARIABLE _output)
-	if (_output MATCHES "--enable-cuda")
+    if (_output MATCHES "--enable-cuda" OR _output MATCHES "--enable-psp-cuda-awareness")
           set(MPI_CUDA TRUE)
-          message(STATUS "Found MVAPICH2 with CUDA support.")
-	endif(_output MATCHES "--enable-cuda")
+          message(STATUS "Found MVAPICH2 or ParaStationMPI with CUDA support.")
+    endif (_output MATCHES "--enable-cuda" OR _output MATCHES "--enable-psp-cuda-awareness")
       endif(MPICH2_VERSION)
-    elseif(MPI_LIBRARY MATCHES libmpi)
+    elseif(MPI_mpi_LIBRARY MATCHES libmpi)
       # find out if this is OpenMPI
-      get_filename_component(_mpi_library_dir ${MPI_LIBRARY} PATH)
+      get_filename_component(_mpi_library_dir ${MPI_mpi_LIBRARY} PATH)
       find_program(OMPI_INFO
 	NAMES ompi_info
 	HINTS ${_mpi_library_dir} ${_mpi_library_dir}/../bin
@@ -188,36 +204,92 @@ if(ENABLE_NVIDIA_GPU)
 
 
     if (MPI_CUDA)
-      message(STATUS "MPI<->CUDA interoperability is available and disabled by default.")
       option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
+      if(ENABLE_MPI_CUDA)
+	message(STATUS "MPI<->CUDA interoperability is available and is enabled.")
+      else(ENABLE_MPI_CUDA)
+        message(STATUS "MPI<->CUDA interoperability is available but is disabled.")
+      endif(ENABLE_MPI_CUDA)
     else(MPI_CUDA)
       message(STATUS "MPI<->CUDA interoperability does not appear to be available.")
       option(ENABLE_MPI_CUDA "Enable MPI<->CUDA interoperability" off)
     endif(MPI_CUDA)
-  endif(ENABLE_MPI)
+endif(ENABLE_MPI)
 
-endif(ENABLE_NVIDIA_GPU)
+endif(ENABLE_OPENACC)
+
+if(ENABLE_MPI_CUDA)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} MPI_CUDA")
+  option(ENABLE_NCCL "Enable GPU communications via CUDA NCCL." off)
+  if(ENABLE_NCCL)
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} CUDA_NCCL")
+  endif(ENABLE_NCCL)
+endif(ENABLE_MPI_CUDA)
 
 if(ENABLE_OPENMP)
-  if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mp")
-  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
-  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  if("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -qopenmp")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -qopenmp-offload=mic")
-  endif("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} OpenMP")
 endif(ENABLE_OPENMP)
-
 
 add_subdirectory(c_src)
 add_subdirectory(setups)
 
-option(INSTALL_PYTHON "Install the python scripts. Not needed for pure server installations." ON)
+find_package(PythonInterp)
+
+if(PYTHONINTERP_FOUND)
+  set(install_python_text "Install the python scripts. Not needed for pure server installations.")
+  #check for numpy and h5py
+  set(find_numpy "
+from __future__ import print_function; import sys, os; sys.stdout = open(os.devnull, 'w');
+try: import numpy;
+except ImportError: print('OFF',file=sys.stderr,end='');
+else: print('ON',file=sys.stderr,end='');")
+  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${find_numpy}" ERROR_VARIABLE numpy_FOUND)
+  if(${numpy_FOUND})
+    message(STATUS "Numpy found")
+
+    set(find_h5py "
+from __future__ import print_function; import sys, os; #sys.stdout = open(os.devnull, 'w');
+try: import h5py;
+except ImportError: print('OFF',file=sys.stderr,end='');
+else: print('ON',file=sys.stderr,end='');")
+    execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${find_h5py}" ERROR_VARIABLE h5py_FOUND)
+
+    #Extra resilient h5py detection
+    string(FIND ${h5py_FOUND} "ON" ON_FOUND)
+    if( ON_FOUND GREATER -1)
+       string(SUBSTRING ${h5py_FOUND} ${ON_FOUND} 2 h5py_FOUND)
+    endif()
+
+    if(${h5py_FOUND})
+      message(STATUS "h5py found")
+      option(INSTALL_PYTHON "${install_python_text}" ON)
+      set(SOMA_PYTHON_SHEBANG "#!${PYTHON_EXECUTABLE}")
+    else(${h5py_FOUND})
+      message(STATUS "h5py NOT found. ${h5py_FOUND}")
+      option(INSTALL_PYTHON "${install_python_text}" OFF)
+    endif(${h5py_FOUND})
+  else(${numpy_FOUND})
+    message(STATUS "numpy NOT found. (not looking for h5py anymore)")
+    option(INSTALL_PYTHON "${install_python_text}" OFF)
+  endif(${numpy_FOUND})
+else(PYTHONINTERP_FOUND)
+  message(STATUS "no viable python found.")
+  option(INSTALL_PYTHON "${install_python_text}" OFF)
+endif(PYTHONINTERP_FOUND)
+
 if(INSTALL_PYTHON)
   add_subdirectory(python_src)
+  option(ENABLE_TESTING "Include the automated tests." ON)
+
+  #Note: testing is only possible if the python scripts are installed and valid h5py/numpy is found
+  if(ENABLE_TESTING)
+    include(CTest)
+    add_subdirectory(testing)
+    enable_testing()
+  endif(ENABLE_TESTING)
+else(INSTALL_PYTHON)
+  message(WARNING "No python script installation. There may be a problem with python environment (see earlier messages). It is necessary for testing and initialization from XML. YELL: \"you probably want to fix this (unless you know what you are doing.)\"")
 endif(INSTALL_PYTHON)
 
 find_package(Doxygen)
@@ -229,9 +301,4 @@ if(ENABLE_DOXYGEN)
   add_subdirectory(documentation)
 endif(ENABLE_DOXYGEN)
 
-option(ENABLE_TESTING "Include the automated tests." ON)
-if(ENABLE_TESTING)
-  include(CTest)
-  add_subdirectory(testing)
-  enable_testing()
-endif(ENABLE_TESTING)
+message(STATUS "Build configured as: ${SOMA_VERSION_LONG}")

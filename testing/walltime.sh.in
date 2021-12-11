@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#   Copyright (C) 2016-2019 Ludwig Schneider
+#   Copyright (C) 2016-2021 Ludwig Schneider
 #
 # This file is part of SOMA.
 #
@@ -31,7 +31,7 @@ fi
 
 
 export SOMA_WALLTIME_STOP=$((`date +%s` + 15))
-@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 100000000 -f walltime.h5
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 100000000 -f walltime.h5
 
 value=$?
 
