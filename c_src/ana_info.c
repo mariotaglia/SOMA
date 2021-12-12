@@ -51,12 +51,14 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     p->ana_info.delta_mc_umbrella_field = 0;
     p->ana_info.delta_mc_dynamical_structure = 0;
     p->ana_info.delta_mc_static_structure = 0;
+    p->ana_info.delta_mc_mono_type_fraction = 0;
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     p->ana_info.filename = NULL;
     p->ana_info.coord_filename = NULL;
     p->ana_info.file_id = -1;
     p->ana_info.q_dynamical = NULL;
     p->ana_info.q_static = NULL;
+    p->ana_info.mtf_tested_type = -1;
     //Copy no ana conf as backup to device.
 #pragma acc update device(p->ana_info)
 
@@ -105,7 +107,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 #endif                          //SOMA_NUM_OBS
 //! Number of known observables to SOMA.
 //! \private
-#define SOMA_NUM_OBS 13
+#define SOMA_NUM_OBS 14
     const char *names[SOMA_NUM_OBS];
     unsigned int *delta_mc[SOMA_NUM_OBS];
     names[0] = "/Re";
@@ -134,6 +136,8 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     delta_mc[11] = &(p->ana_info.delta_mc_dynamical_structure);
     names[12] = "/static_structure_factor";
     delta_mc[12] = &(p->ana_info.delta_mc_static_structure);
+    names[13] = "/monomer_type_fraction";
+    delta_mc[13] = &(p->ana_info.delta_mc_mono_type_fraction);
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for (unsigned int i = 0; i < SOMA_NUM_OBS; i++)
         {
@@ -806,6 +810,37 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                 }
 
             p->ana_info.delta_mc_static_structure = tmp;
+
+        }
+
+    if (p->ana_info.delta_mc_mono_type_fraction > 0)
+        {
+            const unsigned int tmp = p->ana_info.delta_mc_mono_type_fraction;
+            p->ana_info.delta_mc_mono_type_fraction = 0;
+
+            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/monomer_type_fraction", H5P_DEFAULT);
+            hid_t status = dataset;
+            HDF5_ERROR_CHECK(status);
+
+            hid_t mtf_type_attr =
+                        H5Aopen_by_name(dataset, "/monomer_type_fraction", "tested_polymer", H5P_DEFAULT, H5P_DEFAULT);
+            hid_t d_space = H5Aget_space(mtf_type_attr);
+            HDF5_ERROR_CHECK(d_space);
+            hsize_t dims[1];    //ndims
+            status = H5Sget_simple_extent_dims(d_space, dims, NULL);
+            HDF5_ERROR_CHECK(status);
+            status = H5Aread(mtf_type_attr, H5T_NATIVE_UINT, &(p->ana_info.mtf_tested_type));
+            HDF5_ERROR_CHECK(status);
+            status = H5Aclose(mtf_type_attr);
+            HDF5_ERROR_CHECK(status);
+            status = H5Sclose(d_space);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dclose(dataset);
+            HDF5_ERROR_CHECK(status);
+
+            p->ana_info.mtf_tested_type_N = p->poly_arch[p->poly_type_offset[p->ana_info.mtf_tested_type]];
+
+            p->ana_info.delta_mc_mono_type_fraction = tmp;
 
         }
     //structure
