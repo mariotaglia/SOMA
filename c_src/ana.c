@@ -466,8 +466,11 @@ void count_monomer_type_fraction(const struct Phase *const p, soma_scalar_t * co
         {
             fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
         }
+    //reset monomer_type_count
+    for(unsigned int i=0;i<p->n_types * (p->ana_info.mtf_tested_type_N + 1); i++)
+        monomer_type_count[i] = 0;
     //allocate on device
-#pragma acc enter data create(monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ])
+#pragma acc enter data copyin(monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ])
 #pragma acc enter data create(chain_counter[0:p->n_types])
     int error_flags[1] = { 0 }; //error_flags[0] indicates error in memory access.
 #pragma acc enter data copyin(error_flags[0:1])
@@ -506,17 +509,17 @@ void count_monomer_type_fraction(const struct Phase *const p, soma_scalar_t * co
         }
 
     //copyout the counter
-#pragma acc exit data copyout(monomer_type_count[0:p->ana_info.mtf_tested_type_N * p->n_types])
+#pragma acc exit data copyout(monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1)])
     //compute ratio to all polymers
     for(unsigned int i=0; i<p->n_types * (p->ana_info.mtf_tested_type_N + 1); i++)
-        monomer_type_fraction[i] = monomer_type_count[i] / p->n_polymers_global;
+        monomer_type_fraction[i] = monomer_type_count[i] / (soma_scalar_t)p->n_polymers_global;
     //distributr accross ranks:
 #if ( ENABLE_MPI == 1 )
     int status;
     if (p->info_MPI.sim_rank == 0)
-        MPI_Reduce(MPI_IN_PLACE, monomer_type_fraction, p->n_types * (p->ana_info.mtf_tested_type_N + 1), MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
+        status = MPI_Reduce(MPI_IN_PLACE, monomer_type_fraction, p->n_types * (p->ana_info.mtf_tested_type_N + 1), MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
     else
-        MPI_Reduce(monomer_type_fraction, NULL, p->n_types * (p->ana_info.mtf_tested_type_N + 1), MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
+        status = MPI_Reduce(monomer_type_fraction, NULL, p->n_types * (p->ana_info.mtf_tested_type_N + 1), MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
     if (status != MPI_SUCCESS)
         {
             fprintf(stderr, "ERROR: MPI_REDUCE failed in %s: %d \n", __FILE__, __LINE__);

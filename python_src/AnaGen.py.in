@@ -183,7 +183,7 @@ class AnalysisFile(ConfGen.SomaXML):
                     #Find length of this polymer:
                     assert tested_polymer < len(poly_type_offset), "The polymer to test the monomer type fraction on must have index smaller than {} but got {}.".format(len(poly_type_offset),tested_polymer)
                     N_tested_polymer = poly_arch[poly_type_offset[tested_polymer]]
-            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_particle_types,N_tested_polymer+1),0)
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_particle_types*(N_tested_polymer+1)),0)
             element.attr["tested_polymer"] = tested_polymer
             self.ana_dict["monomer_type_fraction"] = copy.deepcopy(element)
 
