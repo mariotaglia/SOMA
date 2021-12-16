@@ -220,7 +220,7 @@ int copyin_electric_field(struct Phase *p)
         {
 #ifdef _OPENACC
             //The pc struct itself is part of the phase struct and is already present of the device
-#pragma acc enter data copyin(p->ef.eps[0:p->n_types])                                                     //works without handing slice?
+#pragma acc enter data copyin(p->ef.eps[0:p->n_types])                                                   
 #pragma acc enter data copyin(p->ef.eps_arr[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.electrodes[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.iter_per_MC)
@@ -370,9 +370,9 @@ void calc_dielectric_field(struct Phase *const p)
 #pragma omp parallel for
     for (uint64_t i = 0; i < p-> n_cells; i++)
     {
-        if (p->ef.electrodes[i] == 1)
+        if (p->ef.electrodes[i] == 1 || p->area51[i] == 1)
         {
-            p->ef.eps_arr[i] = 0.0;
+            p->ef.eps_arr[i] = 1.0;
         }
         else
         {
@@ -415,13 +415,18 @@ void pre_derivatives(struct Phase *const p)
             for (uint64_t z=0; z < p->nz; z++)
             {
                 uint64_t i = cell_to_index(p,x,y,z);
-                if (p->ef.electrodes[i] == 1)
+                uint64_t pos6 = (x * p->ny * p->nz + y * p->nz + z) * 6;
+                if (p->ef.electrodes[i] == 1 || p->area51[i] == 1)
                 {
-                    p->ef.eps_arr[i] = 0.0;
+                    p->ef.pre_deriv[pos6 + 0] = 1.0/6.0;
+                    p->ef.pre_deriv[pos6 + 1] = 1.0/6.0;
+                    p->ef.pre_deriv[pos6 + 2] = 1.0/6.0;
+                    p->ef.pre_deriv[pos6 + 3] = 1.0/6.0;
+                    p->ef.pre_deriv[pos6 + 4] = 1.0/6.0;
+                    p->ef.pre_deriv[pos6 + 5] = 1.0/6.0;
                 }
                 else
                 {
-                    uint64_t pos6 = (x * p->ny * p->nz + y * p->nz + z) * 6;
                     soma_scalar_t cr = 1.0/(24.0 * p->ef.eps_arr[i]);
 
                     soma_scalar_t epsx = cr * ( p->ef.eps_arr[cell_to_index(p,x+1,y,z)] - p->ef.eps_arr[cell_to_index(p,x-1,y,z)] );
@@ -479,7 +484,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
                                                p->ef.eps_arr[i] + (dEpotx(p,p->ef.Epot_tmp,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) +
                                                                    dEpoty(p,p->ef.Epot_tmp,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) +
                                                                    dEpotz(p,p->ef.Epot_tmp,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z));
-                    if (max_i <  conv_crit) max_i = conv_crit;                                          //openACC reduction statement
+                    if (max_i <  conv_crit) max_i = conv_crit;                                          
                 }
             }
 
@@ -520,25 +525,25 @@ int calc_electric_field_contr(struct Phase *const p)
                 uint64_t i = cell_to_index(p,x,y,z);
                 if (p->ef.electrodes[i] == 1)
                 {
-                    p->ef.Epot_tmp[i] = p->ef.Epot[i]; 
+                    continue; 
                 }
                 else
                 {
-                    soma_scalar_t dEpot_sq = dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.Epot,x,y,z) +
-                                             dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.Epot,x,y,z) +
-                                             dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.Epot,x,y,z);
+                    soma_scalar_t dEpot_sq = abs(dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.Epot,x,y,z) +
+                                                 dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.Epot,x,y,z) +
+                                                 dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.Epot,x,y,z));
                     p->ef.H_el_field[i] = 0.5 * dEpot_sq * p->ef.eps_arr[i];                    // optional? save hamiltionian field
                     sum_H_el += p->ef.H_el_field[i];                                          //TODO: log in ana
                     // printf("%.3f\n",p->ef.H_el_field[i]);
 
-                    for (uint8_t m = 0; m < p->n_types; m++)
+                    
+                    for (uint32_t m = 0; m < p->n_types; m++)
                     {   
                         soma_scalar_t phi_sum = 0.0;
                         soma_scalar_t diff_part = 0.0;
-
                         phi_sum += p->fields_unified[i+m*p->n_cells_local] * p->field_scaling_type[m];
 
-                        for (uint8_t n = 0; n < p->n_types; n++)
+                        for (uint32_t n = 0; n < p->n_types; n++)
                         {
                             if (n != m)
                             {
@@ -547,8 +552,8 @@ int calc_electric_field_contr(struct Phase *const p)
                                             (p->ef.eps[m] - p->ef.eps[n]);
                             }
                         }
-
-                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->num_all_beads);  
+                        
+                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->num_all_beads) * dEpot_sq;
 
                         // eps_res = 0.0;
                         // phi_other = 0.0;
