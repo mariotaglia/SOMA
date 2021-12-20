@@ -389,8 +389,8 @@ void self_omega_field(const struct Phase *const p)
                         {
                             // p->omega_field_unified[cell + T_types * p->n_cells_local] +=
                             //     -inverse_refbeads * p->ef.H_el_field[cell];
-                            p->omega_field_unified[cell + T_types * p->n_cells_local] +=
-                                -inverse_refbeads * p->ef.omega_field_el[cell + T_types * p->n_cells_local];
+                            p->omega_field_unified[cell + T_types * p->n_cells_local] -=
+                                inverse_refbeads * p->ef.omega_field_el[cell + T_types * p->n_cells_local];
                         }
                 }
         }
