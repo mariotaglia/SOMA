@@ -38,6 +38,7 @@ typedef struct MonoConversion {
     unsigned int *dependency_type; //!<Array that contains the dependency types
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
     unsigned int len_dependencies; //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
+    bool semi_grandcanonical //!< boolean whether conversions are performed semi-grandcanonically. If turned on, all conversion rules are ignored. Only works with two monomer types currently.
 
 } MonoConversion;
 
@@ -103,4 +104,11 @@ int fully_convert_monotypes(struct Phase *p);
   \return Errorcode
 */
 int partially_convert_monotypes(struct Phase *p);
+
+/*! Completely convert a polymer according to the conversion rules if the metropolis criterion is met.
+  Rates and dependencies are ignored, conversions take place depending on the energy  difference applied during the conversion.
+  \param p Phase struct describing the simulation
+  \return Errorcode
+*/
+int perform_semi_gc_conversions(struct Phase *p);
 #endif                          //SOMA_MONOTYPE_CONVERSION_H

@@ -23,6 +23,7 @@
 #include "phase.h"
 #include "io.h"
 #include "mesh.h"
+#include "mc.h"
 
 //! \file monotype_conversion.c
 //! \brief Implementation of monotype_conversion.h
@@ -49,6 +50,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     p->mtc.dependency_ntype = NULL;
     p->mtc.dependency_type = NULL;
     p->mtc.dependency_type_offset = NULL;
+    p->mtc.semi_grandcanonical = false;
     //Quick exit if no mono conversion is present in the file
     if (!(H5Lexists(file_id, "/monoconversion", H5P_DEFAULT) > 0))
         return 0;
@@ -232,6 +234,18 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     //Enable the updat only if everything worked fine so far
     p->mtc.deltaMC = tmp_deltaMC;
 
+
+    if((H5Lexists(file_id, "/monoconversion/semi_grandcanonical", H5P_DEFAULT)>0))
+        {
+            p->mtc.semi_grandcanonical = true;
+            if ( p->n_types == 2 )
+                return 0;
+            else
+                fprintf(stderr, "ERROR %s: %d, semi-grandcanonical monoconversions can only be applied if there are exactly to monomer types.\n");
+                return -1;
+        }
+
+
     //If rate is defined in the hdf5, partial conversions are activated and "rate", "n_density_dependencies", "density_dependencies" are read.
     if(!(H5Lexists(file_id, "/monoconversion/rate", H5P_DEFAULT)>0))
         return 0;
@@ -363,6 +377,21 @@ int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
         write_hdf5(1, &list_len, file_id, "/monoconversion/end", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
                    p->mtc.reaction_end);
     HDF5_ERROR_CHECK(status);
+
+    if (p->mtc.semi_grandcanonical)
+        {
+            herr_t status;
+            hsize_t len = 0;
+            const hid_t dataspace = H5Screate_simple(1, &len, NULL);
+            HDF5_ERROR_CHECK(dataspace);
+            const hid_t dataset = H5Dcreate2(file_id, "/monoconversion/semi_grandcanonical", H5T_STD_I32LE, dataspace,
+                                             H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            HDF5_ERROR_CHECK(dataset);
+            status = H5Sclose(dataspace);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dclose(dataset);
+            HDF5_ERROR_CHECK(status);
+        }
 
     if(p->mtc.rate != NULL)
         {
@@ -548,13 +577,16 @@ int convert_monotypes(struct Phase *p)
         return 0;
     last_time = p->time;
 
-    if(p->mtc.rate == NULL)
+    if ( p->mtc.semi_grandcanonical )
         {
-        return fully_convert_monotypes(p);
-        }
-    else
-        {
-        return partially_convert_monotypes(p);
+            return perform_semi_gc_conversions(p);
+        } else {
+            if ( p->mtc.rate == NULL )
+                {
+                    return fully_convert_monotypes(p);
+                } else {
+                    return partially_convert_monotypes(p);
+                }
         }
 #else //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
@@ -583,7 +615,7 @@ int fully_convert_monotypes(struct Phase *p)
                             unsigned int monotype = get_particle_type(p, poly, mono);
                             do {
                                 if (monotype == p->mtc.input_type[i])
-                                    ((uint8_t*)p->ph.monomer_types.ptr)[polymer->bead_offset + mono] = p->mtc.output_type[i];
+                                    ((uint8_t*)p->ph.monomer_types.ptr)[polymer->monomer_type_offset + mono] = p->mtc.output_type[i];
                                 i++;
                             } while(!p->mtc.reaction_end[i-1]);
                         }
@@ -605,6 +637,7 @@ int partially_convert_monotypes(struct Phase *p)
             const Polymer *mypoly = p->polymers + poly;
             const unsigned int N = p->poly_arch[p->poly_type_offset[mypoly->type]];
             // potentially tell acc not to parallelize this, because random number generator of polymers.
+#pragma acc loop seq
             for(unsigned int mono=0; mono<N; mono++)
                 {
                            //iteration over monomers
@@ -647,4 +680,57 @@ int partially_convert_monotypes(struct Phase *p)
 
 #endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
+}
+
+int perform_semi_gc_conversions(struct Phase *p)
+{
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
+
+    unsigned int steps = 10; // \todo implement parameter in p->mtc for this.
+    uint64_t n_polymers_per_step = p->n_polymers/steps;
+    for(unsigned int step = 0; step<steps; step++)
+        {
+            update_omega_fields(p);
+            uint64_t max_step;
+            if ( step == steps-1 )
+                max_step = p->n_polymers;
+            else
+                max_step = (step+1) * n_polymers_per_step;
+#pragma acc parallel loop present(p[0:1])
+#pragma omp parallel
+            for (uint64_t poly = step*n_polymers_per_step; poly < max_step; poly++)
+                {
+                    const Polymer *polymer = p->polymers + poly;
+                    const unsigned int N = p->poly_arch[p->poly_type_offset[polymer->type]];
+                    //calculate non-bonded energy before switch
+                    soma_scalar_t delta_energy = 0;
+#pragma acc loop seq
+                    for(unsigned int mono=0;mono<N;mono++)
+                        {
+                            const Monomer pos = ((Monomer*)p->ph.beads.ptr)[polymer->bead_offset + mono];
+                            const unsigned int monotype = get_particle_type(p, poly, mono);
+                            const unsigned int newmonotype = !monotype; //simply switch the types
+                            const uint64_t cell = coord_to_index(p, pos.x, pos.y, pos.z);
+                            const uint64_t cellindex_old = cell_to_index_unified(p, cell, monotype);
+                            const uint64_t cellindex_new = cell_to_index_unified(p, cell, newmonotype);
+
+                            const soma_scalar_t energy_old = p->omega_field_unified[cellindex_old];
+                            const soma_scalar_t energy_new = p->omega_field_unified[cellindex_new];
+
+                            delta_energy += energy_new - energy_old;
+                        }
+                    if ( som_accept(&polymer->poly_state, p, delta_energy, 1.) )
+                        { //if move is 
+                            uint8_t *monomer_types = p->ph.monomer_types.ptr;
+                            monomer_types += polymer->monomer_type_offset;
+#pragma acc loop seq
+                            for(unsigned int mono=0;mono<N;mono++)
+                                    monomer_types[mono] = !monomer_types[mono];
+                        }
+
+                }
+            update_density_fields(p);
+        }
+
+#endif //ENABLE_MONOTYPE_CONVERSIONS
 }
