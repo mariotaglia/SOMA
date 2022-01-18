@@ -239,10 +239,12 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
         {
             p->mtc.semi_grandcanonical = true;
             if ( p->n_types == 2 )
+            {
                 return 0;
-            else
-                fprintf(stderr, "ERROR %s: %d, semi-grandcanonical monoconversions can only be applied if there are exactly to monomer types.\n");
+            } else {
+                fprintf(stderr, "ERROR %s: %d, semi-grandcanonical monoconversions can only be applied if there are exactly to monomer types.\n", __FILE__, __LINE__);
                 return -1;
+            }
         }
 
 
@@ -316,8 +318,8 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     MALLOC_ERROR_CHECK(p->mtc.dependency_ntype, dim_ndependency * sizeof(unsigned int));
     p->mtc.dependency_type_offset = (unsigned int *)malloc(dim_ndependency * sizeof(unsigned int));
     MALLOC_ERROR_CHECK(p->mtc.dependency_type_offset, dim_ndependency * sizeof(unsigned int));
-    p->mtc.dependency_type = (unsigned int **)malloc(dim_dependency * sizeof(unsigned int *));
-    MALLOC_ERROR_CHECK(p->mtc.dependency_type, dim_dependency * sizeof(unsigned int *));
+    p->mtc.dependency_type = (unsigned int *)malloc(dim_dependency * sizeof(unsigned int));
+    MALLOC_ERROR_CHECK(p->mtc.dependency_type, dim_dependency * sizeof(unsigned int));
 
     p->mtc.len_dependencies = dim_dependency;
 
@@ -335,7 +337,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     status = H5Dclose(dset_ndependency);
     HDF5_ERROR_CHECK(status);
     p->mtc.dependency_type_offset[0] = 0;
-    for(int i=1;i<dim_ndependency;i++)
+    for(unsigned int i=1;i<dim_ndependency;i++)
         {
         p->mtc.dependency_type_offset[i] = p->mtc.dependency_type_offset[i-1] + p->mtc.dependency_ntype[i-1];
         }

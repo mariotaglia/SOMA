@@ -97,7 +97,7 @@ int get_bondlist_offset(const int32_t info_bl);
 //! \param j monomer index
 //! \return Particle type of the monomer.
 #pragma acc routine seq
-unsigned int get_particle_type(struct Phase *const p, const uint64_t i, const unsigned int j);
+unsigned int get_particle_type(const struct Phase *const p, const uint64_t i, const unsigned int j);
 //! Get particle type from a poly_arch element or the  Monomer region.
 //!
 //! \param info_bl poly_arch element in the Monomer region.

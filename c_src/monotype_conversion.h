@@ -38,7 +38,7 @@ typedef struct MonoConversion {
     unsigned int *dependency_type; //!<Array that contains the dependency types
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
     unsigned int len_dependencies; //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
-    bool semi_grandcanonical //!< boolean whether conversions are performed semi-grandcanonically. If turned on, all conversion rules are ignored. Only works with two monomer types currently.
+    bool semi_grandcanonical; //!< boolean whether conversions are performed semi-grandcanonically. If turned on, all conversion rules are ignored. Only works with two monomer types currently.
 
 } MonoConversion;
 

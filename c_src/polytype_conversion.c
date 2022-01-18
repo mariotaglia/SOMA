@@ -294,8 +294,8 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     MALLOC_ERROR_CHECK(p->pc.dependency_ntype, dim_ndependency * sizeof(unsigned int));
     p->pc.dependency_type_offset = (unsigned int *)malloc(dim_ndependency * sizeof(unsigned int));
     MALLOC_ERROR_CHECK(p->pc.dependency_type_offset, dim_ndependency * sizeof(unsigned int));
-    p->pc.dependency_type = (unsigned int **)malloc(dim_dependency * sizeof(unsigned int *));
-    MALLOC_ERROR_CHECK(p->pc.dependency_type, dim_dependency * sizeof(unsigned int *));
+    p->pc.dependency_type = (unsigned int *)malloc(dim_dependency * sizeof(unsigned int));
+    MALLOC_ERROR_CHECK(p->pc.dependency_type, dim_dependency * sizeof(unsigned int));
 
     p->pc.len_dependencies = dim_dependency;
 
@@ -313,7 +313,7 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     status = H5Dclose(dset_ndependency);
     HDF5_ERROR_CHECK(status);
     p->pc.dependency_type_offset[0] = 0;
-    for(int i=1;i<dim_ndependency;i++)
+    for(unsigned int i=1;i<dim_ndependency;i++)
         {
         p->pc.dependency_type_offset[i] = p->pc.dependency_type_offset[i-1] + p->pc.dependency_ntype[i-1];
         }

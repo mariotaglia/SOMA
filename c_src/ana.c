@@ -453,7 +453,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 #endif                          //ENABLE_MPI
 }
 
-void count_monomer_type_fraction(const struct Phase *const p, soma_scalar_t * const monomer_type_fraction)
+void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const monomer_type_fraction)
 {
     //allocate arrays to count 
     uint64_t *const monomer_type_count = (uint64_t * const)malloc(p->n_types * (p->ana_info.mtf_tested_type_N + 1) * sizeof(uint64_t));

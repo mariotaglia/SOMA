@@ -483,7 +483,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                     if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
                         continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
 
-                    const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
+                    //const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
                     const IndependetSets mySets = p->sets[poly_type];
 
                     const unsigned int n_sets = mySets.n_sets;
@@ -577,7 +577,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
             if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
                 continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
 
-            const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
+            //const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
             const IndependetSets mySets = p->sets[poly_type];
 
             const unsigned int n_sets = mySets.n_sets;

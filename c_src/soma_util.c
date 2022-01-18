@@ -65,7 +65,7 @@ int get_bondlist_offset(const int32_t info_bl)
     return info_bl >> 8;
 }
 
-unsigned int get_particle_type(struct Phase *const p, const uint64_t i, const unsigned int j)
+unsigned int get_particle_type(const struct Phase *const p, const uint64_t i, const unsigned int j)
 {
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
         return  (unsigned int)((uint8_t*)p->ph.monomer_types.ptr)[p->polymers[i].monomer_type_offset + j];

@@ -1200,7 +1200,7 @@ int read_beads1(struct Phase *const p, const hid_t file_id, const hid_t plist_id
             hid_t mt_memspace = H5Screate_simple(1, hsize_mt_memspace, NULL);
             hid_t mt_dataset = H5Dopen2(file_id, "/monomer_types", H5P_DEFAULT);
             hid_t mt_dataspace = H5Dget_space(mt_dataset);
-            hsize_t hsize_mt_offset[1] = { bead_offset, 0 }; //bead_offset should be the same as monomer_type_offset
+            hsize_t hsize_mt_offset[1] = { bead_offset }; //bead_offset should be the same as monomer_type_offset
             H5Sselect_hyperslab(mt_dataspace, H5S_SELECT_SET, hsize_mt_offset, NULL, hsize_mt_memspace, NULL);
 
             if ((status =
