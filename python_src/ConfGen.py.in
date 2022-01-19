@@ -1295,6 +1295,8 @@ class Configuration(SomaXML):
                 f.create_dataset("/monoconversion/array",data=self.mono_conversion.array,dtype=numpy.uint8)
                 f.create_dataset("/monoconversion/input_type",data=self.mono_conversion.pc_list[:,0])
                 f.create_dataset("/monoconversion/output_type",data=self.mono_conversion.pc_list[:,1])
+                f.create_dataset("monoconversion/block_size",data=self.mono_conversion.block_size)
+
                 f.create_dataset("/monoconversion/end",data=self.mono_conversion.pc_list[:,2])
                 if self.mono_conversion.rate_list != []:
                     f.create_dataset("monoconversion/rate",data=self.mono_conversion.rate_list)
@@ -1726,11 +1728,11 @@ class Configuration(SomaXML):
                         except ValueError:
                             raise RuntimeError("A density dependency list must consist only of integers, but got: "+line)
                 if raw_dd_list == []:
-                    raw_dd_list = numpy.zeros((len(pc_list), len(poly_arch.poly_type_offset)))
+                    raw_dd_list = numpy.zeros((len(pc_list), knownTypes.n_types_exact))
                 raw_dd_list = numpy.asarray(raw_dd_list, dtype=numpy.uint32)
                 ndd_list = numpy.sum(raw_dd_list, axis=1, dtype=numpy.uint32)
                 for dependencies in raw_dd_list:
-                    for i in range(len(poly_arch.poly_type_offset)):
+                    for i in range(knownTypes.n_types_exact):
                         for j in range(dependencies[i]):
                             dd_list.append(i)
                 dd_list = numpy.asarray(dd_list, dtype=numpy.uint32)
@@ -1774,6 +1776,7 @@ class Configuration(SomaXML):
             child_list = []
             pc_list = []
             rate_list = []
+            block_size = numpy.asarray( [1], dtype=numpy.uint32)
             dd_list = []
             raw_dd_list = []
             semi_gc = False
@@ -1859,6 +1862,19 @@ class Configuration(SomaXML):
                 dd_list = numpy.asarray(dd_list, dtype=numpy.uint32)
                 assert numpy.sum(ndd_list) == len(dd_list), "Total number of dependencies given in ndd does not match the number of dependencies in the list."
 
+                for bs in element.findall("block_size"):
+                    for line in bs.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != 1:
+                            raise RuntimeError("Block size should be given as single integer per conversion/line. But got: "+line)
+                        try:
+                            block_size[0] = numpy.uint32(parts[0])
+                        except ValueError:
+                            raise RuntimeError("Block size for poly conversion must be integer convertible but got: "+str(rt.text))
+
                 for sgc in element.findall("semi-grandcanonical"):
                     semi_gc = True
                     print("Warning: Semi-Grandcanonical conversions are enabled, so rates and dependencies will be ignored for monoconversions.")
@@ -1890,6 +1906,7 @@ class Configuration(SomaXML):
                 self.pc_list = pc_list
                 self.delta_mc = numpy.asarray([deltaMC],dtype=numpy.uint32)
                 self.rate_list = rate_list
+                self.block_size = block_size
                 self.ndd_list = ndd_list
                 self.dd_list = dd_list
                 self.semi_gc = semi_gc

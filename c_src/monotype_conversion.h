@@ -33,6 +33,7 @@ typedef struct MonoConversion {
     unsigned int *output_type;  //!< Array that contains the output mono type for each reaction (product)
     unsigned int *reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
     soma_scalar_t *rate;               //!< control execution probability of the conversion
+    unsigned int block_size; //!<Contains the block size of all monomer conversions. If it is greater than one, conversion happens in blocks. WARNING: No checks whether blocks fit into the relevant polymers.
     unsigned int *dependency_ntype; //!<Array that contains the number of  dependency indices
     unsigned int *dependency_type_offset; //!<Array that contains the start/offset of dependency indices
     unsigned int *dependency_type; //!<Array that contains the dependency types
