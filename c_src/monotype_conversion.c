@@ -505,7 +505,6 @@ int copyin_mono_conversion(struct Phase *p)
 #pragma acc enter data copyin(p->mtc.input_type[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.output_type[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.reaction_end[0:p->mtc.len_reactions])
-#pragma acc enter data copyin(p->mtc.block_size[0:p->mtc.len_reactions])
 if(p->mtc.rate != NULL)
     {
 #pragma acc enter data copyin(p->mtc.rate[0:p->mtc.len_reactions])
@@ -529,7 +528,6 @@ int copyout_mono_conversion(struct Phase *p)
 #pragma acc exit data copyout(p->mtc.input_type[0:p->mtc.len_reactions])
 #pragma acc exit data copyout(p->mtc.output_type[0:p->mtc.len_reactions])
 #pragma acc exit data copyout(p->mtc.reaction_end[0:p->mtc.len_reactions])
-#pragma acc exit data copyout(p->mtc.block_size[0:p->mtc.len_reactions])
 if(p->mtc.rate != NULL)
     {
 #pragma acc exit data copyout(p->mtc.rate[0:p->mtc.len_reactions])
@@ -553,7 +551,6 @@ int update_self_mono_conversion(const struct Phase *const p)
 #pragma acc update self(p->mtc.input_type[0:p->mtc.len_reactions])
 #pragma acc update self(p->mtc.output_type[0:p->mtc.len_reactions])
 #pragma acc update self(p->mtc.reaction_end[0:p->mtc.len_reactions])
-#pragma acc update self(p->mtc.block_size[0:p->mtc.len_reactions])
 if(p->mtc.rate != NULL)
     {
 #pragma acc update self(p->mtc.rate[0:p->mtc.len_reactions])
@@ -574,7 +571,6 @@ int free_mono_conversion(struct Phase *p)
     free(p->mtc.input_type);
     free(p->mtc.output_type);
     free(p->mtc.reaction_end);
-    free(p->mtc.block_size);
     free(p->mtc.rate);
     free(p->mtc.dependency_ntype);
     free(p->mtc.dependency_type_offset);

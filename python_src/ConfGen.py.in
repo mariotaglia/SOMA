@@ -1781,7 +1781,7 @@ class Configuration(SomaXML):
             raw_dd_list = []
             semi_gc = False
             
-            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC","conversion_rate","density_dependency","semi-grandcanonical"]
+            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC", "block_size","conversion_rate","density_dependency","semi-grandcanonical"]
             for element in root.iter("monoconversion"):
                 for child in element:
                     if not child.tag in knownTags:
