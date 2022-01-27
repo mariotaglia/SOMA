@@ -336,7 +336,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     HDF5_ERROR_CHECK(status);
     status = H5Dclose(dset_rate);
     HDF5_ERROR_CHECK(status);
-    status = H5Dread(dset_ndependency, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->mtc.dependency_ntype);
+    status = H5Dread(dset_ndependency, H5T_STD_U32LE, H5S_ALL, H5S_ALL, plist_id, p->mtc.dependency_ntype);
     HDF5_ERROR_CHECK(status);
     status = H5Sclose(dspace_ndependency);
     HDF5_ERROR_CHECK(status);
@@ -347,7 +347,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
         {
         p->mtc.dependency_type_offset[i] = p->mtc.dependency_type_offset[i-1] + p->mtc.dependency_ntype[i-1];
         }
-    status = H5Dread(dset_dependency, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->mtc.dependency_type);
+    status = H5Dread(dset_dependency, H5T_STD_U32LE, H5S_ALL, H5S_ALL, plist_id, p->mtc.dependency_type);
     HDF5_ERROR_CHECK(status);
     status = H5Sclose(dspace_dependency);
     HDF5_ERROR_CHECK(status);
