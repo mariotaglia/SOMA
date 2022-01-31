@@ -478,23 +478,25 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
 #pragma omp parallel
         for(uint64_t poly = 0; poly < p->n_polymers; poly++)
             {
-                unsigned int chain_counter = 0;
-#pragma acc loop seq
-                for(unsigned int mono=0; mono<p->ana_info.mtf_tested_type_N; mono++)
+                if(p->polymers[poly].type == p->ana_info.mtf_tested_type)
                     {
-                        unsigned int monotype = get_particle_type(p, poly, mono);
-                        if(monotype == i)
-                            chain_counter += 1;
-                    }
-                    if (chain_counter <= p->ana_info.mtf_tested_type_N)
-                        {
+                        unsigned int chain_counter = 0;
+#pragma acc loop seq
+                        for(unsigned int mono=0; mono<p->ana_info.mtf_tested_type_N; mono++)
+                            {
+                                unsigned int monotype = get_particle_type(p, poly, mono);
+                                if(monotype == i)
+                                    chain_counter += 1;
+                            }
+                        if (chain_counter <= p->ana_info.mtf_tested_type_N)
+                            {
 #pragma acc atomic update
 #pragma omp atomic
-                            monomer_type_count[i*(p->ana_info.mtf_tested_type_N + 1)+chain_counter] += 1;
-                        } else {
-                            error_flags[0] = -1;
-                        }
-
+                                monomer_type_count[i*(p->ana_info.mtf_tested_type_N + 1)+chain_counter] += 1;
+                            } else {
+                                error_flags[0] = -1;
+                            }
+                    }
             }
         }
 #pragma acc exit data copyout(error_flags[0:1])
