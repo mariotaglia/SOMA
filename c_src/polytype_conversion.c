@@ -54,6 +54,11 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     if (tmp_deltaMC == 0)
         return 0;
 
+#ifdef ENABLE_MONOTYPE_CONVERSIONS
+    fprintf(stderr, "ERROR: %s: %d, Monotype Conversions are activated so polytype conversions do not work in the current implementation. Switch off the this feature and rerun.", __FILE__, __LINE__);
+    return -1; 
+#endif //ENABLE_MONOTYPE_CONVERSIONS 
+
     //Read the conversion list before reading the spatial array.
     const hid_t dset_input = H5Dopen(file_id, "/polyconversion/input_type", H5P_DEFAULT);
     HDF5_ERROR_CHECK(dset_input);
