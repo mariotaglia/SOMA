@@ -54,7 +54,7 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     if (tmp_deltaMC == 0)
         return 0;
 
-#ifdef ENABLE_MONOTYPE_CONVERSIONS
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     fprintf(stderr, "ERROR: %s: %d, Monotype Conversions are activated so polytype conversions do not work in the current implementation. Switch off the this feature and rerun.", __FILE__, __LINE__);
     return -1; 
 #endif //ENABLE_MONOTYPE_CONVERSIONS 
