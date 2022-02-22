@@ -522,13 +522,6 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
             fprintf(stderr, "ERROR: MPI_REDUCE failed in %s: %d \n", __FILE__, __LINE__);
         }
 #endif                          //ENABLE_MPI
-    if (p->info_MPI.sim_rank == 0)
-    {
-        printf("MTC: ");
-        for(unsigned int i=0; i<p->ana_info.mtf_tested_type_N+1;i++)
-            printf("%f\t", monomer_type_fraction[i]);
-        printf("\n");
-    }
     free(monomer_type_count);
 }
 

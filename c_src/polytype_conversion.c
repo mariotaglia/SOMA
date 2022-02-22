@@ -578,7 +578,7 @@ int partially_convert_polytypes(struct Phase *p)
 #pragma omp parallel
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
-            const Polymer *mypoly = p->polymers + poly;
+            Polymer *mypoly = p->polymers + poly;
             const Monomer rcm = mypoly->rcm;
             const uint64_t cell = coord_to_index(p, rcm.x, rcm.y, rcm.z);
 
