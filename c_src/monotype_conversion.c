@@ -48,7 +48,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     p->mtc.input_type = NULL;
     p->mtc.output_type = NULL;
     p->mtc.reaction_end = NULL;
-    p->mtc.block_size = NULL;
+    p->mtc.block_size = 1;
     p->mtc.dependency_ntype = NULL;
     p->mtc.dependency_type = NULL;
     p->mtc.dependency_type_offset = NULL;
@@ -661,7 +661,7 @@ int partially_convert_monotypes(struct Phase *p)
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
                             //iteration over polymer 
-            const Polymer *mypoly = p->polymers + poly;
+            Polymer *mypoly = p->polymers + poly;
             const unsigned int N = p->poly_arch[p->poly_type_offset[mypoly->type]];
             const unsigned int block_size = p->mtc.block_size;
             // potentially tell acc not to parallelize this, because random number generator of polymers.
@@ -726,7 +726,7 @@ int perform_semi_gc_conversions(struct Phase *p)
 {
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
 
-    unsigned int steps = 10; // \todo implement parameter in p->mtc for this.
+    unsigned int steps = 100; // \todo implement parameter in p->mtc for this.
     uint64_t n_polymers_per_step = p->n_polymers/steps;
     for(unsigned int step = 0; step<steps; step++)
         {
@@ -740,7 +740,7 @@ int perform_semi_gc_conversions(struct Phase *p)
 #pragma omp parallel
             for (uint64_t poly = step*n_polymers_per_step; poly < max_step; poly++)
                 {
-                    const Polymer *polymer = p->polymers + poly;
+                    Polymer *polymer = p->polymers + poly;
                     const unsigned int N = p->poly_arch[p->poly_type_offset[polymer->type]];
                     //calculate non-bonded energy before switch
                     soma_scalar_t delta_energy = 0;
@@ -773,4 +773,5 @@ int perform_semi_gc_conversions(struct Phase *p)
         }
 
 #endif //ENABLE_MONOTYPE_CONVERSIONS
+    return 0;
 }

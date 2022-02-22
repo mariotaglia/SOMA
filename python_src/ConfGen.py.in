@@ -1852,11 +1852,11 @@ class Configuration(SomaXML):
                         except ValueError:
                             raise RuntimeError("A density dependency list must consist only of integers, but got: "+line)
                 if raw_dd_list == []:
-                    raw_dd_list = numpy.zeros((len(pc_list), len(poly_arch.poly_type_offset)))
+                    raw_dd_list = numpy.zeros((len(pc_list), knownTypes.n_types_exact))
                 raw_dd_list = numpy.asarray(raw_dd_list, dtype=numpy.uint32)
                 ndd_list = numpy.sum(raw_dd_list, axis=1, dtype=numpy.uint32)
                 for dependencies in raw_dd_list:
-                    for i in range(len(poly_arch.poly_type_offset)):
+                    for i in range(knownTypes.n_types_exact):
                         for j in range(dependencies[i]):
                             dd_list.append(i)
                 dd_list = numpy.asarray(dd_list, dtype=numpy.uint32)
