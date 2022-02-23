@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soma version="0.2.0">
+  <interactions>
+    <kappaN>
+      30
+    </kappaN>
+    <chiN>
+      A B 0
+      A C 0
+      B C 0
+    </chiN>
+    <bonds>
+      A A harmonic
+      B B harmonic
+      C C harmonic
+    </bonds>
+  </interactions>
+  <A>
+    <dt>
+      0.17
+    </dt>
+  </A>
+  <time>
+    0
+  </time>
+  <poly_arch>
+    10000 A{2}
+    0      B{2}
+    0      C{2}
+  </poly_arch>
+  <reference_Nbeads>
+    2
+  </reference_Nbeads>
+  <lxyz>
+    1 1 1
+  </lxyz>
+  <nxyz>
+    6 6 6
+  </nxyz>
+  <polyconversion>
+    <DeltaMC>
+      1
+    </DeltaMC>
+    <box>
+      <point>0 0 0</point><point>5 5 5 </point><value>0</value>
+    </box>
+    <conversion_list>
+      0 1 0
+      0 2 1
+    </conversion_list>
+    <conversion_rate>
+        0.0005 
+        0.0005 <!-- total dacay time of 1000 MCS -->
+    </conversion_rate>
+  </polyconversion>
+  <hamiltonian>
+    SCMF1
+  </hamiltonian>
+</soma>
