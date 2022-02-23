@@ -1302,10 +1302,6 @@ class Configuration(SomaXML):
                     f.create_dataset("monoconversion/rate",data=self.mono_conversion.rate_list)
                     f.create_dataset("/monoconversion/n_density_dependencies",data=self.mono_conversion.ndd_list)
                     f.create_dataset("/monoconversion/density_dependencies",data=self.mono_conversion.dd_list)
-                if self.mono_conversion.semi_gc:
-                    f.create_dataset("monoconversion/semi_grandcanonical",data=numpy.array([], dtype=int))
-
-            
 
             if "mobility" in f:
                 del f["mobility"]
@@ -1779,9 +1775,8 @@ class Configuration(SomaXML):
             block_size = numpy.asarray( [1], dtype=numpy.uint32)
             dd_list = []
             raw_dd_list = []
-            semi_gc = False
             
-            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC", "block_size","conversion_rate","density_dependency","semi-grandcanonical"]
+            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC", "block_size","conversion_rate","density_dependency"]
             for element in root.iter("monoconversion"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1875,10 +1870,6 @@ class Configuration(SomaXML):
                         except ValueError:
                             raise RuntimeError("Block size for poly conversion must be integer convertible but got: "+str(rt.text))
 
-                for sgc in element.findall("semi-grandcanonical"):
-                    semi_gc = True
-                    print("Warning: Semi-Grandcanonical conversions are enabled, so rates and dependencies will be ignored for monoconversions.")
-
                 pbc = True
                 array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
                 if len(child_list) > 0:
@@ -1891,13 +1882,10 @@ class Configuration(SomaXML):
                                 (xa,ya,za) = (x,y,z)
                             if xa >= 0 and xa < nxyz[0] and ya >= 0 and ya < nxyz[1] and za >= 0 and za < nxyz[2]:
                                 array[xa][ya][za] = child.get( (x,y,z) )[0] +1 #+1 because zero indicates no reaction
-                elif not semi_gc:
-                    print("Warning: Monoconversions will not be performed, since no conversion domain was given.")
-
 
                 pc_list = numpy.asarray(pc_list,dtype=numpy.uint32)
                 if not pc_list[-1,2]:
-                    raise RuntimeError("The poly type conversion list should finish with an end flag set. "+str(pc_list[-1,2])+" "+str(bool(pc_list[-1,2])))
+                    raise RuntimeError("The mono type conversion list should finish with an end flag set. "+str(pc_list[-1,2])+" "+str(bool(pc_list[-1,2])))
 
                 if numpy.max(array) > pc_list.shape[0]:
                     raise RuntimeError("The index in the array "+str(numpy.max(array)-1)+" is larger than the reaction list "+str(pc_list.shape[0]))
@@ -1909,7 +1897,6 @@ class Configuration(SomaXML):
                 self.block_size = block_size
                 self.ndd_list = ndd_list
                 self.dd_list = dd_list
-                self.semi_gc = semi_gc
                 
 
     ## Class that parses the XML and stores the information density dependent mobility modifications
