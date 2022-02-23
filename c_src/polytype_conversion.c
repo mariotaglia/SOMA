@@ -551,7 +551,7 @@ int fully_convert_polytypes(struct Phase *p)
 {
     //Iterate all polymers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp parallel
+#pragma omp parallel for 
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const Monomer rcm = p->polymers[poly].rcm;
@@ -575,7 +575,7 @@ int partially_convert_polytypes(struct Phase *p)
 {
     //Iterate all polymers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp parallel
+#pragma omp parallel for
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             Polymer *mypoly = p->polymers + poly;

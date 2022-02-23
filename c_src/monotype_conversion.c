@@ -613,7 +613,7 @@ int fully_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp parallel
+#pragma omp parallel for
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const Polymer *polymer = p->polymers + poly;
@@ -657,7 +657,7 @@ int partially_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp parallel
+#pragma omp parallel for 
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
                             //iteration over polymer 
@@ -737,7 +737,7 @@ int perform_semi_gc_conversions(struct Phase *p)
             else
                 max_step = (step+1) * n_polymers_per_step;
 #pragma acc parallel loop present(p[0:1])
-#pragma omp parallel
+#pragma omp parallel for
             for (uint64_t poly = step*n_polymers_per_step; poly < max_step; poly++)
                 {
                     Polymer *polymer = p->polymers + poly;
