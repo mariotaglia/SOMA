@@ -475,7 +475,7 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
         {
     //loop over polymers on device to count
 #pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ]) 
-#pragma omp parallel
+#pragma omp parallel for
         for(uint64_t poly = 0; poly < p->n_polymers; poly++)
             {
                 if(p->polymers[poly].type == p->ana_info.mtf_tested_type)
