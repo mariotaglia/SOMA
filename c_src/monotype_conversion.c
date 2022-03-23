@@ -236,12 +236,13 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
             return status;
         }
 
-    //Enable the updat only if everything worked fine so far
-    p->mtc.deltaMC = tmp_deltaMC;
-
     //If rate is defined in the hdf5, partial conversions are activated and "rate", "n_density_dependencies", "density_dependencies" are read.
     if(!(H5Lexists(file_id, "/monoconversion/rate", H5P_DEFAULT)>0))
-        return 0;
+        {
+            //Enable the updat only if everything worked fine so far
+            p->mtc.deltaMC = tmp_deltaMC;
+            return 0;
+        }
 
     const hid_t dset_rate = H5Dopen(file_id, "/monoconversion/rate", H5P_DEFAULT);
     HDF5_ERROR_CHECK(dset_rate);
@@ -341,6 +342,9 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     HDF5_ERROR_CHECK(status);
     status = H5Dclose(dset_dependency);
     HDF5_ERROR_CHECK(status);
+
+    //Enable the updat only if everything worked fine
+    p->mtc.deltaMC = tmp_deltaMC;
 
 #endif //ENABLE_MONOTYPE_CONVERSIONS
     return 0;

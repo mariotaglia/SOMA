@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<soma version="0.2.0">
+  <interactions>
+    <kappaN>
+      30
+    </kappaN>
+    <chiN>
+      A B 20
+    </chiN>
+    <bonds>
+      A A harmonic
+      A B harmonic
+      B B harmonic
+    </bonds>
+  </interactions>
+  <A>
+    <dt>
+      0.17
+    </dt>
+  </A>
+  <time>
+    0
+  </time>
+  <reference_Nbeads>
+    64
+  </reference_Nbeads>
+  <poly_arch>
+    500 A{32}B{32}
+    500 A{8}B{56}
+  </poly_arch>
+  <lxyz>
+    17.3333 0.3333 0.3333
+  </lxyz>
+  <nxyz>
+    104 4 4
+  </nxyz>
+  <area51>
+    <!-- <box> -->
+    <!--   <point>0 0 0</point><point>103 1 0</point><value>1</value> -->
+    <!-- </box> -->
+    <box>
+      <point>0 0 0</point><point>103 0 4</point><value>1</value>
+    </box>
+  </area51>
+  <external_field>
+    <point_cloud>
+      0 0 0 -1 1
+      103 1 1 1 -1
+    </point_cloud>
+  </external_field>
+  <monoconversion>
+    <DeltaMC>
+      50
+    </DeltaMC>
+    <box>
+      <point>50 0 0</point><point>51 4 4</point><value>0</value>
+    </box>
+    <conversion_list>
+      A B 1
+    </conversion_list>
+    <conversion_rate>
+        0.001
+    </conversion_rate>
+    <density_dependency>
+        0 1
+    </density_dependency>
+  </monoconversion>
+
+  <analysis>
+    <Re>
+      <DeltaMC> 500 </DeltaMC>
+    </Re>
+    <Rg>
+      <DeltaMC> 500 </DeltaMC>
+    </Rg>
+    <density_var>
+      <DeltaMC> 500 </DeltaMC>
+    </density_var>
+    <bond_anisotropy>
+      <DeltaMC> 500 </DeltaMC>
+    </bond_anisotropy>
+    <acc_ratio>
+      <DeltaMC> 500 </DeltaMC>
+    </acc_ratio>
+    <MSD>
+      <DeltaMC> 500 </DeltaMC>
+    </MSD>
+    <dump>
+      <DeltaMC> 0 </DeltaMC>
+    </dump>
+    <density_field>
+      <DeltaMC> 5000 </DeltaMC>
+      <compression> gzip </compression>
+    </density_field>
+    <non_bonded_energy>
+      <DeltaMC> 5000</DeltaMC>
+    </non_bonded_energy>
+    <bonded_energy>
+      <DeltaMC> 5000</DeltaMC>
+    </bonded_energy>
+  </analysis>
+</soma>
