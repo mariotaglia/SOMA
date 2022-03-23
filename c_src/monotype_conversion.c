@@ -201,9 +201,9 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     MPI_Request req[4];
     MPI_Status stat[4];
 
-    uint8_t *ptr = p->area51 + ghost_buffer_size;
+    uint8_t *ptr = p->mtc.array + ghost_buffer_size;
     MPI_Isend(ptr, ghost_buffer_size, MPI_UINT8_T, left_neigh_rank, 0, p->info_MPI.SOMA_comm_sim, req + 0);
-    ptr = p->area51 + ((p->nx / p->args.N_domains_arg) * p->ny * p->nz);
+    ptr = p->mtc.array + ((p->nx / p->args.N_domains_arg) * p->ny * p->nz);
     MPI_Isend(ptr, ghost_buffer_size, MPI_UINT8_T, right_neigh_rank, 1, p->info_MPI.SOMA_comm_sim, req + 1);
 
     ptr = p->mtc.array;
