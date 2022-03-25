@@ -246,10 +246,9 @@ int read_old_config(struct Phase *p, char *const filename)
             Monomer *beads = p->ph.beads.ptr;
             beads += p->polymers[i].bead_offset;
 #if (ENABLE_MONOTYPE_CONVERSIONS == 1)
-            uint32_t *monomer_types = (uint32_t*) p->ph.monomer_types.ptr;
+            uint32_t *monomer_types = (uint32_t *) p->ph.monomer_types.ptr;
             monomer_types += p->polymers[i].monomer_type_offset;
 #endif                          //ENABLE_MONOTYPE_CONVERSIONS
-
 
             /* read the monomers of this chain */
             for (j = 0; j < N; j++)

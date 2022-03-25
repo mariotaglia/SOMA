@@ -687,9 +687,10 @@ int partially_convert_monotypes(struct Phase *p)
                                                 {
                                                     for (unsigned int block_index = 0; block_index < block_size;
                                                          block_index++)
-                                                        ((uint8_t *) p->ph.monomer_types.
-                                                         ptr)[mypoly->monomer_type_offset + mono + block_index] =
-                            (uint8_t) p->mtc.output_type[i];
+                                                        ((uint8_t *) p->ph.monomer_types.ptr)[mypoly->
+                                                                                              monomer_type_offset +
+                                                                                              mono + block_index] =
+                                                            (uint8_t) p->mtc.output_type[i];
                                                     break;      //to continue with next polymer if conversion has taken place.
                                                 }
                                             else
