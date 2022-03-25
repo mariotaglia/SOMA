@@ -1,4 +1,4 @@
-/* Copyright (C) 2016-2021 Ludwig Schneider
+/* Copyright (C) 2016-2022 Gregor Ibbeken, Ludwig Schneider
 
  This file is part of SOMA.
 

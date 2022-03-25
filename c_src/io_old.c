@@ -211,6 +211,9 @@ int read_old_config(struct Phase *p, char *const filename)
         }
     init_soma_memory(&(p->ph.beads), counter, sizeof(Monomer));
     init_soma_memory(&(p->ph.msd_beads), counter, sizeof(Monomer));
+#if (ENABLE_MONOTYPE_CONVERSIONS == 1)
+    init_soma_memory(&(p->ph.monomer_types), counter, sizeof(uint32_t));
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
     /* read in chains and set up particle data */
     for (i = 0; i < p->n_polymers; i++)
@@ -230,9 +233,23 @@ int read_old_config(struct Phase *p, char *const filename)
                             p->info_MPI.world_rank, p->n_polymers);
                     return -1;
                 }
+#if (ENABLE_MONOTYPE_CONVERSIONS == 1)
+            p->polymers[i].monomer_type_offset = get_new_soma_memory_offset(&(p->ph.monomer_types), N);
+            if (p->polymers[i].monomer_type_offset == UINT64_MAX)
+                {
+                    fprintf(stderr, "ERROR: invalid memory alloc %s:%d rank %d, n_poly %lu\n", __FILE__, __LINE__,
+                            p->info_MPI.world_rank, p->n_polymers);
+                    return -1;
+                }
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
             Monomer *beads = p->ph.beads.ptr;
             beads += p->polymers[i].bead_offset;
+#if (ENABLE_MONOTYPE_CONVERSIONS == 1)
+            uint32_t *monomer_types = (uint32_t*) p->ph.monomer_types.ptr;
+            monomer_types += p->polymers[i].monomer_type_offset;
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
+
 
             /* read the monomers of this chain */
             for (j = 0; j < N; j++)
@@ -252,11 +269,15 @@ int read_old_config(struct Phase *p, char *const filename)
                         }
 
                     tmp -= 1;   //First type in conf is 1. First type in program is 0
+#if (ENABLE_MONOTYPE_CONVERSIONS == 1)
+                    monomer_types[j] = tmp;
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
                     //! \warning Assumed is that all polymers have the same
                     //! type. This includes, that the particle type
                     //! distribution is for all polymers identical. (The last
-                    //! specified in the input format.)
+                    //! specified in the input format.) If this is not the 
+                    //! case choose option ENABLE_MONOTYPE_CONVERSIONS.
                     uint32_t *const type_info = &(p->poly_arch[p->poly_type_offset[p->polymers[i].type] + j + 1]);
                     const int offset_bl = get_bondlist_offset(*type_info);
                     // Overwrite the type info every single step.
@@ -264,6 +285,7 @@ int read_old_config(struct Phase *p, char *const filename)
                 }
         }
     p->bead_data_read = true;
+    p->mt_data_read = true;
     fclose(inputfile);
 
     p->area51 = NULL;
