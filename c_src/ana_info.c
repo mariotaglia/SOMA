@@ -823,7 +823,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             HDF5_ERROR_CHECK(status);
 
             hid_t mtf_type_attr =
-                        H5Aopen_by_name(dataset, "/monomer_type_fraction", "tested_polymer", H5P_DEFAULT, H5P_DEFAULT);
+                H5Aopen_by_name(dataset, "/monomer_type_fraction", "tested_polymer", H5P_DEFAULT, H5P_DEFAULT);
             hid_t d_space = H5Aget_space(mtf_type_attr);
             HDF5_ERROR_CHECK(d_space);
             hsize_t dims[1];    //ndims

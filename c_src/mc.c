@@ -272,7 +272,6 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                                 {
                                     const Monomer mybead = beads[ibead];
                                     const unsigned int iwtype = get_particle_type(p, npoly, ibead);
-                                        
 
                                     const int tmp = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx, dy, dz,
                                                                          p->args.nonexact_area51_flag);
@@ -382,8 +381,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                             // pick a random bead.
                             ibead = soma_rng_uint(myrngstate, p) % myN;
-                            const unsigned int iwtype =
-                                get_particle_type(p, npoly, ibead);
+                            const unsigned int iwtype = get_particle_type(p, npoly, ibead);
 
                             Monomer mybead = beads[ibead];
                             Monomer *mybead_ptr = &(beads[ibead]);
@@ -519,8 +517,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                             for (unsigned int iP = 0; iP < len; iP++)
                                 {
                                     const unsigned int ibead = sets[set_id * max_member + iP];
-                                    const unsigned int iwtype =
-                                        get_particle_type(p, npoly, ibead);
+                                    const unsigned int iwtype = get_particle_type(p, npoly, ibead);
                                     int error_0 = set_iteration_possible_move(p, set_states, beads, npoly, iP,
                                                                               nonexact_area51, ibead, iwtype,
                                                                               &accepted_moves_set);
@@ -613,8 +610,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                     for (unsigned int iP = 0; iP < len; iP++)
                         {
                             const unsigned int ibead = sets[set_id * max_member + iP];
-                            const unsigned int iwtype =
-                                get_particle_type(p, chain_i, ibead);
+                            const unsigned int iwtype = get_particle_type(p, chain_i, ibead);
                             int error_0 = set_iteration_possible_move(p, set_states, beads, chain_i, iP,
                                                                       nonexact_area51, ibead, iwtype,
                                                                       &accepted_moves_set);

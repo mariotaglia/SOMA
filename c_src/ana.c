@@ -456,13 +456,14 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const monomer_type_fraction)
 {
     //allocate arrays to count 
-    uint64_t *const monomer_type_count = (uint64_t * const)malloc(p->n_types * (p->ana_info.mtf_tested_type_N + 1) * sizeof(uint64_t));
+    uint64_t *const monomer_type_count =
+        (uint64_t * const)malloc(p->n_types * (p->ana_info.mtf_tested_type_N + 1) * sizeof(uint64_t));
     if (monomer_type_count == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
         }
     //reset monomer_type_count
-    for(unsigned int i=0;i<p->n_types * (p->ana_info.mtf_tested_type_N + 1); i++)
+    for (unsigned int i = 0; i < p->n_types * (p->ana_info.mtf_tested_type_N + 1); i++)
         monomer_type_count[i] = 0;
     //error_flag for acc
     int error_flags[1] = { 0 }; //error_flags[0] indicates error in memory access.
@@ -471,52 +472,59 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
 #pragma acc enter data copyin(error_flags[0:1])
 
     //go through monomer types for all polymers because otherwise one needs to allocate a chain_counter array of length n_types and privatize it in the acc loop.i
-    for(unsigned int i=0; i<p->n_types;i++)
+    for (unsigned int i = 0; i < p->n_types; i++)
         {
-    //loop over polymers on device to count
-#pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ]) 
+            //loop over polymers on device to count
+#pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ])
 #pragma omp parallel for
-        for(uint64_t poly = 0; poly < p->n_polymers; poly++)
-            {
-                if(p->polymers[poly].type == p->ana_info.mtf_tested_type)
-                    {
-                        unsigned int chain_counter = 0;
+            for (uint64_t poly = 0; poly < p->n_polymers; poly++)
+                {
+                    if (p->polymers[poly].type == p->ana_info.mtf_tested_type)
+                        {
+                            unsigned int chain_counter = 0;
 #pragma acc loop seq
-                        for(unsigned int mono=0; mono<p->ana_info.mtf_tested_type_N; mono++)
-                            {
-                                unsigned int monotype = get_particle_type(p, poly, mono);
-                                if(monotype == i)
-                                    chain_counter += 1;
-                            }
-                        if (chain_counter <= p->ana_info.mtf_tested_type_N)
-                            {
+                            for (unsigned int mono = 0; mono < p->ana_info.mtf_tested_type_N; mono++)
+                                {
+                                    unsigned int monotype = get_particle_type(p, poly, mono);
+                                    if (monotype == i)
+                                        chain_counter += 1;
+                                }
+                            if (chain_counter <= p->ana_info.mtf_tested_type_N)
+                                {
 #pragma acc atomic update
 #pragma omp atomic
-                                monomer_type_count[i*(p->ana_info.mtf_tested_type_N + 1)+chain_counter] += 1;
-                            } else {
-                                error_flags[0] = -1;
-                            }
-                    }
-            }
+                                    monomer_type_count[i * (p->ana_info.mtf_tested_type_N + 1) + chain_counter] += 1;
+                                }
+                            else
+                                {
+                                    error_flags[0] = -1;
+                                }
+                        }
+                }
         }
 #pragma acc exit data copyout(error_flags[0:1])
     if (error_flags[0] < 0)
         {
-            fprintf(stderr, "ERROR: chain_counter is too high, perhaps privatization fails? %s: %d \n", __FILE__, __LINE__);
+            fprintf(stderr, "ERROR: chain_counter is too high, perhaps privatization fails? %s: %d \n", __FILE__,
+                    __LINE__);
         }
 
     //copyout the counter
 #pragma acc exit data copyout(monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1)])
     //compute ratio to all polymers
-    for(unsigned int i=0; i<p->n_types * (p->ana_info.mtf_tested_type_N + 1); i++)
-        monomer_type_fraction[i] = monomer_type_count[i] / (soma_scalar_t)p->n_polymers_global;
+    for (unsigned int i = 0; i < p->n_types * (p->ana_info.mtf_tested_type_N + 1); i++)
+        monomer_type_fraction[i] = monomer_type_count[i] / (soma_scalar_t) p->n_polymers_global;
     //distributr accross ranks:
 #if ( ENABLE_MPI == 1 )
     int status;
     if (p->info_MPI.sim_rank == 0)
-        status = MPI_Reduce(MPI_IN_PLACE, monomer_type_fraction, p->n_types * (p->ana_info.mtf_tested_type_N + 1), MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
+        status =
+            MPI_Reduce(MPI_IN_PLACE, monomer_type_fraction, p->n_types * (p->ana_info.mtf_tested_type_N + 1),
+                       MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
     else
-        status = MPI_Reduce(monomer_type_fraction, NULL, p->n_types * (p->ana_info.mtf_tested_type_N + 1), MPI_SOMA_SCALAR, MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
+        status =
+            MPI_Reduce(monomer_type_fraction, NULL, p->n_types * (p->ana_info.mtf_tested_type_N + 1), MPI_SOMA_SCALAR,
+                       MPI_SUM, 0, p->info_MPI.SOMA_comm_sim);
     if (status != MPI_SUCCESS)
         {
             fprintf(stderr, "ERROR: MPI_REDUCE failed in %s: %d \n", __FILE__, __LINE__);
@@ -1060,7 +1068,8 @@ int analytics(struct Phase *const p)
     if (p->ana_info.delta_mc_mono_type_fraction != 0 && p->time % p->ana_info.delta_mc_mono_type_fraction == 0)
         {
             //update_self_phase(p,0); //update not needed, because the calculation is on the device
-            soma_scalar_t *const monomer_type_fraction = (soma_scalar_t * const)malloc(p->n_types * (p->ana_info.mtf_tested_type_N + 1) * sizeof(soma_scalar_t));
+            soma_scalar_t *const monomer_type_fraction =
+                (soma_scalar_t * const)malloc(p->n_types * (p->ana_info.mtf_tested_type_N + 1) * sizeof(soma_scalar_t));
             if (monomer_type_fraction == NULL)
                 {
                     fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
@@ -1069,7 +1078,8 @@ int analytics(struct Phase *const p)
             count_monomer_type_fraction(p, monomer_type_fraction);
             if (p->info_MPI.sim_rank == 0)
                 {
-                    extent_ana_by_field(monomer_type_fraction,p->n_types * (p->ana_info.mtf_tested_type_N + 1), "/monomer_type_fraction", p->ana_info.file_id);
+                    extent_ana_by_field(monomer_type_fraction, p->n_types * (p->ana_info.mtf_tested_type_N + 1),
+                                        "/monomer_type_fraction", p->ana_info.file_id);
                 }
             written = true;
             free(monomer_type_fraction);
@@ -1189,8 +1199,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma acc loop seq
                     for (unsigned int mono = 0; mono < poly_length; mono++)
                         {
-                            const unsigned int particle_type =
-                                get_particle_type(p, poly, mono);
+                            const unsigned int particle_type = get_particle_type(p, poly, mono);
                             // Monomer position at t.
                             soma_scalar_t x = beads[mono].x;
                             soma_scalar_t y = beads[mono].y;

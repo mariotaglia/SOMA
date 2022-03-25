@@ -240,21 +240,18 @@ int generate_monomer_type_array(struct Phase *const p)
             uint8_t *monomer_type = p->ph.monomer_types.ptr;
             monomer_type += poly->monomer_type_offset;
 
-            for(unsigned int j = 0; j < N; j++)
+            for (unsigned int j = 0; j < N; j++)
                 {
-                    monomer_type[j] = get_particle_type_of_poly_arch(p->poly_arch[p->poly_type_offset[poly->type] + 1 + j]);
+                    monomer_type[j] =
+                        get_particle_type_of_poly_arch(p->poly_arch[p->poly_type_offset[poly->type] + 1 + j]);
                 }
         }
-    if ( p->bead_data_read == true )
-        {       //update device and density fields, if bead data is already present. 
+    if (p->bead_data_read == true)
+        {                       //update device and density fields, if bead data is already present. 
             update_device_polymer_heavy(p, false);
             update_density_fields(p);
             memcpy(p->old_fields_unified, p->fields_unified, p->n_cells_local * p->n_types * sizeof(uint16_t));
-        } 
-#endif //ENABLE_MONOTYPE_CONVERSIONS
+        }
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
-
-
-
-

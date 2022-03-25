@@ -255,7 +255,7 @@ int update_density_fields(const struct Phase *const p)
 
                     const uint64_t cell = coord_to_index(p, beads[j].x, beads[j].y, beads[j].z);
                     const uint64_t index = cell_to_index_unified(p, cell, monotype);
-                    if (cell < p->n_cells_local) //assuming monotype is correct. Otherwise insert (&& monotype < p->n_types)
+                    if (cell < p->n_cells_local)        //assuming monotype is correct. Otherwise insert (&& monotype < p->n_types)
                         {
 #pragma acc atomic update
 #pragma omp atomic

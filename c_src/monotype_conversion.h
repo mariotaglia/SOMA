@@ -22,7 +22,6 @@
 #include "soma_config.h"
 #include "soma_util.h"
 
-
 //! Top level struct for monomer type conversions.
 //! controls the execution frequency. All other fields are only valid, if deltaMC != 0
 typedef struct MonoConversion {
@@ -32,13 +31,13 @@ typedef struct MonoConversion {
     unsigned int *input_type;   //!< Array that contains the input mono type for each reaction (educt)
     unsigned int *output_type;  //!< Array that contains the output mono type for each reaction (product)
     unsigned int *reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
-    soma_scalar_t *rate;               //!< control execution probability of the conversion
-    unsigned int block_size; //!<Contains the block size of all monomer conversions. If it is greater than one, conversion happens in blocks. WARNING: No checks whether blocks fit into the relevant polymers.
-    unsigned int *dependency_ntype; //!<Array that contains the number of  dependency indices
-    unsigned int *dependency_type_offset; //!<Array that contains the start/offset of dependency indices
-    unsigned int *dependency_type; //!<Array that contains the dependency types
+    soma_scalar_t *rate;        //!< control execution probability of the conversion
+    unsigned int block_size;    //!<Contains the block size of all monomer conversions. If it is greater than one, conversion happens in blocks. WARNING: No checks whether blocks fit into the relevant polymers.
+    unsigned int *dependency_ntype;     //!<Array that contains the number of  dependency indices
+    unsigned int *dependency_type_offset;       //!<Array that contains the start/offset of dependency indices
+    unsigned int *dependency_type;      //!<Array that contains the dependency types
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
-    unsigned int len_dependencies; //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
+    unsigned int len_dependencies;      //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
 
 } MonoConversion;
 

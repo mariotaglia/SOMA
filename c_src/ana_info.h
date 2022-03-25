@@ -44,9 +44,9 @@ typedef struct Ana_Info {
     soma_scalar_t *q_dynamical; //!< absolute value of wave vector to be calculated for dynamical structure factor
     unsigned int q_size_static; //!< number of wave vector to calculate for static structure factor
     unsigned int q_size_dynamical;      //!< number of wave vector to calculate for dynamical structure factor
-    unsigned int delta_mc_mono_type_fraction;     //!<\#mc_sweeps between the ana of the monomer type ratio 
-    unsigned int mtf_tested_type;      //!< the polymer type that is analysed for the monotype ratio
-    unsigned int mtf_tested_type_N;      //!< length of the polymer type that is analysed for the monotype ratio
+    unsigned int delta_mc_mono_type_fraction;   //!<\#mc_sweeps between the ana of the monomer type ratio 
+    unsigned int mtf_tested_type;       //!< the polymer type that is analysed for the monotype ratio
+    unsigned int mtf_tested_type_N;     //!< length of the polymer type that is analysed for the monotype ratio
     char *filename;             //!< filename of the analysis file.
     char *coord_filename;       //!< filename of the configuration files.
     hid_t file_id;              //!< HDF5 file specifier for the ana file. Only valid for current_core == 0. No MPI/IO

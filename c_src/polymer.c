@@ -177,7 +177,7 @@ unsigned int poly_serial_length(const struct Phase *const p, const Polymer * con
     //Monomer types (if necessary)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     length += N * sizeof(uint8_t);
-#endif //ENABLE_MONOTYPE_CONVERSIONS
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
     if (poly->set_permutation_offset != UINT64_MAX)
         length += p->max_n_sets * sizeof(unsigned int);
@@ -226,8 +226,7 @@ int serialize_polymer(struct Phase *const p, const Polymer * const poly, unsigne
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     memcpy(buffer + position, ((uint8_t *) p->ph.monomer_types.ptr) + poly->monomer_type_offset, N * sizeof(uint8_t));
     position += N * sizeof(uint8_t);
-#endif //ENABLE_MONOTYPE_CONVERSIONS
-
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
     // Set permutation
     if (poly->set_permutation_offset != UINT64_MAX)
@@ -315,7 +314,7 @@ int deserialize_polymer(struct Phase *const p, Polymer * const poly, const unsig
         }
     memcpy(((uint8_t *) p->ph.monomer_types.ptr) + poly->monomer_type_offset, buffer + position, N * sizeof(uint8_t));
     position += N * sizeof(uint8_t);
-#endif //ENABLE_MONOTYPE_CONVERSIONS
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
     // If there is more data in the buffer, this polymer carries set information.
     if (length > position)

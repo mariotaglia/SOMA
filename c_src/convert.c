@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     p->mtc.dependency_type_offset = NULL;
     p->mtc.dependency_type = NULL;
     p->mtc.len_dependencies = 0;
-#endif //ENABLE_MONOTYPE_CONVERSIONS
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
     p->mobility.type = DEFAULT_MOBILITY;
     p->mobility.poly_type_mc_freq = NULL;

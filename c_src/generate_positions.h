@@ -36,7 +36,6 @@ struct Phase;
 //! equilibration might be impossible.
 int generate_new_beads(struct Phase *const p);
 
-
 //! Generate and overwrite all monomer types according to the architectures of the polymers.
 //!
 //! \param p System with monomer types to insert.

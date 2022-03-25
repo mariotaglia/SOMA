@@ -31,12 +31,12 @@ typedef struct PolyConversion {
     unsigned int *input_type;   //!< Array that contains the input poly type for each reaction (educt)
     unsigned int *output_type;  //!< Array that contains the output poly type for each reaction (product)
     unsigned int *reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
-    soma_scalar_t *rate;               //!< control execution probability of the conversion
-    unsigned int *dependency_ntype; //!<Array that contains the number of  dependency indices
-    unsigned int *dependency_type_offset; //!<Array that contains the start/offset of dependency indices
-    unsigned int *dependency_type; //!<Array that contains the dependency types
+    soma_scalar_t *rate;        //!< control execution probability of the conversion
+    unsigned int *dependency_ntype;     //!<Array that contains the number of  dependency indices
+    unsigned int *dependency_type_offset;       //!<Array that contains the start/offset of dependency indices
+    unsigned int *dependency_type;      //!<Array that contains the dependency types
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
-    unsigned int len_dependencies; //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
+    unsigned int len_dependencies;      //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
 
 } PolyConversion;
 

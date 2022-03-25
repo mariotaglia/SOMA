@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
-    if (!p->mt_data_read) //this has to happen before bead_data_creation, because otherwise segfaults may arise with an uninitialized p->ph.monomer_types.ptr during update_fields.
+    if (!p->mt_data_read)       //this has to happen before bead_data_creation, because otherwise segfaults may arise with an uninitialized p->ph.monomer_types.ptr during update_fields.
         {
             const int create_mt_array = generate_monomer_type_array(p);
             MPI_ERROR_CHECK(create_mt_array, "Cannot genrate monomer type array.");
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
             if (p->mtc.deltaMC > 0 && i % p->mtc.deltaMC == (unsigned int)p->mtc.deltaMC - 1)
                 convert_monotypes(p);
-#endif //ENABLE_MONOTYPE_CONVERSIONS
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
 
 #if ( ENABLE_MPI == 1 )
             if (p->args.load_balance_arg > 0
