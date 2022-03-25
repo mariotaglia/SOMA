@@ -1,5 +1,4 @@
 @SOMA_PYTHON_SHEBANG@
-
 #   Copyright (C) 2016-2021 Ludwig Schneider
 #   Copyright (C) 2016 N. Harshavardhan Reddy
 #
@@ -19,248 +18,419 @@
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+
 sys.path.append( @SOMA_PYTHON_INSTALL_DIR@ )
 import h5py
 import numpy
 import argparse
 
+
 def get_header():
-    string ="<?xml version=\"1.0\" ?>\n"
-    string += "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n"
-    string += "<Xdmf xmlns:xi=\"http://www.w3.org/2003/XInclude\" Version=\"2.2\">\n"
+    string = '<?xml version="1.0" ?>\n'
+    string += '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>\n'
+    string += '<Xdmf xmlns:xi="http://www.w3.org/2003/XInclude" Version="2.2">\n'
     return string
 
+
 def get_dimensions(arguments):
-    if arguments['a']:
-        f = h5py.File(arguments['a'],"r")
+    if arguments["a"]:
+        f = h5py.File(arguments["a"], "r")
         dims = f["/density_field"].shape
         dims2 = numpy.asarray(dims[2:])
         f.close()
         for i in range(3):
-            assert dims[2+i] == dims2[i]
-    if arguments['c']:
-        f = h5py.File(arguments['c'],"r")
+            assert dims[2 + i] == dims2[i]
+    if arguments["c"]:
+        f = h5py.File(arguments["c"], "r")
         nxyz = f["/parameter/nxyz"][0:]
-        n_types =f["/parameter/n_types"][0]
+        n_types = f["/parameter/n_types"][0]
         f.close()
 
-    if arguments['c'] and arguments['a']:
+    if arguments["c"] and arguments["a"]:
         assert n_types == dims[1]
         for i in range(3):
-            assert nxyz[i] == dims[2+i]
-    if arguments['c']:
-        return n_types,nxyz
-    if arguments['a']:
-        return dims[1],dims[2:]
+            assert nxyz[i] == dims[2 + i]
+    if arguments["c"]:
+        return n_types, nxyz
+    if arguments["a"]:
+        return dims[1], dims[2:]
+
 
 def get_timesteps(arguments):
-    if arguments['a']:
-        with h5py.File(arguments['a'],"r") as f:
+    if arguments["a"]:
+        with h5py.File(arguments["a"], "r") as f:
             dims = f["/density_field"].shape
         return dims[0]
     return 1
+
 
 def get_content_dict(arguments):
     content_dict = dict()
     content_dict["/density_field"] = False
     content_dict["/umbrella_field"] = False
-    if arguments['a']:
-        with h5py.File(arguments['a'],"r") as f:
+    if arguments["a"]:
+        with h5py.File(arguments["a"], "r") as f:
             if "/density_field" in f:
                 content_dict["/density_field"] = True
             if "/umbrella_field" in f:
                 content_dict["density_field"] = True
     return content_dict
 
+
 def get_topo_geo(nxyz):
-    string =""
-    string += "<Topology name=\"topo\" TopologyType=\"3DCoRectMesh\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\"></Topology>\n"
-    string += "<Geometry name=\"geo\" Type=\"ORIGIN_DXDYDZ\">\n"
-    string += "<DataItem Format=\"XML\" Dimensions=\"3\">\n"
+    string = ""
+    string += (
+        '<Topology name="topo" TopologyType="3DCoRectMesh" Dimensions="'
+        + str(nxyz[0])
+        + " "
+        + str(nxyz[1])
+        + " "
+        + str(nxyz[2])
+        + '"></Topology>\n'
+    )
+    string += '<Geometry name="geo" Type="ORIGIN_DXDYDZ">\n'
+    string += '<DataItem Format="XML" Dimensions="3">\n'
     string += "0.0 0.0 0.0\n"
     string += "</DataItem>\n"
-    string += "<DataItem Format=\"XML\" Dimensions=\"3\">\n"
+    string += '<DataItem Format="XML" Dimensions="3">\n'
     string += "1 1 1\n"
     string += "</DataItem>\n"
     string += "</Geometry>\n"
     return string
 
+
 def open_grid(timestep):
     string = ""
-    string += "<Grid Name=\""+str(timestep)+"\" GridType=\"Uniform\">\n"
-    string += "<Topology Reference=\"/Xdmf/Domain/Topology[1]\"/>\n"
-    string += "<Geometry Reference=\"/Xdmf/Domain/Geometry[1]\"/>\n"
+    string += '<Grid Name="' + str(timestep) + '" GridType="Uniform">\n'
+    string += '<Topology Reference="/Xdmf/Domain/Topology[1]"/>\n'
+    string += '<Geometry Reference="/Xdmf/Domain/Geometry[1]"/>\n'
     if type(timestep) == int:
-        string += "<Time Value=\""+str(timestep)+"\"/>\n"
+        string += '<Time Value="' + str(timestep) + '"/>\n'
     return string
 
-def add_attribute(timestep,type,timesteps,types,nxyz,arguments):
-    string =""
-    if arguments['a']:
-        h5file = arguments['a']
-        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Type"+str(type)+"\">\n"
+
+def add_attribute(timestep, type, timesteps, types, nxyz, arguments):
+    string = ""
+    if arguments["a"]:
+        h5file = arguments["a"]
+        string += (
+            '<Attribute Type="Scalar" Center="Node" Name="Type' + str(type) + '">\n'
+        )
         string += "<!-- Result will be 3 dimensions -->\n"
-        string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += (
+            '<DataItem ItemType="HyperSlab" Dimensions="'
+            + str(nxyz[0])
+            + " "
+            + str(nxyz[1])
+            + " "
+            + str(nxyz[2])
+            + '">\n'
+        )
         string += "<!-- The source is 5 dimensions -->\n"
         string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
-        string += "<DataItem Dimensions=\"3 5\" Format=\"XML\">\n"
-        string += str(timestep)+" "+str(type)+" 0 0 0\n"
+        string += '<DataItem Dimensions="3 5" Format="XML">\n'
+        string += str(timestep) + " " + str(type) + " 0 0 0\n"
         string += "1 1 1 1 1\n"
-        string += "1 1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+        string += "1 1 " + str(nxyz[0]) + " " + str(nxyz[1]) + " " + str(nxyz[2]) + "\n"
         string += "</DataItem>\n"
-        string += "<DataItem Format=\"HDF\" NumberType=\"UInt\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+str(types)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-        string += h5file+":/density_field\n"
-        string +="</DataItem>\n"
-        string +="</DataItem>\n"
+        string += (
+            '<DataItem Format="HDF" NumberType="UInt" Precision="2" Dimensions="'
+            + str(timesteps)
+            + " "
+            + str(types)
+            + " "
+            + str(nxyz[0])
+            + " "
+            + str(nxyz[1])
+            + " "
+            + str(nxyz[2])
+            + '">\n'
+        )
+        string += h5file + ":/density_field\n"
+        string += "</DataItem>\n"
+        string += "</DataItem>\n"
         string += "</Attribute>\n"
     return string
 
-def add_phi(timestep,type,timesteps,types,nxyz,arguments):
-    string =""
-    if arguments['a']:
-        h5file = arguments['a']
-        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Phi"+str(type)+"\">\n"
+
+def add_phi(timestep, type, timesteps, types, nxyz, arguments):
+    string = ""
+    if arguments["a"]:
+        h5file = arguments["a"]
+        string += (
+            '<Attribute Type="Scalar" Center="Node" Name="Phi' + str(type) + '">\n'
+        )
         string += "<!-- Result will be 3 dimensions -->"
-        string += "<DataItem ItemType=\"Function\" Function = \"$" + str(type) + " / ("
+        string += '<DataItem ItemType="Function" Function = "$' + str(type) + " / ("
         for type_func in range(types):
-                string += "$" + str(type_func)
-                if type_func != types-1: string+= " + "
-        string += " )\" "
-        string += "Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+            string += "$" + str(type_func)
+            if type_func != types - 1:
+                string += " + "
+        string += ' )" '
+        string += (
+            'Dimensions="'
+            + str(nxyz[0])
+            + " "
+            + str(nxyz[1])
+            + " "
+            + str(nxyz[2])
+            + '">\n'
+        )
         for type_func in range(types):
-                string += "<!-- Result will be 3 dimensions -->"
-                string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-                string += "<!-- The source is 5 dimensions -->\n"
-                string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
-                string += "<DataItem Dimensions=\"3 5\" Format=\"XML\">\n"
-                string += str(timestep)+" "+str(type_func)+" 0 0 0\n"
-                string += "1 1 1 1 1\n"
-                string += "1 1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
-                string += "</DataItem>\n"
-                string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+str(types)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-                string += h5file+":/density_field\n"
-                string +="</DataItem>\n"
-                string +="</DataItem>\n"
-        string +="</DataItem>\n"
+            string += "<!-- Result will be 3 dimensions -->"
+            string += (
+                '<DataItem ItemType="HyperSlab" Dimensions="'
+                + str(nxyz[0])
+                + " "
+                + str(nxyz[1])
+                + " "
+                + str(nxyz[2])
+                + '">\n'
+            )
+            string += "<!-- The source is 5 dimensions -->\n"
+            string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
+            string += '<DataItem Dimensions="3 5" Format="XML">\n'
+            string += str(timestep) + " " + str(type_func) + " 0 0 0\n"
+            string += "1 1 1 1 1\n"
+            string += (
+                "1 1 " + str(nxyz[0]) + " " + str(nxyz[1]) + " " + str(nxyz[2]) + "\n"
+            )
+            string += "</DataItem>\n"
+            string += (
+                '<DataItem Format="HDF" NumberType="Float" Precision="2" Dimensions="'
+                + str(timesteps)
+                + " "
+                + str(types)
+                + " "
+                + str(nxyz[0])
+                + " "
+                + str(nxyz[1])
+                + " "
+                + str(nxyz[2])
+                + '">\n'
+            )
+            string += h5file + ":/density_field\n"
+            string += "</DataItem>\n"
+            string += "</DataItem>\n"
+        string += "</DataItem>\n"
         string += "</Attribute>\n"
     return string
 
-def add_area51(nxyz,h5file):
-    string =""
-    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Area51\">\n"
+
+def add_area51(nxyz, h5file):
+    string = ""
+    string += '<Attribute Type="Scalar" Center="Node" Name="Area51">\n'
     string += "<!-- Result will be 3 dimensions -->"
-    string += "<DataItem Format=\"HDF\" NumberType=\"UInt\" Precision=\"2\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-    string += h5file+":/area51\n"
-    string +="</DataItem>\n"
+    string += (
+        '<DataItem Format="HDF" NumberType="UInt" Precision="2" Dimensions="'
+        + str(nxyz[0])
+        + " "
+        + str(nxyz[1])
+        + " "
+        + str(nxyz[2])
+        + '">\n'
+    )
+    string += h5file + ":/area51\n"
+    string += "</DataItem>\n"
     string += "</Attribute>\n"
     return string
 
-def add_external_field(nxyz,n_types,t,h5file):
-    string =""
-    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Fex"+str(t)+"\">\n"
+
+def add_external_field(nxyz, n_types, t, h5file):
+    string = ""
+    string += '<Attribute Type="Scalar" Center="Node" Name="Fex' + str(t) + '">\n'
     string += "<!-- Result will be 3 dimensions -->"
-    string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += (
+        '<DataItem ItemType="HyperSlab" Dimensions="'
+        + str(nxyz[0])
+        + " "
+        + str(nxyz[1])
+        + " "
+        + str(nxyz[2])
+        + '">\n'
+    )
     string += "<!-- The source is 4 dimensions -->\n"
     string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1,1 Count=1,*,*,* -->\n"
-    string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
-    string += str(t)+" 0 0 0\n"
+    string += '<DataItem Dimensions="3 4" Format="XML">\n'
+    string += str(t) + " 0 0 0\n"
     string += "1 1 1 1\n"
-    string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+    string += "1 " + str(nxyz[0]) + " " + str(nxyz[1]) + " " + str(nxyz[2]) + "\n"
     string += "</DataItem>\n"
-    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Endian=\"Little\" Dimensions=\""+str(n_types)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-    string += h5file+":/external_field\n"
-    string +="</DataItem>\n"
-    string +="</DataItem>\n"
+    string += (
+        '<DataItem Format="HDF" NumberType="Float" Precision="8" Endian="Little" Dimensions="'
+        + str(n_types)
+        + " "
+        + str(nxyz[0])
+        + " "
+        + str(nxyz[1])
+        + " "
+        + str(nxyz[2])
+        + '">\n'
+    )
+    string += h5file + ":/external_field\n"
+    string += "</DataItem>\n"
+    string += "</DataItem>\n"
     string += "</Attribute>\n"
     return string
 
-def add_umbrella_field(timestep,type,timesteps,types,nxyz,arguments):
-    string =""
-    if arguments['a']:
-        h5file = arguments['a']
-        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"str"+str(type)+"\">\n"
+
+def add_umbrella_field(timestep, type, timesteps, types, nxyz, arguments):
+    string = ""
+    if arguments["a"]:
+        h5file = arguments["a"]
+        string += (
+            '<Attribute Type="Scalar" Center="Node" Name="str' + str(type) + '">\n'
+        )
         string += "<!-- Result will be 3 dimensions -->"
-        string += "<DataItem ItemType=\"Function\" Function = \"$" + str(type) + " / ("
+        string += '<DataItem ItemType="Function" Function = "$' + str(type) + " / ("
         for type_func in range(types):
-                string += "$" + str(type_func)
-                if type_func != types-1: string+= " + "
-        string += " )\" "
-        string += "Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+            string += "$" + str(type_func)
+            if type_func != types - 1:
+                string += " + "
+        string += ' )" '
+        string += (
+            'Dimensions="'
+            + str(nxyz[0])
+            + " "
+            + str(nxyz[1])
+            + " "
+            + str(nxyz[2])
+            + '">\n'
+        )
         for type_func in range(types):
-                string += "<!-- Result will be 3 dimensions -->"
-                string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-                string += "<!-- The source is 5 dimensions -->\n"
-                string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
-                string += "<DataItem Dimensions=\"3 5\" Format=\"XML\">\n"
-                string += str(timestep)+" "+str(type_func)+" 0 0 0\n"
-                string += "1 1 1 1 1\n"
-                string += "1 1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
-                string += "</DataItem>\n"
-                string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+str(types)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-                string += h5file+":/umbrella_field\n"
-                string +="</DataItem>\n"
-                string +="</DataItem>\n"
-        string +="</DataItem>\n"
+            string += "<!-- Result will be 3 dimensions -->"
+            string += (
+                '<DataItem ItemType="HyperSlab" Dimensions="'
+                + str(nxyz[0])
+                + " "
+                + str(nxyz[1])
+                + " "
+                + str(nxyz[2])
+                + '">\n'
+            )
+            string += "<!-- The source is 5 dimensions -->\n"
+            string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
+            string += '<DataItem Dimensions="3 5" Format="XML">\n'
+            string += str(timestep) + " " + str(type_func) + " 0 0 0\n"
+            string += "1 1 1 1 1\n"
+            string += (
+                "1 1 " + str(nxyz[0]) + " " + str(nxyz[1]) + " " + str(nxyz[2]) + "\n"
+            )
+            string += "</DataItem>\n"
+            string += (
+                '<DataItem Format="HDF" NumberType="Float" Precision="2" Dimensions="'
+                + str(timesteps)
+                + " "
+                + str(types)
+                + " "
+                + str(nxyz[0])
+                + " "
+                + str(nxyz[1])
+                + " "
+                + str(nxyz[2])
+                + '">\n'
+            )
+            string += h5file + ":/umbrella_field\n"
+            string += "</DataItem>\n"
+            string += "</DataItem>\n"
+        string += "</DataItem>\n"
         string += "</Attribute>\n"
     return string
 
-def add_umbrella_field_conf(nxyz,n_types,t,h5file):
-    string =""
-    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Umbr"+str(t)+"\">\n"
+
+def add_umbrella_field_conf(nxyz, n_types, t, h5file):
+    string = ""
+    string += '<Attribute Type="Scalar" Center="Node" Name="Umbr' + str(t) + '">\n'
     string += "<!-- Result will be 3 dimensions -->"
-    string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += (
+        '<DataItem ItemType="HyperSlab" Dimensions="'
+        + str(nxyz[0])
+        + " "
+        + str(nxyz[1])
+        + " "
+        + str(nxyz[2])
+        + '">\n'
+    )
     string += "<!-- The source is 4 dimensions -->\n"
     string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1,1 Count=1,*,*,* -->\n"
-    string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
-    string += str(t)+" 0 0 0\n"
+    string += '<DataItem Dimensions="3 4" Format="XML">\n'
+    string += str(t) + " 0 0 0\n"
     string += "1 1 1 1\n"
-    string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+    string += "1 " + str(nxyz[0]) + " " + str(nxyz[1]) + " " + str(nxyz[2]) + "\n"
     string += "</DataItem>\n"
-    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Endian=\"Little\" Dimensions=\""+str(n_types)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-    string += h5file+":/umbrella_field\n"
-    string +="</DataItem>\n"
-    string +="</DataItem>\n"
+    string += (
+        '<DataItem Format="HDF" NumberType="Float" Precision="8" Endian="Little" Dimensions="'
+        + str(n_types)
+        + " "
+        + str(nxyz[0])
+        + " "
+        + str(nxyz[1])
+        + " "
+        + str(nxyz[2])
+        + '">\n'
+    )
+    string += h5file + ":/umbrella_field\n"
+    string += "</DataItem>\n"
+    string += "</DataItem>\n"
     string += "</Attribute>\n"
     return string
 
 
-def get_area51(nxyz,arguments):
+def get_area51(nxyz, arguments):
     string = ""
-    if arguments['c']:
-        with h5py.File(arguments['c'],"r") as f:
-            if  '/area51' in f:
-                string += add_area51(nxyz,arguments['c'])
+    if arguments["c"]:
+        with h5py.File(arguments["c"], "r") as f:
+            if "/area51" in f:
+                string += add_area51(nxyz, arguments["c"])
     return string
 
-def get_external_field(nxyz,arguments,types,t):
+
+def get_external_field(nxyz, arguments, types, t):
     string = ""
-    if arguments['c']:
-        with h5py.File(arguments['c'],"r") as f:
-            if '/external_field' in f:
-                string += add_external_field(nxyz,types,t,arguments["c"])
+    if arguments["c"]:
+        with h5py.File(arguments["c"], "r") as f:
+            if "/external_field" in f:
+                string += add_external_field(nxyz, types, t, arguments["c"])
     return string
 
-def get_umbrella_field(nxyz,arguments,types,t):
-     string = ""
-     if arguments['c']:
-         f = h5py.File(arguments['c'],"r")
-         if '/umbrella_field' in f:
-             string += add_umbrella_field_conf(nxyz,types,t,arguments["c"])
-         f.close()
-     return string
+
+def get_umbrella_field(nxyz, arguments, types, t):
+    string = ""
+    if arguments["c"]:
+        f = h5py.File(arguments["c"], "r")
+        if "/umbrella_field" in f:
+            string += add_umbrella_field_conf(nxyz, types, t, arguments["c"])
+        f.close()
+    return string
+
 
 def main(argv):
-    parser = argparse.ArgumentParser(description="Script to create paraview input files.")
-    parser.add_argument('-a',metavar='ana_file',type=str,required=False,help="Input ana file.")
-    parser.add_argument('-o',metavar='output_file',type=str,help="Name of the output file. Will be  overwritten.")
-    parser.add_argument('-c',metavar='configuration file.',help="Plot the area51 and external field instead of density fields. The input file has to be an conf file. Warning this option creates a new h5 file containing the external field.")
+    parser = argparse.ArgumentParser(
+        description="Script to create paraview input files."
+    )
+    parser.add_argument(
+        "-a", metavar="ana_file", type=str, required=False, help="Input ana file."
+    )
+    parser.add_argument(
+        "-o",
+        metavar="output_file",
+        type=str,
+        help="Name of the output file. Will be  overwritten.",
+    )
+    parser.add_argument(
+        "-c",
+        metavar="configuration file.",
+        help="Plot the area51 and external field instead of density fields. The input file has to be an conf file. Warning this option creates a new h5 file containing the external field.",
+    )
     arguments = vars(parser.parse_args())
 
-    if arguments['c'] is None and arguments['a'] is None:
-        sys.stdout.write("ERROR: Please specify a configuration '-c' or an analysis file '-a'\n")
+    if arguments["c"] is None and arguments["a"] is None:
+        sys.stdout.write(
+            "ERROR: Please specify a configuration '-c' or an analysis file '-a'\n"
+        )
         return
 
-    types,nxyz = get_dimensions(arguments)
+    types, nxyz = get_dimensions(arguments)
     content_dict = get_content_dict(arguments)
 
     string = ""
@@ -268,26 +438,28 @@ def main(argv):
     string += "<Domain>\n"
     string += get_topo_geo(nxyz)
     timesteps = get_timesteps(arguments)
-    string += "<Grid GridType=\"Collection\" CollectionType=\"Temporal\">\n"
-    isumbr=False
-    if arguments['a']:
-        with h5py.File(arguments['a'],"r") as f:
-            if '/umbrella_field' in f:
-                Dataset=f['umbrella_field']
-                if Dataset.size>0:
-                    isumbr=True
+    string += '<Grid GridType="Collection" CollectionType="Temporal">\n'
+    isumbr = False
+    if arguments["a"]:
+        with h5py.File(arguments["a"], "r") as f:
+            if "/umbrella_field" in f:
+                Dataset = f["umbrella_field"]
+                if Dataset.size > 0:
+                    isumbr = True
 
     for time in range(timesteps):
         string += open_grid(time)
         for type in range(types):
             if content_dict["/density_field"]:
-                string += add_attribute(time,type,timesteps,types,nxyz,arguments)
-                string += add_phi(time,type,timesteps,types,nxyz,arguments)
-            string += get_external_field(nxyz,arguments,types,type)
-            if isumbr==True:
-                string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
-            string += get_umbrella_field(nxyz,arguments,types,type)
-        string += get_area51(nxyz,arguments)
+                string += add_attribute(time, type, timesteps, types, nxyz, arguments)
+                string += add_phi(time, type, timesteps, types, nxyz, arguments)
+            string += get_external_field(nxyz, arguments, types, type)
+            if isumbr == True:
+                string += add_umbrella_field(
+                    time, type, timesteps, types, nxyz, arguments
+                )
+            string += get_umbrella_field(nxyz, arguments, types, type)
+        string += get_area51(nxyz, arguments)
         string += "</Grid>\n"
     string += "</Grid>\n"
 
@@ -295,17 +467,17 @@ def main(argv):
     string += "</Xdmf>\n"
 
     outfile = "XMDF_default.xmf"
-    if arguments['c']:
-        outfile = arguments['c'][:-3]+".xmf"
-    if arguments['a']:
-        outfile = arguments['a'][:-3]+".xmf"
-    if arguments['o']:
-        outfile = arguments['o']
-        assert outfile.rfind(".xmf") == len(outfile)-4
-    f = open(outfile,"w")
+    if arguments["c"]:
+        outfile = arguments["c"][:-3] + ".xmf"
+    if arguments["a"]:
+        outfile = arguments["a"][:-3] + ".xmf"
+    if arguments["o"]:
+        outfile = arguments["o"]
+        assert outfile.rfind(".xmf") == len(outfile) - 4
+    f = open(outfile, "w")
     f.write(string)
     f.close()
 
 
-if __name__ =="__main__":
+if __name__ == "__main__":
     main(sys.argv)

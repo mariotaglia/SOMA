@@ -24,50 +24,49 @@ TIMESTEPS=11
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i domain.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -1
+	exit -1
 fi
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain.h5 -r $SEED -t 0 -d 4 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain.h5 -r "${SEED}" -t 0 -d 4 @ACC_FLAG@
 mv end.h5 domain0.h5
 
 if [ ! $? -eq 0 ]; then
-    exit -5
+	exit -5
 fi
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS -d 1 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r "${SEED}" -t "${TIMESTEPS}" -d 1 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
 mv end.h5 domain1.h5
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS -d 2 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r "${SEED}" -t "${TIMESTEPS}" -d 2 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 mv end.h5 domain2.h5
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS -d 4 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 4 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r "${SEED}" -t "${TIMESTEPS}" -d 4 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -4
+	exit -4
 fi
 mv end.h5 domain4.h5
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r $SEED -t $TIMESTEPS @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c domain0.h5 -r "${SEED}" -t "${TIMESTEPS}" @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -5
+	exit -5
 fi
 mv end.h5 domainN.h5
 
-
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python compare_mixed_bead_data.py domain1.h5 domain2.h5
 if [ ! $? -eq 0 ]; then
-    exit -7
+	exit -7
 fi
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python compare_mixed_bead_data.py domain1.h5 domain4.h5
 if [ ! $? -eq 0 ]; then
-    exit -8
+	exit -8
 fi
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python compare_mixed_bead_data.py domain1.h5 domainN.h5
 if [ ! $? -eq 0 ]; then
-    exit -9
+	exit -9
 fi

@@ -17,59 +17,53 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA --version
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA --version
 
 value=$?
 
-if [ $value -eq 0 ]
-then
-    echo Test passed
+if [ "${value}" -eq 0 ]; then
+	echo Test passed
 else
-    echo Test failed
-    exit -1
+	echo Test failed
+	exit -1
 fi
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA --help
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA --help
 
 value=$?
 
-if [ $value -eq 0 ]
-then
-    echo Test passed
+if [ "${value}" -eq 0 ]; then
+	echo Test passed
 else
-    echo Test failed
-    exit -1
+	echo Test failed
+	exit -1
 fi
-
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 
 value=$?
 
-if [ $value -eq 0 ]
-then
-    echo Test passed
+if [ "${value}" -eq 0 ]; then
+	echo Test passed
 else
-    echo Test failed
-    exit -1
+	echo Test failed
+	exit -1
 fi
 
-
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1 -f la.h5
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 1 -f la.h5
 
 value=$?
 
-if [ $value -eq 0 ]
-then
-    echo Test passed
+if [ "${value}" -eq 0 ]; then
+	echo Test passed
 else
-    echo Test failed
-    exit -1
+	echo Test failed
+	exit -1
 fi
 
 if [ ! -f la.h5 ]; then
-    echo "Test failed, output file 'la.h5' missing"
-    exit -1
+	echo "Test failed, output file 'la.h5' missing"
+	exit -1
 fi
 
 rm la.h5

@@ -25,13 +25,15 @@
 /*! \brief Bond type enumerator to indicate the different bond
  *  types. Matches the bondDict in the ConfGen.py.*/
 enum Bondtype {
-    HARMONIC = 0,               /*!<\brief Harmonic bond with a single spring const. */
-/*!\deprecated stiff is not implemented, at least for now */
-    STIFF = 1,                  /*!<\brief Stiff bonds. */
-    HARMONICVARIABLESCALE = 2   /*!<\brief Harmonic bond with a single spring const. But with an additional scaling factor for influence of Photoswitches. */
+  HARMONIC = 0, /*!<\brief Harmonic bond with a single spring const. */
+                /*!\deprecated stiff is not implemented, at least for now */
+  STIFF = 1,    /*!<\brief Stiff bonds. */
+  HARMONICVARIABLESCALE =
+      2 /*!<\brief Harmonic bond with a single spring const. But with an
+           additional scaling factor for influence of Photoswitches. */
 };
 
 //! Number of implemented bonds, definition in init.c
 extern const unsigned int NUMBER_SOMA_BOND_TYPES;
 
-#endif                          //BOND_H
+#endif // BOND_H

@@ -17,36 +17,34 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
-
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i tagA.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -1
+	exit -1
 fi
 
 #The frequent load balance in combination with no tolerance forces the ranks to exchange polymers
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c tagA.h5 -t 100 --accepted-load-inbalance=0 -l 1 @ACC_FLAG@ -f tagB.h5
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
 
 # The position of the chains is changed. Without tracking the tag of the chains of different N, it is impossible to update the polymer types.
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i tagB.xml --no-ana-output --update
 
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 
 echo "Reverse changes"
 #Reverse the changes
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c tagB.h5 -t 200 --accepted-load-inbalance=0 -l 1 @ACC_FLAG@ -f tagA.h5
 if [ ! $? -eq 0 ]; then
-    exit -4
+	exit -4
 fi
-
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i tagA.xml --no-ana-output --update
 
 if [ ! $? -eq 0 ]; then
-    exit -5
+	exit -5
 fi

@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
-
 # This file is outside of the building protocal, yet. Because we don't want to force
 # 'gengetopt' as a dependency. If you as a developer change something at the cmdline
 # interface run this script in the c source directory after you modified the "soma.ggo"

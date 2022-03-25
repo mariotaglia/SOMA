@@ -68,7 +68,7 @@ Your changes should compile without warnings.
 
 # Tests
 
-## Write  tests
+## Write tests
 
 All new functionality in SOMA should be tested with automatic tests.
 Existing test should pass with the merge request.
@@ -80,7 +80,7 @@ ensure that it behaves as intended.
 
 ## Add developer to the authors list
 
-Developers need to be credited for their work. In addition to the authors list add your name to the changes in the  change log. 
+Developers need to be credited for their work. In addition to the authors list add your name to the changes in the change log.
 contributed to the code.
 
 ## Propose a change log

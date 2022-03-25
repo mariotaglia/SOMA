@@ -17,61 +17,59 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
-
 rm -f mobility*h5
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i mobility_low_concentration_eq.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -1
+	exit -1
 fi
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i mobility_high_concentration_eq.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c mobility_low_concentration_eq.h5 -f mobility_low_concentration.h5  -t 20000 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c mobility_low_concentration_eq.h5 -f mobility_low_concentration.h5 -t 20000 @ACC_FLAG@
 
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c mobility_high_concentration_eq.h5 -f mobility_high_concentration.h5 -t 20000 @ACC_FLAG@
 
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i mobility_high_concentration.xml --update
 
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i mobility_low_concentration.xml --update
 
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
-
 
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c mobility_low_concentration.h5 -a mobility_low_concentration_ana.h5 -t 20000 @ACC_FLAG@
 
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c mobility_high_concentration.h5 -a mobility_high_concentration_ana.h5 -t 20000 @ACC_FLAG@
 
 if [ ! $? -eq 0 ]; then
-    exit -4
+	exit -4
 fi
 
 @PYTHON_EXECUTABLE@ test_mobility.py
 
 if [ ! $? -eq 0 ]; then
-    exit -5
+	exit -5
 fi
 
 rm -f mobility*h5

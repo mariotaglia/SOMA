@@ -36,4 +36,4 @@ struct Phase;
 //! equilibration might be impossible.
 int generate_new_beads(struct Phase *const p);
 
-#endif                          //GENERATE_POSITIONS_H
+#endif // GENERATE_POSITIONS_H

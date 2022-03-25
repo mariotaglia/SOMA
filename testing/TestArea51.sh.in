@@ -24,10 +24,10 @@ TIMESTEPS=42
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i area51.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -1
+	exit -1
 fi
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c area51.h5 -r $SEED -t $TIMESTEPS @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c area51.h5 -r "${SEED}" -t "${TIMESTEPS}" @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi

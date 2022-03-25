@@ -20,67 +20,66 @@
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml
 value=$?
 
-if [ ! $value -eq 0 ];then
-    exit -1
+if [ ! "${value}" -eq 0 ]; then
+	exit -1
 fi
 
 if [ ! -f coord.h5 ]; then
-    exit 2
+	exit 2
 fi
 
 if [ ! -f coord_ana.h5 ]; then
-    exit 2
+	exit 2
 fi
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml -o la.h5 --no-ana-output
 value=$?
 
-if [ ! $value -eq 0 ];then
-    exit -1
+if [ ! "${value}" -eq 0 ]; then
+	exit -1
 fi
 
 if [ ! -f la.h5 ]; then
-    exit 2
+	exit 2
 fi
 
 if [ -f la_ana.h5 ]; then
-    exit 2
+	exit 2
 fi
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --ana-filename ana.h5 --update --dot-graph
 value=$?
 
-if [ ! $value -eq 0 ];then
-    exit -1
+if [ ! "${value}" -eq 0 ]; then
+	exit -1
 fi
 
 if [ ! -f ana.h5 ]; then
-    exit 2
+	exit 2
 fi
-
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i complex.xml
 
-if [ ! $? -eq 0 ];then
-    exit -1
+if [ ! $? -eq 0 ]; then
+	exit -1
 fi
 
 if [ ! -f complex_ana.h5 ]; then
-    exit 2
+	exit 2
 fi
 if [ ! -f complex.h5 ]; then
-    exit 2
+	exit 2
 fi
 
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i complex.xml --area51-no-pbc --external-field-no-pbc
 
-if [ ! $? -eq 0 ];then
-    exit -1
+if [ ! $? -eq 0 ]; then
+	exit -1
 fi
 
 if [ ! -f complex_ana.h5 ]; then
-    exit 2
+	exit 2
 fi
 if [ ! -f complex.h5 ]; then
-    exit 2
+	exit 2
 fi

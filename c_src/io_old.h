@@ -52,6 +52,7 @@ int read_old_geometry(struct Phase *p, const char *filename);
  * \param plist_id parameter for the access of the file.
  * \return Errorcode
  */
-int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id);
+int read_beads0(struct Phase *const p, const hid_t file_id,
+                const hid_t plist_id);
 
-#endif                          //SOMA_IO_OLD_H
+#endif // SOMA_IO_OLD_H

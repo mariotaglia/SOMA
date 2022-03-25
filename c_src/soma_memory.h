@@ -23,7 +23,8 @@
 
 /*! \file rng_alternative.h
   \brief Definition of alternative pseudo random numbers generators for SOMA.
-  PCG32 is the default RNG generation engine, if a different one is used, the definitions for the alternative are in this file.
+  PCG32 is the default RNG generation engine, if a different one is used, the
+  definitions for the alternative are in this file.
 */
 
 #ifndef SOMA_MEMORY_H
@@ -33,16 +34,18 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-//! Helper structure to manage larger amounts of memory for multiple arrays or states
+//! Helper structure to manage larger amounts of memory for multiple arrays or
+//! states
 //!
-//! This struct is intended to store the heavy data of beads, RNG_STATES, permutation arrays etc.
-//! The memory can be dynammically appended. It is internal an householder with precached memory.
+//! This struct is intended to store the heavy data of beads, RNG_STATES,
+//! permutation arrays etc. The memory can be dynammically appended. It is
+//! internal an householder with precached memory.
 typedef struct SomaMemory {
-    void *ptr;                  //!< Pointer to the memory
-    uint64_t length;            //!< Maximum allocated length of the memory
-    uint64_t used;              //!< Used memory (< length)
-    bool device_present;        //!< Has the memory been allocated on the device ?
-    size_t typelength;          //!< Length of each element i.e. sizeof(Monomer) for beads
+  void *ptr;           //!< Pointer to the memory
+  uint64_t length;     //!< Maximum allocated length of the memory
+  uint64_t used;       //!< Used memory (< length)
+  bool device_present; //!< Has the memory been allocated on the device ?
+  size_t typelength; //!< Length of each element i.e. sizeof(Monomer) for beads
 } SomaMemory;
 
 //! Initialize the memory arrays
@@ -51,7 +54,8 @@ typedef struct SomaMemory {
 //! \param length Minimum reserved memory after init
 //! \param typelength Length of a single element that is stored in the array
 //! \return Errorcode
-int init_soma_memory(struct SomaMemory *state, const uint64_t length, const size_t typelength);
+int init_soma_memory(struct SomaMemory *state, const uint64_t length,
+                     const size_t typelength);
 
 //! Deallocate all memory of the SomaMemory struct
 //!
@@ -95,8 +99,9 @@ int update_self_soma_memory(struct SomaMemory *state);
 //!
 //! \private
 //! \param state State to reallocate
-//! \param min_increase minimum number by which the array is increased. must be > 1
-//! \return Errorcode
-int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase);
+//! \param min_increase minimum number by which the array is increased. must be
+//! > 1 \return Errorcode
+int reallocate_soma_memory(struct SomaMemory *state,
+                           const uint64_t min_increase);
 
-#endif                          //SOMA_MEMORY_H
+#endif // SOMA_MEMORY_H

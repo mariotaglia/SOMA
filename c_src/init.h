@@ -35,4 +35,4 @@ struct Phase;
 //! \return Errorcode
 int set_openacc_devices(struct Phase *const p);
 
-#endif                          //SOMA_INIT_H
+#endif // SOMA_INIT_H

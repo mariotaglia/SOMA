@@ -23,15 +23,21 @@
 #include "soma_util.h"
 
 //! Top level struct for polymer type conversions.
-//! controls the execution frequency. All other fields are only valid, if deltaMC != 0
+//! controls the execution frequency. All other fields are only valid, if
+//! deltaMC != 0
 typedef struct PolyConversion {
-    unsigned int deltaMC;       //!< control execution frequency of the conversion
-    uint8_t *array;             //!< Array that contains the reaction start index of the conversion list.
+  unsigned int deltaMC; //!< control execution frequency of the conversion
+  uint8_t *array;       //!< Array that contains the reaction start index of the
+                        //!< conversion list.
 
-    unsigned int *input_type;   //!< Array that contains the input poly type for each reaction (educt)
-    unsigned int *output_type;  //!< Array that contains the output poly type for each reaction (product)
-    unsigned int *reaction_end; //!< Array indicating if this is the last reaction in the list. (boolean)
-    unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
+  unsigned int *input_type;   //!< Array that contains the input poly type for
+                              //!< each reaction (educt)
+  unsigned int *output_type;  //!< Array that contains the output poly type for
+                              //!< each reaction (product)
+  unsigned int *reaction_end; //!< Array indicating if this is the last reaction
+                              //!< in the list. (boolean)
+  unsigned int len_reactions; //!< length of the reaction related arrays
+                              //!< input_type, output_type and reaction_end
 } PolyConversion;
 
 //! Helper function to copy the pc data to the device
@@ -40,10 +46,9 @@ typedef struct PolyConversion {
 //! \return Errorcode
 int copyin_poly_conversion(struct Phase *p);
 
-//! Helper function delete the pc data from the device and copy it to the CPU memory
-//! \private
-//! \param p Fully CPU initialized Phase struct
-//! \return Errorcode
+//! Helper function delete the pc data from the device and copy it to the CPU
+//! memory \private \param p Fully CPU initialized Phase struct \return
+//! Errorcode
 int copyout_poly_conversion(struct Phase *p);
 
 //! Helper function to update the host with the pc data
@@ -59,7 +64,8 @@ int update_self_poly_conversion(const struct Phase *const p);
     \param plist_id Access properties to use.
     \return Errorcode
 */
-int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const hid_t plist_id);
+int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id,
+                              const hid_t plist_id);
 
 /*! Helper function to write the polyconversion array to the config HDF5 file.
     \private
@@ -68,20 +74,20 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     \param plist_id Access properties to use.
     \return Errorcode
 */
-int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id);
+int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
+                               const hid_t plist_id);
 
-/*! Helper function to free the CPU memory resources of the pc struct. The function gets automatically called by free_phase().
-  \private
-  \param p Initialized Phase that is in the process of deallocating its resources.
+/*! Helper function to free the CPU memory resources of the pc struct. The
+  function gets automatically called by free_phase(). \private \param p
+  Initialized Phase that is in the process of deallocating its resources.
   \return Errorcode
 */
 int free_poly_conversion(struct Phase *p);
 
-/*! Convert polymer types according to the reaction description of the PolyConversion struct.
-  This updates the center of mass of the polymers.
-  \param p Phase struct describing the simulation
-  \return Errorcode
+/*! Convert polymer types according to the reaction description of the
+  PolyConversion struct. This updates the center of mass of the polymers. \param
+  p Phase struct describing the simulation \return Errorcode
 */
 int convert_polytypes(struct Phase *p);
 
-#endif                          //SOMA_POLYTYPE_CONVERSION_H
+#endif // SOMA_POLYTYPE_CONVERSION_H

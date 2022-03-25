@@ -22,31 +22,31 @@ DELTA=0
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -1
+	exit -1
 fi
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 0 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 0 @ACC_FLAG@
 mv end.h5 step0.h5
 
 if [ ! $? -eq 0 ]; then
-    exit -5
+	exit -5
 fi
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 1 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 1 @ACC_FLAG@
 
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
 
 mv end.h5 norestart.h5
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c step0.h5 -r 11 -t 1 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c step0.h5 -r 11 -t 1 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 mv end.h5 restart.h5
 
-@HDF5_DIFF_EXECUTABLE@ -v -d $DELTA norestart.h5 restart.h5
+@HDF5_DIFF_EXECUTABLE@ -v -d "${DELTA}" norestart.h5 restart.h5
 if [ ! $? -eq 0 ]; then
-    exit -4
+	exit -4
 fi

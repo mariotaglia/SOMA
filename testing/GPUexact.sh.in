@@ -22,7 +22,7 @@ DELTA=1e-6
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -1
+	exit -1
 fi
 
 # @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 0
@@ -31,18 +31,18 @@ fi
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1
 
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
 
 mv end.h5 cpu.h5
 
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 24 -t 1 -o0
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 mv end.h5 gpu.h5
 
-@HDF5_DIFF_EXECUTABLE@ --exclude-path "/documentation" -d $DELTA cpu.h5 gpu.h5
+@HDF5_DIFF_EXECUTABLE@ --exclude-path "/documentation" -d "${DELTA}" cpu.h5 gpu.h5
 if [ ! $? -eq 0 ]; then
-    exit -4
+	exit -4
 fi

@@ -21,32 +21,30 @@ DELTA=0
 SEED=51854
 TIMESTEPS=136
 
-
 @CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
-    exit -1
+	exit -1
 fi
 
 @MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -t 0 @ACC_FLAG@
 mv end.h5 start.h5
 
-
 if [ ! $? -eq 0 ]; then
-    exit -5
+	exit -5
 fi
 
 echo A
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS --accepted-load-inbalance=0 -l 1 @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r "${SEED}" -t "${TIMESTEPS}" --accepted-load-inbalance=0 -l 1 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -2
+	exit -2
 fi
 mv end.h5 load.h5
 
 echo AA
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r $SEED -t $TIMESTEPS @ACC_FLAG@
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 2 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c start.h5 -r "${SEED}" -t "${TIMESTEPS}" @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
-    exit -3
+	exit -3
 fi
 mv end.h5 noload.h5
 
@@ -54,5 +52,5 @@ echo B
 ${PYTHON_EXECUTABLE} compare_mixed_bead_data.py load.h5 noload.h5
 echo C
 if [ ! $? -eq 0 ]; then
-    exit -4
+	exit -4
 fi

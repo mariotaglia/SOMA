@@ -1,7 +1,6 @@
 module purge
 
-
-ml use $OTHERSTAGES
+ml use "${OTHERSTAGES}"
 ml Stages/2020
 ml NVHPC
 ml ParaStationMPI

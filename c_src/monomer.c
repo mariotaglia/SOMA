@@ -21,21 +21,19 @@
 
 #include "monomer.h"
 
-hid_t get_monomer_memtype(void)
-{
-    hid_t memtype = H5Tcreate(H5T_COMPOUND, sizeof(Monomer));
-    H5Tinsert(memtype, "x", HOFFSET(Monomer, x), H5T_SOMA_NATIVE_SCALAR);
-    H5Tinsert(memtype, "y", HOFFSET(Monomer, y), H5T_SOMA_NATIVE_SCALAR);
-    H5Tinsert(memtype, "z", HOFFSET(Monomer, z), H5T_SOMA_NATIVE_SCALAR);
+hid_t get_monomer_memtype(void) {
+  hid_t memtype = H5Tcreate(H5T_COMPOUND, sizeof(Monomer));
+  H5Tinsert(memtype, "x", HOFFSET(Monomer, x), H5T_SOMA_NATIVE_SCALAR);
+  H5Tinsert(memtype, "y", HOFFSET(Monomer, y), H5T_SOMA_NATIVE_SCALAR);
+  H5Tinsert(memtype, "z", HOFFSET(Monomer, z), H5T_SOMA_NATIVE_SCALAR);
 
-    return memtype;
+  return memtype;
 }
 
-hid_t get_monomer_filetype(void)
-{
-    hid_t memtype = H5Tcreate(H5T_COMPOUND, 4 * 8);
-    H5Tinsert(memtype, "x", 0, H5T_SOMA_FILE_SCALAR);
-    H5Tinsert(memtype, "y", 8, H5T_SOMA_FILE_SCALAR);
-    H5Tinsert(memtype, "z", 16, H5T_SOMA_FILE_SCALAR);
-    return memtype;
+hid_t get_monomer_filetype(void) {
+  hid_t memtype = H5Tcreate(H5T_COMPOUND, 4 * 8);
+  H5Tinsert(memtype, "x", 0, H5T_SOMA_FILE_SCALAR);
+  H5Tinsert(memtype, "y", 8, H5T_SOMA_FILE_SCALAR);
+  H5Tinsert(memtype, "z", 16, H5T_SOMA_FILE_SCALAR);
+  return memtype;
 }

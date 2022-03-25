@@ -5,5 +5,3 @@ echo "GPU setup for midway not yet available. You may want to use the cpu versio
 # module load git
 # module load cmake
 # module load cuda/10.1
-
-

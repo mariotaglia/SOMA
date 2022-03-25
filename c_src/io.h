@@ -85,8 +85,9 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps);
 //! \param data pointer to the data to write.
 //! \return Errorcode
 //! \note Function is MPI-collective.
-int write_hdf5(const hsize_t ndims, const hsize_t * const dims, const hid_t file_id,
-               const char *const name, const hid_t file_type, const hid_t mem_type,
+int write_hdf5(const hsize_t ndims, const hsize_t *const dims,
+               const hid_t file_id, const char *const name,
+               const hid_t file_type, const hid_t mem_type,
                const hid_t plist_id, const void *const data);
 
 //! \brief Helper function to read HDF5, not parallel splitted data.
@@ -99,7 +100,7 @@ int write_hdf5(const hsize_t ndims, const hsize_t * const dims, const hid_t file
 //! \param data pointer to the data to write.
 //! \return Errorcode
 //! \note Function is MPI-collective.
-int read_hdf5(const hid_t file_id, const char *const name, const hid_t mem_type, const hid_t plist_id,
-              void *const data);
+int read_hdf5(const hid_t file_id, const char *const name, const hid_t mem_type,
+              const hid_t plist_id, void *const data);
 
-#endif                          //SOMA_IO_H
+#endif // SOMA_IO_H

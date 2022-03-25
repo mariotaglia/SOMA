@@ -17,6 +17,7 @@
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+
 sys.path.append( @SOMA_PYTHON_INSTALL_DIR@ )
 import h5py
 import numpy
@@ -28,28 +29,41 @@ import argparse
 #! @param typeid Requested type of the field.
 #! @param timestep Timestep of the field.
 #! @return numpy.array with the density field
-def get_mayavi_matrix(file_descriptor,typeid,timestep,fft=False):
+def get_mayavi_matrix(file_descriptor, typeid, timestep, fft=False):
     f = file_descriptor
-    dset = f['density_field']
-    ntypes = dset.attrs['ntypes'][0]
+    dset = f["density_field"]
+    ntypes = dset.attrs["ntypes"][0]
     ntimes = len(dset)
-    nxyz = dset.attrs['nxyz']
-    ncells = nxyz[0]*nxyz[1]*nxyz[2]
-    typescale = dset.attrs['typescale']
+    nxyz = dset.attrs["nxyz"]
+    ncells = nxyz[0] * nxyz[1] * nxyz[2]
+    typescale = dset.attrs["typescale"]
     if typeid >= ntypes:
-        sys.stderr.write("Error: you requested type "+str(typeid)+" but only "+str(ntypes)+" are available\n")
+        sys.stderr.write(
+            "Error: you requested type "
+            + str(typeid)
+            + " but only "
+            + str(ntypes)
+            + " are available\n"
+        )
         return
     if timestep >= ntimes:
-        sys.stderr.write("Error: you requested timestep "+str(timestep)+" but only "+str(ntimes)+" are available\n")
+        sys.stderr.write(
+            "Error: you requested timestep "
+            + str(timestep)
+            + " but only "
+            + str(ntimes)
+            + " are available\n"
+        )
         return
     short_scalar = dset[timestep][typeid]
 
-    scalar = short_scalar.astype('f') * typescale[typeid]
+    scalar = short_scalar.astype("f") * typescale[typeid]
 
     if fft:
         scalar = abs(numpy.fft.fft2(scalar))
 
     return scalar
+
 
 #! Function to get averaged density_fields. It relies on get_mayavi_matrix().
 #!
@@ -57,39 +71,52 @@ def get_mayavi_matrix(file_descriptor,typeid,timestep,fft=False):
 #! @param typeid Refer get_mayavi_matrix().
 #! @param timestep_list Python iterable, which contains indices for the timestep.
 #! @return Averaged
-def get_mayavi_matrix_av(file_descriptor,typeid,timestep_list,fft=False):
+def get_mayavi_matrix_av(file_descriptor, typeid, timestep_list, fft=False):
     matrix_list = []
     for time in timestep_list:
-        matrix_list.append( get_mayavi_matrix(file_descriptor,typeid,time,fft) )
-    return numpy.mean(matrix_list,axis=0)
+        matrix_list.append(get_mayavi_matrix(file_descriptor, typeid, time, fft))
+    return numpy.mean(matrix_list, axis=0)
+
 
 def str_matrix(matrix):
     string = ""
     for nz in range(len(matrix)):
         for ny in range(len(matrix[0])):
             for nx in range(len(matrix[0][0])):
-                string += str(nx)+"  "+str(ny)+" "+str(nz)+"\t"+str(matrix[nz][ny][nx])+"\n"
+                string += (
+                    str(nx)
+                    + "  "
+                    + str(ny)
+                    + " "
+                    + str(nz)
+                    + "\t"
+                    + str(matrix[nz][ny][nx])
+                    + "\n"
+                )
     return string
 
+
 def handle_fields(arguments):
-    if arguments['field'] == None:
+    if arguments["field"] == None:
         print("ERROR: Called filed ana function without arguments to do so.")
         return ""
-    if arguments['d'][0] != "density_field":
+    if arguments["d"][0] != "density_field":
         # You cant fix the non feature, by just removing this error catching.
-        sys.stderr.write("Inconsistent cmd line arguments: --field specified, but dataset is not -d density_field.\n")
+        sys.stderr.write(
+            "Inconsistent cmd line arguments: --field specified, but dataset is not -d density_field.\n"
+        )
         return ""
 
-    f = h5py.File(arguments['i'][0],'r')
-    dataset = f[arguments['d'][0]]
+    f = h5py.File(arguments["i"][0], "r")
+    dataset = f[arguments["d"][0]]
     string = ""
-    if arguments['av']:
-        dset = f['density_field']
+    if arguments["av"]:
+        dset = f["density_field"]
         ntimes = len(dset)
-        timesteps = arguments['field'][0]
-        if timesteps == 0: #The doc specifies that this case prints out the full av
+        timesteps = arguments["field"][0]
+        if timesteps == 0:  # The doc specifies that this case prints out the full av
             timesteps = ntimes
-        i=0
+        i = 0
         while i < ntimes:
             matrix_list = []
             index_list = []
@@ -98,35 +125,42 @@ def handle_fields(arguments):
                     index_list.append(i)
                 i += 1
 
-            matrix = get_mayavi_matrix_av(f,arguments['field'][1],index_list,arguments['fft'])
-            string += str_matrix(matrix) +"\n\n\n"
+            matrix = get_mayavi_matrix_av(
+                f, arguments["field"][1], index_list, arguments["fft"]
+            )
+            string += str_matrix(matrix) + "\n\n\n"
     else:
-        matrix = get_mayavi_matrix(f,arguments['field'][1],arguments['field'][0],arguments['fft'])
+        matrix = get_mayavi_matrix(
+            f, arguments["field"][1], arguments["field"][0], arguments["fft"]
+        )
         string += str_matrix(matrix)
     f.close()
     return string
 
+
 def handle_normal_data(arguments):
-    if arguments['field'] != None:
+    if arguments["field"] != None:
         print("ERROR: Called normal ana function without arguments to do so.")
         return ""
 
-    f = h5py.File(arguments['i'][0],'r')
-    dataset = f[arguments['d'][0]]
+    f = h5py.File(arguments["i"][0], "r")
+    dataset = f[arguments["d"][0]]
     array = numpy.array(dataset)
     string = ""
-    if arguments['av']:
+    if arguments["av"]:
         array = array.transpose()
         for row in range(array.shape[0]):
-            string += str(numpy.mean(array[row]))+" +- "+str(numpy.std(array[row]))+"\t"
+            string += (
+                str(numpy.mean(array[row])) + " +- " + str(numpy.std(array[row])) + "\t"
+            )
         string += "\n"
     else:
-        timestep = dataset.attrs['DeltaMC']
+        timestep = dataset.attrs["DeltaMC"]
         time = 0
         for line in range(array.shape[0]):
-            string += str(time)+"\t"
+            string += str(time) + "\t"
             for row in range(array.shape[1]):
-                string += str(array[line][row])+"\t"
+                string += str(array[line][row]) + "\t"
             string += "\n"
             time += timestep
     f.close()
@@ -134,29 +168,66 @@ def handle_normal_data(arguments):
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(description = "Helper script to postprocess hdf5 data. This tool either dumps the data as raw text, or averages the data. For density fields use the --fields flag.")
-    parser.add_argument('-i',metavar='input_file',type=str,nargs=1,help="Input hdf5 file to process.",required=True)
-    parser.add_argument('-d',metavar='dataset',nargs=1,type=str,required=True,help="Name of the hdf5-dataset to process.")
-    parser.add_argument('--av',action='store_true',help='Average the data before output. ( default: dump raw data )')
-    parser.add_argument('--field',metavar='timestep typeid',nargs=2,type=int,help=
-                        'Pass this flag for processing of fields. The options specify the timestep and type what you request for the output. If you specify --av the output gets averaged.'
-                        ' The timesteps option specifies in that case the length of the average period (you get multiple outputs separated, by 3 \\n).'
-                        ' If you dont want this specify 0 and you get the full averag.')
-    parser.add_argument('-o',metavar='output_file',nargs=1,type=argparse.FileType('w'),default=sys.stdout,help="File name for raw ouput (overwrite). Default: stdout.")
-    parser.add_argument('--fft',action="store_true",help="Output the the Fourier transform of the ouput. Works only in combination with --field.")
+    parser = argparse.ArgumentParser(
+        description="Helper script to postprocess hdf5 data. This tool either dumps the data as raw text, or averages the data. For density fields use the --fields flag."
+    )
+    parser.add_argument(
+        "-i",
+        metavar="input_file",
+        type=str,
+        nargs=1,
+        help="Input hdf5 file to process.",
+        required=True,
+    )
+    parser.add_argument(
+        "-d",
+        metavar="dataset",
+        nargs=1,
+        type=str,
+        required=True,
+        help="Name of the hdf5-dataset to process.",
+    )
+    parser.add_argument(
+        "--av",
+        action="store_true",
+        help="Average the data before output. ( default: dump raw data )",
+    )
+    parser.add_argument(
+        "--field",
+        metavar="timestep typeid",
+        nargs=2,
+        type=int,
+        help="Pass this flag for processing of fields. The options specify the timestep and type what you request for the output. If you specify --av the output gets averaged."
+        " The timesteps option specifies in that case the length of the average period (you get multiple outputs separated, by 3 \\n)."
+        " If you dont want this specify 0 and you get the full averag.",
+    )
+    parser.add_argument(
+        "-o",
+        metavar="output_file",
+        nargs=1,
+        type=argparse.FileType("w"),
+        default=sys.stdout,
+        help="File name for raw ouput (overwrite). Default: stdout.",
+    )
+    parser.add_argument(
+        "--fft",
+        action="store_true",
+        help="Output the the Fourier transform of the ouput. Works only in combination with --field.",
+    )
 
-    arguments =  vars(parser.parse_args())
+    arguments = vars(parser.parse_args())
 
     string = ""
-    if not arguments['field']:
+    if not arguments["field"]:
         string += handle_normal_data(arguments)
     else:
         string += handle_fields(arguments)
 
     if len(string) > 0:
-        outfile = arguments['o']
+        outfile = arguments["o"]
         outfile.write(string)
         outfile.close()
+
 
 if __name__ == "__main__":
     main(sys.argv)

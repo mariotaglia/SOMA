@@ -27,117 +27,110 @@
 #include "autotuner.h"
 #include <assert.h>
 #include <stdio.h>
-#if ( ENABLE_MPI == 1 )
+#if (ENABLE_MPI == 1)
 #include <mpi.h>
-#endif                          //ENABLE_MPI
+#endif // ENABLE_MPI
 #include <stdbool.h>
-#include <time.h>
 #include <sys/time.h>
+#include <time.h>
 
 //! Step size between different elements.
 static const unsigned int AUTO_TUNER_STEP = 16;
-//! Number of iterations an autotuner runs, before an optimal value is determined.
+//! Number of iterations an autotuner runs, before an optimal value is
+//! determined.
 static const unsigned int AUTO_TUNER_ITERATIONS = 1000;
 
-int init_autotuner(Autotuner * a)
-{
-    assert(a);
-    for (unsigned int i = 0; i < AUTO_TUNER_N_ELEMENTS; i++)
-        {
-            a->trials[i] = (i + 1) * AUTO_TUNER_STEP;
-            a->trial_times[i] = 0.;
-        }
-    a->last_start = 0.;
-    a->started = false;
-    a->iteration = 0;
-    a->next_trial = 0;
-    a->equilibrated = false;
-    //No need to set a value.
+int init_autotuner(Autotuner *a) {
+  assert(a);
+  for (unsigned int i = 0; i < AUTO_TUNER_N_ELEMENTS; i++) {
+    a->trials[i] = (i + 1) * AUTO_TUNER_STEP;
+    a->trial_times[i] = 0.;
+  }
+  a->last_start = 0.;
+  a->started = false;
+  a->iteration = 0;
+  a->next_trial = 0;
+  a->equilibrated = false;
+  // No need to set a value.
+  return 0;
+}
+
+int start_autotuner(Autotuner *a) {
+  assert(a);
+  if (a->equilibrated)
     return 0;
+  if (a->started) {
+    fprintf(stderr, "ERROR: %s:%d Already started Autotuner start.\n", __FILE__,
+            __LINE__);
+    return -1;
+  }
+  assert(a->next_trial < AUTO_TUNER_N_ELEMENTS);
+  a->value = a->trials[a->next_trial];
+
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+
+  const double time = tv.tv_sec + tv.tv_usec * 1e-6;
+  a->last_start = time;
+  a->started = true;
+
+  return 0;
 }
 
-int start_autotuner(Autotuner * a)
-{
-    assert(a);
-    if (a->equilibrated)
-        return 0;
-    if (a->started)
-        {
-            fprintf(stderr, "ERROR: %s:%d Already started Autotuner start.\n", __FILE__, __LINE__);
-            return -1;
-        }
-    assert(a->next_trial < AUTO_TUNER_N_ELEMENTS);
-    a->value = a->trials[a->next_trial];
-
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    const double time = tv.tv_sec + tv.tv_usec * 1e-6;
-    a->last_start = time;
-    a->started = true;
-
+int end_autotuner(Autotuner *a) {
+  assert(a);
+  if (a->equilibrated)
     return 0;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  const double end = tv.tv_sec + tv.tv_usec * 1e-6;
+
+  if (!a->started) {
+    fprintf(stderr, "ERROR: %s:%d No started Autotuner end.\n", __FILE__,
+            __LINE__);
+    return -1;
+  }
+  a->started = false;
+
+  assert(a->next_trial < AUTO_TUNER_N_ELEMENTS);
+  a->trial_times[a->next_trial] += end - a->last_start;
+
+  a->next_trial = (a->next_trial + 1) % AUTO_TUNER_N_ELEMENTS;
+  if (a->next_trial == 0)
+    a->iteration++;
+
+  if (a->iteration > AUTO_TUNER_ITERATIONS)
+    return evaluate_autotuner(a);
+  return 0;
 }
 
-int end_autotuner(Autotuner * a)
-{
-    assert(a);
-    if (a->equilibrated)
-        return 0;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    const double end = tv.tv_sec + tv.tv_usec * 1e-6;
+int evaluate_autotuner(Autotuner *a) {
+  assert(a);
+  if (a->iteration <= AUTO_TUNER_ITERATIONS) {
+    fprintf(stderr, "ERROR: %s:%d Evaluation of a not finished Autotuner.\n",
+            __FILE__, __LINE__);
+    return -1;
+  }
+  if (a->equilibrated) {
+    fprintf(stderr,
+            "ERROR: %s:%d Evaluation of an already finished Autotuner.\n",
+            __FILE__, __LINE__);
+    return -1;
+  }
 
-    if (!a->started)
-        {
-            fprintf(stderr, "ERROR: %s:%d No started Autotuner end.\n", __FILE__, __LINE__);
-            return -1;
-        }
-    a->started = false;
+  assert(AUTO_TUNER_N_ELEMENTS > 0);
+  time_t min = a->trial_times[0];
+  unsigned int argmin = 0;
+  for (unsigned int i = 1; i < AUTO_TUNER_N_ELEMENTS; i++)
+    if (a->trial_times[i] < min) {
+      min = a->trial_times[i];
+      argmin = i;
+    }
+  a->next_trial = argmin;
+  a->value = a->trials[argmin];
 
-    assert(a->next_trial < AUTO_TUNER_N_ELEMENTS);
-    a->trial_times[a->next_trial] += end - a->last_start;
-
-    a->next_trial = (a->next_trial + 1) % AUTO_TUNER_N_ELEMENTS;
-    if (a->next_trial == 0)
-        a->iteration++;
-
-    if (a->iteration > AUTO_TUNER_ITERATIONS)
-        return evaluate_autotuner(a);
-    return 0;
+  a->equilibrated = true;
+  return 0;
 }
 
-int evaluate_autotuner(Autotuner * a)
-{
-    assert(a);
-    if (a->iteration <= AUTO_TUNER_ITERATIONS)
-        {
-            fprintf(stderr, "ERROR: %s:%d Evaluation of a not finished Autotuner.\n", __FILE__, __LINE__);
-            return -1;
-        }
-    if (a->equilibrated)
-        {
-            fprintf(stderr, "ERROR: %s:%d Evaluation of an already finished Autotuner.\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-    assert(AUTO_TUNER_N_ELEMENTS > 0);
-    time_t min = a->trial_times[0];
-    unsigned int argmin = 0;
-    for (unsigned int i = 1; i < AUTO_TUNER_N_ELEMENTS; i++)
-        if (a->trial_times[i] < min)
-            {
-                min = a->trial_times[i];
-                argmin = i;
-            }
-    a->next_trial = argmin;
-    a->value = a->trials[argmin];
-
-    a->equilibrated = true;
-    return 0;
-}
-
-int restart_autotuner(Autotuner * a)
-{
-    return init_autotuner(a);
-}
+int restart_autotuner(Autotuner *a) { return init_autotuner(a); }

@@ -17,26 +17,23 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 
-
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/CONVERT coord.dat
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/CONVERT coord.dat
 value=$?
 
-if [ $value -eq 0 ]
-then
-    echo -n ""
+if [ "${value}" -eq 0 ]; then
+	echo -n ""
 else
-    echo Test failed on convert
-    exit -1
+	echo Test failed on convert
+	exit -1
 fi
 
 ./compareDatH5.py coord.dat coord.h5
 
 value=$?
 
-if [ $value -eq 0 ]
-then
-    echo Test passed
+if [ "${value}" -eq 0 ]; then
+	echo Test passed
 else
-    echo Test failed
-    exit -1
+	echo Test failed
+	exit -1
 fi

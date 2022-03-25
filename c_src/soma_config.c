@@ -21,12 +21,6 @@
 
 #include "soma_config.h"
 
-const char *get_soma_version(void)
-{
-    return soma_version;
-}
+const char *get_soma_version(void) { return soma_version; }
 
-const char *get_soma_system_info(void)
-{
-    return soma_system_info;
-}
+const char *get_soma_system_info(void) { return soma_system_info; }
