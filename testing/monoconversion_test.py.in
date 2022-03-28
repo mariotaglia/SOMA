@@ -1,0 +1,85 @@
+@SOMA_PYTHON_SHEBANG@
+
+#   Copyright (C) 2016-2021 Ludwig Schneider
+#
+# This file is part of SOMA.
+#
+# SOMA is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# SOMA is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
+import sys
+sys.path.append( @SOMA_PYTHON_DIR@ )
+import h5py
+import numpy as np
+import argparse
+import subprocess as sp
+
+SOMA = "@CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA"
+CONFGEN = "@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py"
+
+def main(argv):
+    parser = argparse.ArgumentParser(description = "Perform test to check the correct statistic results of SOMA.")
+    parser.add_argument('--additional-flags',metavar="add-flags",type=str,help="Additional flags you might want to pass to SOMA for all tests.",default="" )
+    arguments =  parser.parse_args()
+
+    additional_flags =[]
+    for element in arguments.additional_flags.split():
+        if len(element) > 0:
+            additional_flags.append(element.strip())
+
+    ret = sp.call([CONFGEN,"-i","monoconversion.xml","--no-ana-output"])
+    if ret != 0: raise RuntimeError("Monoconversion init failed")
+
+    #Check initial composition
+    with h5py.File("monoconversion.h5","r") as f:
+        poly_type = f["poly_type"][:]
+    if np.any(poly_type != 0):
+        raise RuntimeError("Monoconversion test failed. Initial polymers are not all of type 0")
+
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","1",SOMA,"-c","monoconversion.h5","-t","1000","-f","monoconversion_end.h5"]+additional_flags)
+    if ret != 0: raise RuntimeError("Running partial conversion failed")
+
+    #Check monomer composition at end where 1/e should have decayed from type A into equal numbers of B and C.
+    with h5py.File("monoconversion_end.h5","r") as f:
+        mono_type = f["monomer_types"][:]
+    numbers, count = np.unique(mono_type, return_counts=True)
+    if abs(count[0]/mono_type.shape[0]-1/np.exp(1))> 0.01:
+        raise RuntimeError("Monoconversion test failed. Final polymer fraction of type 0 should make up roughly a fraction of 1/e but got {}.".format(count[0]/mono_type.shape[0]))
+    if abs(count[1]-count[2])/mono_type.shape[0] > 0.01:
+        raise RuntimeError("Monoconversion test failed. Type B and C should end up with the same concentration.".format(count[0]/mono_type.shape[0]))
+
+    ret = sp.call([CONFGEN,"-i","monoconversion_dd.xml","--no-ana-output"])
+    if ret != 0: raise RuntimeError("Monoconversion with density dependency init failed")
+
+    #Check initially composition
+    with h5py.File("monoconversion_dd.h5","r") as f:
+        poly_type = f["poly_type"][:]
+    if np.count_nonzero(poly_type==1)/poly_type.shape[0] != 0.1:
+        raise RuntimeError("Partial conversion with density dependency test failed. Initial polymers are not a mixture of 90% type A and 10% type F.")
+
+    ret = sp.call(["@MPIEXEC@","@MPIEXEC_NUMPROC_FLAG@","1",SOMA,"-c","monoconversion_dd.h5","-t","1000","-f","monoconversion_dd_end.h5"]+additional_flags)
+    if ret != 0: raise RuntimeError("Running monoconversion with density dependency failed")
+
+    #Check monomer composition at end where 1/e should have decayed from type A into equal numbers of B and C.
+    with h5py.File("monoconversion_dd_end.h5","r") as f:
+        mono_type = f["monomer_types"][:]
+    numbers, count = np.unique(mono_type, return_counts=True)
+    if abs((count[0]/(mono_type.shape[0]-count[3]))-1/np.exp(1))> 0.01:
+        raise RuntimeError("Monoconversion with density dependency test failed. Final polymer fraction of type 0 should make up roughly a fraction of 1/e ~ 0.3678 but got {}.".format(count[0]/(mono_type.shape[0]-count[3])))
+    if abs(count[1]-count[2])/mono_type.shape[0] > 0.01:
+        raise RuntimeError("Monoconversion with density dependency test failed. Type B and C should end up with the same concentration.".format(count[0]/(mono_type.shape[0]-count[3])))
+
+    return 0
+
+if __name__ == "__main__":
+    ret = main(sys.argv)
+    exit(ret)

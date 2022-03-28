@@ -90,13 +90,21 @@ uint32_t get_info(const int offset, const unsigned int bond_type, const unsigned
 //! \warning Call only for Monomer region of poly_arch.
 #pragma acc routine seq
 int get_bondlist_offset(const int32_t info_bl);
+//! Get particle type from a poly_arch element or the  Monomer type polymer heavy struct, depending on where it is stored.
+//!
+//! \param p Phase
+//! \param i local polymer index
+//! \param j monomer index
+//! \return Particle type of the monomer.
+#pragma acc routine seq
+unsigned int get_particle_type(const struct Phase *const p, const uint64_t i, const unsigned int j);
 //! Get particle type from a poly_arch element or the  Monomer region.
 //!
 //! \param info_bl poly_arch element in the Monomer region.
 //! \return Particle type of the monomer.
 //! \warning Call only for Monomer region of poly_arch.
 #pragma acc routine seq
-unsigned int get_particle_type(const uint32_t info_bl);
+unsigned int get_particle_type_of_poly_arch(const uint32_t info_bl);
 //! Compose poly_arch element for the
 //!
 //! \param offset_bl Offset to bondlist to set.

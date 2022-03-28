@@ -260,7 +260,7 @@
   Using the "dot" tool from the Graphviz package you can convert this output to visual graphs.
 
   \subsection complex A More Complex Example
-  We end this page with a more complex input file, which uses a few more options and tags.
+  Here we show a more complex input file, which uses a few more options and tags.
   \include complex.xml
   In the following we briefly discuss the additional tags, that are used here:
 
@@ -321,7 +321,8 @@
 
   - \code <polyconversion> \endcode allows to define zones where the type of a polymer can be switched.
     If the center of mass is inside of one of the so defined zones its type is switched according to the switching rules.
-    The definition of these rules and how the switching rules are defined is implemented via 3 different kinds of subtags in the XML.
+    The definition of these rules and how the switching rules are defined is implemented via 5(3 required ones) different kinds of subtags in the XML.
+    \warning This feature can only be used with the compile option ENABLE_MONOTYPE_CONVERSION turned off.
       - \code <DeltaMC> \endcode defines the frequency where the RCMs are checked and the rules applied.
       -\code <cylinder> <box> <sphere> <point_cloud> \endcode work exactly as with area51 or external field.
        They define the zone where the switching rules are applied.
@@ -332,6 +333,8 @@
       - \code <conversion_list> \endcode defines the reactions.
         There are always 3 numbers. The first defines the original polymer type the educt of the reaction. The second defines the product of the reaction. Both have to fulfill the restriction, that they enumerate valid polymer types. In addition, the number of beads between input and output must be the same.
 	The number is read as boolean and indicates if there is another reaction. If it is false (0), the next line is also applied for the currect reaction zone cell. Otherwise no further reactions are applied.
+      - \code <conversion_rate> \endcode defines the reactions rates. It is always a single float per line/reaction and gives the probability to convert per conversion step. This is optional and if it is not given all polymers are converted.
+      - \code <density_dependency> \endcode defines on which monomer type densities the final conversion probability depends on. This is optional. For each conversion it is a list of n_types floats. Given the density-dependency-list "1 0 3" and rate "0.001" the final conversion probability will be $p = 0.001 \cdot \phi_0 \cdot \phi_2^3$.
 
   - \code <density_weights> \endcode Weight the beads differently as a function of their type. (Multiplication of \f$\phi_i\f$)
    The default weight is 1 for each type. The weights are automatically normalized such that the sum of the weights equals the number of types in the system.
@@ -362,4 +365,31 @@
    In total this equation requires \f$ 2*n_{types} + n_{types}^2 \f$ parameters, the order in which the parameters are expected is \f$\phi_{0,i}\f$, \f$\Delta \phi_i\f$, and \f$a_{i,j}\f$.
    The parameters are can be specified in flat format, or in vector \f$\phi_{0,i}\f$, vector \f$\Delta \phi_i\f$, and matrix \f$a_{i,j}\f$ format, because white spaces are ignored.
    It is not possible to leave out any parameter specified.
+
+\subsection monoconversion Using Monomer Type Conversions
+
+To use monomer type conversions/ reactions, the compile option \code ENABLE_MONOTYPE_CONVERSION \endcode must be turned on. For this let's look at a final simple xml-file that shows the use.
+
+\include monoconversion.xml
+
+The use is similar to the <polyconversion>-tag. Let's go through the usage:
+  - \code <monoconversion> \endcode allows to define zones where the type of a monomer (or blocks of monomers) can be switched.
+    If the bead (center of mass of a block) is inside of one of the so defined zones its type is switched according to the switching rules.
+    The definition of these rules and how the switching rules are defined is implemented via 6(3 required ones) different kinds of subtags in the XML.
+      - \code <DeltaMC> \endcode defines the frequency where the RCMs are checked and the rules applied.
+      -\code <cylinder> <box> <sphere> <point_cloud> \endcode work exactly as with area51 or external field.
+       They define the zone where the switching rules are applied.
+       The value has only one entry and defines the switching rules for that reason.
+       To be precise: the value indicates the starting index for the \code <conversion_list> \endcode.
+       For example a 0 means to start reading at the beginning of that list.
+       The user may define multiple zones with different indices. If zones overlap, the last zone overwrites the previous index value.
+      - \code <conversion_list> \endcode defines the reactions.
+        There are always 3 entries. The first defines the original monomer type, the educt of the reaction (by the name of the monomer type). The second defines the product of the reaction. Both have to fulfill the restriction, that they give a valid monomer type. 
+	The number is read as boolean and indicates if there is another reaction. If it is false (0), the next line is also applied for the currect reaction zone cell. Otherwise no further reactions are applied.
+      - \code <conversion_rate> \endcode defines the reactions rates. It is always a single float per line/reaction and gives the (raw) probability to convert per conversion step. This is optional and if it is not given all educt monomers are converted with probability 1.
+      - \code <density_dependency> \endcode defines on which monomer type densities the final conversion probability depends on. This is optional. For each conversion it is a list of n_types floats. Given the density-dependency-list "1 0 3" and rate "0.001" the final conversion probability will be $p = 0.001 \cdot \phi_0 \cdot \phi_2^3$.
+      - \code block_size \endcode defines the size of monomer blocks that are converted simulatneously. In this example, the chains of length N=64 are devided into 16 blocks of size 4. It is up to the user to ensure that all polymer architectures that this might apply to are commensurate.
+ - There is one more possible observable that can be chosen: The \code <monomer_type_fraction> \endcode allows to analyse the bead type distribution for a given polymer. The following subtags are required:
+      - \code <DeltaMC> \endcode defines the frequency at which the polymer's type distribution is calculated
+      - \code <tested_polymer> \endcode gives the polymer that is tested.
 */

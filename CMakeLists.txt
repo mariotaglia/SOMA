@@ -156,6 +156,11 @@ if( !ENABLE_MPI)
   endif(ENABLE_DOMAIN_DECOMPOSITION)
 endif( !ENABLE_MPI )
 
+option(ENABLE_MONOTYPE_CONVERSIONS "Activate monomer type conversion, where monomer types are stored individually for each polymer and can be switched." OFF)
+if(ENABLE_MONOTYPE_CONVERSIONS)
+    set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} MONOTYPE_CONVERSIONS")
+endif(ENABLE_MONOTYPE_CONVERSIONS)
+
 if( ENABLE_OPENACC AND ENABLE_OPENMP )
   message(SEND_ERROR "SOMA can be compiled with either OpenACC or OpenMP, not both.")
 endif(ENABLE_OPENACC AND ENABLE_OPENMP )

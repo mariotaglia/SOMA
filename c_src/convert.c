@@ -78,6 +78,26 @@ int main(int argc, char *argv[])
     p->pc.output_type = NULL;
     p->pc.reaction_end = NULL;
     p->pc.len_reactions = 0;
+    p->pc.rate = NULL;
+    p->pc.dependency_ntype = NULL;
+    p->pc.dependency_type_offset = NULL;
+    p->pc.dependency_type = NULL;
+    p->pc.len_dependencies = 0;
+
+#if (ENABLE_MONOTYPE_CONVERSIONS == 1)
+    p->mtc.deltaMC = 0;
+    p->mtc.array = NULL;
+    p->mtc.input_type = NULL;
+    p->mtc.output_type = NULL;
+    p->mtc.reaction_end = NULL;
+    p->mtc.len_reactions = 0;
+    p->mtc.rate = NULL;
+    p->mtc.dependency_ntype = NULL;
+    p->mtc.dependency_type_offset = NULL;
+    p->mtc.dependency_type = NULL;
+    p->mtc.len_dependencies = 0;
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
+
     p->mobility.type = DEFAULT_MOBILITY;
     p->mobility.poly_type_mc_freq = NULL;
     p->mobility.param = NULL;

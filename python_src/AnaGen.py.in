@@ -161,6 +161,31 @@ class AnalysisFile(ConfGen.SomaXML):
                             q_array = numpy.loadtxt( tmp_file, dtype=numpy.float32)
                             element = AnaElement( soma_type.get_soma_scalar_type(), (0,q_array.size,self.n_poly_types,self.n_particle_types*self.n_particle_types), 0 )
                             self.ana_dict["static_structure_factor"] = copy.deepcopy(element)
+            #monomer type fraction
+            N_tested_polymer = 0
+            tested_polymer = 0
+            for ana in self.root.findall("analysis"):
+                for mtr in ana.findall("monomer_type_fraction"):
+                    #Find tested polymer index:
+                    for tested_p in mtr.findall("tested_polymer"):
+                        lines = tested_p.text.split("\n")
+                        for line in lines:
+                            line = line.strip()
+                            if line == "" or line[0] == '#':
+                                continue
+                            parts = line.split()
+                            if len(parts) != 1:
+                                raise RuntimeError("Only give one polymer index.")
+                            try:
+                                tested_polymer  = numpy.uint32(parts[0])
+                            except ValueError:
+                                raise RuntimeError("Tested Polymer type must be given as integer, but got " + parts[0])
+                    #Find length of this polymer:
+                    assert tested_polymer < len(poly_type_offset), "The polymer to test the monomer type fraction on must have index smaller than {} but got {}.".format(len(poly_type_offset),tested_polymer)
+                    N_tested_polymer = poly_arch[poly_type_offset[tested_polymer]]
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.n_particle_types*(N_tested_polymer+1)),0)
+            element.attr["tested_polymer"] = tested_polymer
+            self.ana_dict["monomer_type_fraction"] = copy.deepcopy(element)
 
     def _update_ana_element(self,element):
         if element.tag not in self.ana_dict.keys():

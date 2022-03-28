@@ -39,7 +39,7 @@ int test_particle_types(const struct Phase *const p)
             for (unsigned int j = 0; j < N; j++)
                 {
                     const uint32_t info_bl = p->poly_arch[type_offset + 1 + j];
-                    const unsigned int type = get_particle_type(info_bl);
+                    const unsigned int type = get_particle_type_of_poly_arch(info_bl);
                     if (type >= p->n_types)
                         {
                             fprintf(stderr,
