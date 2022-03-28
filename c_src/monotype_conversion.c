@@ -33,6 +33,8 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
 {
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 0)
     //Check whether  mono conversion is present in the file:
+    (void)p; //shut up compiler warnings
+    (void)plist_id;
     if ((H5Lexists(file_id, "/monoconversion", H5P_DEFAULT) > 0))
         {
             fprintf(stderr,
@@ -40,6 +42,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
                     __FILE__, __LINE__);
             return -1;
         }
+
 #else                           //ifdef ENABLE_MONOTYPE_CONVERSIONS
     p->mtc.deltaMC = 0;
     p->mtc.array = NULL;
@@ -351,6 +354,9 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
 
 int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
+    (void)p; //shut up compiler warnings
+    (void)file_id;
+    (void)plist_id;
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Quick exit for no mono conversions
     if (p->mtc.deltaMC == 0)
@@ -477,6 +483,7 @@ int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
 
 int copyin_mono_conversion(struct Phase *p)
 {
+    (void)p; //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (p->mtc.deltaMC != 0)
         {
@@ -501,6 +508,7 @@ int copyin_mono_conversion(struct Phase *p)
 
 int copyout_mono_conversion(struct Phase *p)
 {
+    (void)p; //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (p->mtc.deltaMC != 0)
         {
@@ -524,6 +532,7 @@ int copyout_mono_conversion(struct Phase *p)
 
 int update_self_mono_conversion(const struct Phase *const p)
 {
+    (void)p; //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (p->mtc.deltaMC != 0)
         {
@@ -547,6 +556,7 @@ int update_self_mono_conversion(const struct Phase *const p)
 
 int free_mono_conversion(struct Phase *p)
 {
+    (void)p; //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     free(p->mtc.array);
     free(p->mtc.input_type);
@@ -563,6 +573,7 @@ int free_mono_conversion(struct Phase *p)
 
 int convert_monotypes(struct Phase *p)
 {
+    (void)p; //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Quick exit for
     static unsigned int last_time = 0;
@@ -585,6 +596,7 @@ int convert_monotypes(struct Phase *p)
 
 int fully_convert_monotypes(struct Phase *p)
 {
+    (void)p; //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
@@ -631,6 +643,7 @@ int fully_convert_monotypes(struct Phase *p)
 
 int partially_convert_monotypes(struct Phase *p)
 {
+    (void)p; //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])

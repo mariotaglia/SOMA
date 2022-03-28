@@ -230,6 +230,7 @@ int generate_new_beads(struct Phase *const p)
 
 int generate_monomer_type_array(struct Phase *const p)
 {
+    (void)p;
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (p->info_MPI.sim_rank == 0)
         printf("INFO: Generating monomer type array from poly_arch info, since no data was found in h5-file.\n");
