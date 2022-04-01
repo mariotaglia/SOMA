@@ -42,6 +42,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.H_el_field = NULL;
     p->ef.H_el = 0.0;
     p->ef.omega_field_el = NULL;
+    p->ef.sqrt_Nbar = 0;
     hid_t status;
     
     //Quick exit if no electric field is present in the file
@@ -219,18 +220,14 @@ int copyin_electric_field(struct Phase *p)
     if (p->ef.iter_per_MC != 0)
         {
 #ifdef _OPENACC
-            //The pc struct itself is part of the phase struct and is already present of the device
+            //The ef struct itself is part of the phase struct and is already present of the device
 #pragma acc enter data copyin(p->ef.eps[0:p->n_types])                                                   
 #pragma acc enter data copyin(p->ef.eps_arr[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.electrodes[0:p->n_cells_local])
-#pragma acc enter data copyin(p->ef.iter_per_MC)
-#pragma acc enter data copyin(p->ef.iter_limit)
-#pragma acc enter data copyin(p->ef.thresh_iter)
 #pragma acc enter data copyin(p->ef.Epot[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.Epot_tmp[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.pre_deriv[0:p->n_cells_local*6])
 #pragma acc enter data copyin(p->ef.H_el_field[0:p->n_cells_local])
-#pragma acc enter data copyin(p->ef.H_el)
 #pragma acc enter data copyin(p->ef.omega_field_el[0:(p->n_cells_local*p->n_types)])
 #endif                          //_OPENACC
         }
@@ -245,14 +242,10 @@ int copyout_electric_field(struct Phase *p)
 #pragma acc exit data copyout(p->ef.eps[0:p->n_types])
 #pragma acc exit data copyout(p->ef.eps_arr[0:p->n_cells_local])
 #pragma acc exit data copyout(p->ef.electrodes[0:p->n_cells_local])
-#pragma acc exit data copyout(p->ef.iter_per_MC)
-#pragma acc exit data copyout(p->ef.iter_limit)
-#pragma acc exit data copyout(p->ef.thresh_iter)
 #pragma acc exit data copyout(p->ef.Epot[0:p->n_cells_local])
 #pragma acc exit data copyout(p->ef.Epot_tmp[0:p->n_cells_local])
 #pragma acc exit data copyout(p->ef.pre_deriv[0:p->n_cells_local*6])
 #pragma acc exit data copyout(p->ef.H_el_field[0:p->n_cells_local])
-#pragma acc exit data copyout(p->ef.H_el)
 #pragma acc exit data copyout(p->ef.omega_field_el[0:(p->n_cells_local*p->n_types)])
 #endif                          //_OPENACC
         }
@@ -267,14 +260,10 @@ int update_self_electric_field(const struct Phase *const p)
 #pragma acc update self(p->ef.eps[0:p->n_types])
 #pragma acc update self(p->ef.eps_arr[0:p->n_cells_local])
 #pragma acc update self(p->ef.electrodes[0:p->n_cells_local])
-#pragma acc update self(p->ef.iter_per_MC)
-#pragma acc update self(p->ef.iter_limit)
-#pragma acc update self(p->ef.thresh_iter)
 #pragma acc update self(p->ef.Epot[0:p->n_cells_local])
 #pragma acc update self(p->ef.Epot_tmp[0:p->n_cells_local])
 #pragma acc update self(p->ef.pre_deriv[0:p->n_cells_local*6])
 #pragma acc update self(p->ef.H_el_field[0:p->n_cells_local])
-#pragma acc update self(p->ef.H_el)
 #pragma acc update self(p->ef.omega_field_el[0:(p->n_cells_local*p->n_types)])
 #endif                          //_OPENACC
         }
@@ -360,6 +349,40 @@ soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t *e_field, const uint6
             e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * (p->nz / p->Lz) * (p->nz / p->Lz);
 }
 
+void calc_sqrt_Nbar(struct Phase *const p)
+{
+    uint16_t n_mono_t;
+    uint64_t sum_chains_t_scaled = 0;
+    uint64_t * type_num = (uint64_t*) calloc(0, p->n_poly_type * sizeof(uint64_t));
+
+    //loop over all polymer chains, save type in type_num
+    for (uint64_t c=0; c < p->n_polymers; c++)
+        {
+            // Polymer * poly = &(p->polymers[c]);
+            uint8_t poly_type_c = p->polymers[c].type;
+            type_num[poly_type_c] += 1;
+        }
+
+    if (p->info_MPI.domain_rank == 0)
+    {
+        MPI_Reduce(MPI_IN_PLACE, type_num, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+    }
+    else
+    {
+        MPI_Reduce(type_num, NULL, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+    }
+
+    for (uint8_t t=0; t < p->n_poly_type; t++)
+    {
+        n_mono_t = p->poly_arch[p->poly_type_offset[t]];
+        sum_chains_t_scaled += type_num[t] * n_mono_t / p->reference_Nbeads;        
+    }
+
+    p->ef.sqrt_Nbar = sum_chains_t_scaled * (1 / (p->Lx * p->Ly * p->Lz));
+
+    free(type_num);
+}
+
 void calc_dielectric_field(struct Phase *const p)
 {
     // soma_scalar_t eps_0 = 1.0;
@@ -368,7 +391,7 @@ void calc_dielectric_field(struct Phase *const p)
 
 #pragma acc parallel loop present(p[0:1])
 #pragma omp parallel for
-    for (uint64_t i = 0; i < p-> n_cells; i++)
+    for (uint64_t i = 0; i < p->n_cells; i++)
     {
         if (p->ef.electrodes[i] == 1 || p->area51[i] == 1)
         {
@@ -392,7 +415,7 @@ void calc_dielectric_field(struct Phase *const p)
             soma_scalar_t tmp_phi_n = 0.0;
             soma_scalar_t tmp_eps_phi_n = 0.0;
             
-            for (uint8_t n = 0; n < p->n_types; n++)
+            for (uint32_t n = 0; n < p->n_types; n++)
             {
                 tmp_phi_n += p->fields_unified[i+n*p->n_cells_local] * p->field_scaling_type[n];
                 tmp_eps_phi_n += p->fields_unified[i+n*p->n_cells_local] * p->field_scaling_type[n] * p->ef.eps[n];
@@ -482,7 +505,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
                     //Laplace equation, welling2017 eq. 5
                     soma_scalar_t conv_crit = fabs( (d2Epotx(p,p->ef.Epot_tmp,x,y,z) +
                                                      d2Epoty(p,p->ef.Epot_tmp,x,y,z) +
-                                                     d2Epotz(p,p->ef.Epot_tmp,x,y,z)) * p->ef.eps_arr[i] +
+                                                     d2Epotz(p,p->ef.Epot_tmp,x,y,z)) * p->ef.eps_arr[i] +  
                                                     (dEpotx(p,p->ef.Epot_tmp,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) +
                                                      dEpoty(p,p->ef.Epot_tmp,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) +
                                                      dEpotz(p,p->ef.Epot_tmp,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z)) );
@@ -503,6 +526,11 @@ int calc_electric_field_contr(struct Phase *const p)
     soma_scalar_t max = p->ef.thresh_iter;
     uint64_t k = 0;
 
+    if (p->time==0)
+    {
+        calc_sqrt_Nbar(p);  
+    }
+
     calc_dielectric_field(p);
 
     // soma_scalar_t epso = 0.0;
@@ -515,8 +543,6 @@ int calc_electric_field_contr(struct Phase *const p)
     //             p->ef.eps_arr[u] = epso;
     //         }
     pre_derivatives(p);
-
-
     
     //Check convergence criterion (p->ef.thresh_iter)
     while (max >= p->ef.thresh_iter && k < p->ef.iter_limit)
@@ -546,7 +572,7 @@ int calc_electric_field_contr(struct Phase *const p)
                     soma_scalar_t dEpot_sq = fabs(dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.Epot,x,y,z) +
                                                   dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.Epot,x,y,z) +
                                                   dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.Epot,x,y,z));
-                    p->ef.H_el_field[i] = 0.5 * dEpot_sq * p->ef.eps_arr[i];                    // optional? save hamiltionian field
+                    p->ef.H_el_field[i] = 0.5 * dEpot_sq * p->ef.eps_arr[i];
                     sum_H_el += p->ef.H_el_field[i];                                          //TODO: log in ana
                     // printf("%.3f\n",p->ef.H_el_field[i]);
 
@@ -566,7 +592,7 @@ int calc_electric_field_contr(struct Phase *const p)
                             }
                         }
                         
-                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->num_all_beads) * dEpot_sq;
+                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->ef.sqrt_Nbar) * dEpot_sq;
 
                         // eps_res = 0.0;
                         // phi_other = 0.0;
@@ -613,38 +639,43 @@ int free_electric_field(struct Phase *const p)
 
 void tests(struct Phase *const p,uint64_t k)
 {
-    uint64_t sum_electrodes = 0;
-    soma_scalar_t sum_Epot = 0.0;
-    soma_scalar_t sum_eps_arr = 0.0;
-    soma_scalar_t sum_pre_deriv = 0.0;
-    soma_scalar_t sum_omega_field_el = 0.0;
-    soma_scalar_t sum_omega_field = 0.0;
-
-    for (uint64_t o = 0; o < p->n_cells; o++)
+    uint32_t counter = 10;
+    if (p->time % counter == 0)
     {
-        sum_electrodes += p->ef.electrodes[o];
-        sum_Epot += p->ef.Epot[o];
-        sum_eps_arr += p->ef.eps_arr[o];
-        for (uint8_t m = 0; m < p->n_types; m++)
-        {
-            sum_omega_field_el += (p->ef.omega_field_el[o+m*p->n_types] * p->ef.omega_field_el[o+m*p->n_types]);
-            sum_omega_field += (p->omega_field_unified[o+m*p->n_types] * p->omega_field_unified[o+m*p->n_types]);
-        }
-        for (uint8_t l = 0; l < 6; l++)
-            sum_pre_deriv += p->ef.pre_deriv[o+l];           
-    }
+        uint64_t sum_electrodes = 0;
+        soma_scalar_t sum_Epot = 0.0;
+        soma_scalar_t sum_eps_arr = 0.0;
+        soma_scalar_t sum_pre_deriv = 0.0;
+        soma_scalar_t sum_omega_field_el = 0.0;
+        soma_scalar_t sum_omega_field = 0.0;
 
-    // printf("=====\n");
-    // printf("Iterations per MC: %ld\n",p->ef.iter_per_MC);
-    // printf("Iteration limit: %ld\n",p->ef.iter_limit);
-    // printf("Iteration threshold: %.5f\n",p->ef.thresh_iter);
-    // printf("Sum electrode array: %ld\n",sum_electrodes);
-    // printf("Sum Epot array: %.3f\n",sum_Epot);
-    // printf("Sum epsilon array: %.3f\n",sum_eps_arr);
-    // printf("Sum pre deriv array: %.3f\n",sum_pre_deriv);
-    printf("Iterations to solve EF: %ld\n", k);
-    // printf("Sum el. hamiltonian: %.3f\n",p->ef.H_el);
-    //  printf("Sum omega_field sq.: %.3e\n", sum_omega_field);
-    // printf("Sum el. contr. omega field sq.: %.3e\n",sum_omega_field_el);
-    // printf("=====\n");
+        for (uint64_t o = 0; o < p->n_cells; o++)
+        {
+            sum_electrodes += p->ef.electrodes[o];
+            sum_Epot += p->ef.Epot[o];
+            sum_eps_arr += p->ef.eps_arr[o];
+            for (uint8_t m = 0; m < p->n_types; m++)
+            {
+                sum_omega_field_el += (p->ef.omega_field_el[o+m*p->n_types] * p->ef.omega_field_el[o+m*p->n_types]);
+                sum_omega_field += (p->omega_field_unified[o+m*p->n_types] * p->omega_field_unified[o+m*p->n_types]);
+            }
+            for (uint8_t l = 0; l < 6; l++)
+                sum_pre_deriv += p->ef.pre_deriv[o+l];           
+        }
+
+        // printf("=====\n");
+        printf("MC STEP: %d", p->time);
+        // printf("Iterations per MC: %ld\n",p->ef.iter_per_MC);
+        // printf("Iteration limit: %ld\n",p->ef.iter_limit);
+        // printf("Iteration threshold: %.5f\n",p->ef.thresh_iter);
+        // printf("Sum electrode array: %ld\n",sum_electrodes);
+        // printf("Sum Epot array: %.3f\n",sum_Epot);
+        // printf("Sum epsilon array: %.3f\n",sum_eps_arr);
+        // printf("Sum pre deriv array: %.3f\n",sum_pre_deriv);
+        printf("Iterations to solve EF: %ld\n", k);
+        // printf("Sum el. hamiltonian: %.3f\n",p->ef.H_el);
+        printf("Sum omega_field sq.: \t%.3e\n", sum_omega_field);
+        printf("Sum omega_field_el sq.: %.3e\n",sum_omega_field_el);
+        printf("=====\n");
+    }
 }

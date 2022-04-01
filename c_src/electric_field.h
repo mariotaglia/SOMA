@@ -36,6 +36,7 @@ typedef struct ElectricField{
     soma_scalar_t *H_el_field;      //!< Array that contains cell-wise contribution to electrostatic energy hamiltonian.
     soma_scalar_t H_el;             //!< Electrostatic energy hamiltonia
     soma_scalar_t *omega_field_el;  //!< Array that contains electrotatic energy contribution to omega fields.
+    uint64_t sqrt_Nbar;             //!< Value of \sqrt{\hat{N}}
     
 } ElectricField;
 
@@ -154,9 +155,16 @@ soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint
 */
 soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
+/*! Helper function to compute the value of sqrt{\bar{N}} defined as the amount of polymer chains per volume R_e^3
+    \private
+    \param p Phase describing the system
+*/
+void calc_sqrt_Nbar(struct Phase *const p);
+
 /*! Helper function to compute the dielectric field from the densities of individual particle types (welling2014, eq. 83)
     \private
     \param p Phase describing the system
+    \returns sqrt{\bar{N}} as uint
 */
 void calc_dielectric_field(struct Phase *const p);
 
