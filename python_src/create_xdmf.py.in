@@ -223,25 +223,75 @@ def add_umbrella_field_conf(nxyz,n_types,t,h5file):
     string += "</Attribute>\n"
     return string
 
-def add_epot_field(nxyz,h5file):
+def add_Epot_field(timestep,timesteps,nxyz,arguments):
     string =""
-    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"EpotField\">\n"
-    string += "<!-- Result will be 3 dimensions -->"
-    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-    string += h5file+":/epot_field\n"
-    string +="</DataItem>\n"
-    string += "</Attribute>\n"
+    if arguments['a']:
+        h5file = arguments['a']
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Epot_field\">\n"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += "<!-- The source is 4 dimensions -->\n"
+        string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1 Count=1,*,*,* -->\n"
+        string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
+        string += str(timestep)+" 0 0 0\n"
+        string += "1 1 1 1\n"
+        string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+        string += "</DataItem>\n"
+        string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += h5file+":/Epot_field\n"
+        string +="</DataItem>\n"
+        string +="</DataItem>\n"
+        string += "</Attribute>\n"
     return string
 
-def add_dielectric_field(nxyz,h5file):
+def add_E_field(timestep,timesteps,nxyz,arguments):
     string =""
-    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"DielectricField\">\n"
-    string += "<!-- Result will be 3 dimensions -->"
-    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
-    string += h5file+":/dielectric_field\n"
-    string +="</DataItem>\n"
-    string += "</Attribute>\n"
+    if arguments['a']:
+        h5file = arguments['a']
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"E_field\">\n"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += "<!-- The source is 4 dimensions -->\n"
+        string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1 Count=1,*,*,* -->\n"
+        string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
+        string += str(timestep)+" 0 0 0\n"
+        string += "1 1 1 1\n"
+        string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+        string += "</DataItem>\n"
+        string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += h5file+":/E_field\n"
+        string +="</DataItem>\n"
+        string +="</DataItem>\n"
+        string += "</Attribute>\n"
+    return string    
+
+def add_dielectric_field(timestep,timesteps,nxyz,arguments):
+    string =""
+    if arguments['a']:
+        h5file = arguments['a']
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"dielectric_field\">\n"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += "<!-- The source is 4 dimensions -->\n"
+        string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1 Count=1,*,*,* -->\n"
+        string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
+        string += str(timestep)+" 0 0 0\n"
+        string += "1 1 1 1\n"
+        string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+        string += "</DataItem>\n"
+        string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += h5file+":/dielectric_field\n"
+        string +="</DataItem>\n"
+        string +="</DataItem>\n"
+        string += "</Attribute>\n"
     return string
+    # string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"DielectricField\">\n"
+    # string += "<!-- Result will be 3 dimensions -->"
+    # string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Dimensions=\""+str(timesteps)+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    # string += h5file+":/dielectric_field\n"
+    # string +="</DataItem>\n"
+    # string += "</Attribute>\n"
+    # return string
 
 def add_electrodes(nxyz,h5file):
     string =""
@@ -253,7 +303,7 @@ def add_electrodes(nxyz,h5file):
     string += "</Attribute>\n"
     return string
 
-def add_H_el_field(nxyz,h5file):
+def add_H_el_field(nxyz,h5file): # redundant?
     string =""
     string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"ElHamilField\">\n"
     string += "<!-- Result will be 3 dimensions -->"
@@ -288,21 +338,21 @@ def get_umbrella_field(nxyz,arguments,types,t):
          f.close()
      return string
 
-def get_epot_field(nxyz,arguments):
-    string = ""
-    if arguments['c']:
-        with h5py.File(arguments['c'],"r") as f:
-            if  '/epot_field' in f:
-                string += add_epot_field(nxyz,arguments['c'])
-    return string
+# def get_Epot_field(nxyz,arguments):
+#     string = ""
+#     if arguments['a']:
+#         with h5py.File(arguments['a'],"r") as f:
+#             if  '/Epot_field' in f:
+#                 string += add_Epot_field(nxyz,arguments['a'])
+#     return string
 
-def get_dielectric_field(nxyz,arguments):
-    string = ""
-    if arguments['c']:
-        with h5py.File(arguments['c'],"r") as f:
-            if  '/dielectric_field' in f:
-                string += add_dielectric_field(nxyz,arguments['c'])
-    return string
+# def get_dielectric_field(nxyz,arguments):
+#     string = ""
+#     if arguments['a']:
+#         with h5py.File(arguments['a'],"r") as f:
+#             if  '/dielectric_field' in f:
+#                 string += add_dielectric_field(nxyz,arguments['a'])
+#     return string
 
 def get_electrodes(nxyz,arguments):
     string = ""
@@ -312,7 +362,7 @@ def get_electrodes(nxyz,arguments):
                 string += add_electrodes(nxyz,arguments['c'])
     return string
 
-def get_H_el_field(nxyz,arguments):
+def get_H_el_field(nxyz,arguments): # redundant?
     string = ""
     if arguments['c']:
         with h5py.File(arguments['c'],"r") as f:
@@ -359,10 +409,11 @@ def main(argv):
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
             string += get_umbrella_field(nxyz,arguments,types,type)
         string += get_area51(nxyz,arguments)
-        string += get_epot_field(nxyz,arguments)
-        string += get_dielectric_field(nxyz,arguments)
+        string += add_Epot_field(time,timesteps,nxyz,arguments)
+        string += add_E_field(time,timesteps,nxyz,arguments)
+        string += add_dielectric_field(time,timesteps,nxyz,arguments)
         string += get_electrodes(nxyz,arguments)
-        string += get_H_el_field(nxyz,arguments)
+        string += get_H_el_field(nxyz,arguments) # redundant?
         string += "</Grid>\n"
     string += "</Grid>\n"
 

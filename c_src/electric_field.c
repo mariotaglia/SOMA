@@ -41,6 +41,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.pre_deriv = NULL;
     p->ef.H_el_field = NULL;
     p->ef.H_el = 0.0;
+    p->ef.E_field = NULL;
     p->ef.omega_field_el = NULL;
     p->ef.sqrt_Nbar = 0;
     hid_t status;
@@ -92,6 +93,16 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
         (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
                            sizeof(soma_scalar_t));
     if (p->ef.H_el_field == NULL)
+    {
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    //Allocate ef.E_field
+    p->ef.E_field =
+        (soma_scalar_t *) malloc((p->nx / p->args.N_domains_arg + 2 * p->args.domain_buffer_arg) * p->ny * p->nz *
+                           sizeof(soma_scalar_t));
+    if (p->ef.E_field == NULL)
     {
         fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
         return -1;
@@ -569,12 +580,13 @@ int calc_electric_field_contr(struct Phase *const p)
                 }
                 else
                 {
-                    soma_scalar_t dEpot_sq = fabs(dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.Epot,x,y,z) +
-                                                  dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.Epot,x,y,z) +
-                                                  dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.Epot,x,y,z));
-                    p->ef.H_el_field[i] = 0.5 * dEpot_sq * p->ef.eps_arr[i];
-                    sum_H_el += p->ef.H_el_field[i];                                          //TODO: log in ana
-                    // printf("%.3f\n",p->ef.H_el_field[i]);
+                    soma_scalar_t dEpot_sq = dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.Epot,x,y,z) +
+                                             dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.Epot,x,y,z) +
+                                             dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.Epot,x,y,z);
+                    p->ef.H_el_field[i] = 0.5 * dEpot_sq * p->ef.eps_arr[i];                  // redundant?
+                    sum_H_el += p->ef.H_el_field[i];                                          // redundant?
+                    
+                    p->ef.E_field[i] = -(dEpotx(p,p->ef.Epot,x,y,z) + dEpoty(p,p->ef.Epot,x,y,z) + dEpotz(p,p->ef.Epot,x,y,z));
 
                     for (uint32_t m = 0; m < p->n_types; m++)
                     {   
@@ -633,6 +645,8 @@ int free_electric_field(struct Phase *const p)
     free(p->ef.eps);
     free(p->ef.electrodes);
     free(p->ef.Epot);
+    free(p->ef.E_field);
+    free(p->ef.omega_field_el);
 
     return 0;
 }

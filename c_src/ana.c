@@ -779,6 +779,122 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
     return 0;
 }
 
+int extent_density_field_ef(const struct Phase *const p, void *const field_pointer, const char *const field_name,
+                         hid_t hdf5_type, const MPI_Datatype mpi_type, const size_t data_size)
+{
+    const char *const name = field_name;
+    update_density_fields(p);
+
+    const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
+    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
+
+    if (p->info_MPI.sim_rank == 0)
+        {
+            //Gather all data on the sim_rank_0
+            void *full_array = field_pointer;   // If only a single MPI rank is used, no gathering is needed
+#if ( ENABLE_MPI == 1 )
+            if (p->info_MPI.sim_size > 1)
+                {
+                    full_array = malloc(p->nx * p->ny * p->nz * sizeof(data_size));
+                    if (full_array == NULL)
+                        {
+                            fprintf(stderr, "Malloc ERROR %s:%d\n", __FILE__, __LINE__);
+                            return -1;
+                        }
+
+                    MPI_Gather(field_pointer + ghost_buffer_size * data_size +
+                               p->n_cells_local * data_size, buffer_size, mpi_type,
+                               full_array + p->nx * p->ny * p->nz * data_size, buffer_size, mpi_type, 0,
+                               p->ana_info.inter_domain_communicator);
+#endif                          //ENABLE_MPI
+                }
+            //Now all data is on simrank 0, so write it to disk
+            herr_t status;
+
+            hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
+            HDF5_ERROR_CHECK(plist_id);
+
+            //Open the dataset and space
+            hid_t dset = H5Dopen(p->ana_info.file_id, name, H5P_DEFAULT);
+            HDF5_ERROR_CHECK(dset);
+            hid_t d_space = H5Dget_space(dset);
+            HDF5_ERROR_CHECK(d_space);
+
+            // Extent the dimesion of the density field.
+            const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
+            if (ndims != 4)
+                {
+                    fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions to extent density field %s.\n",
+                            __FILE__, __LINE__, name);
+                    return -1;
+                }
+            hsize_t dims[4];    //ndims
+            status = H5Sget_simple_extent_dims(d_space, dims, NULL);
+            HDF5_ERROR_CHECK(status);
+
+            hsize_t dims_new[4];        //ndims
+            dims_new[0] = dims[0] + 1;
+            dims_new[1] = p->nx;
+            assert(dims[1] == p->nx);
+            dims_new[2] = p->ny;
+            assert(dims[2] == p->ny);
+            dims_new[3] = dims[3];
+            assert(dims[3] == p->nz);
+
+            status = H5Dset_extent(dset, dims_new);
+            HDF5_ERROR_CHECK(status);
+
+            status = H5Sclose(d_space);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dclose(dset);
+            HDF5_ERROR_CHECK(status);
+
+            //Open the new filespace
+            dset = H5Dopen(p->ana_info.file_id, name, H5P_DEFAULT);
+            HDF5_ERROR_CHECK(dset);
+            hid_t filespace = H5Dget_space(dset);
+            HDF5_ERROR_CHECK(filespace);
+
+            hsize_t dims_memspace[4];   //ndims
+            dims_memspace[0] = dims_new[0] - dims[0];
+            dims_memspace[1] = p->nx;
+            dims_memspace[2] = p->ny;
+            dims_memspace[3] = p->nz;
+            hid_t memspace = H5Screate_simple(ndims, dims_memspace, NULL);
+
+            hsize_t dims_offset[4];     //ndims
+            dims_offset[0] = dims[0];
+            for (unsigned int i = 1; i < 4; i++)
+                dims_offset[i] = 0;
+
+            filespace = H5Dget_space(dset);
+            HDF5_ERROR_CHECK(filespace);
+
+            status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, dims_offset, NULL, dims_memspace, NULL);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dwrite(dset, hdf5_type, memspace, filespace, plist_id, full_array);
+            HDF5_ERROR_CHECK(status);
+
+            status = H5Sclose(memspace);
+            HDF5_ERROR_CHECK(status);
+
+            status = H5Sclose(filespace);
+            HDF5_ERROR_CHECK(status);
+            status = H5Dclose(dset);
+            HDF5_ERROR_CHECK(status);
+            if (p->info_MPI.sim_size > 1)
+                free(full_array);
+        }
+    else if (p->info_MPI.domain_rank == 0)
+        {
+#if ( ENABLE_MPI == 1 )
+            MPI_Gather(field_pointer + ghost_buffer_size * data_size + p->n_cells_local * data_size,
+                       buffer_size, mpi_type, NULL, 0, mpi_type, 0, p->ana_info.inter_domain_communicator);
+#endif                          //ENABLE_MPI
+        }
+    return 0;
+}
+
 int analytics(struct Phase *const p)
 {
     static unsigned int last_time_call = 0;
@@ -982,6 +1098,30 @@ int analytics(struct Phase *const p)
                 }
             written = true;
             free(static_structure_factor);
+        }
+
+    //Epot_field
+    if (p->ana_info.delta_mc_Epot_field != 0 && p->time % p->ana_info.delta_mc_Epot_field == 0)
+        {
+            extent_density_field_ef(p, p->ef.Epot, "/Epot_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
+                                 sizeof(soma_scalar_t));
+            written = true;
+        }
+
+    //E_field
+    if (p->ana_info.delta_mc_E_field != 0 && p->time % p->ana_info.delta_mc_E_field == 0)
+        {
+            extent_density_field_ef(p, p->ef.E_field, "/E_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
+                                 sizeof(soma_scalar_t));
+            written = true;
+        }
+
+    //dielectric_field
+    if (p->ana_info.delta_mc_dielectric_field != 0 && p->time % p->ana_info.delta_mc_dielectric_field == 0)
+        {
+            extent_density_field_ef(p, p->ef.eps_arr, "/dielectric_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
+                                 sizeof(soma_scalar_t));
+            written = true;
         }
 
     //dump

@@ -33,7 +33,8 @@ typedef struct ElectricField{
     soma_scalar_t *Epot;            //!< Array that contains the electric potential field.
     soma_scalar_t *Epot_tmp;        //!< Temporary array that contains the electric potential field after MC step.
     soma_scalar_t *pre_deriv;       //!< Array that contains precomputed derivatives of dielectric constant field.
-    soma_scalar_t *H_el_field;      //!< Array that contains cell-wise contribution to electrostatic energy hamiltonian.
+    soma_scalar_t *H_el_field;      //!< Array that contains the cell-wise contribution to electrostatic energy hamiltonian.
+    soma_scalar_t *E_field;         //!< Array that contains the electric field.
     soma_scalar_t H_el;             //!< Electrostatic energy hamiltonia
     soma_scalar_t *omega_field_el;  //!< Array that contains electrotatic energy contribution to omega fields.
     uint64_t sqrt_Nbar;             //!< Value of \sqrt{\hat{N}}

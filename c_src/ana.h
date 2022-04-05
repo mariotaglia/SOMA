@@ -138,6 +138,25 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
                          const char *const field_name, hid_t hdf5_type,
                          const MPI_Datatype mpi_type, const size_t data_size);
 
+//! Helper to ouput data to a hdf5, may be used for the density fields that
+//! belong to the electric field implementation.
+//!
+//! \note This function does not feature a parallel output of the
+//! (density) field. If anyone knows how to fix it, you are welcome to
+//! help.
+//!
+//! \param p Pointer to the state of the system.
+//! \param field_pointer Pointer to the field that should be outputted
+//! \param field_name Name of the field, eg. "\density_field"
+//! \param hdf5_type The H5-Datatype for the output of the field
+//! \param mpi_type The MPI_Datatype of the field
+//! \param data_size sizeof( datatype ) to get the number of bytes
+//! \return Errorcode.
+//! \todo The ouput is not yet parallel.
+int extent_density_field_ef(const struct Phase *const p, void *const field_pointer,
+                            const char *const field_name, hid_t hdf5_type,
+                            const MPI_Datatype mpi_type, const size_t data_size);
+
 //! \brief calculate the structure for each poly type
 //! \param p System to analyze
 //! \param result Pointer to array to store the result
