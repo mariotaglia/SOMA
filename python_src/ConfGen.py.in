@@ -1944,7 +1944,7 @@ class Configuration(SomaXML):
                         raise RuntimeError("Amount of iterations per MC step to solve electric field must be a single integer convertible, but got \""+str(iter_per_MC_str)+"\".") from exception
                     self.iter_per_MC = numpy.asarray(iter_per_MC_str,dtype=numpy.uint16)
 
-                iter_limit_default = 1000
+                iter_limit_default = 20000
                 if not 'iter_limit' in child_list:
                     print("WARNING: Upper limit of iterations to solve electric field not specified, will default to "+str(iter_limit_default)+".")
                     self.iter_limit = numpy.asarray(iter_limit_default,dtype=numpy.uint16)
@@ -1960,7 +1960,7 @@ class Configuration(SomaXML):
                         raise RuntimeError("Upper limit of iterations to solve electric field must be a single integer convertible, but got \""+str(iter_limit_str)+"\".") from exception
                     self.iter_limit = numpy.asarray(iter_limit_str,dtype=numpy.uint16)
 
-                thresh_default = 0.01
+                thresh_default = 0.001
                 if not 'thresh_iter' in child_list:
                     print("WARNING: Iteration threshold to solve electric field not specified, will default to "+str(thresh_default)+".")
                     self.thresh_iter = numpy.asarray(thresh_default,dtype=soma_type.get_soma_scalar_type())

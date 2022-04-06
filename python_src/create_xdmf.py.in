@@ -338,21 +338,35 @@ def get_umbrella_field(nxyz,arguments,types,t):
          f.close()
      return string
 
-# def get_Epot_field(nxyz,arguments):
-#     string = ""
-#     if arguments['a']:
-#         with h5py.File(arguments['a'],"r") as f:
-#             if  '/Epot_field' in f:
-#                 string += add_Epot_field(nxyz,arguments['a'])
-#     return string
+def get_Epot_field(timestep,timesteps,nxyz,arguments):
+    string = ""
+    if arguments['a']:
+        with h5py.File(arguments['a'],"r") as f:
+            if  '/Epot_field' in f:
+                Dataset=f['Epot_field']
+                if Dataset.size>0:
+                    string = add_Epot_field(timestep,timesteps,nxyz,arguments)
+    return string
 
-# def get_dielectric_field(nxyz,arguments):
-#     string = ""
-#     if arguments['a']:
-#         with h5py.File(arguments['a'],"r") as f:
-#             if  '/dielectric_field' in f:
-#                 string += add_dielectric_field(nxyz,arguments['a'])
-#     return string
+def get_E_field(timestep,timesteps,nxyz,arguments):
+    string = ""
+    if arguments['a']:
+        with h5py.File(arguments['a'],"r") as f:
+            if  '/E_field' in f:
+                Dataset=f['E_field']
+                if Dataset.size>0:
+                    string = add_E_field(timestep,timesteps,nxyz,arguments)
+    return string
+
+def get_dielectric_field(timestep,timesteps,nxyz,arguments):
+    string = ""
+    if arguments['a']:
+        with h5py.File(arguments['a'],"r") as f:
+            if  '/dielectric_field' in f:
+                Dataset=f['dielectric_field']
+                if Dataset.size>0:
+                    string += add_dielectric_field(timestep,timesteps,nxyz,arguments)
+    return string
 
 def get_electrodes(nxyz,arguments):
     string = ""
@@ -409,9 +423,9 @@ def main(argv):
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
             string += get_umbrella_field(nxyz,arguments,types,type)
         string += get_area51(nxyz,arguments)
-        string += add_Epot_field(time,timesteps,nxyz,arguments)
-        string += add_E_field(time,timesteps,nxyz,arguments)
-        string += add_dielectric_field(time,timesteps,nxyz,arguments)
+        string += get_Epot_field(time,timesteps,nxyz,arguments)
+        string += get_E_field(time,timesteps,nxyz,arguments)
+        string += get_dielectric_field(time,timesteps,nxyz,arguments)
         string += get_electrodes(nxyz,arguments)
         string += get_H_el_field(nxyz,arguments) # redundant?
         string += "</Grid>\n"
