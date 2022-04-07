@@ -162,28 +162,24 @@ class AnalysisFile(ConfGen.SomaXML):
                             element = AnaElement( soma_type.get_soma_scalar_type(), (0,q_array.size,self.n_poly_types,self.n_particle_types*self.n_particle_types), 0 )
                             self.ana_dict["static_structure_factor"] = copy.deepcopy(element)
 
-            for ana in self.root.findall("analysis"):
-                for child in ana:
-                    if child.tag=="Epot_field":
-                        #Epot_field
-                        element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
-                        element.attr["nxyz"] = self.nxyz
-                        element.attr["lxyz"] = self.lxyz
-                        self.ana_dict["Epot_field"] = copy.deepcopy(element)
+            #Epot_field
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element.attr["nxyz"] = self.nxyz
+            element.attr["lxyz"] = self.lxyz
+            self.ana_dict["Epot_field"] = copy.deepcopy(element)
 
-                    elif child.tag=="E_field":
-                        #E_field
-                        element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
-                        element.attr["nxyz"] = self.nxyz
-                        element.attr["lxyz"] = self.lxyz
-                        self.ana_dict["E_field"] = copy.deepcopy(element)
+            #E_field
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element.attr["nxyz"] = self.nxyz
+            element.attr["lxyz"] = self.lxyz
+            self.ana_dict["E_field"] = copy.deepcopy(element)
 
-                    elif child.tag=="dielectric_field":
-                        #dielectric_field
-                        element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
-                        element.attr["nxyz"] = self.nxyz
-                        element.attr["lxyz"] = self.lxyz
-                        self.ana_dict["dielectric_field"] = copy.deepcopy(element)
+            #dielectric_field
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element.attr["nxyz"] = self.nxyz
+            element.attr["lxyz"] = self.lxyz
+            self.ana_dict["dielectric_field"] = copy.deepcopy(element)
+            
 
     def _update_ana_element(self,element):
         if element.tag not in self.ana_dict.keys():
