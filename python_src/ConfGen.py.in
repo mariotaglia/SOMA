@@ -1291,7 +1291,7 @@ class Configuration(SomaXML):
             if self.mobility_modifier.type != MobilityDict["DEFAULT_MOBILITY"]:
                 f.create_dataset("mobility/param",data=self.mobility_modifier.param)
 
-            if "electric_field" in f:
+            if "epot_field" in f:
                 del f["epot_field"]
             if "electrodes" in f:
                 del f["electrodes"]
