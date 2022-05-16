@@ -1292,7 +1292,7 @@ class Configuration(SomaXML):
                 f.create_dataset("mobility/param",data=self.mobility_modifier.param)
 
             if "electric_field" in f:
-                del f["electric_field"]
+                del f["epot_field"]
             if "electrodes" in f:
                 del f["electrodes"]
             if "parameter/dielectric_constants" in f:
@@ -1308,7 +1308,7 @@ class Configuration(SomaXML):
                 f.create_dataset("/parameter/ef_iter_per_MC",data=self.electric_field.iter_per_MC)
                 f.create_dataset("/parameter/ef_iter_limit",data=self.electric_field.iter_limit)
                 f.create_dataset("/parameter/ef_thresh_iter",data=self.electric_field.thresh_iter)
-                f.create_dataset("/electric_field",data=self.electric_field.e_field_array)
+                f.create_dataset("/epot_field",data=self.electric_field.epot_array)
                 f.create_dataset("/electrodes",data=self.electric_field.electrodes_array)
 
 
@@ -1885,7 +1885,7 @@ class Configuration(SomaXML):
     class ElectricField:
         ## Constructor of the ElectricField class. Initialized with the root of the XML parser
         def __init__(self,root,nxyz,n_types,area51,args):
-            self.e_field_array = numpy.zeros(shape=nxyz,dtype=soma_type.get_soma_scalar_type())
+            self.epot_array = numpy.zeros(shape=nxyz,dtype=soma_type.get_soma_scalar_type())
             self.electrodes_array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
             self.eps_list = False
             self.iter_per_MC = False
@@ -1994,7 +1994,7 @@ class Configuration(SomaXML):
                             (xa,ya,za) = (x,y,z)
 
                         if xa >= 0 and xa < nxyz[0] and ya >= 0 and ya < nxyz[1] and za >= 0 and  za < nxyz[2]:
-                            self.e_field_array[xa][ya][za] += obj.get( (x,y,z) )[0]
+                            self.epot_array[xa][ya][za] += obj.get( (x,y,z) )[0]
                             self.electrodes_array[xa][ya][za] += 1
             
                 if numpy.max(self.electrodes_array) >= 2:

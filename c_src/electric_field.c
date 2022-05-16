@@ -47,7 +47,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     hid_t status;
     
     //Quick exit if no electric field is present in the file
-    if (!(H5Lexists(file_id, "/electric_field", H5P_DEFAULT) > 0))
+    if (!(H5Lexists(file_id, "/epot_field", H5P_DEFAULT) > 0))
         return 0;
 
     //Quick exit if no electrodes are present in the file
@@ -149,7 +149,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     }                                                                             // Substitute with function in io.c                                                                                                             
 
     //Read electric potential field
-    status = read_field_custom_hdf5(p, (void **) &(p->ef.Epot), "/electric_field", sizeof(soma_scalar_t), H5T_SOMA_NATIVE_SCALAR,
+    status = read_field_custom_hdf5(p, (void **) &(p->ef.Epot), "/epot_field", sizeof(soma_scalar_t), H5T_SOMA_NATIVE_SCALAR,
                                             MPI_SOMA_SCALAR, file_id, plist_id);
     if (status != 0)
     {
@@ -164,8 +164,8 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
 
 int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
-    //Quick exit for no poly conversions
-    if (p->ef.iter_per_MC == 0)
+    //Quick exit for no electricostatic hamiltonian specified
+    if (p->ef.H_el_field == NULL)
         return 0;
     //Write dielectric constants data
     const hsize_t one = 1;
@@ -537,7 +537,7 @@ int calc_electric_field_contr(struct Phase *const p)
     soma_scalar_t max = p->ef.thresh_iter;
     uint64_t k = 0;
 
-    if (p->time==0)
+    if (p->ef.sqrt_Nbar==0)
     {
         calc_sqrt_Nbar(p);  
     }
@@ -633,6 +633,8 @@ int calc_electric_field_contr(struct Phase *const p)
     {
         return -1;
     }
+
+    // if domain_decomposition -> allreduce Epot, E_field, eps_arr here.
     return 0;
 }
 

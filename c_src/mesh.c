@@ -207,6 +207,28 @@ void communicate_density_fields(const struct Phase *const p)
                 communicate_simple(p);
             else
                 communicate_domain_decomposition(p);
+
+            // if (p->ef.H_el_field != NULL)
+            // {
+            //     if (p->info_MPI.domain_rank == 0)
+            //     {
+            //         MPI_Reduce(MPI_IN_PLACE, p->ef.Epot, p->n_cells_local, MPI_SOMA_SCALAR,
+            //                    MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+            //         MPI_Reduce(MPI_IN_PLACE, p->ef.E_field, p->n_cells_local, MPI_SOMA_SCALAR,
+            //                    MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+            //         MPI_Reduce(MPI_IN_PLACE, p->ef.eps_arr, p->n_cells_local, MPI_SOMA_SCALAR,
+            //                    MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+            //     }
+            //     else
+            //     {
+            //         MPI_Reduce(p->ef.Epot, NULL, p->n_cells_local, MPI_SOMA_SCALAR, MPI_SUM, 0,
+            //                    p->info_MPI.SOMA_comm_domain);
+            //         MPI_Reduce(p->ef.E_field, NULL, p->n_cells_local, MPI_SOMA_SCALAR, MPI_SUM, 0,
+            //                    p->info_MPI.SOMA_comm_domain);
+            //         MPI_Reduce(p->ef.eps_arr, NULL, p->n_cells_local, MPI_SOMA_SCALAR, MPI_SUM, 0,
+            //                    p->info_MPI.SOMA_comm_domain);
+            //     }
+            // }
         }
     //Avoid false load balancing
     MPI_Barrier(p->info_MPI.SOMA_comm_sim);

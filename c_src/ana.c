@@ -785,29 +785,29 @@ int extent_density_field_ef(const struct Phase *const p, void *const field_point
     const char *const name = field_name;
     update_density_fields(p);
 
-    const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
-    const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
+    // const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
+    // const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
 
     if (p->info_MPI.sim_rank == 0)
         {
             //Gather all data on the sim_rank_0
             void *full_array = field_pointer;   // If only a single MPI rank is used, no gathering is needed
-#if ( ENABLE_MPI == 1 )
-            if (p->info_MPI.sim_size > 1)
-                {
-                    full_array = malloc(p->nx * p->ny * p->nz * sizeof(data_size));
-                    if (full_array == NULL)
-                        {
-                            fprintf(stderr, "Malloc ERROR %s:%d\n", __FILE__, __LINE__);
-                            return -1;
-                        }
+// #if ( ENABLE_MPI == 1 )                      // will already be reduced in electric_field.c
+//             if (p->info_MPI.sim_size > 1)
+//                 {
+//                     full_array = malloc(p->nx * p->ny * p->nz * sizeof(data_size));
+//                     if (full_array == NULL)
+//                         {
+//                             fprintf(stderr, "Malloc ERROR %s:%d\n", __FILE__, __LINE__);
+//                             return -1;
+//                         }
 
-                    MPI_Gather(field_pointer + ghost_buffer_size * data_size +
-                               p->n_cells_local * data_size, buffer_size, mpi_type,
-                               full_array + p->nx * p->ny * p->nz * data_size, buffer_size, mpi_type, 0,
-                               p->ana_info.inter_domain_communicator);
-#endif                          //ENABLE_MPI
-                }
+//                     MPI_Gather(field_pointer + ghost_buffer_size * data_size +
+//                                p->n_cells_local * data_size, buffer_size, mpi_type,
+//                                full_array + p->nx * p->ny * p->nz * data_size, buffer_size, mpi_type, 0,
+//                                p->ana_info.inter_domain_communicator);
+// #endif                          //ENABLE_MPI
+//                 }
             //Now all data is on simrank 0, so write it to disk
             herr_t status;
 
@@ -882,16 +882,16 @@ int extent_density_field_ef(const struct Phase *const p, void *const field_point
             HDF5_ERROR_CHECK(status);
             status = H5Dclose(dset);
             HDF5_ERROR_CHECK(status);
-            if (p->info_MPI.sim_size > 1)
-                free(full_array);
+            // if (p->info_MPI.sim_size > 1)        // not necessary 
+            //     free(full_array);
         }
-    else if (p->info_MPI.domain_rank == 0)
-        {
-#if ( ENABLE_MPI == 1 )
-            MPI_Gather(field_pointer + ghost_buffer_size * data_size + p->n_cells_local * data_size,
-                       buffer_size, mpi_type, NULL, 0, mpi_type, 0, p->ana_info.inter_domain_communicator);
-#endif                          //ENABLE_MPI
-        }
+//     else if (p->info_MPI.domain_rank == 0)
+//         {
+// #if ( ENABLE_MPI == 1 )
+//             MPI_Gather(field_pointer + ghost_buffer_size * data_size + p->n_cells_local * data_size,
+//                        buffer_size, mpi_type, NULL, 0, mpi_type, 0, p->ana_info.inter_domain_communicator);
+// #endif                          //ENABLE_MPI
+//         }
     return 0;
 }
 
