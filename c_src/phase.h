@@ -32,6 +32,7 @@ struct IndependetSets;
 #include "autotuner.h"
 #include "polymer.h"
 #include "polytype_conversion.h"
+#include "monotype_conversion.h"
 #include "mobility.h"
 #include "self_documentation.h"
 #include "poly_heavy.h"
@@ -183,8 +184,7 @@ typedef struct Phase {
     //!    The other information is the particle type of your monomer of interest.
     //!    You can access this information with the following snippet:
     //!    \code
-    //!    const unsigned int type = get_particle_type(
-    //!                                 p->poly_arch[poly_type_offset[poly_type] + mono_index + 1] );
+    //!    const unsigned int type = get_particle_type(p, n_polymer, n_monomer);(
     //!    \endcode
     //!    If you want to create an element of the monomer region in
     //!    poly_arch, you can call get_info_bl().
@@ -234,6 +234,9 @@ typedef struct Phase {
 
     //! Indiciates, whether bead data have been read from the input file.
     bool bead_data_read;
+    //
+    //! Indiciates, whether monomer type data has been read from the input file.
+    bool mt_data_read;
 
     //! Maximum distance a particle can move, without accidentically
     //!passing trough an area51 wall.
@@ -271,6 +274,9 @@ typedef struct Phase {
     unsigned int serie_length;  //!< number of time-dependent external field
 
     struct PolyConversion pc;   //!< struct containing the information for the poly type convsersion
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
+    struct MonoConversion mtc;  //!< struct containing the information for the monomer type convsersion
+#endif                          //ENABLE_MONOTYPE_CONVERSIONS
     struct Mobility mobility;   //!< struct containing information for density related mobility modifications
     struct SelfDocumentation sd;        //!< struct that contains all elements for the self documenation functionality
     struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.

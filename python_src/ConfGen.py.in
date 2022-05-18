@@ -1064,6 +1064,7 @@ class SomaXML:
     knownTags += ["k_umbrella"]
     knownTags += ["structure_q"]
     knownTags += ["polyconversion"]
+    knownTags += ["monoconversion"]
     knownTags += ["mobility_modifier"]
     knownTags += ["density_weights"]
 
@@ -1185,7 +1186,10 @@ class Configuration(SomaXML):
         self.density_weights = self.create_density_weights()
 
         ## initialize the poly conversion class
-        self.poly_conversion = Configuration.PolyConversion(self.root,self.nxyz,self.poly_arch)
+        self.poly_conversion = Configuration.PolyConversion(self.root,self.nxyz,self.poly_arch,self.types)
+
+        ## initialize the mono conversion class
+        self.mono_conversion = Configuration.MonoConversion(self.root,self.nxyz,self.poly_arch,self.types)
 
         ## initalize the MobilityModifier class
         self.mobility_modifier = Configuration.MobilityModifier(self.root,self.n_types[0],self.n_poly_type[0])
@@ -1278,6 +1282,26 @@ class Configuration(SomaXML):
                 f.create_dataset("/polyconversion/input_type",data=self.poly_conversion.pc_list[:,0])
                 f.create_dataset("/polyconversion/output_type",data=self.poly_conversion.pc_list[:,1])
                 f.create_dataset("/polyconversion/end",data=self.poly_conversion.pc_list[:,2])
+                if self.poly_conversion.rate_list != []:
+                    f.create_dataset("polyconversion/rate",data=self.poly_conversion.rate_list)
+                    f.create_dataset("/polyconversion/n_density_dependencies",data=self.poly_conversion.ndd_list)
+                    f.create_dataset("/polyconversion/density_dependencies",data=self.poly_conversion.dd_list)
+
+            if "monoconversion" in f:
+                del f["monoconversion"]
+            if self.mono_conversion.delta_mc[0] != 0 :
+                f.create_group("monoconversion")
+                f.create_dataset("monoconversion/deltaMC",data=self.mono_conversion.delta_mc)
+                f.create_dataset("/monoconversion/array",data=self.mono_conversion.array,dtype=numpy.uint8)
+                f.create_dataset("/monoconversion/input_type",data=self.mono_conversion.pc_list[:,0])
+                f.create_dataset("/monoconversion/output_type",data=self.mono_conversion.pc_list[:,1])
+                f.create_dataset("monoconversion/block_size",data=self.mono_conversion.block_size)
+
+                f.create_dataset("/monoconversion/end",data=self.mono_conversion.pc_list[:,2])
+                if self.mono_conversion.rate_list != []:
+                    f.create_dataset("monoconversion/rate",data=self.mono_conversion.rate_list)
+                    f.create_dataset("/monoconversion/n_density_dependencies",data=self.mono_conversion.ndd_list)
+                    f.create_dataset("/monoconversion/density_dependencies",data=self.mono_conversion.dd_list)
 
             if "mobility" in f:
                 del f["mobility"]
@@ -1611,13 +1635,17 @@ class Configuration(SomaXML):
     ## Class that parses the XML and stores the information for poly conversion zones
     class PolyConversion:
         ## Constructor of the PolyConversion class. Initialized with the root of the XML parser
-        def __init__(self,root,nxyz,poly_arch):
+        def __init__(self,root,nxyz,poly_arch,knownTypes):
             self.array = None
             self.pc_list = None
             self.delta_mc = numpy.asarray( [0], dtype=numpy.uint32)
             child_list = []
             pc_list = []
-            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC"]
+            rate_list = []
+            dd_list = []
+            raw_dd_list = []
+            
+            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC","conversion_rate","density_dependency"]
             for element in root.iter("polyconversion"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1666,6 +1694,48 @@ class Configuration(SomaXML):
 
                         pc_list.append([input_type,output_type,bool(end)])
 
+
+                for rt in element.findall("conversion_rate"):
+                    for line in rt.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != 1:
+                            raise RuntimeError("Conversion rate should be given as single float per conversion/line. But got: "+line)
+                        try:
+                            conversion_rate = float(parts[0])
+                            rate_list.append(conversion_rate)
+                        except ValueError:
+                            raise RuntimeError("Conversion rate for poly conversion must be float convertible but got: "+str(rt.text))
+                if rate_list != []:
+                    assert len(rate_list) == len(pc_list), "ERROR: There should be given a rate for every conversion. Defined {} conversions, but only got {} rates.".format(len(pc_list), len(rate_list))
+                
+                for dd in element.findall("density_dependency"):
+                    for line in dd.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != knownTypes.n_types_exact:
+                            raise RuntimeError("Invalid density dependence format, give dependecies for all " + self.knownTypes.n_types_exact + "types. But got: "+len(parts))
+                        try:
+                            raw_dd_list.append(numpy.asarray(parts, dtype=int))
+                        except ValueError:
+                            raise RuntimeError("A density dependency list must consist only of integers, but got: "+line)
+                if raw_dd_list == []:
+                    raw_dd_list = numpy.zeros((len(pc_list), knownTypes.n_types_exact))
+                raw_dd_list = numpy.asarray(raw_dd_list, dtype=numpy.uint32)
+                ndd_list = numpy.sum(raw_dd_list, axis=1, dtype=numpy.uint32)
+                for dependencies in raw_dd_list:
+                    for i in range(knownTypes.n_types_exact):
+                        for j in range(dependencies[i]):
+                            dd_list.append(i)
+                dd_list = numpy.asarray(dd_list, dtype=numpy.uint32)
+                assert numpy.sum(ndd_list) == len(dd_list), "Total number of dependencies given in ndd does not match the number of dependencies in the list."
+
+                        
+
             pbc = True
             if len(child_list) > 0:
                 array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
@@ -1689,6 +1759,145 @@ class Configuration(SomaXML):
                 self.array = array
                 self.pc_list = pc_list
                 self.delta_mc = numpy.asarray([deltaMC],dtype=numpy.uint32)
+                self.rate_list = rate_list
+                self.ndd_list = ndd_list
+                self.dd_list = dd_list
+    ## Class that parses the XML and stores the information for poly conversion zones
+    class MonoConversion:
+        ## Constructor of the PolyConversion class. Initialized with the root of the XML parser
+        def __init__(self,root,nxyz,poly_arch,knownTypes):
+            self.array = None
+            self.pc_list = None
+            self.delta_mc = numpy.asarray( [0], dtype=numpy.uint32)
+            child_list = []
+            pc_list = []
+            rate_list = []
+            block_size = numpy.asarray( [1], dtype=numpy.uint32)
+            dd_list = []
+            raw_dd_list = []
+            
+            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC", "block_size","conversion_rate","density_dependency"]
+            for element in root.iter("monoconversion"):
+                for child in element:
+                    if not child.tag in knownTags:
+                        print("WARNING: unknown tag ("+child.tag+") found in Monoconversion xml. Value will be ignored. Typo?")
+
+                for pc in element.findall('point_cloud'):
+                    child_list.append( PointCloud(pc,1) )
+
+                for box in element.findall('box'):
+                    child_list.append( Box(box,1) )
+
+                for cy in element.findall('cylinder'):
+                    child_list.append( Cylinder(cy,1) )
+
+                for sp in element.findall('sphere'):
+                    child_list.append( Sphere(sp,1) )
+
+                for delta in element.findall("DeltaMC"):
+                    try:
+                        deltaMC = int(delta.text)
+                    except ValueError:
+                        raise RuntimeError("DeltaMC for poly conversion must be integer convertible but got: "+str(delta.text))
+
+                for pc in element.findall("conversion_list"):
+                    for line in pc.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != 3:
+                            raise RuntimeError("A conversion list line for monomer conversion has 3 elements: input_monomer_name output_monomer_name end_of_reaction=0/1. But got: "+line)
+                        try:
+                            input_type = knownTypes.get_exact(parts[0])
+                            output_type = knownTypes.get_exact(parts[1])
+                            end = int(parts[2])
+                        except ValueError:
+                            raise RuntimeError("A conversion list must consist of valid monomer type names and 1 integer, but got: "+line)
+
+                        pc_list.append([input_type,output_type,bool(end)])
+
+
+                for rt in element.findall("conversion_rate"):
+                    for line in rt.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != 1:
+                            raise RuntimeError("Conversion rate should be given as single float per conversion/line. But got: "+line)
+                        try:
+                            conversion_rate = float(parts[0])
+                            rate_list.append(conversion_rate)
+                        except ValueError:
+                            raise RuntimeError("Conversion rate for poly conversion must be float convertible but got: "+str(rt.text))
+                if rate_list != []:
+                    assert len(rate_list) == len(pc_list), "ERROR: There should be given a rate for every conversion. Defined {} conversions, but only got {} rates.".format(len(pc_list), len(rate_list))
+                
+                for dd in element.findall("density_dependency"):
+                    for line in dd.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != knownTypes.n_types_exact:
+                            raise RuntimeError("Invalid density dependence format, give dependecies for all " + str(knownTypes.n_types_exact) + "types. But got: "+len(parts))
+                        try:
+                            raw_dd_list.append(numpy.asarray(parts, dtype=int))
+                        except ValueError:
+                            raise RuntimeError("A density dependency list must consist only of integers, but got: "+line)
+                if raw_dd_list == []:
+                    raw_dd_list = numpy.zeros((len(pc_list), knownTypes.n_types_exact))
+                raw_dd_list = numpy.asarray(raw_dd_list, dtype=numpy.uint32)
+                ndd_list = numpy.sum(raw_dd_list, axis=1, dtype=numpy.uint32)
+                for dependencies in raw_dd_list:
+                    for i in range(knownTypes.n_types_exact):
+                        for j in range(dependencies[i]):
+                            dd_list.append(i)
+                dd_list = numpy.asarray(dd_list, dtype=numpy.uint32)
+                assert numpy.sum(ndd_list) == len(dd_list), "Total number of dependencies given in ndd does not match the number of dependencies in the list."
+
+                for bs in element.findall("block_size"):
+                    for line in bs.text.split("\n"):
+                        line = line.strip()
+                        if line == "" or line[0] == '#':
+                            continue
+                        parts = line.split()
+                        if len(parts) != 1:
+                            raise RuntimeError("Block size should be given as single integer per conversion/line. But got: "+line)
+                        try:
+                            block_size[0] = numpy.uint32(parts[0])
+                        except ValueError:
+                            raise RuntimeError("Block size for poly conversion must be integer convertible but got: "+str(rt.text))
+
+                pbc = True
+                array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
+                if len(child_list) > 0:
+                    for child in child_list:
+                        for k in child.get_keys():
+                            (x,y,z) = k
+                            if not pbc:
+                                (xa,ya,za) = (k[0] % nxyz[0],k[1] % nxyz[1],k[2] % nxyz[2])
+                            else:
+                                (xa,ya,za) = (x,y,z)
+                            if xa >= 0 and xa < nxyz[0] and ya >= 0 and ya < nxyz[1] and za >= 0 and za < nxyz[2]:
+                                array[xa][ya][za] = child.get( (x,y,z) )[0] +1 #+1 because zero indicates no reaction
+
+                pc_list = numpy.asarray(pc_list,dtype=numpy.uint32)
+                if not pc_list[-1,2]:
+                    raise RuntimeError("The mono type conversion list should finish with an end flag set. "+str(pc_list[-1,2])+" "+str(bool(pc_list[-1,2])))
+
+                if numpy.max(array) > pc_list.shape[0]:
+                    raise RuntimeError("The index in the array "+str(numpy.max(array)-1)+" is larger than the reaction list "+str(pc_list.shape[0]))
+
+                self.array = array
+                self.pc_list = pc_list
+                self.delta_mc = numpy.asarray([deltaMC],dtype=numpy.uint32)
+                self.rate_list = rate_list
+                self.block_size = block_size
+                self.ndd_list = ndd_list
+                self.dd_list = dd_list
+                
 
     ## Class that parses the XML and stores the information density dependent mobility modifications
     class MobilityModifier:

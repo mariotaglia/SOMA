@@ -34,6 +34,10 @@
 //! Automatically set by CMake
 #cmakedefine01 ENABLE_DOMAIN_DECOMPOSITION
 
+//! Macro to activate monomer type conversions
+//! Automatically set by CMake
+#cmakedefine01 ENABLE_MONOTYPE_CONVERSIONS
+
 //! Macro indicating an MPI build
 #cmakedefine01 ENABLE_MPI
 

@@ -48,7 +48,7 @@
       163 1 1 1 -1
     </point_cloud>
   </external_field>
-  <polyconversion>
+  <monoconversion>
     <DeltaMC>
       50
     </DeltaMC>
@@ -56,9 +56,15 @@
       <point>50 0 0</point><point>51 4 4</point><value>0</value>
     </box>
     <conversion_list>
-      0 1 1
+      A B 1
     </conversion_list>
-  </polyconversion>
+    <conversion_rate>
+        0.001
+    </conversion_rate>
+    <density_dependency>
+        0 1
+    </density_dependency>
+  </monoconversion>
 
   <analysis>
     <Re>

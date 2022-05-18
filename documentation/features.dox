@@ -77,6 +77,8 @@
   2nd method implemented based on the tanh and different for each type.
  - Implementation of full CUDA aware MPI for domain decoposition and "normal". In addition the NCCL library for device reduction has been implemented as well to gain full speed ups from the direct device communication such that no memory transfer is needed. Both features have to be manually activated via CMake options the default is off.
  - Enable different MC frequencies for different polymer types for a contrast in mobility.
+ - Polymer type conversions with (monomer-type)-density dependent rates
+ - Monomer type conversions with (monomer-type)-density dependent rates
 
 
  \subsection observables Available Observables
@@ -114,6 +116,8 @@ The output matrix in the hdf5 has than the dimensions 5x8, the first dimension i
  - Static-Structure-Factor: For each polymer_type: \f$ S_q = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(t)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
 
  - Dynamical-Structure-Factor: For each polymer_type: \f$ S_q(t) = \frac{1}{N}\sum_{<kj>} \exp(i\vec{q}(\vec{r}_k(0)-\vec{r}_j(t)))\f$, where \f$ <kj> \f$ denotes all monomers in a chain and \f$ N \f$ is the chain length.
+
+ - Monomer-type fraction: (For use of monomer type conversions) For a specific polymer type test the distribution of monomer type fractions. 
 
  \subsection no-features Not Available Features
 

@@ -271,8 +271,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                             for (unsigned int ibead = 0; ibead < myN; ibead++)
                                 {
                                     const Monomer mybead = beads[ibead];
-                                    const unsigned int iwtype =
-                                        get_particle_type(p->poly_arch[p->poly_type_offset[poly_type] + 1 + ibead]);
+                                    const unsigned int iwtype = get_particle_type(p, npoly, ibead);
 
                                     const int tmp = possible_move_area51(p, mybead.x, mybead.y, mybead.z, dx, dy, dz,
                                                                          p->args.nonexact_area51_flag);
@@ -382,8 +381,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                             // pick a random bead.
                             ibead = soma_rng_uint(myrngstate, p) % myN;
-                            const unsigned int iwtype =
-                                get_particle_type(p->poly_arch[mypoly_poly_type_offset + 1 + ibead]);
+                            const unsigned int iwtype = get_particle_type(p, npoly, ibead);
 
                             Monomer mybead = beads[ibead];
                             Monomer *mybead_ptr = &(beads[ibead]);
@@ -483,7 +481,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                     if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
                         continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
 
-                    const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
+                    //const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
                     const IndependetSets mySets = p->sets[poly_type];
 
                     const unsigned int n_sets = mySets.n_sets;
@@ -519,8 +517,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                             for (unsigned int iP = 0; iP < len; iP++)
                                 {
                                     const unsigned int ibead = sets[set_id * max_member + iP];
-                                    const unsigned int iwtype =
-                                        get_particle_type(p->poly_arch[mypoly_poly_type_offset + 1 + ibead]);
+                                    const unsigned int iwtype = get_particle_type(p, npoly, ibead);
                                     int error_0 = set_iteration_possible_move(p, set_states, beads, npoly, iP,
                                                                               nonexact_area51, ibead, iwtype,
                                                                               &accepted_moves_set);
@@ -577,7 +574,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
             if (gpu_time % p->mobility.poly_type_mc_freq[poly_type] != 0)
                 continue;       //EARLY LOOP EXIT FOR MOBILITY CONTRAST
 
-            const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
+            //const int mypoly_poly_type_offset = p->poly_type_offset[poly_type];
             const IndependetSets mySets = p->sets[poly_type];
 
             const unsigned int n_sets = mySets.n_sets;
@@ -613,8 +610,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                     for (unsigned int iP = 0; iP < len; iP++)
                         {
                             const unsigned int ibead = sets[set_id * max_member + iP];
-                            const unsigned int iwtype =
-                                get_particle_type(p->poly_arch[mypoly_poly_type_offset + 1 + ibead]);
+                            const unsigned int iwtype = get_particle_type(p, chain_i, ibead);
                             int error_0 = set_iteration_possible_move(p, set_states, beads, chain_i, iP,
                                                                       nonexact_area51, ibead, iwtype,
                                                                       &accepted_moves_set);

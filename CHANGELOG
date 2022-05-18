@@ -1,6 +1,21 @@
 Change log of the development of SOMA.
 Please add your contributions.
 
+v0.8.0 22/03/26
+    * Reaction now allow for a rate, and 
+      an arbitrary number of density 
+      dependencies                      Gregor Ibbeken
+    * Option ENABLE_MONOTYPE_CONVERSION
+      to allow same reactions for monomer
+      types and blocks of monomers      Gregor Ibbeken
+    
+	BUGFIXES
+
+    * fix problem where polyconversion 
+      didnt work with domain decomposition
+      or with OpenMP.                               GI
+    * fix bug for use of multiple conversions       GI
+
 v0.7.0 21/12/11
 	* allow or mobility modifications.
 	  tanh and muller-smith LS

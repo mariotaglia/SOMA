@@ -119,7 +119,43 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
     if (p->umbrella_field)
         fprintf(ftmp, "\tUmbrella field present: yes\n");
     if (p->pc.deltaMC)
-        fprintf(ftmp, "\tPolytype conversion active %d\n", p->pc.deltaMC);
+        fprintf(ftmp, "\tPolytype conversion active %d,\t", p->pc.deltaMC);
+    if (p->pc.rate)
+        {
+            for (unsigned int conv = 0; conv < p->pc.len_reactions; conv++)
+                {
+                    fprintf(ftmp, "%d --> %d with rate %f", p->pc.input_type[conv], 
+                            p->pc.output_type[conv], p->pc.rate[conv]);
+                    for(unsigned int dd = 0; dd<p->pc.dependency_ntype[conv]; dd++)
+                        {
+                            fprintf(ftmp, " * phi_%d", 
+                                    p->pc.dependency_type[p->pc.dependency_type_offset[conv] + dd]); 
+                        }
+                    fprintf(ftmp, "\t"); 
+                    
+                }
+            fprintf(ftmp, "\n");
+        }
+#if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
+    if (p->mtc.deltaMC)
+        fprintf(ftmp, "\tMonotype conversion active %d,\t", p->mtc.deltaMC);
+    if (p->mtc.rate)
+        {
+            for (unsigned int conv = 0; conv < p->mtc.len_reactions; conv++)
+                {
+                    fprintf(ftmp, "%d --> %d with rate %f", p->mtc.input_type[conv], 
+                            p->mtc.output_type[conv], p->mtc.rate[conv]);
+                    for(unsigned int dd = 0; dd<p->mtc.dependency_ntype[conv]; dd++)
+                        {
+                            fprintf(ftmp, " * phi_%d", 
+                                    p->mtc.dependency_type[p->mtc.dependency_type_offset[conv] + dd]); 
+                        }
+                    fprintf(ftmp, "\t"); 
+                }
+        }
+    if (p->mtc.deltaMC)
+        fprintf(ftmp, " with block size %d\n", p->mtc.block_size);
+#endif                              //ENABLE_MONOTYPE_CONVERSION
     if (p->mobility.type != DEFAULT_MOBILITY)
         fprintf(ftmp, "\tMobility modification active %d\n", p->mobility.type);
     if (p->serie_length > 1 || (p->serie_length == 1 && p->sin_serie[0] != 0))
