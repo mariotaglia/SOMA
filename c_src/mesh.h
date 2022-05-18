@@ -40,7 +40,7 @@
 #include "phase.h"
 
 #pragma acc routine(coord_to_cell_coordinate) seq
-#pragma omp declare target (coord_to_cell_coordinate)
+#pragma omp declare target
 static inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,const soma_scalar_t rz, int *x, int *y, int *z);
 #pragma omp end declare target
 inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,
@@ -79,7 +79,7 @@ inline void coord_to_cell_coordinate(const struct Phase *p, const soma_scalar_t 
 */
 static inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z);
 #pragma acc routine(cell_coordinate_to_index) seq
-#pragma omp declare target (cell_coordinate_to_index)
+#pragma omp declare target
 inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, const int y, const int z){
     int xt = x;
 #if ( ENABLE_DOMAIN_DECOMPOSITION == 1 )
@@ -117,7 +117,7 @@ inline uint64_t cell_coordinate_to_index(const struct Phase *p, const int x, con
  \return Index for the field index referencing.
 */
 #pragma acc routine(coord_to_index) seq
-#pragma omp declare target (coord_to_index)
+#pragma omp declare target
 static inline uint64_t coord_to_index(const struct Phase *const p, const soma_scalar_t rx, const soma_scalar_t ry,const soma_scalar_t rz);
 #pragma omp end declare target
 inline uint64_t coord_to_index(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,const soma_scalar_t rz){
@@ -134,7 +134,7 @@ inline uint64_t coord_to_index(const struct Phase *p, const soma_scalar_t rx, co
 //! \param rtype type you request.
 //! \return Calculated unified index.
 #pragma acc routine(cell_to_index_unified) seq
-#pragma omp declare target (cell_to_index_unified)
+#pragma omp declare target
 static inline uint64_t cell_to_index_unified(const struct Phase *const p, const uint64_t cell,const unsigned int rtype);
 #pragma omp end declare target
 inline uint64_t cell_to_index_unified(const struct Phase *const p, const uint64_t cell, const unsigned int rtype){
@@ -160,7 +160,7 @@ inline uint64_t cell_to_index_unified(const struct Phase *const p, const uint64_
  \return Index for the field index referencing.
 */
 #pragma acc routine(coord_to_index_unified) seq
-#pragma omp declare target (coord_to_index_unified)
+#pragma omp declare target
 static inline uint64_t coord_to_index_unified(const struct Phase *const p, const soma_scalar_t rx,const soma_scalar_t ry, const soma_scalar_t rz, unsigned int rtype);
 #pragma omp end declare target
 inline uint64_t coord_to_index_unified(const struct Phase *p, const soma_scalar_t rx, const soma_scalar_t ry,

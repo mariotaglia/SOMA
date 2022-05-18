@@ -32,7 +32,7 @@
 #include "rng_alternative.h"
 
 #pragma acc routine(pcg32_random) seq
-#pragma omp declare target (pcg32_random)
+#pragma omp declare target
 uint32_t pcg32_random(PCG_STATE * rng){
     const uint64_t old = rng->state;
     // Advance internal state
