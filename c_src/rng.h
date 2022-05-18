@@ -67,7 +67,7 @@ int soma_seed_rng(PCG_STATE * rng, uint64_t seed, uint64_t stream);
 //! \param p Phase construct of the simulated system
 //! \return prng as uint in range [0:soma_rng_uint_max)
 #pragma acc routine(soma_rng_uint) seq
-#pragma omp declare target (soma_rng_uint)
+#pragma omp declare target
 unsigned int soma_rng_uint(RNG_STATE * state, const struct Phase *const p);
 #pragma omp end declare target
 
@@ -75,7 +75,7 @@ unsigned int soma_rng_uint(RNG_STATE * state, const struct Phase *const p);
 //!
 //! \return Maximum generated rng by soma_rng_uint
 #pragma acc routine(soma_rng_uint_max) seq
-#pragma omp declare target (soma_rng_uint_max)
+#pragma omp declare target
 unsigned int soma_rng_uint_max(void);
 #pragma omp end declare target
 
@@ -85,7 +85,7 @@ unsigned int soma_rng_uint_max(void);
 //! \pre rng has been seeded.
 //! \return prng in range [0,1)
 #pragma acc routine(soma_rng_soma_scalar) seq
-#pragma omp declare target (soma_rng_soma_scalar)
+#pragma omp declare target
 soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, const struct Phase *const p);
 #pragma omp end declare target
 
@@ -97,7 +97,7 @@ soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, const struct Phase *const p)
 //! \param z coordinate of the vector
 //! \pre rng has been seeded
 #pragma acc routine(soma_normal_vector) seq
-#pragma omp declare target (soma_normal_vector)
+#pragma omp declare target
 void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scalar_t * x,soma_scalar_t * y, soma_scalar_t * z);
 #pragma omp end declare target
 //! Function to advances the PCG32 by 1 step and returns a random number

@@ -59,7 +59,7 @@ int mc_polymer_iteration(struct Phase *const p, const unsigned int nsteps, const
 //! \param dz Output pointer to dz.
 //! \param rng_state State of the random number generator.
 #pragma acc routine(trial_move_cm) seq
-#pragma omp declare target (trial_move_cm)
+#pragma omp declare target
 void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_t * const dx, soma_scalar_t * const dy, soma_scalar_t * const dz, RNG_STATE * const rng_state);
 #pragma omp end declare target
 
@@ -73,7 +73,7 @@ void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_
 //! \param iwtype Type of the particle to move.
 //! \return Calculated nonbonded energy difference. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_nonbonded_energy) seq
-#pragma omp declare target (calc_delta_nonbonded_energy)
+#pragma omp declare target
 soma_scalar_t calc_delta_nonbonded_energy(const struct Phase *p, const Monomer * const monomer, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz, const unsigned int iwtype);
 #pragma omp end declare target
 
@@ -107,7 +107,7 @@ int mc_set_iteration(struct Phase *const p, const unsigned int nsteps, const uns
   \param rng_state State of the RNG.
 */
 #pragma acc routine(trial_move) seq
-#pragma omp declare target (trial_move)
+#pragma omp declare target
 void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, const unsigned int iwtype, RNG_STATE * const rng_state);
 #pragma omp end declare target
 
@@ -123,7 +123,7 @@ void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, so
 //! \param iwtype Type of the monomer.
 //! \return energy difference of proposed move. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_energy) seq
-#pragma omp declare target (calc_delta_energy)
+#pragma omp declare target
 soma_scalar_t calc_delta_energy(const struct Phase *p, const uint64_t ipoly, const Monomer * monomer, const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz, const unsigned int iwtype);
 #pragma omp end declare target
 
@@ -139,7 +139,7 @@ soma_scalar_t calc_delta_energy(const struct Phase *p, const uint64_t ipoly, con
 //! \param dz proposed z move
 //! \return bonded energy difference of proposed move
 #pragma acc routine(calc_delta_bonded_energy) seq
-#pragma omp declare target (calc_delta_bonded_energy)
+#pragma omp declare target
 soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * monomer, const uint64_t ipoly, const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz);
 #pragma omp end declare target
 
@@ -154,7 +154,7 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * mo
   \return true or false according to the Metropolis criteria
 */
 #pragma acc routine(som_accept) seq
-#pragma omp declare target (som_accept)
+#pragma omp declare target
 int som_accept(RNG_STATE * const rng, const struct Phase *const p, const soma_scalar_t delta_energy, const soma_scalar_t modifier);
 #pragma omp end declare target
 
@@ -176,12 +176,12 @@ int som_accept(RNG_STATE * const rng, const struct Phase *const p, const soma_sc
   (e.g. external fields) can be added in this function.
 */
 #pragma acc routine(trial_move_smc) seq
-#pragma omp declare target (trial_move_smc)
+#pragma omp declare target
 void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, soma_scalar_t * smc_deltaE, const Monomer * mybead, RNG_STATE * const myrngstate, const unsigned int iwtype);
 #pragma omp end declare target
 
 #pragma acc routine(propose_smc_move) seq
-#pragma omp declare target (propose_smc_move)
+#pragma omp declare target
 void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, const unsigned int iwtype, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, soma_scalar_t rx, soma_scalar_t ry, soma_scalar_t rz, soma_scalar_t * delta_E_bond, soma_scalar_t rsoma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz);
 #pragma omp end declare target
 
@@ -202,7 +202,7 @@ void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned cons
   the configuration to enable the computation of forces after and before the move with this same function.
 */
 #pragma acc routine(add_bond_forces) seq
-#pragma omp declare target (add_bond_forces)
+#pragma omp declare target
 void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz);
 #pragma omp end declare target
 
@@ -226,7 +226,7 @@ void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const
 //! edge to edge particle can and will pass through.
 //! \return True if move is allowed. False otherwise.
 #pragma acc routine(possible_move_area51) seq
-#pragma omp declare target (possible_move_area51)
+#pragma omp declare target
 int possible_move_area51(const struct Phase *p, const soma_scalar_t oldx, const soma_scalar_t oldy, const soma_scalar_t oldz, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz, const int nonexact);
 #pragma omp end declare target
 
@@ -263,7 +263,7 @@ int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, 
   \return error_flags[0] indicating domain error
 */
 #pragma acc routine(set_iteration_possible_move) seq
-#pragma omp declare target (set_iteration_possible_move)
+#pragma omp declare target
 int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, Monomer * const beads, uint64_t chain_index, unsigned int iP, const int nonexact_area51, const unsigned int ibead, const unsigned int iwtype, unsigned int *accepted_moves_set_ptr);
 #pragma omp end declare target
 #endif                          //SOMA_MC_H

@@ -93,7 +93,7 @@ int free_mobility(struct Phase *p);
    \return modifier \f$ m(x,y,z) \in [0,1] \f$
 */
 #pragma acc routine(get_mobility_modifier) seq
-#pragma omp declare target (get_mobility_modifier)
+#pragma omp declare target
 soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned int particle_type, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z);
 #pragma omp end declare target
 

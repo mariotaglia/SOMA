@@ -45,7 +45,7 @@ int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng)
 }
 
 #pragma acc routine(soma_mersenne_twister) seq
-#pragma omp declare target (soma_mersenne_twister)
+#pragma omp declare target
 unsigned int soma_mersenne_twister(MERSENNE_TWISTER_STATE * mt_rng) {
 
     unsigned int M = 397;
@@ -113,7 +113,7 @@ int soma_seed_rng_tt800(PCG_STATE * rng, TT800STATE * tt800_rng)
 }
 
 #pragma acc routine(soma_tt800) seq
-#pragma omp declare target (soma_tt800)
+#pragma omp declare target
 unsigned int soma_rng_tt800(TT800STATE * itt800_rng) {
 
     uint32_t M = 7;
