@@ -587,7 +587,7 @@ int fully_convert_polytypes(struct Phase *p)
 {
     //Iterate all polymers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
 #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
@@ -615,7 +615,7 @@ int partially_convert_polytypes(struct Phase *p)
 {
     //Iterate all polymers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
 #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)

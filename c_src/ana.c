@@ -478,7 +478,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /*         { */
 /*             //loop over polymers on device to count */
 /* #pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ]) */
-/* #pragma omp target teams loop map(present,alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
+/* #pragma omp target distribute parallel for map(always,alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
 /* #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP) */
 /* 	  //#pragma omp parallel for */
 /* #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP) */
@@ -488,7 +488,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /*                         { */
 /*                             unsigned int chain_counter = 0; */
 /* #pragma acc loop seq */
-/* #pragma omp loop */
+/* //#pragma omp loop */
 /* 			    for (unsigned int mono = 0; mono < p->ana_info.mtf_tested_type_N; mono++) */
 /* 			      { */
 /* 				unsigned int monotype = get_particle_type(p, poly, mono); */
@@ -1188,7 +1188,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma omp target enter data\
             map(to:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 #pragma acc parallel loop vector_length(32) present(p[0:1]) async
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
 #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
@@ -1205,12 +1205,12 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             //random q generation
 
 #pragma acc loop                //be careful, seq?
-#pragma omp loop
+//#pragma omp loop
             for (unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++)
                 {
                     soma_scalar_t rng1, rng2;
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                     for (unsigned int random_i = 0; random_i < index_random_q; random_i++)
                         {
                             rng1 = soma_rng_uint(s, p);
@@ -1224,7 +1224,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
                     soma_scalar_t unit_q_y = sin(phi) * sin(theta);
                     soma_scalar_t unit_q_z = cos(phi);
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                     for (unsigned int mono = 0; mono < poly_length; mono++)
                         {
                             const unsigned int particle_type = get_particle_type(p, poly, mono);
@@ -1233,7 +1233,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
                             soma_scalar_t y = beads[mono].y;
                             soma_scalar_t z = beads[mono].z;
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                             for (unsigned int index_q = 0; index_q < q_size; index_q++)
                                 {
                                     soma_scalar_t qr = q_array[index_q] * (unit_q_x * x + unit_q_y * y + unit_q_z * z);
@@ -1289,7 +1289,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma acc wait
 #pragma omp taskwait
 #pragma acc parallel loop gang vector present(p[0:1])
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
 #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
@@ -1298,19 +1298,19 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             const unsigned int poly_type = p->polymers[poly].type;
             unsigned int poly_length = p->poly_arch[p->poly_type_offset[poly_type]];
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
             for (unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++)
                 {
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                     for (unsigned int particle_type_i = 0; particle_type_i < p->n_types; particle_type_i++)
                         {
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                             for (unsigned int particle_type_j = 0; particle_type_j < p->n_types; particle_type_j++)
                                 {
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                                     for (unsigned int index_q = 0; index_q < q_size; index_q++)
                                         {
                                             switch (sf_type)

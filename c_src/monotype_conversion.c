@@ -631,7 +631,7 @@ int fully_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
 #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
@@ -681,7 +681,7 @@ int partially_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
 #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
@@ -693,7 +693,7 @@ int partially_convert_monotypes(struct Phase *p)
             const unsigned int block_size = p->mtc.block_size;
             // potentially tell acc not to parallelize this, because random number generator of polymers.
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
             for (unsigned int mono = 0; mono < N; mono += block_size)
                 {               //iteration over blocks
                     Monomer block_pos = make_monomer(0., 0., 0.);

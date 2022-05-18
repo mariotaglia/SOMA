@@ -245,7 +245,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
             unsigned int n_accepts = 0;
 //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #pragma omp parallel for reduction(+:n_accepts)
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
@@ -270,7 +270,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                             //#pragma acc loop vector reduction(+:delta_energy) reduction(|:move_allowed)
                             //Unfortunately this has to be a seq loop, because the reduction crashes.
 #pragma acc loop vector seq
-#pragma omp loop
+//#pragma omp loop
                             for (unsigned int ibead = 0; ibead < myN; ibead++)
                                 {
                                     const Monomer mybead = beads[ibead];
@@ -311,7 +311,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
 //#pragma acc loop vector
                                     //See above
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                                     for (unsigned int ibead = 0; ibead < myN; ibead++)
                                         {
                                             Monomer mybead = beads[ibead];
@@ -360,7 +360,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
             //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #pragma omp parallel for reduction(+:n_accepts)
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
@@ -380,7 +380,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
                     // MC sweep for this chain
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                     for (unsigned int nmc = 0; nmc < myN; nmc++)
                         {
 
@@ -481,7 +481,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
             unsigned int n_accepts = tuning_parameter;
             n_accepts = 0;
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #pragma omp parallel for reduction(+:n_accepts)
             for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
                 {
@@ -511,7 +511,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                     //Generate random permutation of the sets
                     //http://www.wikipedia.or.ke/index.php/Permutation
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                     for (unsigned int i = 0; i < n_sets; i++)
                         {
                             const unsigned int d = soma_rng_uint(&(mypoly->poly_state), p) % (i + 1);
@@ -520,14 +520,14 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                         }
 
 #pragma acc loop seq
-#pragma omp loop
+//#pragma omp loop
                     for (unsigned int iSet = 0; iSet < n_sets; iSet++)
                         {
                             unsigned int accepted_moves_set = 0;
                             const unsigned int set_id = set_permutation[iSet];
                             const unsigned int len = set_length[set_id];
 #pragma acc loop vector
-#pragma omp loop
+//#pragma omp loop
                             for (unsigned int iP = 0; iP < len; iP++)
                                 {
                                     const unsigned int ibead = sets[set_id * max_member + iP];
@@ -622,7 +622,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                     const unsigned int len = set_length[set_id];
 
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
-#pragma omp target teams loop map(present,alloc:p[0:1])
+#pragma omp target distribute parallel for map(always,alloc:p[0:1])
 #pragma omp parallel for reduction(+:accepted_moves_set)
                     for (unsigned int iP = 0; iP < len; iP++)
                         {
