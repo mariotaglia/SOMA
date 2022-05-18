@@ -55,3 +55,5 @@ int read_old_geometry(struct Phase *p, const char *filename);
 int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id);
 
 #endif                          //SOMA_IO_OLD_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup io_old.h

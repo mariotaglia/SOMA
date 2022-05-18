@@ -709,3 +709,5 @@ unsigned int check_bond_members_of_set(unsigned int **bonds_total, int *bond_num
         }
     return writein_set;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup independent_sets.c

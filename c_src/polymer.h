@@ -131,3 +131,5 @@ int update_polymer_rcm(struct Phase *const p);
 //! \return domain id
 unsigned int get_domain_id(const struct Phase *const p, const Monomer * const rcm);
 #endif                          //POLYMER_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup polymer.h

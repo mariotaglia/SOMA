@@ -72,3 +72,5 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 int close_ana(struct Ana_Info *const a);
 
 #endif                          //ANA_INFO_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup ana_info.h

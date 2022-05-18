@@ -1211,3 +1211,5 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
 }
 
 /* vim: set ft=c noet ts=8 sts=8 sw=8 tw=80 nojs spell : */
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup cmdline.c

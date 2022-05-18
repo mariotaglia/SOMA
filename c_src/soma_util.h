@@ -128,7 +128,6 @@ unsigned int get_particle_type_of_poly_arch(const uint32_t info_bl);
 #pragma omp declare target
 uint32_t get_info_bl(const unsigned int offset_bl, const unsigned int type);
 #pragma omp end declare target
-
 //! \brief after argument parsing of SOMA, this function interpret contradictions and warnings for the user.
 //!
 //! \param args Argument struct to interpret.
@@ -188,3 +187,5 @@ inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar
 #endif                          //SOMA_UTIL_H
 
 // Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup -overwrite-input soma_util.h
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup soma_util.h

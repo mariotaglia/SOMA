@@ -572,3 +572,5 @@ int read_beads0(struct Phase *const p, const hid_t file_id, const hid_t plist_id
         p->bead_data_read = false;
     return status;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup io_old.c

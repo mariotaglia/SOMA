@@ -183,3 +183,5 @@ int main(int argc, char *argv[])
     finalize_MPI(&(p->info_MPI));
 #endif                          //ENABLE_MPI
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup convert.c

@@ -39,3 +39,5 @@ hid_t get_monomer_filetype(void)
     H5Tinsert(memtype, "z", 16, H5T_SOMA_FILE_SCALAR);
     return memtype;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup monomer.c

@@ -94,3 +94,5 @@ int evaluate_autotuner(Autotuner * a);
 int restart_autotuner(Autotuner * a);
 
 #endif                          //SOMA_AUTO_TUNER_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup autotuner.h

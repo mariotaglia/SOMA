@@ -43,21 +43,25 @@ void communicate_simple(const struct Phase *const p)
 {
 #ifndef ENABLE_MPI_CUDA
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update from(p->fields_unified[0:p->n_cells_local*p->n_types])
     MPI_Allreduce(MPI_IN_PLACE, p->fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T, MPI_SUM,
                   p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update to(p->fields_unified[0:p->n_cells_local*p->n_types])
 #else                           //ENABLE_MPI_CUDA
 #ifdef ENABLE_NCCL
     if (p->info_MPI.gpu_id >= 0)
         {
             uint32_t *fields_32 = p->fields_32;
 #pragma acc host_data use_device(fields_32)
+#pragma omp target update from(fields_32)
             {
                 // NCCL does not support unit16 so far, hence we are using
                 ncclAllReduce(fields_32, fields_32, p->n_cells_local * p->n_types, ncclUint32,
                               ncclSum, p->info_MPI.SOMA_nccl_sim, acc_get_cuda_stream(acc_get_default_async()));
             }
 #pragma acc wait
+#pragma omp taskwait
             copy_density_32_to_16(p);
         }
     else
@@ -69,6 +73,7 @@ void communicate_simple(const struct Phase *const p)
 #else                           //ENABLE_NCCL
     uint16_t *fields_unified = p->fields_unified;
 #pragma acc host_data use_device(fields_unified)
+#pragma omp target update from(fields_unified)
     {
         MPI_Allreduce(MPI_IN_PLACE, fields_unified, p->n_cells_local * p->n_types, MPI_UINT16_T,
                       MPI_SUM, p->info_MPI.SOMA_comm_sim);
@@ -89,11 +94,13 @@ void communicate_domain_decomposition(const struct Phase *const p)
         {
             uint32_t *fields_32 = p->fields_32;
 #pragma acc host_data use_device(fields_32)
+#pragma omp target update from(fields_32)
             {
                 ncclReduce(fields_32, fields_32, p->n_cells_local * p->n_types, ncclUint32, ncclSum,
                            0, p->info_MPI.SOMA_nccl_domain, acc_get_cuda_stream(acc_get_default_async()));
             }
 #pragma acc wait
+#pragma omp taskwait
             copy_density_32_to_16(p);
         }
     else
@@ -112,8 +119,10 @@ void communicate_domain_decomposition(const struct Phase *const p)
     uint16_t *right_tmp_buffer = p->right_tmp_buffer;
 #ifndef ENABLE_MPI_CUDA
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update from(p->fields_unified[0:p->n_cells_local*p->n_types])
 #else                           //ENABLE_MPI_CUDA
 #pragma acc host_data use_device(fields_unified,left_tmp_buffer,right_tmp_buffer)
+#pragma omp target update from(fields_unified,left_tmp_buffer,right_tmp_buffer)
     {
 #endif                          //ENABLE_MPI_CUDA
 
@@ -159,6 +168,7 @@ void communicate_domain_decomposition(const struct Phase *const p)
                         //Add the recv values to main part
 #ifdef ENABLE_MPI_CUDA
 #pragma acc parallel loop present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
 #endif                          //ENABLE_MPI_CUDA
                         for (unsigned int i = 0; i < ghost_buffer_size; i++)
                             {
@@ -187,6 +197,7 @@ void communicate_domain_decomposition(const struct Phase *const p)
 
 #ifndef ENABLE_MPI_CUDA
 #pragma acc update device(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update to(p->fields_unified[0:p->n_cells_local*p->n_types])
 #else                           //ENABLE_MPI_CUDA
     }                           //Closing OpenACC device pointer region for MPI_CUDA
 #endif                          //ENABLE_MPI_CUDA
@@ -217,6 +228,7 @@ int copy_density_32_to_16(const struct Phase *const p)
 {
     const uint64_t n_indices = p->n_types * p->n_cells_local;
 #pragma acc parallel loop independent present(p[0:1])
+#pragma omp target teams loop order(concurrent) map(present,alloc:p[0:1])
     for (uint64_t index = 0; index < n_indices; index++)
         p->fields_unified[index] = p->fields_32[index];
     return 0;
@@ -232,23 +244,31 @@ int update_density_fields(const struct Phase *const p)
 
     int error_flags[1] = { 0 }; //error_flag[0] indicates domain errors
 #pragma acc enter data copyin(error_flags[0:1])
+#pragma omp target enter data map(to:error_flags[0:1])
 
     const uint64_t n_indices = p->n_types * p->n_cells_local;
 
 #pragma acc parallel loop independent present(p[0:1])
+#pragma omp target teams loop order(concurrent) map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
     for (uint64_t index = 0; index < n_indices; index++)        /*Loop over all fields according to monotype */
         p->fields_32[index] = 0;
     const uint64_t n_polymers = p->n_polymers;
 
 #pragma acc parallel loop gang num_gangs(n_polymers) vector_length(128) present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
     for (uint64_t i = 0; i < n_polymers; i++)
         {                       /*Loop over polymers */
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
             Monomer *beads = p->ph.beads.ptr;
             beads += p->polymers[i].bead_offset;
 #pragma acc loop vector
+#pragma omp loop
             for (unsigned int j = 0; j < N; j++)
                 {               /*Loop over monomers */
                     const unsigned int monotype = get_particle_type(p, i, j);
@@ -258,7 +278,10 @@ int update_density_fields(const struct Phase *const p)
                     if (cell < p->n_cells_local)        //assuming monotype is correct. Otherwise insert (&& monotype < p->n_types)
                         {
 #pragma acc atomic update
+#pragma omp atomic update
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp atomic
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
                             p->fields_32[index] += 1;
                         }
                     else
@@ -269,6 +292,7 @@ int update_density_fields(const struct Phase *const p)
         }
 
 #pragma acc exit data copyout(error_flags[0:1])
+#pragma omp target exit data map(from:error_flags[0:1])
     if (error_flags[0] != 0)
         {
             fprintf(stderr, "ERROR: Domain error. %d world-rank %d"
@@ -287,7 +311,10 @@ int update_density_fields(const struct Phase *const p)
     /*Use first type to initialize the fields-> saves set zero routine */
     soma_scalar_t rescale_density = p->field_scaling_type[0];
 #pragma acc parallel loop present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
         p->tempfield[cell] = rescale_density * p->fields_unified[cell];
 
@@ -295,7 +322,10 @@ int update_density_fields(const struct Phase *const p)
         {
             rescale_density = p->field_scaling_type[T_types];
 #pragma acc parallel loop present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
                 p->tempfield[cell] += rescale_density * p->fields_unified[T_types * p->n_cells_local + cell];
             /*!\todo p->ncells as a temporary variable */
@@ -361,7 +391,10 @@ void self_omega_field(const struct Phase *const p)
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
         {
 #pragma acc parallel loop present(p[:1])
+#pragma omp target teams loop map(present,alloc:p[:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
                 {
                     p->omega_field_unified[cell + T_types * p->n_cells_local] =
@@ -404,7 +437,10 @@ void add_pair_omega_fields_scmf0(const struct Phase *const p)
                     // precalculate the normalization for this type combination
                     soma_scalar_t dnorm = -0.5 * inverse_refbeads * p->xn[T_types * p->n_types + S_types];
 #pragma acc parallel loop present(p[:1])
+#pragma omp target teams loop map(present,alloc:p[:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
                     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
                         {
                             soma_scalar_t interaction =
@@ -434,7 +470,10 @@ void add_pair_omega_fields_scmf1(const struct Phase *const p)
             for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
                 {
 #pragma acc parallel loop present(p[:1])
+#pragma omp target teams loop map(present,alloc:p[:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
                     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
                         {
                             const soma_scalar_t normT = inverse_refbeads * p->xn[T_types * p->n_types + S_types];
@@ -461,3 +500,5 @@ void update_omega_fields_scmf1(const struct Phase *const p)
     self_omega_field(p);
     add_pair_omega_fields_scmf1(p);
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup mesh.c

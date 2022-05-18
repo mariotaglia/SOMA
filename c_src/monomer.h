@@ -62,3 +62,5 @@ inline Monomer make_monomer(const soma_scalar_t x, const soma_scalar_t y, const 
 #endif                          //MONOMER_H
 
 // Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup -overwrite-input monomer.h
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup monomer.h

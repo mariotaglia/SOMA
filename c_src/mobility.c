@@ -164,9 +164,12 @@ int copyin_mobility(struct Phase *p)
 {
 #ifdef _OPENACC
 #pragma acc enter data copyin(p->mobility.poly_type_mc_freq[0:p->n_poly_type])
+#pragma omp target enter data\
+            map(to:p->mobility.poly_type_mc_freq[0:p->n_poly_type])
     if (p->mobility.type != DEFAULT_MOBILITY)
         {
 #pragma acc enter data copyin(p->mobility.param[0:p->mobility.param_len])
+#pragma omp target enter data map(to:p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
     return p->n_poly_type * 0;
@@ -176,9 +179,12 @@ int copyout_mobility(struct Phase *p)
 {
 #ifdef _OPENACC
 #pragma acc exit data copyout(p->mobility.poly_type_mc_freq[0:p->n_poly_type])
+#pragma omp target exit data\
+            map(from:p->mobility.poly_type_mc_freq[0:p->n_poly_type])
     if (p->mobility.type != DEFAULT_MOBILITY)
         {
 #pragma acc exit data copyout(p->mobility.param[0:p->mobility.param_len])
+#pragma omp target exit data map(from:p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
     return p->n_poly_type * 0;
@@ -188,9 +194,11 @@ int update_self_mobility(const struct Phase *const p)
 {
 #ifdef _OPENACC
 #pragma acc update self(p->mobility.poly_type_mc_freq[0:p->n_poly_type])
+#pragma omp target update from(p->mobility.poly_type_mc_freq[0:p->n_poly_type])
     if (p->mobility.type != DEFAULT_MOBILITY)
         {
 #pragma acc update self(p->mobility.param[0:p->mobility.param_len])
+#pragma omp target update from(p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
     return p->n_poly_type * 0;
@@ -256,3 +264,5 @@ soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned 
 
     return 1;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup mobility.c

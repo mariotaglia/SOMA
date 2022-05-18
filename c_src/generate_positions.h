@@ -43,3 +43,5 @@ int generate_new_beads(struct Phase *const p);
 int generate_monomer_type_array(struct Phase *const p);
 
 #endif                          //GENERATE_POSITIONS_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup generate_positions.h

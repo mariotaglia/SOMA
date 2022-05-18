@@ -240,3 +240,5 @@ int consider_compact_polymer_heavy(struct Phase *p, const bool collective)
 
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup poly_heavy.c

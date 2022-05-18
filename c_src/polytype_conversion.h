@@ -103,3 +103,5 @@ int fully_convert_polytypes(struct Phase *p);
 */
 int partially_convert_polytypes(struct Phase *p);
 #endif                          //SOMA_POLYTYPE_CONVERSION_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup polytype_conversion.h

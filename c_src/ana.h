@@ -158,3 +158,5 @@ int extent_structure(const struct Phase *p, const soma_scalar_t * const data, co
                      const hid_t file_id, const enum structure_factor_type sf_type);
 
 #endif                          //SOMA_ANA_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup ana.h

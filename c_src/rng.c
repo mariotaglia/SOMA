@@ -226,3 +226,5 @@ int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const
 }
 
 // Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup -overwrite-input rng.c
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup rng.c

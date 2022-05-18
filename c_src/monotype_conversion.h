@@ -111,3 +111,5 @@ int partially_convert_monotypes(struct Phase *p);
 */
 int perform_semi_gc_conversions(struct Phase *p);
 #endif                          //SOMA_MONOTYPE_CONVERSION_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup monotype_conversion.h

@@ -95,3 +95,5 @@ int update_self_polymer_heavy(struct Phase *const p, const bool rng_flag);
 */
 int consider_compact_polymer_heavy(struct Phase *p, const bool collective);
 #endif                          // POLYMER_HEAVY_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup poly_heavy.h

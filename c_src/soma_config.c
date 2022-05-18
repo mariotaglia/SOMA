@@ -30,3 +30,5 @@ const char *get_soma_system_info(void)
 {
     return soma_system_info;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup soma_config.c

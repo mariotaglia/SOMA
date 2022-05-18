@@ -289,3 +289,5 @@ int test_poly_conversion(struct Phase *const p)
         printf("INFO: At t = %d polytype conversion test passed.\n", p->time);
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup test.c

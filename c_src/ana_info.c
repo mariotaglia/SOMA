@@ -213,6 +213,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
                             __FILE__, __LINE__);
                 }
 #pragma acc update device(p->ana_info)
+#pragma omp target update to(p->ana_info)
         }
 
     //Check or add the additional attributes for the density fields
@@ -222,6 +223,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             const unsigned int tmd_delta_mc = p->ana_info.delta_mc_density_field;
             p->ana_info.delta_mc_density_field = 0;
 #pragma acc update device(p->ana_info)
+#pragma omp target update to(p->ana_info)
             const hsize_t three = 3;
             const hsize_t one = 1;
 
@@ -392,6 +394,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             const unsigned int tmd_delta_mc_string = p->ana_info.delta_mc_umbrella_field;
             p->ana_info.delta_mc_umbrella_field = 0;
 #pragma acc update device(p->ana_info)
+#pragma omp target update to(p->ana_info)
             const hsize_t three = 3;
             const hsize_t one = 1;
 
@@ -883,6 +886,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 #endif                          //ENABLE_MPI
 
 #pragma acc update device(p->ana_info)
+#pragma omp target update to(p->ana_info)
     return 0;
 }
 
@@ -909,3 +913,5 @@ int close_ana(struct Ana_Info *const a)
 
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup ana_info.c

@@ -141,3 +141,5 @@ int restart_autotuner(Autotuner * a)
 {
     return init_autotuner(a);
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup autotuner.c

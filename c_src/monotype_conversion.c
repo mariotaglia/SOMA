@@ -490,15 +490,26 @@ int copyin_mono_conversion(struct Phase *p)
 #ifdef _OPENACC
             //The pc struct itself is part of the phase struct and is already present of the device
 #pragma acc enter data copyin(p->mtc.array[0:p->n_cells_local])
+#pragma omp target enter data map(to:p->mtc.array[0:p->n_cells_local])
 #pragma acc enter data copyin(p->mtc.input_type[0:p->mtc.len_reactions])
+#pragma omp target enter data map(to:p->mtc.input_type[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.output_type[0:p->mtc.len_reactions])
+#pragma omp target enter data map(to:p->mtc.output_type[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.reaction_end[0:p->mtc.len_reactions])
+#pragma omp target enter data map(to:p->mtc.reaction_end[0:p->mtc.len_reactions])
             if (p->mtc.rate != NULL)
                 {
 #pragma acc enter data copyin(p->mtc.rate[0:p->mtc.len_reactions])
+#pragma omp target enter data map(to:p->mtc.rate[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.dependency_ntype[0:p->mtc.len_reactions])
+#pragma omp target enter data\
+            map(to:p->mtc.dependency_ntype[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.dependency_type_offset[0:p->mtc.len_reactions])
+#pragma omp target enter data\
+            map(to:p->mtc.dependency_type_offset[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.dependency_type[0:p->mtc.len_dependencies])
+#pragma omp target enter data\
+            map(to:p->mtc.dependency_type[0:p->mtc.len_dependencies])
                 }
 #endif                          //_OPENACC
         }
@@ -514,15 +525,26 @@ int copyout_mono_conversion(struct Phase *p)
         {
 #ifdef _OPENACC
 #pragma acc exit data copyout(p->mtc.array[0:p->n_cells_local])
+#pragma omp target exit data map(from:p->mtc.array[0:p->n_cells_local])
 #pragma acc exit data copyout(p->mtc.input_type[0:p->mtc.len_reactions])
+#pragma omp target exit data map(from:p->mtc.input_type[0:p->mtc.len_reactions])
 #pragma acc exit data copyout(p->mtc.output_type[0:p->mtc.len_reactions])
+#pragma omp target exit data map(from:p->mtc.output_type[0:p->mtc.len_reactions])
 #pragma acc exit data copyout(p->mtc.reaction_end[0:p->mtc.len_reactions])
+#pragma omp target exit data map(from:p->mtc.reaction_end[0:p->mtc.len_reactions])
             if (p->mtc.rate != NULL)
                 {
 #pragma acc exit data copyout(p->mtc.rate[0:p->mtc.len_reactions])
+#pragma omp target exit data map(from:p->mtc.rate[0:p->mtc.len_reactions])
 #pragma acc exit data copyout(p->mtc.dependency_ntype[0:p->mtc.len_reactions])
+#pragma omp target exit data\
+            map(from:p->mtc.dependency_ntype[0:p->mtc.len_reactions])
 #pragma acc exit data copyout(p->mtc.dependency_type_offset[0:p->mtc.len_reactions])
+#pragma omp target exit data\
+            map(from:p->mtc.dependency_type_offset[0:p->mtc.len_reactions])
 #pragma acc exit data copyout(p->mtc.dependency_type[0:p->mtc.len_dependencies])
+#pragma omp target exit data\
+            map(from:p->mtc.dependency_type[0:p->mtc.len_dependencies])
                 }
 #endif                          //_OPENACC
         }
@@ -538,15 +560,24 @@ int update_self_mono_conversion(const struct Phase *const p)
         {
 #ifdef _OPENACC
 #pragma acc update self(p->mtc.array[0:p->n_cells_local])
+#pragma omp target update from(p->mtc.array[0:p->n_cells_local])
 #pragma acc update self(p->mtc.input_type[0:p->mtc.len_reactions])
+#pragma omp target update from(p->mtc.input_type[0:p->mtc.len_reactions])
 #pragma acc update self(p->mtc.output_type[0:p->mtc.len_reactions])
+#pragma omp target update from(p->mtc.output_type[0:p->mtc.len_reactions])
 #pragma acc update self(p->mtc.reaction_end[0:p->mtc.len_reactions])
+#pragma omp target update from(p->mtc.reaction_end[0:p->mtc.len_reactions])
             if (p->mtc.rate != NULL)
                 {
 #pragma acc update self(p->mtc.rate[0:p->mtc.len_reactions])
+#pragma omp target update from(p->mtc.rate[0:p->mtc.len_reactions])
 #pragma acc update self(p->mtc.dependency_ntype[0:p->mtc.len_reactions])
+#pragma omp target update from(p->mtc.dependency_ntype[0:p->mtc.len_reactions])
 #pragma acc update self(p->mtc.dependency_type_offset[0:p->mtc.len_reactions])
+#pragma omp target update\
+            from(p->mtc.dependency_type_offset[0:p->mtc.len_reactions])
 #pragma acc update self(p->mtc.dependency_type[0:p->mtc.len_dependencies])
+#pragma omp target update from(p->mtc.dependency_type[0:p->mtc.len_dependencies])
                 }
 #endif                          //_OPENACC
         }
@@ -600,7 +631,10 @@ int fully_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const Polymer *polymer = p->polymers + poly;
@@ -647,7 +681,10 @@ int partially_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             //iteration over polymer 
@@ -656,6 +693,7 @@ int partially_convert_monotypes(struct Phase *p)
             const unsigned int block_size = p->mtc.block_size;
             // potentially tell acc not to parallelize this, because random number generator of polymers.
 #pragma acc loop seq
+#pragma omp loop
             for (unsigned int mono = 0; mono < N; mono += block_size)
                 {               //iteration over blocks
                     Monomer block_pos = make_monomer(0., 0., 0.);
@@ -720,3 +758,5 @@ int partially_convert_monotypes(struct Phase *p)
 #endif                          //ENABLE_MONOTYPE_CONVERSIONS
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup monotype_conversion.c

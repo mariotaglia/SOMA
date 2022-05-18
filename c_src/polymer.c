@@ -371,6 +371,7 @@ int update_polymer_rcm(struct Phase *const p)
     const unsigned int n_polymers = p->n_polymers;
 
 #pragma acc parallel loop present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
     for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
         {
             Polymer *const mypoly = &(p->polymers[npoly]);
@@ -392,3 +393,5 @@ int update_polymer_rcm(struct Phase *const p)
         }
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup polymer.c

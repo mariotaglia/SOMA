@@ -103,3 +103,5 @@ int read_hdf5(const hid_t file_id, const char *const name, const hid_t mem_type,
               void *const data);
 
 #endif                          //SOMA_IO_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup io.h

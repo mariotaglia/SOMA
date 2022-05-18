@@ -100,3 +100,5 @@ int update_self_soma_memory(struct SomaMemory *state);
 int reallocate_soma_memory(struct SomaMemory *state, const uint64_t min_increase);
 
 #endif                          //SOMA_MEMORY_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup soma_memory.h

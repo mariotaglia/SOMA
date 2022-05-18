@@ -219,3 +219,5 @@ int send_domain_chains(struct Phase *const p, const bool init);
 #endif                          //ENABLE_MPI
 
 #endif                          /*SOMA_MPIROUTINES_H */
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup mpiroutines.h

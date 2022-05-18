@@ -469,20 +469,30 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
     int error_flags[1] = { 0 }; //error_flags[0] indicates error in memory access.
     //allocate on device
 #pragma acc enter data copyin(monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ])
+#pragma omp target enter data\
+            m\
+            a\
+            p(to:monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)])
 #pragma acc enter data copyin(error_flags[0:1])
+#pragma omp target enter data map(to:error_flags[0:1])
 
     //go through monomer types for all polymers because otherwise one needs to allocate a chain_counter array of length n_types and privatize it in the acc loop.i
     for (unsigned int i = 0; i < p->n_types; i++)
         {
             //loop over polymers on device to count
 #pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ])
+#pragma omp target teams loop map(present,alloc:p[0:1],\
+            monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
             for (uint64_t poly = 0; poly < p->n_polymers; poly++)
                 {
                     if (p->polymers[poly].type == p->ana_info.mtf_tested_type)
                         {
                             unsigned int chain_counter = 0;
 #pragma acc loop seq
+#pragma omp loop
                             for (unsigned int mono = 0; mono < p->ana_info.mtf_tested_type_N; mono++)
                                 {
                                     unsigned int monotype = get_particle_type(p, poly, mono);
@@ -492,7 +502,10 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
                             if (chain_counter <= p->ana_info.mtf_tested_type_N)
                                 {
 #pragma acc atomic update
+#pragma omp atomic update
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp atomic
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
                                     monomer_type_count[i * (p->ana_info.mtf_tested_type_N + 1) + chain_counter] += 1;
                                 }
                             else
@@ -503,6 +516,7 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
                 }
         }
 #pragma acc exit data copyout(error_flags[0:1])
+#pragma omp target exit data map(from:error_flags[0:1])
     if (error_flags[0] < 0)
         {
             fprintf(stderr, "ERROR: chain_counter is too high, perhaps privatization fails? %s: %d \n", __FILE__,
@@ -511,6 +525,12 @@ void count_monomer_type_fraction(struct Phase *const p, soma_scalar_t * const mo
 
     //copyout the counter
 #pragma acc exit data copyout(monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1)])
+#pragma omp target exit data\
+            m\
+            a\
+            p\
+            (\
+            from:monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)])
     //compute ratio to all polymers
     for (unsigned int i = 0; i < p->n_types * (p->ana_info.mtf_tested_type_N + 1); i++)
         monomer_type_fraction[i] = monomer_type_count[i] / (soma_scalar_t) p->n_polymers_global;
@@ -962,7 +982,10 @@ int analytics(struct Phase *const p)
                     return -2;
                 }
 #pragma acc update self(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update\
+            from(p->omega_field_unified[0:p->n_cells_local*p->n_types])
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update from(p->fields_unified[0:p->n_cells_local*p->n_types])
             calc_non_bonded_energy(p, nb_energy);
             if (p->info_MPI.sim_rank == 0)
                 extent_ana_by_field(nb_energy, p->n_types, "/non_bonded_energy", p->ana_info.file_id);
@@ -995,9 +1018,11 @@ int analytics(struct Phase *const p)
             if (p->info_MPI.sim_size == 1)
                 {
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
+#pragma omp target update from(p->fields_unified[0:p->n_cells*p->n_types])
                 }
 #ifdef ENABLE_MPI_CUDA
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update from(p->fields_unified[0:p->n_cells_local*p->n_types])
 #endif                          //ENABLE_MPI_CUDA
             //Collective IO, not yet.
             extent_density_field(p, p->fields_unified, "/density_field", H5T_NATIVE_UINT16, MPI_UINT16_T,
@@ -1011,6 +1036,7 @@ int analytics(struct Phase *const p)
             if (p->info_MPI.sim_size == 1)
                 {
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
+#pragma omp target update from(p->fields_unified[0:p->n_cells*p->n_types])
                 }
             extent_density_field(p, p->umbrella_field, "/umbrella_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
@@ -1164,9 +1190,17 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
     memset(tmp, 0, n_random_q * p->n_polymers * q_size * p->n_types * p->n_types * sizeof(soma_scalar_t));
 
 #pragma acc enter data copyin(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
+#pragma omp target enter data\
+            map(to:result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],\
+            q_array[0:q_size])
 #pragma acc enter data copyin(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types]) async
+#pragma omp target enter data\
+            map(to:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 #pragma acc parallel loop vector_length(32) present(p[0:1]) async
+#pragma omp target teams loop map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const unsigned int poly_type = p->polymers[poly].type;
@@ -1180,10 +1214,12 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             //random q generation
 
 #pragma acc loop                //be careful, seq?
+#pragma omp loop
             for (unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++)
                 {
                     soma_scalar_t rng1, rng2;
 #pragma acc loop seq
+#pragma omp loop
                     for (unsigned int random_i = 0; random_i < index_random_q; random_i++)
                         {
                             rng1 = soma_rng_uint(s, p);
@@ -1197,6 +1233,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
                     soma_scalar_t unit_q_y = sin(phi) * sin(theta);
                     soma_scalar_t unit_q_z = cos(phi);
 #pragma acc loop seq
+#pragma omp loop
                     for (unsigned int mono = 0; mono < poly_length; mono++)
                         {
                             const unsigned int particle_type = get_particle_type(p, poly, mono);
@@ -1205,6 +1242,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
                             soma_scalar_t y = beads[mono].y;
                             soma_scalar_t z = beads[mono].z;
 #pragma acc loop seq
+#pragma omp loop
                             for (unsigned int index_q = 0; index_q < q_size; index_q++)
                                 {
                                     soma_scalar_t qr = q_array[index_q] * (unit_q_x * x + unit_q_y * y + unit_q_z * z);
@@ -1258,22 +1296,30 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             counter[poly_type]++;
         }
 #pragma acc wait
+#pragma omp taskwait
 #pragma acc parallel loop gang vector present(p[0:1])
+#pragma omp target teams loop map(present,alloc:p[0:1])
+#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
 #pragma omp parallel for
+#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const unsigned int poly_type = p->polymers[poly].type;
             unsigned int poly_length = p->poly_arch[p->poly_type_offset[poly_type]];
 #pragma acc loop seq
+#pragma omp loop
             for (unsigned int index_random_q = 0; index_random_q < n_random_q; index_random_q++)
                 {
 #pragma acc loop seq
+#pragma omp loop
                     for (unsigned int particle_type_i = 0; particle_type_i < p->n_types; particle_type_i++)
                         {
 #pragma acc loop seq
+#pragma omp loop
                             for (unsigned int particle_type_j = 0; particle_type_j < p->n_types; particle_type_j++)
                                 {
 #pragma acc loop seq
+#pragma omp loop
                                     for (unsigned int index_q = 0; index_q < q_size; index_q++)
                                         {
                                             switch (sf_type)
@@ -1340,7 +1386,12 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             return error;
         }
 #pragma acc exit data copyout(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
+#pragma omp target exit data\
+            map(from:result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],\
+            q_array[0:q_size])
 #pragma acc exit data copyout(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
+#pragma omp target exit data\
+            map(from:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
@@ -1457,3 +1508,5 @@ int extent_structure(const struct Phase *p, const soma_scalar_t * const data, co
     HDF5_ERROR_CHECK(status);
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup ana.c

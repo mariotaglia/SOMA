@@ -214,3 +214,5 @@ void update_omega_fields_scmf1(const struct Phase *const p);
 #endif                          //SOMA_MESH_H
 
 // Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup -overwrite-input mesh.h
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup mesh.h

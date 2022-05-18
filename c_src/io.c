@@ -1666,3 +1666,5 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps)
         }
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup io.c

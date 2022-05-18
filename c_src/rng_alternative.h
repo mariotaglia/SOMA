@@ -78,12 +78,16 @@ int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng);
 //!\param mt_rng is the struct which contains the internal state of the random number generator
 //!\return uint32
 #pragma acc routine(soma_mersenne_twister)
+#pragma omp declare target (soma_mersenne_twister)
 unsigned int soma_mersenne_twister(MERSENNE_TWISTER_STATE * mt_rng);
+#pragma omp end declare target
 //! Status function to get the max random number.
 //!
 //! \return Maximum generated rng by soma_mersenne_twister()
 #pragma acc routine(soma_rng_uint_mt)
+#pragma omp declare target (soma_rng_uint_mt)
 unsigned int soma_rng_uint_max_mt();
+#pragma omp end declare target
 
 //! Function initializes the internal state of thr reduced Mersenne-Twister TT800 with the PCG32
 //! \param rng  struct which contains all information about PCG32
@@ -95,6 +99,10 @@ int soma_seed_rng_tt800(PCG_STATE * rng, TT800STATE * mt_rng);
 //!\param mt_rng is the struct which contains the internal state of the random number generator
 //!\return uint32
 #pragma acc routine(soma_rng_tt800) seq
+#pragma omp declare target (soma_rng_tt800)
 unsigned int soma_rng_tt800(TT800STATE * mt_rng);
+#pragma omp end declare target
 
 #endif                          //SOMA_RNG_ALTERNATIVE_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup rng_alternative.h

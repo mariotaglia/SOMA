@@ -251,3 +251,5 @@ int main(int argc, char *argv[])
         printf("SOMA finished execution without errors.\n");
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup soma.c

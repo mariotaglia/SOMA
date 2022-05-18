@@ -87,3 +87,5 @@ unsigned int check_bond_members_of_set(unsigned int **bonds_total, int *bond_num
 int independent_sets_one_polymer(struct IndependetSets **const set_tmp_pointer, unsigned int n_poly,
                                  struct Phase *const p);
 #endif                          //INDEPENDENT_SETS_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup independent_sets.h

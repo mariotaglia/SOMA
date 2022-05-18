@@ -93,6 +93,10 @@ int free_mobility(struct Phase *p);
    \return modifier \f$ m(x,y,z) \in [0,1] \f$
 */
 #pragma acc routine(get_mobility_modifier) seq
+#pragma omp declare target (get_mobility_modifier)
 soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned int particle_type, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z);
+#pragma omp end declare target
 
 #endif                          //SOMA_MOBILITY_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup mobility.h

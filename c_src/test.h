@@ -62,3 +62,5 @@ int test_chains_in_domain(struct Phase *const p);
 //! \return Errorcode
 int test_poly_conversion(struct Phase *const p);
 #endif                          //SOMA_TEST_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup test.h

@@ -45,6 +45,7 @@ int soma_seed_rng_mt(PCG_STATE * rng, MERSENNE_TWISTER_STATE * mt_rng)
 }
 
 #pragma acc routine(soma_mersenne_twister) seq
+#pragma omp declare target (soma_mersenne_twister)
 unsigned int soma_mersenne_twister(MERSENNE_TWISTER_STATE * mt_rng) {
 
     unsigned int M = 397;
@@ -90,6 +91,7 @@ unsigned int soma_mersenne_twister(MERSENNE_TWISTER_STATE * mt_rng) {
 
     return e;
 }
+#pragma omp end declare target
 
 unsigned int soma_rng_uint_max_mt()
 {
@@ -111,6 +113,7 @@ int soma_seed_rng_tt800(PCG_STATE * rng, TT800STATE * tt800_rng)
 }
 
 #pragma acc routine(soma_tt800) seq
+#pragma omp declare target (soma_tt800)
 unsigned int soma_rng_tt800(TT800STATE * itt800_rng) {
 
     uint32_t M = 7;
@@ -152,3 +155,6 @@ unsigned int soma_rng_tt800(TT800STATE * itt800_rng) {
     e ^= (e >> 16);
     return e;
 }
+#pragma omp end declare target
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup rng_alternative.c

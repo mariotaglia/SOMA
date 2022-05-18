@@ -205,9 +205,11 @@ int collective_global_update(struct Phase *const p)
     // Global number of polymers
     MPI_Allreduce(&(p->n_polymers), &(p->n_polymers_global), 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->n_polymers_global)
+#pragma omp target update to(p->n_polymers_global)
     // Total number of beads
     MPI_Allreduce(&(p->num_all_beads_local), &(p->num_all_beads), 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
 #pragma acc update device(p->num_all_beads)
+#pragma omp target update to(p->num_all_beads)
 
     update_density_fields(p);
     return 0;
@@ -878,3 +880,5 @@ unsigned int get_domain_id(const struct Phase *const p, const Monomer * const rc
 }
 
 #endif                          //ENABLE_MPI
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup mpiroutines.c

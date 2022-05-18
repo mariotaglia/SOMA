@@ -323,3 +323,5 @@ int free_phase(struct Phase *const p);
 int mc_set_init(struct Phase *const p);
 
 #endif                          //PHASE_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup phase.h

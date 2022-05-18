@@ -109,6 +109,7 @@ int copyin_soma_memory(struct SomaMemory *state)
             assert(state->ptr != NULL);
             assert(state->typelength > 0);
 #pragma acc enter data copyin(state->ptr[0:state->length*state->typelength])
+#pragma omp target enter data map(to:state->ptr[0:state->length*state->typelength])
             state->device_present = true;
         }
     return 0;
@@ -122,6 +123,7 @@ int copyout_soma_memory(struct SomaMemory *state)
             assert(state->ptr != NULL);
             assert(state->typelength > 0);
 #pragma acc exit data copyout(state->ptr[0:state->length*state->typelength])
+#pragma omp target exit data map(from:state->ptr[0:state->length*state->typelength])
             state->device_present = false;
         }
     return 0;
@@ -135,6 +137,7 @@ int update_self_soma_memory(struct SomaMemory *state)
             assert(state->ptr != NULL);
             assert(state->typelength > 0);
 #pragma acc update self(state->ptr[0:state->used*state->typelength])
+#pragma omp target update from(state->ptr[0:state->used*state->typelength])
         }
     return 0;
 }
@@ -147,6 +150,7 @@ int update_device_soma_memory(struct SomaMemory *state)
             assert(state->ptr != NULL);
             assert(state->typelength > 0);
 #pragma acc update device(state->ptr[0:state->used*state->typelength])
+#pragma omp target update to(state->ptr[0:state->used*state->typelength])
         }
     return 0;                   //Silence compiler warning
 }
@@ -164,3 +168,5 @@ uint64_t get_new_soma_memory_offset(struct SomaMemory *state, const uint64_t n)
     state->used += n;
     return state->used - n;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup soma_memory.c

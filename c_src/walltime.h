@@ -26,3 +26,5 @@
 int check_walltime_stop(void);
 
 #endif
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup walltime.h

@@ -68,3 +68,5 @@ int free_self_documentation(SelfDocumentation * sd);
 int print_self_documentation(SelfDocumentation * sd, FILE * f);
 
 #endif                          //SELF_DOCUMENTATION_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup self_documentation.h
