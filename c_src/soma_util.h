@@ -165,7 +165,7 @@ int reseed(struct Phase *const p, const unsigned int seed);
 //! Macro to check and return error code if malloc failed.
 #define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %lu\n", __FILE__, __LINE__, (uint64_t) (size)); return -1;}
 #pragma acc routine(calc_bond_length) seq
-#pragma omp declare target (calc_bond_length)
+#pragma omp declare target 
 static inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,const int mic);
 #pragma omp end declare target
 inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,const int mic){

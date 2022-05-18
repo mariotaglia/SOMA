@@ -49,7 +49,7 @@ hid_t get_monomer_filetype(void);
 //! \return newly constructed monomer
 static inline Monomer make_monomer(const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z);
 #pragma acc routine(make_monomer) seq
-#pragma omp declare target (make_monomer)
+#pragma omp declare target
 inline Monomer make_monomer(const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z){
     Monomer ret;
     ret.x = x;
