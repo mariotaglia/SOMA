@@ -91,8 +91,7 @@ soma_scalar_t soma_rng_soma_scalar(RNG_STATE * rng, const struct Phase *const p)
 //! \param z coordinate of the vector
 //! \pre rng has been seeded
 #pragma acc routine(soma_normal_vector) seq
-void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scalar_t * x,
-                        soma_scalar_t * y, soma_scalar_t * z);
+void soma_normal_vector(RNG_STATE * rng, const struct Phase *const p, soma_scalar_t * x,soma_scalar_t * y, soma_scalar_t * z);
 //! Function to advances the PCG32 by 1 step and returns a random number
 //!
 //! \param rng PCG32 state to advance
@@ -135,7 +134,6 @@ int deserialize_rng_state(struct Phase *const p, RNG_STATE * const state, const 
 //! \param stream PCG32 is streamable for the many independent RNGs
 //! \param p Phase the system belongs to
 //! \return Errorcode
-int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,
-                   const struct Phase *const p);
+int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const unsigned int stream,const struct Phase *const p);
 
 #endif                          //SOMA_RNG_H

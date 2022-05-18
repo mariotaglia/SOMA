@@ -57,7 +57,9 @@ enum MobilityEnum {
 //! \returns Bond type in a bond list part.
 //! \warning Call only for bond list part of poly_arch.
 #pragma acc routine seq
+#pragma omp declare target
 unsigned int get_bond_type(const uint32_t info);
+#pragma omp end declare target
 
 //!  Function to extract the offset you apply to your Monomer to get the bonded neigbour.
 //!
@@ -67,14 +69,18 @@ unsigned int get_bond_type(const uint32_t info);
 //! \note We use here in32_t instead uint32_t, because for signed
 //! values, we need to set shift correct.
 #pragma acc routine seq
+#pragma omp declare target
 int get_offset(const int32_t info);
+#pragma omp end declare target
 //! Function to extract the end flag of a poly_arch element.
 //!
 //! \param info poly_arch element.
 //! \returns End flag of the bond list. Stop iteration over the bond list, if it is non zero.
 //! \warning Call only for bond list part of poly_arch.
 #pragma acc routine seq
+#pragma omp declare target
 unsigned int get_end(const uint32_t info);
+#pragma omp end declare target
 //! Function to compose a poly_arch element in the bond list region
 //!
 //! \param offset Offset to the next neighbor.
@@ -82,14 +88,18 @@ unsigned int get_end(const uint32_t info);
 //! \param end Singal end of bond list.
 //! \returns Element for a poly_arch bond list region.
 #pragma acc routine seq
+#pragma omp declare target
 uint32_t get_info(const int offset, const unsigned int bond_type, const unsigned int end);
+#pragma omp end declare target
 //! Get the offset for the poly_arch array to start the bond list iteration.
 //!
 //! \param info_bl poly_arch element in the Monomer region.
 //! \return Offset to start the bond list iteration.
 //! \warning Call only for Monomer region of poly_arch.
 #pragma acc routine seq
+#pragma omp declare target
 int get_bondlist_offset(const int32_t info_bl);
+#pragma omp end declare target
 //! Get particle type from a poly_arch element or the  Monomer type polymer heavy struct, depending on where it is stored.
 //!
 //! \param p Phase
@@ -97,21 +107,27 @@ int get_bondlist_offset(const int32_t info_bl);
 //! \param j monomer index
 //! \return Particle type of the monomer.
 #pragma acc routine seq
+#pragma omp declare target
 unsigned int get_particle_type(const struct Phase *const p, const uint64_t i, const unsigned int j);
+#pragma omp end declare target
 //! Get particle type from a poly_arch element or the  Monomer region.
 //!
 //! \param info_bl poly_arch element in the Monomer region.
 //! \return Particle type of the monomer.
 //! \warning Call only for Monomer region of poly_arch.
 #pragma acc routine seq
+#pragma omp declare target
 unsigned int get_particle_type_of_poly_arch(const uint32_t info_bl);
+#pragma omp end declare target
 //! Compose poly_arch element for the
 //!
 //! \param offset_bl Offset to bondlist to set.
 //! \param type Partile type to set.
 //! \return Element for poly_arch of the Monomer region.
 #pragma acc routine seq
+#pragma omp declare target
 uint32_t get_info_bl(const unsigned int offset_bl, const unsigned int type);
+#pragma omp end declare target
 
 //! \brief after argument parsing of SOMA, this function interpret contradictions and warnings for the user.
 //!
@@ -150,11 +166,10 @@ int reseed(struct Phase *const p, const unsigned int seed);
 //! Macro to check and return error code if malloc failed.
 #define MALLOC_ERROR_CHECK( ptr, size ) if( (ptr) == NULL){fprintf(stderr,"MALLOC-ERROR: %s:%d size = %lu\n", __FILE__, __LINE__, (uint64_t) (size)); return -1;}
 #pragma acc routine(calc_bond_length) seq
-static inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,
-                                             const int mic);
-inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,
-                                      const int mic)
-{
+#pragma omp declare target (calc_bond_length)
+static inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,const int mic);
+#pragma omp end declare target
+inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar_t x_j, const soma_scalar_t box,const int mic){
     soma_scalar_t r = x_i - x_j + 0 * mic * box;        // after "+" to shut up compiler warnings
 #if ( ENABLE_MIC == 1)
     if (mic)
@@ -171,3 +186,5 @@ inline soma_scalar_t calc_bond_length(const soma_scalar_t x_i, const soma_scalar
 }
 
 #endif                          //SOMA_UTIL_H
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup -overwrite-input soma_util.h
