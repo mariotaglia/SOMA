@@ -32,8 +32,8 @@
 #include "rng_alternative.h"
 
 #pragma acc routine(pcg32_random) seq
-uint32_t pcg32_random(PCG_STATE * rng)
-{
+#pragma omp declare target (pcg32_random)
+uint32_t pcg32_random(PCG_STATE * rng){
     const uint64_t old = rng->state;
     // Advance internal state
     rng->state = ((uint64_t) rng->state) * 0X5851F42D4C957F2DULL;
@@ -42,6 +42,7 @@ uint32_t pcg32_random(PCG_STATE * rng)
     const uint32_t rot = old >> 59u;
     return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
+#pragma omp end declare target
 
 int soma_seed_rng(PCG_STATE * rng, uint64_t seed, uint64_t stream)
 {
@@ -223,3 +224,5 @@ int seed_rng_state(struct RNG_STATE *const state, const unsigned int seed, const
         }                       //end switch
     return 0;
 }
+
+// Code was translated using: /p/project/training2215/tools/intel-acc-to-omp/src/intel-acc-to-omp -force-backup -overwrite-input rng.c
