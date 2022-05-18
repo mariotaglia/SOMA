@@ -59,8 +59,7 @@ int mc_polymer_iteration(struct Phase *const p, const unsigned int nsteps, const
 //! \param dz Output pointer to dz.
 //! \param rng_state State of the random number generator.
 #pragma acc routine(trial_move_cm) seq
-void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_t * const dx,
-                   soma_scalar_t * const dy, soma_scalar_t * const dz, RNG_STATE * const rng_state);
+void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_t * const dx, soma_scalar_t * const dy, soma_scalar_t * const dz, RNG_STATE * const rng_state);
 
 //! Calculate the nonbonded energy of a given particle compared to a proposed move.
 //!
@@ -72,9 +71,7 @@ void trial_move_cm(const struct Phase *p, const uint64_t poly_type, soma_scalar_
 //! \param iwtype Type of the particle to move.
 //! \return Calculated nonbonded energy difference. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_nonbonded_energy) seq
-soma_scalar_t calc_delta_nonbonded_energy(const struct Phase *p, const Monomer * const monomer,
-                                          const soma_scalar_t dx, const soma_scalar_t dy,
-                                          const soma_scalar_t dz, const unsigned int iwtype);
+soma_scalar_t calc_delta_nonbonded_energy(const struct Phase *p, const Monomer * const monomer, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz, const unsigned int iwtype);
 
 //! Monte-Carlo move: diffusion of the center of mass for entire molecules.
 //!
@@ -106,8 +103,7 @@ int mc_set_iteration(struct Phase *const p, const unsigned int nsteps, const uns
   \param rng_state State of the RNG.
 */
 #pragma acc routine(trial_move) seq
-void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy,
-                soma_scalar_t * dz, const unsigned int iwtype, RNG_STATE * const rng_state);
+void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, const unsigned int iwtype, RNG_STATE * const rng_state);
 
 //! Calculate the energy difference for a trial move.
 //!
@@ -121,9 +117,7 @@ void trial_move(const struct Phase *p, const uint64_t ipoly, const int ibead, so
 //! \param iwtype Type of the monomer.
 //! \return energy difference of proposed move. In case the of an error NAN is returned.
 #pragma acc routine(calc_delta_energy) seq
-soma_scalar_t calc_delta_energy(const struct Phase *p, const uint64_t ipoly, const Monomer * monomer,
-                                const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy,
-                                const soma_scalar_t dz, const unsigned int iwtype);
+soma_scalar_t calc_delta_energy(const struct Phase *p, const uint64_t ipoly, const Monomer * monomer, const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz, const unsigned int iwtype);
 
 //! Calculate the bonded energy difference using the NEW2 bond
 //! structure for a moved bead.
@@ -137,9 +131,7 @@ soma_scalar_t calc_delta_energy(const struct Phase *p, const uint64_t ipoly, con
 //! \param dz proposed z move
 //! \return bonded energy difference of proposed move
 #pragma acc routine(calc_delta_bonded_energy) seq
-soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * monomer,
-                                       const uint64_t ipoly, const unsigned int ibead,
-                                       const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz);
+soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * monomer, const uint64_t ipoly, const unsigned int ibead, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz);
 
 /*! \brief Calculation of the Metropolis acceptance criteria.
   Random number from rng.h -
@@ -152,8 +144,7 @@ soma_scalar_t calc_delta_bonded_energy(const struct Phase *p, const Monomer * mo
   \return true or false according to the Metropolis criteria
 */
 #pragma acc routine(som_accept) seq
-int som_accept(RNG_STATE * const rng, const struct Phase *const p, const soma_scalar_t delta_energy,
-               const soma_scalar_t modifier);
+int som_accept(RNG_STATE * const rng, const struct Phase *const p, const soma_scalar_t delta_energy, const soma_scalar_t modifier);
 
 /*! \brief Smart Monte-Carlo (SMC) move.  Calculate the displacement and the energy change from the forces.
 
@@ -173,16 +164,10 @@ int som_accept(RNG_STATE * const rng, const struct Phase *const p, const soma_sc
   (e.g. external fields) can be added in this function.
 */
 #pragma acc routine(trial_move_smc) seq
-void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead,
-                    soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz,
-                    soma_scalar_t * smc_deltaE, const Monomer * mybead,
-                    RNG_STATE * const myrngstate, const unsigned int iwtype);
+void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead, soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz, soma_scalar_t * smc_deltaE, const Monomer * mybead, RNG_STATE * const myrngstate, const unsigned int iwtype);
 
 #pragma acc routine(propose_smc_move) seq
-void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, const unsigned int iwtype,
-                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
-                      soma_scalar_t rx, soma_scalar_t ry, soma_scalar_t rz, soma_scalar_t * delta_E_bond,
-                      soma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz);
+void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, const unsigned int iwtype, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, soma_scalar_t rx, soma_scalar_t ry, soma_scalar_t rz, soma_scalar_t * delta_E_bond, soma_scalar_t rsoma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz);
 
 /*! \brief Calculate forces acting on a monomer resulting from all of its bonds.
   \param p Initialized configuration.
@@ -201,9 +186,7 @@ void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned cons
   the configuration to enable the computation of forces after and before the move with this same function.
 */
 #pragma acc routine(add_bond_forces) seq
-void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead,
-                     const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
-                     soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz);
+void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz);
 
 //! Validates, whether a move for a particle from the old position, by
 //! a displacement of dx violates the forbidden area51.
@@ -225,9 +208,7 @@ void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const
 //! edge to edge particle can and will pass through.
 //! \return True if move is allowed. False otherwise.
 #pragma acc routine(possible_move_area51) seq
-int possible_move_area51(const struct Phase *p, const soma_scalar_t oldx, const soma_scalar_t oldy,
-                         const soma_scalar_t oldz, const soma_scalar_t dx, const soma_scalar_t dy,
-                         const soma_scalar_t dz, const int nonexact);
+int possible_move_area51(const struct Phase *p, const soma_scalar_t oldx, const soma_scalar_t oldy, const soma_scalar_t oldz, const soma_scalar_t dx, const soma_scalar_t dy, const soma_scalar_t dz, const int nonexact);
 
 /*! \brief Set iteration function used for one long chain, private function
   \param p Initialized configuration.
@@ -237,8 +218,7 @@ int possible_move_area51(const struct Phase *p, const soma_scalar_t oldx, const 
   \param chain_i The index of the chain to be handled
   \return Error code. Returns either pgi error or domain error.
 */
-int set_iteration_single_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                               const int nonexact_area51, uint64_t chain_i);
+int set_iteration_single_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter, const int nonexact_area51, uint64_t chain_i);
 
 /*! \brief Set iteration function for all the chains starting from start_chain, private function
   \param p Initialized configuration.
@@ -248,8 +228,7 @@ int set_iteration_single_chain(struct Phase *const p, const unsigned int nsteps,
   \param start_chain the starting index of the chains to be handled with this function
   \return Error code. Returns either pgi error or domain error.
 */
-int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter,
-                              const int nonexact_area51, const int start_chain);
+int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, const unsigned int tuning_parameter, const int nonexact_area51, const int start_chain);
 
 /*! \brief Private function used together with set_iteration_multi_chain and set_iteration_single_chain
   \param p Initialized configuration
@@ -264,8 +243,5 @@ int set_iteration_multi_chain(struct Phase *const p, const unsigned int nsteps, 
   \return error_flags[0] indicating domain error
 */
 #pragma acc routine(set_iteration_possible_move) seq
-int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, Monomer * const beads,
-                                uint64_t chain_index, unsigned int iP, const int nonexact_area51,
-                                const unsigned int ibead, const unsigned int iwtype,
-                                unsigned int *accepted_moves_set_ptr);
+int set_iteration_possible_move(const struct Phase *p, RNG_STATE * const set_states, Monomer * const beads, uint64_t chain_index, unsigned int iP, const int nonexact_area51, const unsigned int ibead, const unsigned int iwtype, unsigned int *accepted_moves_set_ptr);
 #endif                          //SOMA_MC_H

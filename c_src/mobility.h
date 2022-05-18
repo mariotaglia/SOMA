@@ -93,7 +93,6 @@ int free_mobility(struct Phase *p);
    \return modifier \f$ m(x,y,z) \in [0,1] \f$
 */
 #pragma acc routine(get_mobility_modifier) seq
-soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned int particle_type,
-                                    const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z);
+soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned int particle_type, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z);
 
 #endif                          //SOMA_MOBILITY_H
