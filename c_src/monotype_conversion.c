@@ -638,7 +638,7 @@ int fully_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU
@@ -688,7 +688,7 @@ int partially_convert_monotypes(struct Phase *p)
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU

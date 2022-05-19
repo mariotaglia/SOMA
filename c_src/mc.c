@@ -251,7 +251,7 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
             unsigned int n_accepts = 0;
 //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
 #endif              //_OPENMP_CPU
@@ -370,7 +370,7 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
 
             //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
 #endif              //_OPENMP_CPU
@@ -497,7 +497,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
             unsigned int n_accepts = tuning_parameter;
             n_accepts = 0;
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
 #endif                  //_OPENMP_CPU
@@ -648,7 +648,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                     const unsigned int len = set_length[set_id];
 
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:accepted_moves_set)
 #endif                      //_OPENMP_CPU

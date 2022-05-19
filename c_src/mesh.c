@@ -168,7 +168,7 @@ void communicate_domain_decomposition(const struct Phase *const p)
                         //Add the recv values to main part
 #ifdef ENABLE_MPI_CUDA
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #endif                          //ENABLE_MPI_CUDA
                         for (unsigned int i = 0; i < ghost_buffer_size; i++)
                             {
@@ -228,7 +228,7 @@ int copy_density_32_to_16(const struct Phase *const p)
 {
     const uint64_t n_indices = p->n_types * p->n_cells_local;
 #pragma acc parallel loop independent present(p[0:1])
-#pragma omp target distribute parallel for order(concurrent) map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for order(concurrent) map(alloc:p[0:1])
     for (uint64_t index = 0; index < n_indices; index++)
         p->fields_unified[index] = p->fields_32[index];
     return 0;
@@ -249,7 +249,7 @@ int update_density_fields(const struct Phase *const p)
     const uint64_t n_indices = p->n_types * p->n_cells_local;
 
 #pragma acc parallel loop independent present(p[0:1])
-#pragma omp target distribute parallel for order(concurrent) map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for order(concurrent) map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU
@@ -258,7 +258,7 @@ int update_density_fields(const struct Phase *const p)
     const uint64_t n_polymers = p->n_polymers;
 
 #pragma acc parallel loop gang num_gangs(n_polymers) vector_length(128) present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU
@@ -312,7 +312,7 @@ int update_density_fields(const struct Phase *const p)
     /*Use first type to initialize the fields-> saves set zero routine */
     soma_scalar_t rescale_density = p->field_scaling_type[0];
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU
@@ -323,7 +323,7 @@ int update_density_fields(const struct Phase *const p)
         {
             rescale_density = p->field_scaling_type[T_types];
 #pragma acc parallel loop present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU
@@ -392,7 +392,7 @@ void self_omega_field(const struct Phase *const p)
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
         {
 #pragma acc parallel loop present(p[:1])
-#pragma omp target distribute parallel for map(alloc:p[:1])
+#pragma omp target teams distribute parallel for map(alloc:p[:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU
@@ -438,7 +438,7 @@ void add_pair_omega_fields_scmf0(const struct Phase *const p)
                     // precalculate the normalization for this type combination
                     soma_scalar_t dnorm = -0.5 * inverse_refbeads * p->xn[T_types * p->n_types + S_types];
 #pragma acc parallel loop present(p[:1])
-#pragma omp target distribute parallel for map(alloc:p[:1])
+#pragma omp target teams distribute parallel for map(alloc:p[:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU
@@ -471,7 +471,7 @@ void add_pair_omega_fields_scmf1(const struct Phase *const p)
             for (unsigned int S_types = T_types + 1; S_types < p->n_types; S_types++)
                 {
 #pragma acc parallel loop present(p[:1])
-#pragma omp target distribute parallel for map(alloc:p[:1])
+#pragma omp target teams distribute parallel for map(alloc:p[:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                   //_OPENMP_CPU

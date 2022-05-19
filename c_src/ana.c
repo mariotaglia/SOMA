@@ -478,7 +478,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /*         { */
 /*             //loop over polymers on device to count */
 /* #pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ]) */
-/* #pragma omp target distribute parallel for map(alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
+/* #pragma omp target teams distribute parallel for map(alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
 /* #ifdef _OPENMP_CPU*/
 /* 	  //#pragma omp parallel for */
 /* #endif //_OPENMP_CPU */
@@ -1185,7 +1185,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma acc enter data copyin(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types]) async
 #pragma omp target enter data map(to:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 #pragma acc parallel loop vector_length(32) present(p[0:1]) async
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                          //_OPENMP_CPU
@@ -1286,7 +1286,7 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma acc wait
 #pragma omp taskwait
 #pragma acc parallel loop gang vector present(p[0:1])
-#pragma omp target distribute parallel for map(alloc:p[0:1])
+#pragma omp target teams distribute parallel for map(alloc:p[0:1])
 #ifdef _OPENMP_CPU
 #pragma omp parallel for
 #endif                          //_OPENMP_CPU
