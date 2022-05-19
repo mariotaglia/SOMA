@@ -40,9 +40,9 @@
 #ifdef _OPENACC
 #include <openacc.h>
 #endif                          //_OPENACC
-#ifdef _OPENMP
+#if defined(_OPENMP_GPU) || defined(_OPENMP_CPU)
 #include <omp.h>
-#endif                          //_OPENMP
+#endif                          //_OPENMP_*PU
 #include <hdf5.h>
 #include "soma_config.h"
 #include "phase.h"

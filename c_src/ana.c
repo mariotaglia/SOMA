@@ -315,7 +315,7 @@ void calc_MSD(const struct Phase *p, soma_scalar_t * const result)
 void calc_acc_ratio(struct Phase *const p, soma_scalar_t * const acc_ratio)
 {
     // Acceptance ratio does not work with OpenACC builds.
-#ifdef _OPENACC
+#if defined(_OPENACC) || defined(_OPENMP_GPU)
     *acc_ratio = -1;
     return;
 #endif

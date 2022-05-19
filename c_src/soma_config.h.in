@@ -91,7 +91,15 @@ const char *get_soma_system_info(void);
 
 //Check for OMP or OPENACC usage
 #ifdef _OPENACC
-#ifdef _OPENMP
+#ifdef _OPENMP_GPU
 #error "You could either compile with OPENACC or OMP. Not with both."
-#endif                          //_OPENMP
+#endif                          //_OPENMP_GPU
+#ifdef _OPENMP_CPU
+#error "You could either compile with OPENACC or OMP. Not with both."
+#endif                          //_OPENMP_CPU
 #endif                          //_OPENACC
+#ifdef _OPENMP_GPU
+#ifdef _OPENMP_CPU
+#error "You could either compile with OPENMP_GPU or OPENMP_CPU. Not with both."
+#endif                          //_OPENMP_CPU
+#endif                          //_OPENMP_GPU

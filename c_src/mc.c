@@ -50,7 +50,9 @@ void trial_move_cm(const Phase * p, const uint64_t poly_type, soma_scalar_t * co
                    soma_scalar_t * const dz, RNG_STATE * const rng_state)
 {
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
     assert(p->cm_a);
+#endif                          //_OPENMP_GPU
 #endif                          //_OPENACC
     const soma_scalar_t scale = p->cm_a[poly_type];
 
@@ -171,14 +173,18 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
 
                         case STIFF:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
+#endif                          //_OPENMP_GPU
 #endif                          //_OPENACC
                             break;
 
                         default:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
+#endif                          //OPENMP_GPU
 #endif                          //OPENACC
                             break;
                         }
@@ -307,7 +313,9 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                             if (move_allowed && som_accept(myrngstate, p, delta_energy, pacc_modifier) == 1)
                                 {
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                                     n_accepts += 1;
+#endif                          //_OPENMP_GPU
 #endif                          //_OPENACC
 
 //#pragma acc loop vector
@@ -443,13 +451,17 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                             mybead_ptr->y = newy;
                                             mybead_ptr->z = newz;
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                                             accepted_moves_loc += 1;
+#endif                          //_OPENMP_GPU
 #endif                          //_OPENACC
                                         }
                                 }
                         }
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                     n_accepts += accepted_moves_loc;
+#endif                          //_OPENMP_GPU
 #endif                          //_OPENACC
                 }
 
@@ -545,17 +557,23 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                                 }
 
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             accepted_moves_poly += accepted_moves_set;
+#endif                          //_OPENACC
 #endif                          //_OPENACC
                         }
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                     n_accepts += accepted_moves_poly;
+#endif                          //_OPENACC
 #endif                          //_OPENACC
                 }
             //p->time += 1;
             p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
             p->n_accepts += n_accepts;
+#endif                          //_OPENACC
 #endif                          //_OPENACC
         }
     int ret = 0;
@@ -579,7 +597,9 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
     int error_flags[2] = { 0 }; // [0] domain error, [1] pgi_bug
 
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
     unsigned int accepted_moves_poly = 0;
+#endif                          //_OPENACC
 #endif                          //_OPENACC
 
     const unsigned int gpu_time = p->time;
@@ -643,15 +663,21 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                         }
 
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                     accepted_moves_poly += accepted_moves_set;
 #endif                          //_OPENACC
+#endif                          //_OPENMP_GPU
                 }
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
             n_accepts += accepted_moves_poly;
+#endif                          //_OPENMP_GPU
 #endif                          //_OPENACC
             p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
             p->n_accepts += n_accepts;
+#endif                          //_OPENMP_GPU
 #endif                          //_OPENACC
         }
     int ret = 0 * tuning_parameter;     //Shutup compiler warning
@@ -799,14 +825,18 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
 
                         case STIFF:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
+#endif                          //_OPENMP_GPU
 #endif                          //OPENACC
                             break;
 
                         default:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
+#endif                          //_OPENMP_GPU
 #endif                          //OPENACC
                             break;
                         }
@@ -859,14 +889,18 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
 
                         case STIFF:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
+#endif                          //OPENMP_GPU
 #endif                          //OPENACC
                             break;
 
                         default:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
+#endif                          //OPENMP_GPU
 #endif                          //OPENACC
                             break;
                         }
@@ -926,14 +960,18 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 
                         case STIFF:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
+#endif                          //OPENMP_GPU
 #endif                          //OPENACC
                             break;
 
                         default:
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
+#endif                          //OPENMP_GPU
 #endif                          //OPENACC
                             break;
                         }
@@ -1035,7 +1073,9 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, M
                     newx.z = mybead.z + dx.z;
                     beads[ibead] = newx;
 #ifndef _OPENACC
+#ifndef _OPENMP_GPU
                     accepted_moves_set += 1;
+#endif                          //OPENMP_GPU
 #endif                          //_OPENACC
                 }
         }
