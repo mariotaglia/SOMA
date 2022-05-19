@@ -478,7 +478,7 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /*         { */
 /*             //loop over polymers on device to count */
 /* #pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ]) */
-/* #pragma omp target distribute parallel for map(always,alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
+/* #pragma omp target distribute parallel for map(alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
 /* #ifdef _OPENMP_CPU*/
 /* 	  //#pragma omp parallel for */
 /* #endif //_OPENMP_CPU */

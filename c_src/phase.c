@@ -303,83 +303,100 @@ int copyin_phase(struct Phase *const p)
 
 #ifdef _OPENACC
 #pragma acc enter data copyin(p[0:1])
-#pragma omp target enter data map(to:p[0:1])
 #pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
-#pragma omp target enter data map(to:p->xn[0:p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
-#pragma omp target enter data map(to:p->polymers[0:p->n_polymers_storage])
 #pragma acc enter data copyin(p->fields_unified[0:(p->n_types*p->n_cells_local)])
-#pragma omp target enter data\
-            map(to:p->fields_unified[0:(p->n_types*p->n_cells_local)])
 #pragma acc enter data copyin(p->old_fields_unified[0:(p->n_types*p->n_cells_local)])
-#pragma omp target enter data\
-            map(to:p->old_fields_unified[0:(p->n_types*p->n_cells_local)])
 #pragma acc enter data copyin(p->fields_32[0:p->n_types*p->n_cells_local])
-#pragma omp target enter data map(to:p->fields_32[0:p->n_types*p->n_cells_local])
     if (p->area51 != NULL)
         {
 #pragma acc enter data copyin(p->area51[0:p->n_cells_local])
-#pragma omp target enter data map(to:p->area51[0:p->n_cells_local])
         }
 #pragma acc enter data copyin(p->omega_field_unified[0:p->n_cells_local*p->n_types])
-#pragma omp target enter data\
-            map(to:p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL)
         {
 #pragma acc enter data copyin(p->external_field_unified[0:p->n_cells_local*p->n_types])
-#pragma omp target enter data\
-            map(to:p->external_field_unified[0:p->n_cells_local*p->n_types])
         }
     if (p->umbrella_field != NULL)
         {
 #pragma acc enter data copyin(p->umbrella_field[0:p->n_cells_local*p->n_types])
-#pragma omp target enter data\
-            map(to:p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
-#pragma omp target enter data map(to:p->tempfield[0:p->n_cells_local])
 #pragma acc enter data copyin(p->A[0:p->n_types])
-#pragma omp target enter data map(to:p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
-#pragma omp target enter data map(to:p->R[0:p->n_types])
 #pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
-#pragma omp target enter data map(to:p->field_scaling_type[0:p->n_types])
 #pragma acc enter data copyin(p->k_umbrella[0:p->n_types])
-#pragma omp target enter data map(to:p->k_umbrella[0:p->n_types])
 #pragma acc enter data copyin(p->poly_type_offset[0:p->n_poly_type])
-#pragma omp target enter data map(to:p->poly_type_offset[0:p->n_poly_type])
 #pragma acc enter data copyin(p->poly_arch[0:p->poly_arch_length])
-#pragma omp target enter data map(to:p->poly_arch[0:p->poly_arch_length])
 
     if (p->cm_a != NULL)
         {
 #pragma acc enter data copyin(p->cm_a[0:p->n_poly_type])
-#pragma omp target enter data map(to:p->cm_a[0:p->n_poly_type])
         }
     if (p->sets != NULL)
         {
 #pragma acc enter data copyin(p->sets[0:p->n_poly_type])
-#pragma omp target enter data map(to:p->sets[0:p->n_poly_type])
             for (unsigned int i = 0; i < p->n_poly_type; i++)
                 {
 #pragma acc enter data copyin(p->sets[i].set_length[0:p->sets[i].n_sets])
-#pragma omp target enter data map(to:p->sets[i].set_length[0:p->sets[i].n_sets])
 #pragma acc enter data copyin(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
-#pragma omp target enter data\
-            map(to:p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
         }
 #ifdef ENABLE_MPI_CUDA
     //in this case also copy in the buffers:
 
 #pragma acc enter data copyin(p->left_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz) ])
-#pragma omp target enter data\
-            map(to:p->left_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
 #pragma acc enter data copyin(p->right_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
-#pragma omp target enter data\
-            map(to:p->right_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
 #endif                          //ENABLE_MPI_CUDA
 #endif                          //_OPENACC
+#ifdef _OPENMP_GPU
+#pragma omp target enter data map(to:p[0:1])
+#pragma omp target enter data map(to:p->xn[0:p->n_types*p->n_types])
+#pragma omp target enter data map(to:p->polymers[0:p->n_polymers_storage])
+#pragma omp target enter data map(to:p->fields_unified[0:(p->n_types*p->n_cells_local)])
+#pragma omp target enter data map(to:p->old_fields_unified[0:(p->n_types*p->n_cells_local)])
+#pragma omp target enter data map(to:p->fields_32[0:p->n_types*p->n_cells_local])
+    if (p->area51 != NULL)
+        {
+#pragma omp target enter data map(to:p->area51[0:p->n_cells_local])
+        }
+#pragma omp target enter data map(to:p->omega_field_unified[0:p->n_cells_local*p->n_types])
+    if (p->external_field_unified != NULL)
+        {
+#pragma omp target enter data map(to:p->external_field_unified[0:p->n_cells_local*p->n_types])
+        }
+    if (p->umbrella_field != NULL)
+        {
+#pragma omp target enter data map(to:p->umbrella_field[0:p->n_cells_local*p->n_types])
+        }
+#pragma omp target enter data map(to:p->tempfield[0:p->n_cells_local])
+#pragma omp target enter data map(to:p->A[0:p->n_types])
+#pragma omp target enter data map(to:p->R[0:p->n_types])
+#pragma omp target enter data map(to:p->field_scaling_type[0:p->n_types])
+#pragma omp target enter data map(to:p->k_umbrella[0:p->n_types])
+#pragma omp target enter data map(to:p->poly_type_offset[0:p->n_poly_type])
+#pragma omp target enter data map(to:p->poly_arch[0:p->poly_arch_length])
+
+    if (p->cm_a != NULL)
+        {
+#pragma omp target enter data map(to:p->cm_a[0:p->n_poly_type])
+        }
+    if (p->sets != NULL)
+        {
+#pragma omp target enter data map(to:p->sets[0:p->n_poly_type])
+            for (unsigned int i = 0; i < p->n_poly_type; i++)
+                {
+#pragma omp target enter data map(to:p->sets[i].set_length[0:p->sets[i].n_sets])
+#pragma omp target enter data map(to:p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
+                }
+        }
+#ifdef ENABLE_MPI_CUDA
+    //in this case also copy in the buffers:
+
+#pragma omp target enter data map(to:p->left_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
+#pragma omp target enter data map(to:p->right_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
+#endif                          //ENABLE_MPI_CUDA
+#endif                          //_OPENMP_GPU
 
     copyin_poly_conversion(p);
     copyin_mono_conversion(p);
@@ -413,83 +430,101 @@ int copyout_phase(struct Phase *const p)
 #ifdef _OPENACC
 
 #pragma acc exit data copyout(p->xn[0:p->n_types*p->n_types])
-#pragma omp target exit data map(from:p->xn[0:p->n_types*p->n_types])
 #pragma acc exit data copyout(p->fields_unified[0:p->n_types*p->n_cells_local])
-#pragma omp target exit data\
-            map(from:p->fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc exit data copyout(p->old_fields_unified[0:p->n_types*p->n_cells_local])
-#pragma omp target exit data\
-            map(from:p->old_fields_unified[0:p->n_types*p->n_cells_local])
 #pragma acc exit data copyout(p->fields_32[0:p->n_types*p->n_cells_local])
-#pragma omp target exit data map(from:p->fields_32[0:p->n_types*p->n_cells_local])
     if (p->area51 != NULL)
         {
 #pragma acc exit data copyout(p->area51[0:p->n_cells_local])
-#pragma omp target exit data map(from:p->area51[0:p->n_cells_local])
         }
 #pragma acc exit data copyout(p->omega_field_unified[0:p->n_cells_local*p->n_types])
-#pragma omp target exit data\
-            map(from:p->omega_field_unified[0:p->n_cells_local*p->n_types])
     if (p->external_field_unified != NULL)
         {
 #pragma acc exit data copyout(p->external_field_unified[0:p->n_cells_local*p->n_types])
-#pragma omp target exit data\
-            map(from:p->external_field_unified[0:p->n_cells_local*p->n_types])
         }
     if (p->umbrella_field != NULL)
         {
 #pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
-#pragma omp target exit data\
-            map(from:p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
 #pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
-#pragma omp target exit data map(from:p->tempfield[0:p->n_cells_local])
 #pragma acc exit data copyout(p->A[0:p->n_types])
-#pragma omp target exit data map(from:p->A[0:p->n_types])
 #pragma acc exit data copyout(p->R[0:p->n_types])
-#pragma omp target exit data map(from:p->R[0:p->n_types])
 #pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
-#pragma omp target exit data map(from:p->field_scaling_type[0:p->n_types])
 #pragma acc exit data copyout(p->k_umbrella[0:p->n_types])
-#pragma omp target exit data map(from:p->k_umbrella[0:p->n_types])
 #pragma acc exit data copyout(p->poly_type_offset[0:p->n_poly_type])
-#pragma omp target exit data map(from:p->poly_type_offset[0:p->n_poly_type])
 #pragma acc exit data copyout(p->poly_arch[0:p->poly_arch_length])
-#pragma omp target exit data map(from:p->poly_arch[0:p->poly_arch_length])
 
     if (p->cm_a != NULL)
         {
 #pragma acc exit data copyout(p->cm_a[0:p->n_poly_type])
-#pragma omp target exit data map(from:p->cm_a[0:p->n_poly_type])
         }
     if (p->sets != NULL)
         {
             for (unsigned int i = 0; i < p->n_poly_type; i++)
                 {
 #pragma acc exit data copyout(p->sets[i].set_length[0:p->sets[i].n_sets])
-#pragma omp target exit data map(from:p->sets[i].set_length[0:p->sets[i].n_sets])
 #pragma acc exit data copyout(p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
-#pragma omp target exit data\
-            map(from:p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
                 }
 #pragma acc exit data copyout(p->sets[0:p->n_poly_type])
-#pragma omp target exit data map(from:p->sets[0:p->n_poly_type])
         }
 #ifdef ENABLE_MPI_CUDA
 #pragma acc exit data copyout(p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
-#pragma omp target exit data\
-            map(from:p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
 #pragma acc exit data copyout(p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
-#pragma omp target exit data\
-            map(from:p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
 #endif                          //ENABLE_MPI_CUDA
 
 #pragma acc exit data copyout(p->polymers[0:p->n_polymers_storage])
-#pragma omp target exit data map(from:p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma acc exit data delete(p[0:1])
-#pragma omp target exit data map(delete:p[0:1])
 #endif                          //_OPENACC
+#ifdef _OPENMP_GPU
+
+#pragma omp target exit data map(from:p->xn[0:p->n_types*p->n_types])
+#pragma omp target exit data map(from:p->fields_unified[0:p->n_types*p->n_cells_local])
+#pragma omp target exit data map(from:p->old_fields_unified[0:p->n_types*p->n_cells_local])
+#pragma omp target exit data map(from:p->fields_32[0:p->n_types*p->n_cells_local])
+    if (p->area51 != NULL)
+        {
+#pragma omp target exit data map(from:p->area51[0:p->n_cells_local])
+        }
+#pragma omp target exit data map(from:p->omega_field_unified[0:p->n_cells_local*p->n_types])
+    if (p->external_field_unified != NULL)
+        {
+#pragma omp target exit data map(from:p->external_field_unified[0:p->n_cells_local*p->n_types])
+        }
+    if (p->umbrella_field != NULL)
+        {
+#pragma omp target exit data map(from:p->umbrella_field[0:p->n_cells_local*p->n_types])
+        }
+#pragma omp target exit data map(from:p->tempfield[0:p->n_cells_local])
+#pragma omp target exit data map(from:p->A[0:p->n_types])
+#pragma omp target exit data map(from:p->R[0:p->n_types])
+#pragma omp target exit data map(from:p->field_scaling_type[0:p->n_types])
+#pragma omp target exit data map(from:p->k_umbrella[0:p->n_types])
+#pragma omp target exit data map(from:p->poly_type_offset[0:p->n_poly_type])
+#pragma omp target exit data map(from:p->poly_arch[0:p->poly_arch_length])
+
+    if (p->cm_a != NULL)
+        {
+#pragma omp target exit data map(from:p->cm_a[0:p->n_poly_type])
+        }
+    if (p->sets != NULL)
+        {
+            for (unsigned int i = 0; i < p->n_poly_type; i++)
+                {
+#pragma omp target exit data map(from:p->sets[i].set_length[0:p->sets[i].n_sets])
+#pragma omp target exit data map(from:p->sets[i].sets[0:p->sets[i].n_sets*p->sets[i].max_member])
+                }
+#pragma omp target exit data map(from:p->sets[0:p->n_poly_type])
+        }
+#ifdef ENABLE_MPI_CUDA
+#pragma omp target exit data map(from:p->left_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#pragma omp target exit data map(from:p->right_tmp_buffer[0:p->args.domain_buffer_arg*p->ny*p->nz])
+#endif                          //ENABLE_MPI_CUDA
+
+#pragma omp target exit data map(from:p->polymers[0:p->n_polymers_storage])
+    //Use here the delete to not overwrite stuff, which only changed on CPU
+#pragma omp target exit data map(delete:p[0:1])
+#endif                          //_OPENMP_GPU
 
     copyout_poly_conversion(p);
     copyout_mono_conversion(p);
