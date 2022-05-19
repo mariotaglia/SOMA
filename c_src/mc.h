@@ -182,7 +182,7 @@ void trial_move_smc(const struct Phase *p, const uint64_t ipoly, const int ibead
 
 #pragma acc routine(propose_smc_move) seq
 #pragma omp declare target
-void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, const unsigned int iwtype, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, soma_scalar_t rx, soma_scalar_t ry, soma_scalar_t rz, soma_scalar_t * delta_E_bond, soma_scalar_t rsoma_scalar_t * dx, soma_scalar_t * dy, soma_scalar_t * dz);
+void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead, const unsigned int iwtype, const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, soma_scalar_t rx, soma_scalar_t ry, soma_scalar_t rz, soma_scalar_t * delta_E_bond, soma_scalar_t  * dx, soma_scalar_t * dy, soma_scalar_t * dz);
 #pragma omp end declare target
 
 /*! \brief Calculate forces acting on a monomer resulting from all of its bonds.
