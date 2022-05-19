@@ -244,7 +244,7 @@ if(ENABLE_OPENMP_CPU)
 endif(ENABLE_OPENMP_CPU)
 
 if(ENABLE_OPENMP_GPU)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS} -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx90a") #needed for amd-gpus
   set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} OpenMP_GPU")
 endif(ENABLE_OPENMP_GPU)
 
