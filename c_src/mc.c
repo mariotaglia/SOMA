@@ -246,7 +246,9 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
 //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
 #pragma omp target distribute parallel for map(always,alloc:p[0:1])
+#ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
+#endif              //_OPENMP_CPU
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
                     Polymer *mypoly = &p->polymers[npoly];
@@ -361,7 +363,9 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
             //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
 #pragma omp target distribute parallel for map(always,alloc:p[0:1])
+#ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
+#endif              //_OPENMP_CPU
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_loc = 0;
@@ -482,7 +486,9 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
             n_accepts = 0;
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
 #pragma omp target distribute parallel for map(always,alloc:p[0:1])
+#ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
+#endif                  //_OPENMP_CPU
             for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_poly = 0;
@@ -623,7 +629,9 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
 
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
 #pragma omp target distribute parallel for map(always,alloc:p[0:1])
+#ifdef _OPENMP_CPU
 #pragma omp parallel for reduction(+:accepted_moves_set)
+#endif                      //_OPENMP_CPU
                     for (unsigned int iP = 0; iP < len; iP++)
                         {
                             const unsigned int ibead = sets[set_id * max_member + iP];

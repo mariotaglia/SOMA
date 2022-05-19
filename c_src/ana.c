@@ -479,9 +479,9 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /*             //loop over polymers on device to count */
 /* #pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ]) */
 /* #pragma omp target distribute parallel for map(always,alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
-/* #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP) */
+/* #ifdef _OPENMP_CPU*/
 /* 	  //#pragma omp parallel for */
-/* #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP) */
+/* #endif //_OPENMP_CPU */
 /*             for (uint64_t poly = 0; poly < p->n_polymers; poly++) */
 /*                 { */
 /*                     if (p->polymers[poly].type == p->ana_info.mtf_tested_type) */
@@ -499,9 +499,9 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /* 			      { */
 /* #pragma acc atomic update */
 /* #pragma omp atomic update */
-/* #if defined(OPENACC2OPENMP_ORIGINAL_OPENMP) */
+/* #ifdef _OPENMP_CPU*/
 /* #pragma omp atomic */
-/* #endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP) */
+/* #endif //_OPENMP_CPU */
 /*                                     monomer_type_count[i * (p->ana_info.mtf_tested_type_N + 1) + chain_counter] += 1; */
 /*                                 } */
 /*                             else */
@@ -973,8 +973,7 @@ int analytics(struct Phase *const p)
                     return -2;
                 }
 #pragma acc update self(p->omega_field_unified[0:p->n_cells_local*p->n_types])
-#pragma omp target update\
-            from(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma omp target update from(p->omega_field_unified[0:p->n_cells_local*p->n_types])
 #pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
 #pragma omp target update from(p->fields_unified[0:p->n_cells_local*p->n_types])
             calc_non_bonded_energy(p, nb_energy);
@@ -1181,17 +1180,15 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
     memset(tmp, 0, n_random_q * p->n_polymers * q_size * p->n_types * p->n_types * sizeof(soma_scalar_t));
 
 #pragma acc enter data copyin(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
-#pragma omp target enter data\
-            map(to:result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],\
+#pragma omp target enter data map(to:result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],\
             q_array[0:q_size])
 #pragma acc enter data copyin(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types]) async
-#pragma omp target enter data\
-            map(to:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
+#pragma omp target enter data map(to:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 #pragma acc parallel loop vector_length(32) present(p[0:1]) async
-#pragma omp target distribute parallel for map(always,alloc:p[0:1])
-#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
+#pragma omp target distribute parallel for map(alloc:p[0:1])
+#ifdef _OPENMP_CPU
 #pragma omp parallel for
-#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
+#endif                          //_OPENMP_CPU
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const unsigned int poly_type = p->polymers[poly].type;
@@ -1289,10 +1286,10 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma acc wait
 #pragma omp taskwait
 #pragma acc parallel loop gang vector present(p[0:1])
-#pragma omp target distribute parallel for map(always,alloc:p[0:1])
-#if defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
+#pragma omp target distribute parallel for map(alloc:p[0:1])
+#ifdef _OPENMP_CPU
 #pragma omp parallel for
-#endif // defined(OPENACC2OPENMP_ORIGINAL_OPENMP)
+#endif                          //_OPENMP_CPU
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const unsigned int poly_type = p->polymers[poly].type;
@@ -1377,12 +1374,9 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
             return error;
         }
 #pragma acc exit data copyout(result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
-#pragma omp target exit data\
-            map(from:result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],\
-            q_array[0:q_size])
+#pragma omp target exit data map(from:result_tmp[0:n_random_q*p->n_polymers*result_tmp_size],q_array[0:q_size])
 #pragma acc exit data copyout(tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
-#pragma omp target exit data\
-            map(from:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
+#pragma omp target exit data map(from:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
