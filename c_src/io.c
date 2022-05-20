@@ -33,9 +33,9 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
-#if defined(_OPENMP_GPU) || defined(_OPENMP_CPU)
+#if defined(ENABLE_OPENMP_GPU) || defined(ENABLE_OPENMP_CPU)
 #include <omp.h>
-#endif                          //_OPENMP_GPU || _OPENMP_CPU
+#endif                          //ENABLE_OPENMP_GPU || ENABLE_OPENMP_CPU
 #include "mesh.h"
 #include "cmdline.h"
 #include "soma_config.h"

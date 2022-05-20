@@ -50,9 +50,9 @@ void trial_move_cm(const Phase * p, const uint64_t poly_type, soma_scalar_t * co
                    soma_scalar_t * const dz, RNG_STATE * const rng_state)
 {
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
     assert(p->cm_a);
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
     const soma_scalar_t scale = p->cm_a[poly_type];
 
@@ -173,15 +173,15 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
 
                         case STIFF:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
                             break;
 
                         default:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
 #endif                          //OPENMP_GPU
@@ -252,9 +252,9 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
 //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
-#endif              //_OPENMP_CPU
+#endif              //ENABLE_OPENMP_CPU
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
                     Polymer *mypoly = &p->polymers[npoly];
@@ -313,9 +313,9 @@ int mc_center_mass(Phase * const p, const unsigned int nsteps, const unsigned in
                             if (move_allowed && som_accept(myrngstate, p, delta_energy, pacc_modifier) == 1)
                                 {
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                                     n_accepts += 1;
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
 
 //#pragma acc loop vector
@@ -371,9 +371,9 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
             //#pragma acc parallel loop vector_length(tuning_parameter) reduction(+:n_accepts)
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1])
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
-#endif              //_OPENMP_CPU
+#endif              //ENABLE_OPENMP_CPU
             for (uint64_t npoly = 0; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_loc = 0;
@@ -451,17 +451,17 @@ int mc_polymer_iteration(Phase * const p, const unsigned int nsteps, const unsig
                                             mybead_ptr->y = newy;
                                             mybead_ptr->z = newz;
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                                             accepted_moves_loc += 1;
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
                                         }
                                 }
                         }
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                     n_accepts += accepted_moves_loc;
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
                 }
 
@@ -498,9 +498,9 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
             n_accepts = 0;
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for reduction(+:n_accepts)
-#endif                  //_OPENMP_CPU
+#endif                  //ENABLE_OPENMP_CPU
             for (uint64_t npoly = start_chain; npoly < n_polymers; npoly++)
                 {
                     unsigned int accepted_moves_poly = 0;
@@ -557,13 +557,13 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
                                 }
 
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             accepted_moves_poly += accepted_moves_set;
 #endif                          //_OPENACC
 #endif                          //_OPENACC
                         }
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                     n_accepts += accepted_moves_poly;
 #endif                          //_OPENACC
 #endif                          //_OPENACC
@@ -571,7 +571,7 @@ int set_iteration_multi_chain(Phase * const p, const unsigned int nsteps, const 
             //p->time += 1;
             p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
             p->n_accepts += n_accepts;
 #endif                          //_OPENACC
 #endif                          //_OPENACC
@@ -597,7 +597,7 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
     int error_flags[2] = { 0 }; // [0] domain error, [1] pgi_bug
 
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
     unsigned int accepted_moves_poly = 0;
 #endif                          //_OPENACC
 #endif                          //_OPENACC
@@ -649,9 +649,9 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
 
 #pragma acc parallel loop vector_length(tuning_parameter) present(p[0:1]) async
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for reduction(+:accepted_moves_set)
-#endif                      //_OPENMP_CPU
+#endif                      //ENABLE_OPENMP_CPU
                     for (unsigned int iP = 0; iP < len; iP++)
                         {
                             const unsigned int ibead = sets[set_id * max_member + iP];
@@ -663,21 +663,21 @@ int set_iteration_single_chain(Phase * const p, const unsigned int nsteps, const
                         }
 
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                     accepted_moves_poly += accepted_moves_set;
 #endif                          //_OPENACC
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
                 }
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
             n_accepts += accepted_moves_poly;
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
             p->n_moves += p->num_all_beads_local;
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
             p->n_accepts += n_accepts;
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
         }
     int ret = 0 * tuning_parameter;     //Shutup compiler warning
@@ -825,18 +825,18 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
 
                         case STIFF:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //OPENACC
                             break;
 
                         default:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //OPENACC
                             break;
                         }
@@ -889,7 +889,7 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
 
                         case STIFF:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
 #endif                          //OPENMP_GPU
 #endif                          //OPENACC
@@ -897,7 +897,7 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
 
                         default:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
 #endif                          //OPENMP_GPU
@@ -960,7 +960,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 
                         case STIFF:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d stiff bond not yet implemented.\n", __FILE__, __LINE__);
 #endif                          //OPENMP_GPU
 #endif                          //OPENACC
@@ -968,7 +968,7 @@ void add_bond_forces(const Phase * p, const uint64_t ipoly, unsigned const int i
 
                         default:
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                             fprintf(stderr, "ERROR: %s:%d unknow bond type appeared %d\n",
                                     __FILE__, __LINE__, bond_type);
 #endif                          //OPENMP_GPU
@@ -1073,7 +1073,7 @@ int set_iteration_possible_move(const Phase * p, RNG_STATE * const set_states, M
                     newx.z = mybead.z + dx.z;
                     beads[ibead] = newx;
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
                     accepted_moves_set += 1;
 #endif                          //OPENMP_GPU
 #endif                          //_OPENACC

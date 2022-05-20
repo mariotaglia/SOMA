@@ -315,7 +315,7 @@ void calc_MSD(const struct Phase *p, soma_scalar_t * const result)
 void calc_acc_ratio(struct Phase *const p, soma_scalar_t * const acc_ratio)
 {
     // Acceptance ratio does not work with OpenACC builds.
-#if defined(_OPENACC) || defined(_OPENMP_GPU)
+#if defined(_OPENACC) || defined(ENABLE_OPENMP_GPU)
     *acc_ratio = -1;
     return;
 #endif
@@ -479,9 +479,9 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /*             //loop over polymers on device to count */
 /* #pragma acc parallel loop present(p[0:1], monomer_type_count[0:p->n_types * (p->ana_info.mtf_tested_type_N + 1) ]) */
 /* #pragma omp target teams distribute parallel for map(alloc:p[0:1],monomer_type_count[0:p->n_types*(p->ana_info.mtf_tested_type_N+1)]) */
-/* #ifdef _OPENMP_CPU*/
+/* #ifdef ENABLE_OPENMP_CPU*/
 /* 	  //#pragma omp parallel for */
-/* #endif //_OPENMP_CPU */
+/* #endif //ENABLE_OPENMP_CPU */
 /*             for (uint64_t poly = 0; poly < p->n_polymers; poly++) */
 /*                 { */
 /*                     if (p->polymers[poly].type == p->ana_info.mtf_tested_type) */
@@ -499,9 +499,9 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
 /* 			      { */
 /* #pragma acc atomic update */
 /* #pragma omp atomic update */
-/* #ifdef _OPENMP_CPU*/
+/* #ifdef ENABLE_OPENMP_CPU*/
 /* #pragma omp atomic */
-/* #endif //_OPENMP_CPU */
+/* #endif //ENABLE_OPENMP_CPU */
 /*                                     monomer_type_count[i * (p->ana_info.mtf_tested_type_N + 1) + chain_counter] += 1; */
 /*                                 } */
 /*                             else */
@@ -1186,9 +1186,9 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma omp target enter data map(to:tmp[0:n_random_q*p->n_polymers*q_size*p->n_types*p->n_types])
 #pragma acc parallel loop vector_length(32) present(p[0:1]) async
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                          //_OPENMP_CPU
+#endif                          //ENABLE_OPENMP_CPU
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const unsigned int poly_type = p->polymers[poly].type;
@@ -1287,9 +1287,9 @@ int calc_structure(const struct Phase *p, soma_scalar_t * const result, const en
 #pragma omp taskwait
 #pragma acc parallel loop gang vector present(p[0:1])
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                          //_OPENMP_CPU
+#endif                          //ENABLE_OPENMP_CPU
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const unsigned int poly_type = p->polymers[poly].type;

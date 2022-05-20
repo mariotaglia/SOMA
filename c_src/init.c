@@ -40,9 +40,9 @@
 #ifdef _OPENACC
 #include <openacc.h>
 #endif                          //_OPENACC
-#if defined(_OPENMP_GPU) || defined(_OPENMP_CPU)
+#if defined(ENABLE_OPENMP_GPU) || defined(ENABLE_OPENMP_CPU)
 #include <omp.h>
-#endif                          //_OPENMP_*PU
+#endif                          //ENABLE_OPENMP_*PU
 #include <hdf5.h>
 #include "soma_config.h"
 #include "phase.h"
@@ -120,9 +120,9 @@ int set_openacc_devices(struct Phase *const p)
             return -1;
         }
 #else                           //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
     //soma initialization for openmp like openacc.
-#else                          //_OPENMP_GPU
+#else                          //ENABLE_OPENMP_GPU
     if ((p->args.only_gpu_given || (p->args.gpus_given && p->args.gpus_arg != 0)) && p->info_MPI.world_rank == 0)
         {
             fprintf(stderr, "WARNING: The command line arguments request a GPU use,"
@@ -131,7 +131,7 @@ int set_openacc_devices(struct Phase *const p)
                     "\t This simulation will run on the CPU.\n");
             ret += 1;
         }
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
     omp_set_dynamic(0);
     //Fallback option set OMP ranks to 1
     unsigned int nthreads = 1;
@@ -149,15 +149,15 @@ int set_openacc_devices(struct Phase *const p)
         }
     omp_set_num_threads(nthreads);
     printf("INFO: world rank %d runs %u CPU OMP threads.\n", p->info_MPI.world_rank, nthreads);
-#else                           //_OPENMP_CPU
+#else                           //ENABLE_OPENMP_CPU
     if (p->args.omp_threads_given && p->args.omp_threads_arg > 1)
         {
             fprintf(stderr,
                     "WARNING: world rank %d tried to use %d OMP threads, but the binary is compiled without OMP support.\n",
                     p->info_MPI.world_rank, p->args.omp_threads_arg);
         }
-#endif                          //_OPENMP_CPU
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_CPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
     return ret;
 }

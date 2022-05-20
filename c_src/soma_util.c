@@ -49,16 +49,16 @@ uint32_t get_info(const int offset, const unsigned int bond_type, const unsigned
     int ret = offset;
     ret <<= 3;
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
     assert(bond_type < 1 << 3);
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
     ret |= bond_type;
     ret <<= 1;
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
     assert(end < 1 << 1);
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
     ret |= end;
     return ret;
@@ -88,9 +88,9 @@ uint32_t get_info_bl(const unsigned int offset_bl, const unsigned int type)
     unsigned int ret = offset_bl;
     ret <<= 8;
 #ifndef _OPENACC
-#ifndef _OPENMP_GPU
+#ifndef ENABLE_OPENMP_GPU
     assert(type < 1 << 8);
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #endif                          //_OPENACC
     ret |= type;
     return ret;

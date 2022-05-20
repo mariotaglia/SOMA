@@ -169,13 +169,13 @@ int copyin_mobility(struct Phase *p)
 #pragma acc enter data copyin(p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 #pragma omp target enter data map(to:p->mobility.poly_type_mc_freq[0:p->n_poly_type])
     if (p->mobility.type != DEFAULT_MOBILITY)
         {
 #pragma omp target enter data map(to:p->mobility.param[0:p->mobility.param_len])
         }
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
     return p->n_poly_type * 0;
 }
 
@@ -188,13 +188,13 @@ int copyout_mobility(struct Phase *p)
 #pragma acc exit data copyout(p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 #pragma omp target exit data map(from:p->mobility.poly_type_mc_freq[0:p->n_poly_type])
     if (p->mobility.type != DEFAULT_MOBILITY)
         {
 #pragma omp target exit data map(from:p->mobility.param[0:p->mobility.param_len])
         }
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
     return p->n_poly_type * 0;
 }
 
@@ -208,13 +208,13 @@ int update_self_mobility(const struct Phase *const p)
 #pragma acc update self(p->mobility.param[0:p->mobility.param_len])
         }
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 #pragma omp target update from(p->mobility.poly_type_mc_freq[0:p->n_poly_type])
     if (p->mobility.type != DEFAULT_MOBILITY)
         {
 #pragma omp target update from(p->mobility.param[0:p->mobility.param_len])
         }
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
     return p->n_poly_type * 0;
 }
 

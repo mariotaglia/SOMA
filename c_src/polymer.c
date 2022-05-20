@@ -26,9 +26,9 @@
 #ifdef _OPENACC
 #include <openacc.h>
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 #include <omp.h>
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 #include "phase.h"
 
 int reallocate_polymer_mem(struct Phase *const p, uint64_t new_storage)

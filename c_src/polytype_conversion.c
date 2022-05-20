@@ -475,7 +475,7 @@ int copyin_poly_conversion(struct Phase *p)
 #pragma acc enter data copyin(p->pc.dependency_type[0:p->pc.len_dependencies])
                 }
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
             //The pc struct itself is part of the phase struct and is already present of the device
 #pragma omp target enter data map(to:p->pc.array[0:p->n_cells_local])
 #pragma omp target enter data map(to:p->pc.input_type[0:p->pc.len_reactions])
@@ -488,7 +488,7 @@ int copyin_poly_conversion(struct Phase *p)
 #pragma omp target enter data map(to:p->pc.dependency_type_offset[0:p->pc.len_reactions])
 #pragma omp target enter data map(to:p->pc.dependency_type[0:p->pc.len_dependencies])
                 }
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
         }
     return 0;
 }
@@ -510,7 +510,7 @@ int copyout_poly_conversion(struct Phase *p)
 #pragma acc exit data copyout(p->pc.dependency_type[0:p->pc.len_dependencies])
                 }
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 #pragma omp target exit data map(from:p->pc.array[0:p->n_cells_local])
 #pragma omp target exit data map(from:p->pc.input_type[0:p->pc.len_reactions])
 #pragma omp target exit data map(from:p->pc.output_type[0:p->pc.len_reactions])
@@ -522,7 +522,7 @@ int copyout_poly_conversion(struct Phase *p)
 #pragma omp target exit data map(from:p->pc.dependency_type_offset[0:p->pc.len_reactions])
 #pragma omp target exit data map(from:p->pc.dependency_type[0:p->pc.len_dependencies])
                 }
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
         }
     return 0;
 }
@@ -544,7 +544,7 @@ int update_self_poly_conversion(const struct Phase *const p)
 #pragma acc update self(p->pc.dependency_type[0:p->pc.len_dependencies])
                 }
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 #pragma omp target update from(p->pc.array[0:p->n_cells_local])
 #pragma omp target update from(p->pc.input_type[0:p->pc.len_reactions])
 #pragma omp target update from(p->pc.output_type[0:p->pc.len_reactions])
@@ -556,7 +556,7 @@ int update_self_poly_conversion(const struct Phase *const p)
 #pragma omp target update from(p->pc.dependency_type_offset[0:p->pc.len_reactions])
 #pragma omp target update from(p->pc.dependency_type[0:p->pc.len_dependencies])
                 }
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
         }
     return 0;
 }
@@ -600,9 +600,9 @@ int fully_convert_polytypes(struct Phase *p)
     //Iterate all polymers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
 #pragma omp target teams distribute parallel for map(always,alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             const Monomer rcm = p->polymers[poly].rcm;
@@ -628,9 +628,9 @@ int partially_convert_polytypes(struct Phase *p)
     //Iterate all polymers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
 #pragma omp target teams distribute parallel for map(always,alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
             Polymer *mypoly = p->polymers + poly;

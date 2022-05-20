@@ -19,11 +19,11 @@
 //! \file soma_config.h
 //! \brief configuration variables for SOMA File is configured by CMAKE.
 
-//! Macro to destinguish between SINGLE_PRECISION and DOUBLE.
-//! Automatically set by CMake
 #ifndef SOMA_CONFIG_H
 #define SOMA_CONFIG_H
 
+//! Macro to destinguish between SINGLE_PRECISION and DOUBLE.
+//! Automatically set by CMake
 #cmakedefine01 SINGLE_PRECISION
 
 //! Macro to activate MIC support
@@ -40,6 +40,12 @@
 
 //! Macro indicating an MPI build
 #cmakedefine01 ENABLE_MPI
+
+//! MACRO indicating OMP_GPU enabled:
+cmakedefine ENABLE_OPENMP_GPU
+
+//! Macro indicating OpenMP enabled for CPU:
+cmakedefine ENABLE_OPENMP_CPU
 
 #if ( SINGLE_PRECISION == 1)
 

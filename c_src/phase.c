@@ -349,7 +349,7 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->right_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
 #endif                          //ENABLE_MPI_CUDA
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 #pragma omp target enter data map(to:p[0:1])
 #pragma omp target enter data map(to:p->xn[0:p->n_types*p->n_types])
 #pragma omp target enter data map(to:p->polymers[0:p->n_polymers_storage])
@@ -396,7 +396,7 @@ int copyin_phase(struct Phase *const p)
 #pragma omp target enter data map(to:p->left_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
 #pragma omp target enter data map(to:p->right_tmp_buffer[0:(p->args.domain_buffer_arg*p->ny*p->nz)])
 #endif                          //ENABLE_MPI_CUDA
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 
     copyin_poly_conversion(p);
     copyin_mono_conversion(p);
@@ -476,7 +476,7 @@ int copyout_phase(struct Phase *const p)
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma acc exit data delete(p[0:1])
 #endif                          //_OPENACC
-#ifdef _OPENMP_GPU
+#ifdef ENABLE_OPENMP_GPU
 
 #pragma omp target exit data map(from:p->xn[0:p->n_types*p->n_types])
 #pragma omp target exit data map(from:p->fields_unified[0:p->n_types*p->n_cells_local])
@@ -524,7 +524,7 @@ int copyout_phase(struct Phase *const p)
 #pragma omp target exit data map(from:p->polymers[0:p->n_polymers_storage])
     //Use here the delete to not overwrite stuff, which only changed on CPU
 #pragma omp target exit data map(delete:p[0:1])
-#endif                          //_OPENMP_GPU
+#endif                          //ENABLE_OPENMP_GPU
 
     copyout_poly_conversion(p);
     copyout_mono_conversion(p);

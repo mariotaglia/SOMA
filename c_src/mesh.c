@@ -250,18 +250,18 @@ int update_density_fields(const struct Phase *const p)
 
 #pragma acc parallel loop independent present(p[0:1])
 #pragma omp target teams distribute parallel for order(concurrent) map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
     for (uint64_t index = 0; index < n_indices; index++)        /*Loop over all fields according to monotype */
         p->fields_32[index] = 0;
     const uint64_t n_polymers = p->n_polymers;
 
 #pragma acc parallel loop gang num_gangs(n_polymers) vector_length(128) present(p[0:1])
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
     for (uint64_t i = 0; i < n_polymers; i++)
         {                       /*Loop over polymers */
             const unsigned int N = p->poly_arch[p->poly_type_offset[p->polymers[i].type]];
@@ -280,9 +280,9 @@ int update_density_fields(const struct Phase *const p)
                         {
 #pragma acc atomic update
 #pragma omp atomic update
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp atomic
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
                             p->fields_32[index] += 1;
                         }
                     else
@@ -313,9 +313,9 @@ int update_density_fields(const struct Phase *const p)
     soma_scalar_t rescale_density = p->field_scaling_type[0];
 #pragma acc parallel loop present(p[0:1])
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
         p->tempfield[cell] = rescale_density * p->fields_unified[cell];
 
@@ -324,9 +324,9 @@ int update_density_fields(const struct Phase *const p)
             rescale_density = p->field_scaling_type[T_types];
 #pragma acc parallel loop present(p[0:1])
 #pragma omp target teams distribute parallel for map(alloc:p[0:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
                 p->tempfield[cell] += rescale_density * p->fields_unified[T_types * p->n_cells_local + cell];
             /*!\todo p->ncells as a temporary variable */
@@ -393,9 +393,9 @@ void self_omega_field(const struct Phase *const p)
         {
 #pragma acc parallel loop present(p[:1])
 #pragma omp target teams distribute parallel for map(alloc:p[:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
                 {
                     p->omega_field_unified[cell + T_types * p->n_cells_local] =
@@ -439,9 +439,9 @@ void add_pair_omega_fields_scmf0(const struct Phase *const p)
                     soma_scalar_t dnorm = -0.5 * inverse_refbeads * p->xn[T_types * p->n_types + S_types];
 #pragma acc parallel loop present(p[:1])
 #pragma omp target teams distribute parallel for map(alloc:p[:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
                     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
                         {
                             soma_scalar_t interaction =
@@ -472,9 +472,9 @@ void add_pair_omega_fields_scmf1(const struct Phase *const p)
                 {
 #pragma acc parallel loop present(p[:1])
 #pragma omp target teams distribute parallel for map(alloc:p[:1])
-#ifdef _OPENMP_CPU
+#ifdef ENABLE_OPENMP_CPU
 #pragma omp parallel for
-#endif                   //_OPENMP_CPU
+#endif                   //ENABLE_OPENMP_CPU
                     for (uint64_t cell = 0; cell < p->n_cells_local; cell++)
                         {
                             const soma_scalar_t normT = inverse_refbeads * p->xn[T_types * p->n_types + S_types];
