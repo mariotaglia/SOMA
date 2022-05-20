@@ -42,10 +42,10 @@
 #cmakedefine01 ENABLE_MPI
 
 //! MACRO indicating OMP_GPU enabled:
-cmakedefine ENABLE_OPENMP_GPU
+#cmakedefine ENABLE_OPENMP_GPU
 
 //! Macro indicating OpenMP enabled for CPU:
-cmakedefine ENABLE_OPENMP_CPU
+#cmakedefine ENABLE_OPENMP_CPU
 
 #if ( SINGLE_PRECISION == 1)
 
