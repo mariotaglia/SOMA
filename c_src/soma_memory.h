@@ -38,7 +38,7 @@
 //! This struct is intended to store the heavy data of beads, RNG_STATES, permutation arrays etc.
 //! The memory can be dynammically appended. It is internal an householder with precached memory.
 typedef struct SomaMemory {
-    void *ptr;                  //!< Pointer to the memory
+    char *ptr;                  //!< Pointer to the memory
     uint64_t length;            //!< Maximum allocated length of the memory
     uint64_t used;              //!< Used memory (< length)
     bool device_present;        //!< Has the memory been allocated on the device ?

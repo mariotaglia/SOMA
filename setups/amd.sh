@@ -1,5 +1,6 @@
 ## It is necessary to change the omp compile flags to:
 ## -fopenmp -fopenmp-targets=amdgcn-amd-amdhsa -Xopenmp-target=amdgcn-amd-amdhsa -march=gfx90a
+#module load Architecture/jureca_mi200
 module load GCC
 module load CMake
 module load OpenMPI

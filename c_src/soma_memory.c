@@ -109,10 +109,7 @@ int copyin_soma_memory(struct SomaMemory *state)
             assert(state->ptr != NULL);
             assert(state->typelength > 0);
 #pragma acc enter data copyin(state->ptr[0:state->length*state->typelength])
-	    // dirty hack because omp data map does not like void pointer
-	    char * ptra = (char *) state->ptr;
-#pragma omp target enter data map(to:ptra[0:state->length*state->typelength])
-	    //#pragma omp target enter data map(to:state->ptr[0:state->length*state->typelength])
+#pragma omp target enter data map(to:state->ptr[0:state->length*state->typelength])
             state->device_present = true;
         }
     return 0;
@@ -126,10 +123,7 @@ int copyout_soma_memory(struct SomaMemory *state)
             assert(state->ptr != NULL);
             assert(state->typelength > 0);
 #pragma acc exit data copyout(state->ptr[0:state->length*state->typelength])
-	    // dirty hack because omp data map does not like void pointer
-	    char * ptra = (char *) state->ptr;
-	    //#pragma omp target exit data map(from:state->ptr[0:state->length*state->typelength])
-#pragma omp target exit data map(from:ptra[0:state->length*state->typelength])
+#pragma omp target exit data map(from:state->ptr[0:state->length*state->typelength])
             state->device_present = false;
         }
     return 0;
@@ -143,10 +137,7 @@ int update_self_soma_memory(struct SomaMemory *state)
             assert(state->ptr != NULL);
             assert(state->typelength > 0);
 #pragma acc update self(state->ptr[0:state->used*state->typelength])
-	    // dirty hack because omp data map does not like void pointer
-	    char * ptra = (char *) state->ptr;
-	    //#pragma omp target update from(state->ptr[0:state->used*state->typelength])
-#pragma omp target update from(ptra[0:state->used*state->typelength])
+#pragma omp target update from(state->ptr[0:state->used*state->typelength])
         }
     return 0;
 }
