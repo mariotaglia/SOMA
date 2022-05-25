@@ -121,7 +121,8 @@ int set_openacc_devices(struct Phase *const p)
         }
 #else                           //_OPENACC
 #ifdef ENABLE_OPENMP_GPU
-    //soma initialization for openmp like openacc.
+    omp_set_default_device(p->info_MPI.world_rank);
+    printf("INFO: world rank %d sees %u GPUs and runs on GPU %u.\n", p->info_MPI.world_rank, omp_get_num_devices(), omp_get_default_device());
 #else                          //ENABLE_OPENMP_GPU
     if ((p->args.only_gpu_given || (p->args.gpus_given && p->args.gpus_arg != 0)) && p->info_MPI.world_rank == 0)
         {
