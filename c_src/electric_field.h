@@ -87,7 +87,8 @@ int update_self_electric_field(const struct Phase *const p);
     \param y y-coordinate in 3D representation of field.
     \param z z-coordinate in 3D representation of field.
 */
-uint64_t cell_to_index(struct Phase *p, const uint64_t x, const uint64_t y, const uint64_t z);
+#pragma acc routine(cell_to_index) seq
+inline uint64_t cell_to_index(struct Phase *p, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the square of the derivative of the electric potential field
     \private
@@ -104,7 +105,8 @@ soma_scalar_t Epot_deriv_sq(struct Phase *const p, uint64_t x, uint64_t y, uint6
     \param z z-coordinate in 3D representation of field.
     \returns dEpot/dx
 */
-soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+#pragma acc routine(dEpotx) seq
+inline soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the partial derivative of the electric potential field with respect to y
     \private
@@ -114,7 +116,8 @@ soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t * e_field, const uint6
     \param z z-coordinate in 3D representation of field.
     \returns dEpot/dy
 */
-soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+#pragma acc routine(dEpoty) seq
+inline soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the partial derivative of the electric potential field with respect to z
     \private
@@ -124,7 +127,8 @@ soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t * e_field, const uint6
     \param z z-coordinate in 3D representation of field.
     \returns dEpot/dz
 */
-soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+#pragma acc routine(dEpotz) seq
+inline soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the second partial derivative of the electric potential field with respect to x
     \private
@@ -134,7 +138,8 @@ soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t * e_field, const uint6
     \param z z-coordinate in 3D representation of field.
     \returns d2Epot/dx^2
 */
-soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+#pragma acc routine(d2Epotx) seq
+inline soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the second partial derivative of the electric potential field with respect to y
     \private
@@ -144,7 +149,8 @@ soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint
     \param z z-coordinate in 3D representation of field.
     \returns d2Epot/dy^2
 */
-soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+#pragma acc routine(d2Epoty) seq
+inline soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the second partial derivative of the electric potential field with respect to z
     \private
@@ -154,7 +160,8 @@ soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint
     \param z z-coordinate in 3D representation of field.
     \returns d2Epot/dz^2
 */
-soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+#pragma acc routine(d2Epotz) seq
+inline soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
 
 /*! Helper function to compute the value of sqrt{\bar{N}} defined as the amount of polymer chains per volume R_e^3
     \private
