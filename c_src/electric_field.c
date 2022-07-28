@@ -43,7 +43,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.H_el = 0.0;
     p->ef.E_field = NULL;
     p->ef.omega_field_el = NULL;
-    p->ef.sqrt_Nbar = 0;
+    //p->ef.sqrt_Nbar = 0.0;
     hid_t status;
     
     //Quick exit if no electric field is present in the file
@@ -140,6 +140,10 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     status = read_hdf5(file_id, "/parameter/ef_thresh_iter", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.thresh_iter));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_thresh_iter");
 
+    /* //Read p->ef.sqrt_Nbar */
+    /* status = read_hdf5(file_id, "/parameter/sqrt_Nbar", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.sqrt_Nbar)); */
+    /* HDF5_ERROR_CHECK2(status, "/parameter/sqrt_Nbar"); */
+
     //Read electrode array
     status = read_field_custom_hdf5(p, (void **) &(p->ef.electrodes), "/electrodes", sizeof(uint8_t), H5T_STD_U8LE, MPI_UINT8_T, file_id, plist_id);
     if (status != 0)
@@ -190,6 +194,11 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
     status =
         write_hdf5(1, &one, file_id, "/parameter/ef_thresh_iter", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.thresh_iter));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_thresh_iter");
+
+    /* //Write sqrt_Nbar */
+    /* status = */
+    /*     write_hdf5(1, &one, file_id, "/parameter/sqrt_Nbar", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.sqrt_Nbar)); */
+    /* HDF5_ERROR_CHECK2(status, "/parameter/sqrt_Nbar"); */
 
     //Write electrodes field
     status = write_field_custom_hdf5(p, (void **) &(p->ef.electrodes), "/electrodes", H5T_STD_U8LE, H5T_NATIVE_UINT8, file_id, plist_id);
@@ -363,44 +372,45 @@ soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t *e_field, const uint6
             e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * (p->nz / p->Lz) * (p->nz / p->Lz);
 }
 
-void calc_sqrt_Nbar(struct Phase *const p)
-{
-    uint16_t n_mono_t;
-    uint64_t sum_chains_t_scaled = 0;
-    uint64_t * type_num = (uint64_t*) calloc(0, p->n_poly_type * sizeof(uint64_t));
+/* void calc_sqrt_Nbar(struct Phase *const p) */
+/* { */
+/*     uint16_t n_mono_t; */
+/*     uint64_t sum_chains_t_scaled = 0; */
+/*     uint64_t * type_num = (uint64_t*) calloc(0, p->n_poly_type * sizeof(uint64_t)); */
 
-    //loop over all polymer chains, save type in type_num
-    for (uint64_t c=0; c < p->n_polymers; c++)
-        {
-            // Polymer * poly = &(p->polymers[c]);
-            uint8_t poly_type_c = p->polymers[c].type;
-            type_num[poly_type_c] += 1;
-        }
+/*     //loop over all polymer chains, save type in type_num */
+/*     for (uint64_t c=0; c < p->n_polymers; c++) */
+/*         { */
+/*             // Polymer * poly = &(p->polymers[c]); */
+/*             uint8_t poly_type_c = p->polymers[c].type; */
+/*             type_num[poly_type_c] += 1; */
+/*         } */
 
-    if (p->info_MPI.domain_rank == 0)
-    {
-        MPI_Reduce(MPI_IN_PLACE, type_num, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
-    }
-    else
-    {
-        MPI_Reduce(type_num, NULL, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
-    }
+/*     if (p->info_MPI.domain_rank == 0) */
+/*     { */
+/*         MPI_Reduce(MPI_IN_PLACE, type_num, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain); */
+/*     } */
+/*     else */
+/*     { */
+/*         MPI_Reduce(type_num, NULL, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain); */
+/*     } */
 
-    for (uint8_t t=0; t < p->n_poly_type; t++)
-    {
-        n_mono_t = p->poly_arch[p->poly_type_offset[t]];
-        sum_chains_t_scaled += type_num[t] * n_mono_t / p->reference_Nbeads;        
-    }
+/*     for (uint8_t t=0; t < p->n_poly_type; t++) */
+/*     { */
+/*         n_mono_t = p->poly_arch[p->poly_type_offset[t]]; */
+/*         sum_chains_t_scaled += type_num[t] * n_mono_t / p->reference_Nbeads;         */
+/*     } */
 
-    p->ef.sqrt_Nbar = sum_chains_t_scaled * (1 / (p->Lx * p->Ly * p->Lz));
+/*     p->ef.sqrt_Nbar = sum_chains_t_scaled * (1 / (p->Lx * p->Ly * p->Lz)); */
 
-    free(type_num);
-}
+/* #pragma acc update device(p->ef.sqrt_Nbar) */
+
+/*     free(type_num); */
+/* } */
 
 void calc_dielectric_field(struct Phase *const p)
 {
-    soma_scalar_t sum = 0.0;
-#pragma acc parallel loop present(p[0:1]) reduction(+: sum)
+#pragma acc parallel loop present(p[0:1])
 #pragma omp parallel for
     for (uint64_t i = 0; i < p->n_cells; i++)
     {
@@ -434,15 +444,12 @@ void calc_dielectric_field(struct Phase *const p)
 
             p->ef.eps_arr[i] = 1.0 * tmp_eps_phi_n / tmp_phi_n;
         }
-	sum +=p->ef.eps_arr[i];
     }
-    printf("\n sum eps_arr: %.3f\n",sum);
 }
 
 void pre_derivatives(struct Phase *const p)
 {
-    soma_scalar_t sum = 0.0;
-#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(+: sum) deviceptr(p->ef.eps_arr)
+#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.eps_arr)
 #pragma omp parallel for collapse(3)
     for (uint64_t x=0; x < p->nx; x++)
         for (uint64_t y=0; y < p->ny; y++)
@@ -474,12 +481,7 @@ void pre_derivatives(struct Phase *const p)
                     p->ef.pre_deriv[pos6 + 4] = epsz + 1.0/6.0;
                     p->ef.pre_deriv[pos6 + 5] =-epsz + 1.0/6.0;
                 }
-		for(uint64_t u=0;u<6;u++)
-		{
-		    sum += p->ef.pre_deriv[pos6+u];
-		}
 	    }
-    printf("\n sum prederiv: %.3f\n",sum);
 }
 
 soma_scalar_t iterate_field(struct Phase *const p)
@@ -487,26 +489,26 @@ soma_scalar_t iterate_field(struct Phase *const p)
     soma_scalar_t max_i = 10.0;
     uint64_t k = 0;
 
-    printf("\n area51[2247]: %d\n",p->area51[2247]);
-    printf("\n p->ef.electrodes[2247]: %d\n",p->ef.electrodes[2247]);
-    printf("\n p->ef.eps_arr[2247]: %.3f \n", p->ef.eps_arr[2247]);
-#pragma acc update host (p->ef.eps_arr[0:p->n_cells])
-    printf("\n p->ef.eps_arr[2247] (updated): %.3f \n", p->ef.eps_arr[2247]);
-    printf("\n p->ef.pre_deriv[2247*6]: %.3f \n", p->ef.pre_deriv[2247*6]);
-#pragma acc update host (p->ef.pre_deriv[0:p->n_cells*6])
-    printf("\n p->ef.pre_deriv[2247*6] (updated): %.3f \n", p->ef.pre_deriv[2247*6]);
+    /* printf("\n area51[2247]: %d\n",p->area51[2247]); */
+/*     printf("\n p->ef.electrodes[2247]: %d\n",p->ef.electrodes[2247]); */
+/*     printf("\n p->ef.eps_arr[2247]: %.3f \n", p->ef.eps_arr[2247]); */
+/* #pragma acc update host (p->ef.eps_arr[0:p->n_cells]) */
+/*     printf("\n p->ef.eps_arr[2247] (updated): %.3f \n", p->ef.eps_arr[2247]); */
+/*     printf("\n p->ef.pre_deriv[2247*6]: %.3f \n", p->ef.pre_deriv[2247*6]); */
+/* #pragma acc update host (p->ef.pre_deriv[0:p->n_cells*6]) */
+/*     printf("\n p->ef.pre_deriv[2247*6] (updated): %.3f \n", p->ef.pre_deriv[2247*6]); */
     
-    printf("\n thresh iter: %.3f\n", p->ef.thresh_iter);
+/*     printf("\n thresh iter: %.3f\n", p->ef.thresh_iter); */
 
-    printf("\n=======\n");
-    printf("\n p->ef.Epot[2247] before iter.: %.3f \n", p->ef.Epot[2247]);
-#pragma acc update host (p->ef.Epot[0:p->n_cells])
-    printf("\n p->ef.Epot[2247] (updated) before iter.: %.3f \n", p->ef.Epot[2247]);
+    /* printf("\n=======\n"); */
+/*     printf("\n p->ef.Epot[2247] before iter.: %.3f \n", p->ef.Epot[2247]); */
+/* #pragma acc update host (p->ef.Epot[0:p->n_cells]) */
+/*     printf("\n p->ef.Epot[2247] (updated) before iter.: %.3f \n", p->ef.Epot[2247]); */
 
     while(max_i > p->ef.thresh_iter && k < p->ef.iter_limit)
     {
         max_i = p->ef.thresh_iter;
-#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
+#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
 #pragma omp parallel for collapse(3) reduction(max: max_i)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
@@ -540,7 +542,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
                         /*                      (p->ef.Epot[cell_to_index(p,x,y,z+1)] - p->ef.Epot[cell_to_index(p,x,y,z-1)]) ); */
 
                         
-			// max_i = fmax(max_i, fabs(p->ef.Epot_tmp[i] - p->ef.Epot[i]));
+			/* max_i = fmax(max_i, fabs(p->ef.Epot_tmp[i] - p->ef.Epot[i])); */
 		    }
                 }
 	/* additional loop necessary for conv_crit since loop iterations could lead to data dependency using the jacobi stencil */
@@ -552,10 +554,10 @@ soma_scalar_t iterate_field(struct Phase *const p)
             for (uint64_t y=0; y < p->ny; y++)
                 for (uint64_t z=0; z < p->nz; z++)
 		    {
-		      uint64_t j = cell_to_index(p,x,y,z);		      
+		      uint64_t j = cell_to_index(p,x,y,z);
 
 			if(p->ef.electrodes[j] != 1)
-			{			  
+			{
 			    // Laplace equation, welling2017 eq. 5
 			    soma_scalar_t conv_crit = (d2Epotx(p,p->ef.Epot_tmp,x,y,z) +
 						       d2Epoty(p,p->ef.Epot_tmp,x,y,z) +
@@ -582,7 +584,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
 			}
 		    }
 
-	if( (k+1) % 500==0 ) printf("\n max: %.3e\n", max_i);
+/*	if( (k+1) % 500==0 ) printf("\n max: %.3e\n", max_i); */
 /* #pragma acc data deviceptr(p->ef.Epot_tmp, p->ef.Epot) */
 /* 	{ */
 /* 	soma_scalar_t *tmp = p->ef.Epot_tmp; */
@@ -592,37 +594,37 @@ soma_scalar_t iterate_field(struct Phase *const p)
 	k += 1;
     }
 
-    printf("\n p->ef.Epot[2247] after iter.: %.3f \n", p->ef.Epot[2247]);
-#pragma acc update host (p->ef.Epot[0:p->n_cells])
-    printf("\n p->ef.Epot[2247] (updated) after iter.: %.3f \n", p->ef.Epot[2247]);
+    /* printf("\n p->ef.Epot[2247] after iter.: %.3f \n", p->ef.Epot[2247]); */
+/* #pragma acc update host (p->ef.Epot[0:p->n_cells]) */
+/*     printf("\n p->ef.Epot[2247] (updated) after iter.: %.3f \n", p->ef.Epot[2247]); */
 
-    soma_scalar_t max_host = 0.0;
-    uint64_t err_cells = 0;
-    for (uint64_t x=0; x < p->nx; x++)
-            for (uint64_t y=0; y < p->ny; y++)
-                for (uint64_t z=0; z < p->nz; z++)
-		{
-		    uint64_t l = cell_to_index(p,x,y,z);
-		    if(p->ef.electrodes[l] != 1)
-		    {
-		        soma_scalar_t conv_crit = fabs( (d2Epotx(p,p->ef.Epot,x,y,z) +
-						         d2Epoty(p,p->ef.Epot,x,y,z) +
-						         d2Epotz(p,p->ef.Epot,x,y,z)) * p->ef.eps_arr[l] +
-						        (dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) +
-						         dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) +
-						         dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z)) );
-			if(max_host < conv_crit) max_host = conv_crit;
-			if(conv_crit > 1e2)
-		        {
-		            err_cells += 1;
-		            printf("\n %d,%d,%d\n",x,y,z);
-		        }
-		    }
-		}
-    printf("\n number of cells in which conv_crit is too high: %d\n", err_cells);
-    printf("\n max of Epot field on host: %.3e\n", max_host);
+/*     soma_scalar_t max_host = 0.0; */
+/*     uint64_t err_cells = 0; */
+/*     for (uint64_t x=0; x < p->nx; x++) */
+/*             for (uint64_t y=0; y < p->ny; y++) */
+/*                 for (uint64_t z=0; z < p->nz; z++) */
+/* 		{ */
+/* 		    uint64_t l = cell_to_index(p,x,y,z); */
+/* 		    if(p->ef.electrodes[l] != 1) */
+/* 		    { */
+/* 		        soma_scalar_t conv_crit = fabs( (d2Epotx(p,p->ef.Epot,x,y,z) + */
+/* 						         d2Epoty(p,p->ef.Epot,x,y,z) + */
+/* 						         d2Epotz(p,p->ef.Epot,x,y,z)) * p->ef.eps_arr[l] + */
+/* 						        (dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) + */
+/* 						         dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) + */
+/* 						         dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z)) ); */
+/* 			if(max_host < conv_crit) max_host = conv_crit; */
+/* 			if(conv_crit > 1e2) */
+/* 		        { */
+/* 		            err_cells += 1; */
+/* 		            printf("\n %d,%d,%d\n",x,y,z); */
+/* 		        } */
+/* 		    } */
+/* 		} */
+/*     printf("\n number of cells in which conv_crit is too high: %d\n", err_cells); */
+/*     printf("\n max of Epot field on host: %.3e\n", max_host); */
     
-    printf("\n %d \n",k);
+    if ((p->time + 1)  % 400 == 0) printf("MC step: %d, iterations to solve ef: %d \n",p->time+1, k);
     return max_i;
 }
 
@@ -630,23 +632,22 @@ int calc_electric_field_contr(struct Phase *const p)
 {
     soma_scalar_t max = p->ef.thresh_iter;
     uint64_t k = 0;
-
-    if (p->ef.sqrt_Nbar==0)
-    {
-        calc_sqrt_Nbar(p);  
-    }
+    
+/*     if (p->time==0) */
+/*     { */
+/* #pragma acc update device(p->sqrt_Nbar) */
+/*         // calc_sqrt_Nbar(p); */
+/*     } */
 
     calc_dielectric_field(p);
-    
+#pragma acc wait
     pre_derivatives(p);
-
-    // Check convergence criterion (p->ef.thresh_iter)
+#pragma acc wait
     max = iterate_field(p);
     if (max > p->ef.thresh_iter) return -1; 
-
-    // soma_scalar_t sum_H_el = 0.0;
 #pragma acc wait
-#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.electrodes,p->ef.Epot, p->ef.E_field, p->ef.omega_field_el) //reduction(+:sum_H_el)
+    // soma_scalar_t sum_H_el = 0.0;
+#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.E_field,p->ef.eps,p->ef.omega_field_el) //reduction(+:sum_H_el)
 #pragma omp parallel for collapse(3) //reduction(+:sum_H_el)
     for (uint64_t x=0; x < p->nx; x++)
         for (uint64_t y=0; y < p->ny; y++)
@@ -683,7 +684,7 @@ int calc_electric_field_contr(struct Phase *const p)
                             }
                         }
                         
-                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->ef.sqrt_Nbar) * dEpot_sq;
+                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->sqrt_Nbar) * dEpot_sq;
 
                         // eps_res = 0.0;
                         // phi_other = 0.0;
@@ -706,14 +707,15 @@ int calc_electric_field_contr(struct Phase *const p)
 
             }
 
-    // tests(p,k);
+    //tests(p,k);
     //p->ef.H_el = sum_H_el;
-#pragma acc update host (p->ef.omega_field_el)
+#pragma acc update self(p->ef.omega_field_el)
     if (p->ef.omega_field_el != p->ef.omega_field_el)
     {
         return -1;
     }
-
+    //printf("\n p->ef.omega_field_el[2247*2]: %.3e", p->ef.omega_field_el[2247*2]);
+    //printf("\n sqrt Nbar = %.3e \n", p->sqrt_Nbar);
     // if domain_decomposition -> allreduce Epot, E_field, eps_arr here.
     return 0;
 }
@@ -735,7 +737,8 @@ int free_electric_field(struct Phase *const p)
 
 void tests(struct Phase *const p,uint64_t k)
 {
-    uint32_t counter = 10;
+    uint32_t counter = 1;
+    update_self_electric_field(p);
     if (p->time % counter == 0)
     {
         uint64_t sum_electrodes = 0;
@@ -744,6 +747,8 @@ void tests(struct Phase *const p,uint64_t k)
         soma_scalar_t sum_pre_deriv = 0.0;
         soma_scalar_t sum_omega_field_el = 0.0;
         soma_scalar_t sum_omega_field = 0.0;
+
+#pragma acc update host(p->omega_field_unified)
 
         for (uint64_t o = 0; o < p->n_cells; o++)
         {
@@ -760,7 +765,7 @@ void tests(struct Phase *const p,uint64_t k)
         }
 
         // printf("=====\n");
-        printf("MC STEP: %d", p->time);
+        // printf("MC STEP: %d\n", p->time);
         // printf("Iterations per MC: %ld\n",p->ef.iter_per_MC);
         // printf("Iteration limit: %ld\n",p->ef.iter_limit);
         // printf("Iteration threshold: %.5f\n",p->ef.thresh_iter);
@@ -768,7 +773,6 @@ void tests(struct Phase *const p,uint64_t k)
         // printf("Sum Epot array: %.3f\n",sum_Epot);
         // printf("Sum epsilon array: %.3f\n",sum_eps_arr);
         // printf("Sum pre deriv array: %.3f\n",sum_pre_deriv);
-        printf("Iterations to solve EF: %ld\n", k);
         // printf("Sum el. hamiltonian: %.3f\n",p->ef.H_el);
         printf("Sum omega_field sq.: \t%.3e\n", sum_omega_field);
         printf("Sum omega_field_el sq.: %.3e\n",sum_omega_field_el);

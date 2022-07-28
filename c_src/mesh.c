@@ -407,7 +407,7 @@ void self_omega_field(const struct Phase *const p)
                                  p->field_scaling_type[T_types] * p->fields_unified[cell + T_types * p->n_cells_local]);
                         }
                     //electric field part
-                    if (p->ef.H_el_field != NULL)
+                    if (p->ef.omega_field_el != NULL)
                         {
                             // p->omega_field_unified[cell + T_types * p->n_cells_local] +=
                             //     -inverse_refbeads * p->ef.H_el_field[cell];

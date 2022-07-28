@@ -37,7 +37,7 @@ typedef struct ElectricField{
     soma_scalar_t *E_field;         //!< Array that contains the electric field.
     soma_scalar_t H_el;             //!< Electrostatic energy hamiltonia
     soma_scalar_t *omega_field_el;  //!< Array that contains electrotatic energy contribution to omega fields.
-    uint64_t sqrt_Nbar;             //!< Value of \sqrt{\hat{N}}
+  //soma_scalar_t  sqrt_Nbar;       //!< Value of \sqrt{\hat{N}}
     
 } ElectricField;
 

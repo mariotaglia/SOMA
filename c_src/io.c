@@ -603,6 +603,11 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
         write_hdf5(1, &three, file_id, "/parameter/lxyz", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, lxyz);
     HDF5_ERROR_CHECK2(status, "/parameter/lxyz");
 
+    //sqrt(Nbar)
+    status =
+        write_hdf5(1, &one, file_id, "/parameter/sqrt_Nbar", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->sqrt_Nbar));
+    HDF5_ERROR_CHECK2(status, "/parameter/sqrt_Nbar");
+    
     //p->harmonic_normb_variable_scale
     status =
         write_hdf5(1, &one, file_id, "/parameter/harmonic_normb_variable_scale", H5T_IEEE_F64LE, H5T_SOMA_NATIVE_SCALAR,
@@ -1399,6 +1404,10 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     p->Lx = lxyz[0];
     p->Ly = lxyz[1];
     p->Lz = lxyz[2];
+
+    // read sqrt(Nbar)
+    status = read_hdf5(file_id, "/parameter/sqrt_Nbar", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->sqrt_Nbar));
+    HDF5_ERROR_CHECK2(status, "/parameter/sqrt_Nbar");
 
     //Read in the polymer architectures.
     //Number of polymer type

@@ -65,6 +65,7 @@ typedef struct Phase {
     soma_scalar_t harmonic_normb;       //!< Harmonic energy scale (function of spring constant) const. at runtime.
     soma_scalar_t harmonic_normb_variable_scale;        //!< different harmonic energy scale (function of spring constant) const. at runtime.
     unsigned int n_types;       /*!<\brief number of monomer types */
+    soma_scalar_t sqrt_Nbar;    /*!< \brief value of sqrt(Nbar) */
 
     /*! \brief \f$\chi N\f$
        2D matrix with monomer type Flory-Huggins interactions, trace
