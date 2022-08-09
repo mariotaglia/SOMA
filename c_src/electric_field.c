@@ -129,11 +129,11 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     HDF5_ERROR_CHECK2(status, "/parameter/dielectric_constants");
 
     //Read p->ef.iter_per_MC
-    status = read_hdf5(file_id, "/parameter/ef_iter_per_MC", H5T_NATIVE_UINT, plist_id, &(p->ef.iter_per_MC));
+    status = read_hdf5(file_id, "/parameter/ef_iter_per_MC", H5T_NATIVE_UINT32, plist_id, &(p->ef.iter_per_MC));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_per_MC");
 
     //Read p->ef.iter_limit
-    status = read_hdf5(file_id, "/parameter/ef_iter_limit", H5T_NATIVE_UINT, plist_id, &(p->ef.iter_limit));
+    status = read_hdf5(file_id, "/parameter/ef_iter_limit", H5T_NATIVE_UINT32, plist_id, &(p->ef.iter_limit));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_limit");
 
     //Read p->ef.thresh_iter
@@ -508,11 +508,11 @@ soma_scalar_t iterate_field(struct Phase *const p)
     while(max_i > p->ef.thresh_iter && k < p->ef.iter_limit)
     {
         max_i = p->ef.thresh_iter;
-#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
+#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv) reduction(max: max_i)
 #pragma omp parallel for collapse(3) reduction(max: max_i)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
-                for (uint64_t z=0; z < p->nz; z++)
+	        for (uint64_t z=0; z < p->nz; z++)
                 {
                     uint64_t i = cell_to_index(p,x,y,z);
                     /* Keep electric potential field constant at electrode position */
@@ -584,7 +584,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
 			}
 		    }
 
-/*	if( (k+1) % 500==0 ) printf("\n max: %.3e\n", max_i); */
+	/* if( (k+1) % 500==0 ) printf("\n max: %.3e\n", max_i); */
 /* #pragma acc data deviceptr(p->ef.Epot_tmp, p->ef.Epot) */
 /* 	{ */
 /* 	soma_scalar_t *tmp = p->ef.Epot_tmp; */
@@ -624,7 +624,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
 /*     printf("\n number of cells in which conv_crit is too high: %d\n", err_cells); */
 /*     printf("\n max of Epot field on host: %.3e\n", max_host); */
     
-    if ((p->time + 1)  % 400 == 0) printf("MC step: %d, iterations to solve ef: %d \n",p->time+1, k);
+    if (p->time == 0 || (p->time + 1) % 400 == 0) printf("MC step: %d, iterations to solve ef: %d \n",p->time+1, k);
     return max_i;
 }
 
