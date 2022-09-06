@@ -68,6 +68,7 @@ set(soma_header
   polytype_conversion.h
   mobility.h
   electric_field.h
+  electric_field_helper.h
   )
 
 add_library(soma_lib ${soma_source})

@@ -25,6 +25,7 @@
 #include "mesh.h"
 #include "io.h"
 #include "electric_field.h"
+#include "electric_field_helper.h"
 
 //! \file electric_field.c
 //! \brief Implementation of electric_field.h
@@ -293,84 +294,84 @@ int update_self_electric_field(const struct Phase *const p)
     return 0;
 }
 
-uint64_t cell_to_index(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z)         //TODO: Error if domain decomposition active
-{
-    int64_t xt=x; //changed from uint64_t to int64_t because otherwise xt < 0 always false
-    int64_t yt=y;
-    int64_t zt=z;
-    if (xt >= p->nx) //Wrap back if necessary // formerly: if (xt >= (uint64) p->nx)
-      xt -= p->nx;
-    if (xt < 0)
-      xt += p->nx;
-    if (yt >= p->ny) //Wrap back if necessary
-      yt -= p->ny;
-    if (yt < 0)
-      yt += p->ny;
-    if (zt >= p->nz) //Wrap back if necessary
-      zt -= p->nz;
-    if (zt < 0)
-      zt += p->nz;
-    //Unified data layout [type][x][y][z]
-    return xt * p->ny * p->nz + yt * p->nz + zt;
-}
+/* uint64_t cell_to_index(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z)         //TODO: Error if domain decomposition active */
+/* { */
+/*     int64_t xt=x; //changed from uint64_t to int64_t because otherwise xt < 0 always false */
+/*     int64_t yt=y; */
+/*     int64_t zt=z; */
+/*     if (xt >= p->nx) //Wrap back if necessary // formerly: if (xt >= (uint64) p->nx) */
+/*       xt -= p->nx; */
+/*     if (xt < 0) */
+/*       xt += p->nx; */
+/*     if (yt >= p->ny) //Wrap back if necessary */
+/*       yt -= p->ny; */
+/*     if (yt < 0) */
+/*       yt += p->ny; */
+/*     if (zt >= p->nz) //Wrap back if necessary */
+/*       zt -= p->nz; */
+/*     if (zt < 0) */
+/*       zt += p->nz; */
+/*     //Unified data layout [type][x][y][z] */
+/*     return xt * p->ny * p->nz + yt * p->nz + zt; */
+/* } */
 
-soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
-{
-    //Resolve periodic boundaries
-    int64_t xp = x + 1;
-    int64_t xm = x - 1;
-    if (xp >= p->nx) xp -= p->nx;
-    if (xm < 0) xm += p->nx;
-    return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * 0.5 * p->nx / p->Lx;
-}
+/* soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     //Resolve periodic boundaries */
+/*     int64_t xp = x + 1; */
+/*     int64_t xm = x - 1; */
+/*     if (xp >= p->nx) xp -= p->nx; */
+/*     if (xm < 0) xm += p->nx; */
+/*     return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * 0.5 * p->nx / p->Lx; */
+/* } */
 
-soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
-{
-    int64_t yp = y + 1;
-    int64_t ym = y - 1;
-    if (yp >= p->ny) yp -= p->ny;
-    if (ym < 0) ym += p->ny;
-    return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * 0.5 * p->ny / p->Ly;
-}
+/* soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t yp = y + 1; */
+/*     int64_t ym = y - 1; */
+/*     if (yp >= p->ny) yp -= p->ny; */
+/*     if (ym < 0) ym += p->ny; */
+/*     return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * 0.5 * p->ny / p->Ly; */
+/* } */
 
-soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
-{
-    int64_t zp = z + 1;
-    int64_t zm = z - 1;
-    if (zp >= p->nz) zp -= p->nz;
-    if (zm < 0) zm += p->nz;
-    return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * 0.5 * p->nz / p->Lz;
-}
+/* soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t zp = z + 1; */
+/*     int64_t zm = z - 1; */
+/*     if (zp >= p->nz) zp -= p->nz; */
+/*     if (zm < 0) zm += p->nz; */
+/*     return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * 0.5 * p->nz / p->Lz; */
+/* } */
 
-soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
-{
-    int64_t xp = x + 1;
-    int64_t xm = x - 1;
-    if (xp >= p->nx) xp -= p->nx;
-    if (xm < 0) xm += p->nx;
-    return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - (2 * e_field[(x) * p->ny * p->nz + y * p->nz + z]) + 
-            e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * (p->nx / p->Lx) * (p->nx / p->Lx);
-}
+/* soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t xp = x + 1; */
+/*     int64_t xm = x - 1; */
+/*     if (xp >= p->nx) xp -= p->nx; */
+/*     if (xm < 0) xm += p->nx; */
+/*     return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - (2 * e_field[(x) * p->ny * p->nz + y * p->nz + z]) +  */
+/*             e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * (p->nx / p->Lx) * (p->nx / p->Lx); */
+/* } */
 
-soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
-{
-    int64_t yp = y + 1;
-    int64_t ym = y - 1;
-    if (yp >= p->ny) yp -= p->ny;
-    if (ym < 0) ym += p->ny;
-    return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - (2 * e_field[x * p->ny * p->nz + (y) * p->nz + z]) +
-            e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * (p->ny / p->Ly) * (p->ny / p->Ly);
-}
+/* soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t yp = y + 1; */
+/*     int64_t ym = y - 1; */
+/*     if (yp >= p->ny) yp -= p->ny; */
+/*     if (ym < 0) ym += p->ny; */
+/*     return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - (2 * e_field[x * p->ny * p->nz + (y) * p->nz + z]) + */
+/*             e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * (p->ny / p->Ly) * (p->ny / p->Ly); */
+/* } */
 
-soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z)
-{
-    int64_t zp = z + 1;
-    int64_t zm = z - 1;
-    if (zp >= p->nz) zp -= p->nz;
-    if (zm < 0) zm += p->nz;
-    return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - (2 * e_field[x * p->ny * p->nz + y * p->nz + (z)]) +
-            e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * (p->nz / p->Lz) * (p->nz / p->Lz);
-}
+/* soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t *e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t zp = z + 1; */
+/*     int64_t zm = z - 1; */
+/*     if (zp >= p->nz) zp -= p->nz; */
+/*     if (zm < 0) zm += p->nz; */
+/*     return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - (2 * e_field[x * p->ny * p->nz + y * p->nz + (z)]) + */
+/*             e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * (p->nz / p->Lz) * (p->nz / p->Lz); */
+/* } */
 
 /* void calc_sqrt_Nbar(struct Phase *const p) */
 /* { */
@@ -449,7 +450,7 @@ void calc_dielectric_field(struct Phase *const p)
 
 void pre_derivatives(struct Phase *const p)
 {
-#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.eps_arr)
+#pragma acc parallel loop present(p[0:1]) collapse(3) //deviceptr(p->ef.eps_arr)
 #pragma omp parallel for collapse(3)
     for (uint64_t x=0; x < p->nx; x++)
         for (uint64_t y=0; y < p->ny; y++)
@@ -488,6 +489,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
 {
     soma_scalar_t max_i = 10.0;
     uint64_t k = 0;
+    soma_scalar_t sum_new, sum_old;
 
     /* printf("\n area51[2247]: %d\n",p->area51[2247]); */
 /*     printf("\n p->ef.electrodes[2247]: %d\n",p->ef.electrodes[2247]); */
@@ -508,7 +510,9 @@ soma_scalar_t iterate_field(struct Phase *const p)
     while(max_i > p->ef.thresh_iter && k < p->ef.iter_limit)
     {
         max_i = p->ef.thresh_iter;
-#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv) reduction(max: max_i)
+	sum_new = 0.0;
+	sum_old = 0.0;
+#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(+:sum_new,sum_old) //reduction(max: max_i) //deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
 #pragma omp parallel for collapse(3) reduction(max: max_i)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
@@ -541,36 +545,44 @@ soma_scalar_t iterate_field(struct Phase *const p)
                         /*                      (p->ef.eps_arr[cell_to_index(p,x,y,z+1)] - p->ef.eps_arr[cell_to_index(p,x,y,z-1)]) * */
                         /*                      (p->ef.Epot[cell_to_index(p,x,y,z+1)] - p->ef.Epot[cell_to_index(p,x,y,z-1)]) ); */
 
-                        
+                        /* // Single cell precision */
 			/* max_i = fmax(max_i, fabs(p->ef.Epot_tmp[i] - p->ef.Epot[i])); */
+
+			/* // Box average precision */
+			sum_new += fabs(p->ef.Epot_tmp[i]);
+			sum_old += fabs(p->ef.Epot[i]);
 		    }
                 }
+	sum_old = sum_old / p->n_cells;
+	sum_new = sum_new / p->n_cells;
+	max_i = fmax(max_i, fabs(sum_new - sum_old));
+	
 	/* additional loop necessary for conv_crit since loop iterations could lead to data dependency using the jacobi stencil */
 	/* could be included in former loop, however, might lead to incorrect/inaccurate results - better trade of than looping again? */
 	/* OR: just use the difference between new and old solution (fabs(p->ef.Epot_tmp[i] - p->ef.Epot[i]) to trace conversion & omit this loop */
-#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) deviceptr(p->ef.Epot_tmp,p->ef.eps_arr)
-#pragma omp parallel for collapse(3)
-        for (uint64_t x=0; x < p->nx; x++)
-            for (uint64_t y=0; y < p->ny; y++)
-                for (uint64_t z=0; z < p->nz; z++)
-		    {
-		      uint64_t j = cell_to_index(p,x,y,z);
+/* #pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) //deviceptr(p->ef.Epot_tmp,p->ef.eps_arr) */
+/* #pragma omp parallel for collapse(3) */
+/*         for (uint64_t x=0; x < p->nx; x++) */
+/*             for (uint64_t y=0; y < p->ny; y++) */
+/*                 for (uint64_t z=0; z < p->nz; z++) */
+/* 		    { */
+/* 		      uint64_t j = cell_to_index(p,x,y,z); */
 
-			if(p->ef.electrodes[j] != 1)
-			{
-			    // Laplace equation, welling2017 eq. 5
-			    soma_scalar_t conv_crit = (d2Epotx(p,p->ef.Epot_tmp,x,y,z) +
-						       d2Epoty(p,p->ef.Epot_tmp,x,y,z) +
-						       d2Epotz(p,p->ef.Epot_tmp,x,y,z)) * p->ef.eps_arr[j] +
-			    			      (dEpotx(p,p->ef.Epot_tmp,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) +
-						       dEpoty(p,p->ef.Epot_tmp,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) +
-						       dEpotz(p,p->ef.Epot_tmp,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z));
+/* 			if(p->ef.electrodes[j] != 1) */
+/* 			{ */
+/* 			    // Laplace equation, welling2017 eq. 5 */
+/* 			    soma_scalar_t conv_crit = (d2Epotx(p,p->ef.Epot_tmp,x,y,z) + */
+/* 						       d2Epoty(p,p->ef.Epot_tmp,x,y,z) + */
+/* 						       d2Epotz(p,p->ef.Epot_tmp,x,y,z)) * p->ef.eps_arr[j] + */
+/* 			    			      (dEpotx(p,p->ef.Epot_tmp,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) + */
+/* 						       dEpoty(p,p->ef.Epot_tmp,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) + */
+/* 						       dEpotz(p,p->ef.Epot_tmp,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z)); */
 
-			    if (max_i < conv_crit) max_i = conv_crit;
-			}
-		    }
+/* 			    if (max_i < conv_crit) max_i = conv_crit; */
+/* 			} */
+/* 		    } */
 	
-#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.Epot,p->ef.Epot_tmp)
+#pragma acc parallel loop present(p[0:1]) collapse(3) //deviceptr(p->ef.Epot,p->ef.Epot_tmp)
 #pragma omp parallel for
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
@@ -585,12 +597,11 @@ soma_scalar_t iterate_field(struct Phase *const p)
 		    }
 
 	/* if( (k+1) % 500==0 ) printf("\n max: %.3e\n", max_i); */
-/* #pragma acc data deviceptr(p->ef.Epot_tmp, p->ef.Epot) */
-/* 	{ */
+/* #Pragma acc update host(p->ef) */
 /* 	soma_scalar_t *tmp = p->ef.Epot_tmp; */
 /* 	p->ef.Epot_tmp = p->ef.Epot; */
 /* 	p->ef.Epot = tmp; */
-/* 	} */
+/* #pragma acc update device(p->ef) */
 	k += 1;
     }
 
@@ -640,14 +651,15 @@ int calc_electric_field_contr(struct Phase *const p)
 /*     } */
 
     calc_dielectric_field(p);
-#pragma acc wait
+
     pre_derivatives(p);
-#pragma acc wait
+
     max = iterate_field(p);
+
     if (max > p->ef.thresh_iter) return -1; 
-#pragma acc wait
+
     // soma_scalar_t sum_H_el = 0.0;
-#pragma acc parallel loop present(p[0:1]) collapse(3) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.E_field,p->ef.eps,p->ef.omega_field_el) //reduction(+:sum_H_el)
+#pragma acc parallel loop present(p[0:1]) collapse(3) //deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.E_field,p->ef.eps,p->ef.omega_field_el) //reduction(+:sum_H_el)
 #pragma omp parallel for collapse(3) //reduction(+:sum_H_el)
     for (uint64_t x=0; x < p->nx; x++)
         for (uint64_t y=0; y < p->ny; y++)
@@ -667,13 +679,13 @@ int calc_electric_field_contr(struct Phase *const p)
                     //sum_H_el += p->ef.H_el_field[i];                                          // redundant?
                     
                     p->ef.E_field[i] = -(dEpotx(p,p->ef.Epot,x,y,z) + dEpoty(p,p->ef.Epot,x,y,z) + dEpotz(p,p->ef.Epot,x,y,z));
-
+#pragma acc loop seq
                     for (uint32_t m = 0; m < p->n_types; m++)
                     {   
                         soma_scalar_t phi_sum = 0.0;
                         soma_scalar_t diff_part = 0.0;
                         phi_sum += p->fields_unified[i+m*p->n_cells_local] * p->field_scaling_type[m];
-
+#pragma acc loop seq
                         for (uint32_t n = 0; n < p->n_types; n++)
                         {
                             if (n != m)
@@ -709,11 +721,11 @@ int calc_electric_field_contr(struct Phase *const p)
 
     //tests(p,k);
     //p->ef.H_el = sum_H_el;
-#pragma acc update self(p->ef.omega_field_el)
-    if (p->ef.omega_field_el != p->ef.omega_field_el)
-    {
-        return -1;
-    }
+/* #pragma acc update self(p->ef.omega_field_el) */
+/*     if (p->ef.omega_field_el != p->ef.omega_field_el) */
+/*     { */
+/*         return -1; */
+/*     } */
     //printf("\n p->ef.omega_field_el[2247*2]: %.3e", p->ef.omega_field_el[2247*2]);
     //printf("\n sqrt Nbar = %.3e \n", p->sqrt_Nbar);
     // if domain_decomposition -> allreduce Epot, E_field, eps_arr here.
@@ -748,7 +760,7 @@ void tests(struct Phase *const p,uint64_t k)
         soma_scalar_t sum_omega_field_el = 0.0;
         soma_scalar_t sum_omega_field = 0.0;
 
-#pragma acc update host(p->omega_field_unified)
+#pragma acc update host(p->omega_field_unified[0:(p->n_types*p->n_cells)])
 
         for (uint64_t o = 0; o < p->n_cells; o++)
         {

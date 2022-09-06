@@ -18,7 +18,6 @@
 #define SOMA_ELECTRIC_FIELD_H
 
 #include "soma_config.h"
-#include "soma_util.h"
 #include "phase.h"
 
 
@@ -46,8 +45,7 @@ typedef struct ElectricField{
     \param p Phase describing the system
     \param file_id File identifier of open HDF5 file.
     \param plist_id Access properties to use.
-    \return Errorcode
-*/
+    \return Errorcode */
 int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const hid_t plist_id);
 
 /*! Helper function to write the electric field array, electrode array and dielectric constants to the config HDF5 file.
@@ -55,159 +53,204 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     \param p Phase describing the system
     \param file_id File identifier of open HDF5 file.
     \param plist_id Access properties to use.
-    \return Errorcode
-*/
+    \return Errorcode */
 int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id);
 
 /*! Helper function to copy the ef data to the device
     \private
     \param p Fully CPU initialized Phase struct
-    \return Errorcode
-*/
+    \return Errorcode */
 int copyin_electric_field(struct Phase *p);
 
 /*! Helper function delete the ef data from the device and copy it to the CPU memory
     \private
     \param p Fully CPU initialized Phase struct
-    \return Errorcode
-*/
+    \return Errorcode */
 int copyout_electric_field(struct Phase *p);
 
 /*! Helper function to update the host with the ef data
     \private
     \param p Fully initialized Phase struct
-    \return Errorcode
-*/
+    \return Errorcode */
 int update_self_electric_field(const struct Phase *const p);
 
-/*! Helper function to resolve periodic boundaries for coordinates x,y,z.
-    \private
-    \param p Phase describing the system
-    \param x x-coordinate in 3D representation of field.
-    \param y y-coordinate in 3D representation of field.
-    \param z z-coordinate in 3D representation of field.
-*/
-#pragma acc routine(cell_to_index) seq
-inline uint64_t cell_to_index(struct Phase *p, const uint64_t x, const uint64_t y, const uint64_t z);
+/* /\*! Helper function to resolve periodic boundaries for coordinates x,y,z. */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \param x x-coordinate in 3D representation of field. */
+/*     \param y y-coordinate in 3D representation of field. */
+/*     \param z z-coordinate in 3D representation of field. *\/ */
+/* #pragma acc routine(cell_to_index) seq */
+/* inline uint64_t cell_to_index(struct Phase *const p, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* {                                                                                                                                                                          */
+/*     int64_t xt=x; //changed from uint64_t to int64_t because otherwise xt < 0 always false                                                                                 */
+/*     int64_t yt=y;                                                                                                                                                          */
+/*     int64_t zt=z;                                                                                                                                                          */
+/*     if (xt >= p->nx) //Wrap back if necessary // formerly: if (xt >= (uint64) p->nx)                                                                                       */
+/*       xt -= p->nx;                                                                                                                                                         */
+/*     if (xt < 0)                                                                                                                                                            */
+/*       xt += p->nx;                                                                                                                                                         */
+/*     if (yt >= p->ny) //Wrap back if necessary                                                                                                                              */
+/*       yt -= p->ny;                                                                                                                                                         */
+/*     if (yt < 0)                                                                                                                                                            */
+/*       yt += p->ny;                                                                                                                                                         */
+/*     if (zt >= p->nz) //Wrap back if necessary                                                                                                                              */
+/*       zt -= p->nz;                                                                                                                                                         */
+/*     if (zt < 0)                                                                                                                                                            */
+/*       zt += p->nz;                                                                                                                                                         */
+/*     //Unified data layout [type][x][y][z]                                                                                                                                  */
+/*     return xt * p->ny * p->nz + yt * p->nz + zt;                                                                                                                          } */
 
-/*! Helper function to compute the square of the derivative of the electric potential field
-    \private
-    \param p Phase describing the system
-    \returns |Epot/dr|^2 
+/* /\*! Helper function to compute the square of the derivative of the electric potential field */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \returns |Epot/dr|^2  */
+/* soma_scalar_t Epot_deriv_sq(struct Phase *const p, uint64_t x, uint64_t y, uint64_t z) *\/ */
 
-soma_scalar_t Epot_deriv_sq(struct Phase *const p, uint64_t x, uint64_t y, uint64_t z) */
+/* /\*! Helper function to compute the partial derivative of the electric potential field with respect to x */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \param x x-coordinate in 3D representation of field. */
+/*     \param y y-coordinate in 3D representation of field. */
+/*     \param z z-coordinate in 3D representation of field. */
+/*     \returns dEpot/dx *\/ */
+/* #pragma acc routine(dEpotx) seq */
+/* inline soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     //Resolve periodic boundaries                                                                                                                                          */
+/*     int64_t xp = x + 1; */
+/*     int64_t xm = x - 1; */
+/*     if (xp >= p->nx) xp -= p->nx; */
+/*     if (xm < 0) xm += p->nx; */
+/*     return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * 0.5 * p->nx / p->Lx; */
+/* } */
 
-/*! Helper function to compute the partial derivative of the electric potential field with respect to x
-    \private
-    \param p Phase describing the system
-    \param x x-coordinate in 3D representation of field.
-    \param y y-coordinate in 3D representation of field.
-    \param z z-coordinate in 3D representation of field.
-    \returns dEpot/dx
-*/
-#pragma acc routine(dEpotx) seq
-inline soma_scalar_t dEpotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+/* /\*! Helper function to compute the partial derivative of the electric potential field with respect to y */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \param x x-coordinate in 3D representation of field. */
+/*     \param y y-coordinate in 3D representation of field. */
+/*     \param z z-coordinate in 3D representation of field. */
+/*     \returns dEpot/dy *\/ */
+/* #pragma acc routine(dEpoty) seq */
+/* inline soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t yp = y + 1; */
+/*     int64_t ym = y - 1; */
+/*     if (yp >= p->ny) yp -= p->ny; */
+/*     if (ym < 0) ym += p->ny; */
+/*     return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * 0.5 * p->ny / p->Ly; */
+/* } */
 
-/*! Helper function to compute the partial derivative of the electric potential field with respect to y
-    \private
-    \param p Phase describing the system
-    \param x x-coordinate in 3D representation of field.
-    \param y y-coordinate in 3D representation of field.
-    \param z z-coordinate in 3D representation of field.
-    \returns dEpot/dy
-*/
-#pragma acc routine(dEpoty) seq
-inline soma_scalar_t dEpoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+/* /\*! Helper function to compute the partial derivative of the electric potential field with respect to z */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \param x x-coordinate in 3D representation of field. */
+/*     \param y y-coordinate in 3D representation of field. */
+/*     \param z z-coordinate in 3D representation of field. */
+/*     \returns dEpot/dz *\/ */
+/* #pragma acc routine(dEpotz) seq */
+/* inline soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t zp = z + 1; */
+/*     int64_t zm = z - 1; */
+/*     if (zp >= p->nz) zp -= p->nz; */
+/*     if (zm < 0) zm += p->nz; */
+/*     return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * 0.5 * p->nz / p->Lz; */
+/* } */
 
-/*! Helper function to compute the partial derivative of the electric potential field with respect to z
-    \private
-    \param p Phase describing the system
-    \param x x-coordinate in 3D representation of field.
-    \param y y-coordinate in 3D representation of field.
-    \param z z-coordinate in 3D representation of field.
-    \returns dEpot/dz
-*/
-#pragma acc routine(dEpotz) seq
-inline soma_scalar_t dEpotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+/* /\*! Helper function to compute the second partial derivative of the electric potential field with respect to x */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \param x x-coordinate in 3D representation of field. */
+/*     \param y y-coordinate in 3D representation of field. */
+/*     \param z z-coordinate in 3D representation of field. */
+/*     \returns d2Epot/dx^2 *\/ */
+/* #pragma acc routine(d2Epotx) seq */
+/* inline soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t xp = x + 1; */
+/*     int64_t xm = x - 1; */
+/*     if (xp >= p->nx) xp -= p->nx; */
+/*     if (xm < 0) xm += p->nx; */
+/*     return (e_field[(xp) * p->ny * p->nz + y * p->nz + z] - (2 * e_field[(x) * p->ny * p->nz + y * p->nz + z]) + */
+/*             e_field[(xm) * p->ny * p->nz + y * p->nz + z]) * (p->nx / p->Lx) * (p->nx / p->Lx); */
+/* } */
 
-/*! Helper function to compute the second partial derivative of the electric potential field with respect to x
-    \private
-    \param p Phase describing the system
-    \param x x-coordinate in 3D representation of field.
-    \param y y-coordinate in 3D representation of field.
-    \param z z-coordinate in 3D representation of field.
-    \returns d2Epot/dx^2
-*/
-#pragma acc routine(d2Epotx) seq
-inline soma_scalar_t d2Epotx(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+/* /\*! Helper function to compute the second partial derivative of the electric potential field with respect to y */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \param x x-coordinate in 3D representation of field. */
+/*     \param y y-coordinate in 3D representation of field. */
+/*     \param z z-coordinate in 3D representation of field. */
+/*     \returns d2Epot/dy^2 *\/ */
+/* #pragma acc routine(d2Epoty) seq */
+/* inline soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t yp = y + 1; */
+/*     int64_t ym = y - 1; */
+/*     if (yp >= p->ny) yp -= p->ny; */
+/*     if (ym < 0) ym += p->ny; */
+/*     return (e_field[x * p->ny * p->nz + (yp) * p->nz + z] - (2 * e_field[x * p->ny * p->nz + (y) * p->nz + z]) + */
+/*             e_field[x * p->ny * p->nz + (ym) * p->nz + z]) * (p->ny / p->Ly) * (p->ny / p->Ly); */
+/* } */
 
-/*! Helper function to compute the second partial derivative of the electric potential field with respect to y
-    \private
-    \param p Phase describing the system
-    \param x x-coordinate in 3D representation of field.
-    \param y y-coordinate in 3D representation of field.
-    \param z z-coordinate in 3D representation of field.
-    \returns d2Epot/dy^2
-*/
-#pragma acc routine(d2Epoty) seq
-inline soma_scalar_t d2Epoty(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
-
-/*! Helper function to compute the second partial derivative of the electric potential field with respect to z
-    \private
-    \param p Phase describing the system
-    \param x x-coordinate in 3D representation of field.
-    \param y y-coordinate in 3D representation of field.
-    \param z z-coordinate in 3D representation of field.
-    \returns d2Epot/dz^2
-*/
-#pragma acc routine(d2Epotz) seq
-inline soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z);
+/* /\*! Helper function to compute the second partial derivative of the electric potential field with respect to z */
+/*     \private */
+/*     \param p Phase describing the system */
+/*     \param x x-coordinate in 3D representation of field. */
+/*     \param y y-coordinate in 3D representation of field. */
+/*     \param z z-coordinate in 3D representation of field. */
+/*     \returns d2Epot/dz^2 *\/ */
+/* #pragma acc routine(d2Epotz) seq */
+/* inline soma_scalar_t d2Epotz(struct Phase *const p, soma_scalar_t * e_field, const uint64_t x, const uint64_t y, const uint64_t z) */
+/* { */
+/*     int64_t zp = z + 1; */
+/*     int64_t zm = z - 1; */
+/*     if (zp >= p->nz) zp -= p->nz; */
+/*     if (zm < 0) zm += p->nz; */
+/*     return (e_field[x * p->ny * p->nz + y * p->nz + (zp)] - (2 * e_field[x * p->ny * p->nz + y * p->nz + (z)]) + */
+/*             e_field[x * p->ny * p->nz + y * p->nz + (zm)]) * (p->nz / p->Lz) * (p->nz / p->Lz); */
+/* } */
 
 /*! Helper function to compute the value of sqrt{\bar{N}} defined as the amount of polymer chains per volume R_e^3
     \private
-    \param p Phase describing the system
-*/
+    \param p Phase describing the system */
 void calc_sqrt_Nbar(struct Phase *const p);
 
 /*! Helper function to compute the dielectric field from the densities of individual particle types (welling2014, eq. 83)
     \private
     \param p Phase describing the system
-    \returns sqrt{\bar{N}} as uint
-*/
+    \returns sqrt{\bar{N}} as uint */
 void calc_dielectric_field(struct Phase *const p);
 
 /*! Helper funtion to precompute derivatives for dielectric field (welling2014, eq. 85)
     \private
-    \param p Phase describing the system
-*/
+    \param p Phase describing the system */
 void pre_derivatives(struct Phase *const p);
 
 /*! Helper function to iterate solution for derivatives of the electric potential field (using precomputed derivatives for dielectric field)
     \private
     \param p Phase describing the system
-    \returns maximum of dE_pot/dr
-*/
+    \returns maximum of dE_pot/dr */
 soma_scalar_t iterate_field(struct Phase *const p);
 
 /*! Main routine, calculates electrostatic energy contribution per cell and total (welling2017, eq. 7)
     \private
     \param p Phase describing the system
-    \returns Errorcode
-*/
+    \returns Errorcode */
 int calc_electric_field_contr(struct Phase *const p);
 
 /*! Helper function to free the CPU memory resources of the pc struct. The function gets automatically called by free_phase().
   \private
   \param p Initialized Phase that is in the process of deallocating its resources.
-  \return Errorcode
-  */
+  \return Errorcode */
 int free_electric_field(struct Phase *const p);
 
 /*! Helper function to track various parameter for debugging purposes.
   \private
   \param p Initialized Phase that is in the process of deallocating its resources.
-  \param k Amount of iterations to solve electrical potential field.
-  */
+  \param k Amount of iterations to solve electrical potential field. */
 void tests(struct Phase *const p, uint64_t k);
 
 #endif                          //SOMA_ELECTRIC_FIELD_H
