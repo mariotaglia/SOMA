@@ -1362,6 +1362,9 @@ class Configuration(SomaXML):
             self.poly_tag = f["poly_tag"][:]
             self.time[0] = f["/parameter/time"][0]
             print("The time attribute will not be updated.")
+            if "epot_field" in f:
+                self.electric_field.epot_array = f["epot_field"][:]
+                print("The epot_field attribute will not be updated.")
 
         print("Updating configuration is possible. So we overwrite the new properties.")
         self.write_hdf5(filename,"r+")
