@@ -29,7 +29,7 @@
 
 int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
-
+  
     p->pc.deltaMC = 0;
     p->pc.array = NULL;
     p->pc.len_reactions = 0;
@@ -334,6 +334,68 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     //Enable the updat only if everything worked fine so far
     p->pc.deltaMC = tmp_deltaMC;
 
+    
+    //Enable the updat only if everything worked fine
+    p->pc.deltaMC = tmp_deltaMC;
+
+    ///    Movement part
+    if (!(H5Lexists(file_id, "/polyconversion/movement", H5P_DEFAULT) > 0))
+        return 0;        
+    p->pc.is_gas=calloc(p->n_types,sizeof(unsigned int));
+    p->pc.is_liq=calloc(p->n_types,sizeof(unsigned int));
+    p->pc.axis=3;
+    p->pc.interface=0;
+    p->pc.distance=0;
+    status = read_hdf5(file_id, "polyconversion/movement/distance", H5T_STD_U32LE, plist_id, &p->pc.distance);
+    HDF5_ERROR_CHECK(status);
+    status = read_hdf5(file_id, "polyconversion/movement/axis", H5T_STD_U32LE, plist_id, &p->pc.axis);
+    HDF5_ERROR_CHECK(status);
+
+    hid_t  dset = H5Dopen (file_id, "polyconversion/movement/liquid_types", H5P_DEFAULT);
+    hid_t space = H5Dget_space (dset);
+    hsize_t     dims[1] = {0};
+    if((status=H5Sget_simple_extent_dims (space, dims, NULL))!=1)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return -1;
+        }
+    unsigned int len_liq=dims[0];
+    unsigned int* liq=calloc(len_liq,sizeof(unsigned int));
+    status = read_hdf5(file_id, "/polyconversion/movement/liquid_types", H5T_STD_U32LE, plist_id,liq);
+    H5Dclose (dset);
+    H5Sclose (space);
+
+    dset = H5Dopen (file_id, "polyconversion/movement/gas_types", H5P_DEFAULT);
+    space = H5Dget_space (dset);
+    dims[0] = 0;
+    if((status=H5Sget_simple_extent_dims (space, dims, NULL))!=1)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return -1;
+        }
+    unsigned int len_gas=dims[0];
+    unsigned int* gas=calloc(len_gas,sizeof(unsigned int));
+    status = read_hdf5(file_id, "/polyconversion/movement/gas_types", H5T_STD_U32LE, plist_id,gas);
+    H5Dclose (dset);
+    H5Sclose (space);
+    
+    if(  p->pc.axis<3 && len_gas>0 && len_liq>0)
+      p->pc.activate_movement=1;
+    for(unsigned int i=0;i<len_gas;i++)
+      p->pc.is_gas[gas[i]]=1;
+    for(unsigned  int i=0;i<len_liq;i++)
+      p->pc.is_liq[liq[i]]=1;
+    for(p->pc.zone_end=0;p->pc.zone_end<p->nx;p->pc.zone_end++)
+      if(p->pc.array[cell_coordinate_to_index(p,p->pc.zone_end,0,0)]==0)
+	break;
+    
+	
+    if(p->pc.zone_end<1||p->pc.zone_end>p->nx-2){
+      fprintf(stderr, "ERROR: core: %d zone_end out of bounds %s:%d code \n",
+	      p->info_MPI.world_rank, __FILE__, __LINE__);
+	}
     return 0;
 }
 
@@ -398,6 +460,61 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
                 }
         }
 
+    if(p->pc.activate_movement==1){
+      hid_t mgroup = H5Gcreate2(file_id, "/polyconversion/movement", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+      herr_t mstatus =
+        write_hdf5(1, &one, file_id, "/polyconversion/movement/axis", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                   &(p->pc.axis));
+      HDF5_ERROR_CHECK(mstatus);
+
+      mstatus =
+        write_hdf5(1, &one, file_id, "/polyconversion/movement/distance", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id,
+                   &(p->pc.distance));
+      HDF5_ERROR_CHECK(mstatus);
+
+      unsigned int n_gas=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_gas[i]==1)
+          n_gas+=1;
+      unsigned int *gas_types=calloc(n_gas,sizeof(unsigned int));
+      unsigned int k=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_gas[i]==1){
+          gas_types[k]=i;
+          k++;
+        }
+      const hsize_t ngas = n_gas;
+      mstatus =
+        write_hdf5(1, &ngas, file_id, "/polyconversion/movement/gas_types", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, gas_types);
+      HDF5_ERROR_CHECK2(mstatus, "/polyconversion/movement/gas_types");
+
+      unsigned int n_liq=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_liq[i]==1)
+          n_liq+=1;
+      unsigned int *liq_types=calloc(n_liq,sizeof(unsigned int));
+      k=0;
+      for(unsigned int i=0;i<p->n_types;i++)
+        if(p->pc.is_liq[i]==1){
+          liq_types[k]=i;
+          k++;
+        }
+      const hsize_t nliq = n_liq;
+      mstatus =
+        write_hdf5(1, &nliq, file_id, "/polyconversion/movement/liquid_types", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, liq_types);
+      HDF5_ERROR_CHECK2(mstatus, "/polyconversion/movement/liquid_types");
+
+    if ((mstatus = H5Gclose(mgroup)) < 0)
+        {
+            fprintf(stderr, "ERROR: core: %d HDF5-error %s:%d code %d\n",
+                    p->info_MPI.world_rank, __FILE__, __LINE__, status);
+            return mstatus;
+        }
+
+    }
+
+    
     //Write the array to disk
     const unsigned int my_domain = p->info_MPI.sim_rank / p->info_MPI.domain_size;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
@@ -542,7 +659,8 @@ int convert_polytypes(struct Phase *p)
     if (last_time >= p->time)
         return 0;
     last_time = p->time;
-
+    
+     
     update_polymer_rcm(p);
 
     if (p->pc.rate == NULL)
@@ -625,6 +743,74 @@ int partially_convert_polytypes(struct Phase *p)
                     } while (!p->pc.reaction_end[i - 1]);
                 }
         }
+    if(p->pc.activate_movement)
+      update_zone(p);
+
 
     return 0;
+}
+
+
+void update_zone(struct Phase *p)
+{
+  unsigned int interface=calculate_interface(p);
+  if(interface>p->pc.interface){
+    p->pc.interface=interface;
+    resize_zone(p);
+#pragma acc update device(p->pc.array[0:p->n_cells_local])
+
+  }
+   
+}
+
+unsigned int calculate_interface(struct Phase *p)
+{
+#pragma acc update self(p->fields_unified[:p->n_cells*p->n_types])
+  
+  unsigned int interface=0;
+  //one can write this nicer 
+  if(p->pc.axis==0){
+    for(unsigned int x=1;x<p->nx;x++){
+        soma_scalar_t p_liq=0;
+        soma_scalar_t p_gas=0;
+        for(unsigned int type=0;type<p->n_types;type++){
+
+            if(p->pc.is_gas[type])
+            for(unsigned int y=0;y<p->ny;y++)
+              for(unsigned int z=0;z<p->nz;z++)
+                p_gas+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
+            if(p->pc.is_liq[type])
+            for(unsigned int y=0;y<p->ny;y++)
+              for(unsigned int z=0;z<p->nz;z++)
+                p_liq+=(soma_scalar_t)p->fields_unified[cell_coordinate_to_index(p,x,y,z)+p->n_cells*type];
+        }
+        if(p_liq>p_gas){
+          interface=x;
+          break;
+        }
+    }
+
+    return interface;
+  }
+
+
+
+  
+}
+
+void resize_zone(struct Phase *p)
+{
+  if(p->info_MPI.world_rank==0)
+    printf("At t=%u\t interface =%u\t zone_end=%u\t new_end=%i\n",p->time,p->pc.interface,p->pc.zone_end,(int)p->pc.interface-p->pc.distance);
+  if(p->pc.axis==0){
+    if((int)p->pc.zone_end < (int)p->pc.interface-(int)p->pc.distance&&(int)p->pc.interface-(int)p->pc.distance>=0){
+      for(unsigned int x = p->pc.zone_end  ;  x < p->pc.interface-p->pc.distance  ;  x++)
+        for(unsigned int y=0;y<p->ny;y++)
+          for(unsigned int z=0;z<p->nz;z++)
+            p->pc.array[cell_coordinate_to_index(p,x,y,z)]=1;
+      p->pc.zone_end=p->pc.interface-p->pc.distance;
+    }
+  }
+  
+  
 }

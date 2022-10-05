@@ -37,6 +37,14 @@ typedef struct PolyConversion {
     unsigned int *dependency_type;      //!<Array that contains the dependency types
     unsigned int len_reactions; //!< length of the reaction related arrays input_type, output_type and reaction_end
     unsigned int len_dependencies;      //!< length of the density dependency array dependency_type (=sum over dependency_ntype) 
+  ///Things related for the mobility of the evaporation interface, for now only in 1d & on discretized space:
+  unsigned int activate_movement; //!< BOolean if polyconversion zone movement is active
+  unsigned int axis;  //!< Axis where the motion of the evaportion proceeds -- later enable negative axis for other direction
+  unsigned int interface;  //!< Current (measured) position of the interface between gas and liquid
+  unsigned int zone_end; //!< Current position of the zone end. if pc.array[5]=1 and pc.array[6]=0 -> zone_end=6
+  unsigned int distance;  //!< Desired distance between end of polyconversion box and the interface
+  unsigned int *is_gas; //!< Boolean array with length n_types indicating if type is gas (=1) or not (=0)
+  unsigned int *is_liq; //!< Boolean array with length n_types indicating if type is liquid (=1) or not (=0)
 
 } PolyConversion;
 
@@ -89,7 +97,6 @@ int free_poly_conversion(struct Phase *p);
   \return Errorcode
 */
 int convert_polytypes(struct Phase *p);
-
 /*! Fully convert polymer types according to the reaction description of the PolyConversion struct.
   \param p Phase struct describing the simulation
   \return Errorcode
@@ -102,4 +109,8 @@ int fully_convert_polytypes(struct Phase *p);
   \return Errorcode
 */
 int partially_convert_polytypes(struct Phase *p);
+void update_zone(struct Phase *p);
+unsigned int calculate_interface(struct Phase *p);
+void resize_zone(struct Phase *p);
+
 #endif                          //SOMA_POLYTYPE_CONVERSION_H
