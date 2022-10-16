@@ -1283,6 +1283,12 @@ class Configuration(SomaXML):
                 f.create_dataset("/polyconversion/input_type",data=self.poly_conversion.pc_list[:,0])
                 f.create_dataset("/polyconversion/output_type",data=self.poly_conversion.pc_list[:,1])
                 f.create_dataset("/polyconversion/end",data=self.poly_conversion.pc_list[:,2])
+                if(self.poly_conversion.movement):
+                    f.create_group("polyconversion/movement")
+                    f.create_dataset("polyconversion/movement/axis",data=self.poly_conversion.movement_axis)
+                    f.create_dataset("polyconversion/movement/distance",data=self.poly_conversion.movement_distance)
+                    f.create_dataset("polyconversion/movement/gas_types",data=self.poly_conversion.movement_gas)
+                    f.create_dataset("polyconversion/movement/liquid_types",data=self.poly_conversion.movement_liq)
                 if self.poly_conversion.rate_list != []:
                     f.create_dataset("polyconversion/rate",data=self.poly_conversion.rate_list)
                     f.create_dataset("/polyconversion/n_density_dependencies",data=self.poly_conversion.ndd_list)
@@ -1303,12 +1309,6 @@ class Configuration(SomaXML):
                     f.create_dataset("monoconversion/rate",data=self.mono_conversion.rate_list)
                     f.create_dataset("/monoconversion/n_density_dependencies",data=self.mono_conversion.ndd_list)
                     f.create_dataset("/monoconversion/density_dependencies",data=self.mono_conversion.dd_list)
-                if(self.poly_conversion.movement):
-                    f.create_group("polyconversion/movement")
-                    f.create_dataset("polyconversion/movement/axis",data=self.poly_conversion.movement_axis)
-                    f.create_dataset("polyconversion/movement/distance",data=self.poly_conversion.movement_distance)
-                    f.create_dataset("polyconversion/movement/gas_types",data=self.poly_conversion.movement_gas)
-                    f.create_dataset("polyconversion/movement/liquid_types",data=self.poly_conversion.movement_liq)
 
             if "mobility" in f:
                 del f["mobility"]
