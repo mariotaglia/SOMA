@@ -658,10 +658,11 @@ int copyin_electric_field(struct Phase *p)
             if (p->ef.kernel_dim > 1)
             {
 #pragma acc enter data copyin(p->ef.kernel[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
+#pragma acc enter data copyin(p->ef.kernel_blur[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
 #pragma acc enter data copyin(p->ef.eps_arr_conv[0:p->ef.n_cells_conv])
 #pragma acc enter data copyin(p->ef.pre_deriv_conv[0:p->ef.n_cells_conv*6])
 #pragma acc enter data copyin(p->ef.Epot_conv[0:p->ef.n_cells_conv])
-#pragma acc enter data copyin(p->ef.Epot_conv_tmp[0:p->ef.n_cells_conv])
+#pragma acc enter data copyin(p->ef.Epot_tmp_conv[0:p->ef.n_cells_conv])
             }
 #endif                          //_OPENACC
         }
@@ -685,10 +686,11 @@ int copyout_electric_field(struct Phase *p)
             if (p->ef.kernel_dim > 1)
             {
 #pragma acc exit data copyout(p->ef.kernel[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
+#pragma acc exit data copyout(p->ef.kernel_blur[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
 #pragma acc exit data copyout(p->ef.eps_arr_conv[0:p->ef.n_cells_conv])
 #pragma acc exit data copyout(p->ef.pre_deriv_conv[0:p->ef.n_cells_conv*6])
 #pragma acc exit data copyout(p->ef.Epot_conv[0:p->ef.n_cells_conv])
-#pragma acc exit data copyout(p->ef.Epot_conv_tmp[0:p->ef.n_cells_conv])
+#pragma acc exit data copyout(p->ef.Epot_tmp_conv[0:p->ef.n_cells_conv])
             }
 #endif                          //_OPENACC
         }
@@ -712,10 +714,11 @@ int update_self_electric_field(const struct Phase *const p)
             if (p->ef.kernel_dim > 1)
             {
 #pragma acc update self(p->ef.kernel[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
+#pragma acc update self(p->ef.kernel_blur[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
 #pragma acc update self(p->ef.eps_arr_conv[0:p->ef.n_cells_conv])
 #pragma acc update self(p->ef.pre_deriv_conv[0:p->ef.n_cells_conv*6])
 #pragma acc update self(p->ef.Epot_conv[0:p->ef.n_cells_conv])
-#pragma acc update self(p->ef.Epot_conv_tmp[0:p->ef.n_cells_conv])
+#pragma acc update self(p->ef.Epot_tmp_conv[0:p->ef.n_cells_conv])
             }
 #endif                          //_OPENACC
         }
@@ -1200,7 +1203,7 @@ soma_scalar_t iterate_field_conv(struct Phase *const p)
 // #pragma acc update device(p->ef)
         k += 1;
     }
-    if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, k);
+    if (p->time == 0 || (p->time + 1) % 500 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, k);
 
     // for (uint16_t u=0; u < (p->ef.conv_nx+2); u++)
     // {
