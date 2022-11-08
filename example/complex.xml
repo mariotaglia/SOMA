@@ -78,7 +78,7 @@
   </external_field>
   <polyconversion>
     <DeltaMC>
-      50
+      1
     </DeltaMC>
     <box>
       <point>0 1 2</point><point>1 2 3</point><value>0</value>
@@ -93,7 +93,7 @@
     </conversion_list>
     <conversion_rate>
         0.002
-        0.00003
+        0.2
         0.008
     </conversion_rate>
     <density_dependency>

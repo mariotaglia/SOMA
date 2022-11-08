@@ -33,7 +33,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
 {
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 0)
     //Check whether  mono conversion is present in the file:
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
     (void)plist_id;
     if ((H5Lexists(file_id, "/monoconversion", H5P_DEFAULT) > 0))
         {
@@ -318,7 +318,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     p->mtc.len_dependencies = dim_dependency;
 
     //Read rate and dependencies:
-    status = H5Dread(dset_rate, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->mtc.rate);
+    status = H5Dread(dset_rate, H5T_SOMA_NATIVE_SCALAR, H5S_ALL, H5S_ALL, plist_id, p->mtc.rate);
     HDF5_ERROR_CHECK(status);
     status = H5Sclose(dspace_rate);
     HDF5_ERROR_CHECK(status);
@@ -354,7 +354,7 @@ int read_mono_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
 
 int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
     (void)file_id;
     (void)plist_id;
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
@@ -390,8 +390,8 @@ int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
     if (p->mtc.rate != NULL)
         {
             status =
-                write_hdf5(1, &list_len, file_id, "/monoconversion/rate", H5T_NATIVE_DOUBLE, H5T_NATIVE_DOUBLE,
-                           plist_id, p->mtc.rate);
+                write_hdf5(1, &list_len, file_id, "/monoconversion/rate", H5T_SOMA_NATIVE_SCALAR,
+                           H5T_SOMA_NATIVE_SCALAR, plist_id, p->mtc.rate);
             HDF5_ERROR_CHECK(status);
             status =
                 write_hdf5(1, &list_len, file_id, "/monoconversion/n_density_dependencies", H5T_STD_U32LE,
@@ -483,12 +483,12 @@ int write_mono_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
 
 int copyin_mono_conversion(struct Phase *p)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (p->mtc.deltaMC != 0)
         {
 #ifdef _OPENACC
-            //The pc struct itself is part of the phase struct and is already present of the device
+            //The mtc struct itself is part of the phase struct and is already present of the device
 #pragma acc enter data copyin(p->mtc.array[0:p->n_cells_local])
 #pragma acc enter data copyin(p->mtc.input_type[0:p->mtc.len_reactions])
 #pragma acc enter data copyin(p->mtc.output_type[0:p->mtc.len_reactions])
@@ -508,7 +508,7 @@ int copyin_mono_conversion(struct Phase *p)
 
 int copyout_mono_conversion(struct Phase *p)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (p->mtc.deltaMC != 0)
         {
@@ -532,7 +532,7 @@ int copyout_mono_conversion(struct Phase *p)
 
 int update_self_mono_conversion(const struct Phase *const p)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     if (p->mtc.deltaMC != 0)
         {
@@ -556,7 +556,7 @@ int update_self_mono_conversion(const struct Phase *const p)
 
 int free_mono_conversion(struct Phase *p)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     free(p->mtc.array);
     free(p->mtc.input_type);
@@ -573,7 +573,7 @@ int free_mono_conversion(struct Phase *p)
 
 int convert_monotypes(struct Phase *p)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Quick exit for
     static unsigned int last_time = 0;
@@ -596,7 +596,7 @@ int convert_monotypes(struct Phase *p)
 
 int fully_convert_monotypes(struct Phase *p)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
@@ -626,14 +626,17 @@ int fully_convert_monotypes(struct Phase *p)
                             //Minus 1 because the index in array are shifted by 1
                             int i = p->mtc.array[cell] - 1;
                             unsigned int monotype = get_particle_type(p, poly, mono);
-                            do
+                            if (monotype == p->mtc.input_type[i])
+                                for (unsigned int block_index = 0; block_index < block_size; block_index++)     //All monomers in the block are switched.
+                                    ((uint8_t *) p->ph.monomer_types.ptr)[polymer->monomer_type_offset + mono +
+                                                                          block_index] = p->mtc.output_type[i];
+                            for (i++; !p->mtc.reaction_end[i - 1]; i++)
                                 {
                                     if (monotype == p->mtc.input_type[i])
                                         for (unsigned int block_index = 0; block_index < block_size; block_index++)     //All monomers in the block are switched.
                                             ((uint8_t *) p->ph.monomer_types.ptr)[polymer->monomer_type_offset + mono +
                                                                                   block_index] = p->mtc.output_type[i];
-                                    i++;
-                            } while (!p->mtc.reaction_end[i - 1]);
+                                }
                         }
                 }
         }
@@ -643,42 +646,41 @@ int fully_convert_monotypes(struct Phase *p)
 
 int partially_convert_monotypes(struct Phase *p)
 {
-    (void)p; //shut up compiler warnings
+    (void)p;                    //shut up compiler warnings
 #if ( ENABLE_MONOTYPE_CONVERSIONS == 1 )
     //Iterate all monomers and apply the reaction rules
 #pragma acc parallel loop present(p[0:1])
 #pragma omp parallel for
     for (uint64_t poly = 0; poly < p->n_polymers; poly++)
         {
-            //iteration over polymer 
             Polymer *mypoly = p->polymers + poly;
             const unsigned int N = p->poly_arch[p->poly_type_offset[mypoly->type]];
-            const unsigned int block_size = p->mtc.block_size;
-            // potentially tell acc not to parallelize this, because random number generator of polymers.
-#pragma acc loop seq
-            for (unsigned int mono = 0; mono < N; mono += block_size)
-                {               //iteration over blocks
-                    Monomer block_pos = make_monomer(0., 0., 0.);
-                    for (unsigned int block_index = 0; block_index < block_size; block_index++)
-                        {
-                            const Monomer pos = ((Monomer *) p->ph.beads.ptr)[mypoly->bead_offset + mono + block_index];        //Read Monomer position
-                            block_pos.x += pos.x;
-                            block_pos.y += pos.y;
-                            block_pos.z += pos.z;
-                        }
-                    block_pos.x /= block_size;
-                    block_pos.y /= block_size;
-                    block_pos.z /= block_size;
 
-                    const uint64_t cell = coord_to_index(p, block_pos.x, block_pos.y, block_pos.z);
+            for (unsigned int block = 0; block < N; block += p->mtc.block_size)
+                {
+                    Monomer block_rcm = make_monomer(0., 0., 0.);
+                    for (unsigned int mono = 0; mono < p->mtc.block_size; mono++)
+                        {
+                            const Monomer pos = ((Monomer *) p->ph.beads.ptr)[mypoly->bead_offset + block + mono];      //Read Monomer position
+                            block_rcm.x += pos.x;
+                            block_rcm.y += pos.y;
+                            block_rcm.z += pos.z;
+                        }
+                    block_rcm.x /= p->mtc.block_size;
+                    block_rcm.y /= p->mtc.block_size;
+                    block_rcm.y /= p->mtc.block_size;
+
+                    const uint64_t cell = coord_to_index(p, block_rcm.x, block_rcm.y, block_rcm.z);
 
                     if (p->mtc.array[cell] != 0)
                         {
                             soma_scalar_t probability = 0.;
-                            int i = p->mtc.array[cell] - 1;
-                            unsigned int monotype = get_particle_type(p, poly, mono);
+                            int i = p->mtc.array[cell] - 2;
+                            //uint8_t monotype = ((uint8_t *) p->ph.monomer_types.ptr)[mypoly->monomer_type_offset + block];
+                            unsigned int monotype = get_particle_type(p, poly, block);
                             do
                                 {
+                                    i++;
                                     if (monotype == p->mtc.input_type[i])
                                         {
                                             soma_scalar_t norm = 1 - probability;
@@ -698,21 +700,21 @@ int partially_convert_monotypes(struct Phase *p)
                                                 soma_rng_soma_scalar(&(mypoly->poly_state), p);
                                             if (random_number < probability)
                                                 {
-                                                    for (unsigned int block_index = 0; block_index < block_size;
-                                                         block_index++)
-                                                        ((uint8_t *) p->ph.monomer_types.ptr)[mypoly->
-                                                                                              monomer_type_offset +
-                                                                                              mono + block_index] =
-                                                            (uint8_t) p->mtc.output_type[i];
-                                                    break;      //to continue with next polymer if conversion has taken place.
+                                                    for (unsigned int mono = 0; mono < p->mtc.block_size; mono++)
+                                                        {
+                                                            ((uint8_t *) p->ph.monomer_types.ptr)[mypoly->
+                                                                                                  monomer_type_offset +
+                                                                                                  block + mono] =
+                                                                (uint8_t) p->mtc.output_type[i];
+                                                        }
+                                                    break;      //to continue with next block if conversion has taken place.
                                                 }
                                             else
                                                 {
                                                     probability += (1 - norm);
                                                 }
                                         }
-                                    i++;
-                            } while (!p->mtc.reaction_end[i - 1]);
+                            } while (!p->mtc.reaction_end[i]);
                         }
                 }
         }

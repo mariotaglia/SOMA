@@ -68,7 +68,7 @@ if [ ! $? -eq 0 ]; then
     exit -4
 fi
 
-@PYTHON_EXECUTABLE@ test_mobility.py
+@Python_EXECUTABLE@ test_mobility.py
 
 if [ ! $? -eq 0 ]; then
     exit -5

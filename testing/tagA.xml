@@ -32,7 +32,8 @@
     12 6 6
   </nxyz>
   <poly_arch>
-    400 A{32}B{32}
+    200 A{32}B{32}
+    200 A{32}B{32}
     400 B{16}A{32}
   </poly_arch>
   <analysis>

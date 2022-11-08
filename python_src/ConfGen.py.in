@@ -1352,7 +1352,7 @@ class Configuration(SomaXML):
                 new_N = self.poly_arch.poly_arch[ self.poly_arch.poly_type_offset[new_type]]
 
                 assert (old_N == new_N), "Error you changed N of a polymer. This is impossible. "+str((old_N,new_N,poly))
-                new_polytype[i] = new_type;
+                new_polytype[i] = old_type;
 
             self.poly_type = new_polytype
             self.poly_tag = f["poly_tag"][:]
@@ -1759,7 +1759,7 @@ class Configuration(SomaXML):
                 self.array = array
                 self.pc_list = pc_list
                 self.delta_mc = numpy.asarray([deltaMC],dtype=numpy.uint32)
-                self.rate_list = rate_list
+                self.rate_list = numpy.asarray(rate_list,dtype=soma_type.get_soma_scalar_type())
                 self.ndd_list = ndd_list
                 self.dd_list = dd_list
     ## Class that parses the XML and stores the information for poly conversion zones

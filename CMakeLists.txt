@@ -239,9 +239,9 @@ endif(ENABLE_OPENMP)
 add_subdirectory(c_src)
 add_subdirectory(setups)
 
-find_package(PythonInterp)
+find_package(Python)
 
-if(PYTHONINTERP_FOUND)
+if(PYTHON_FOUND)
   set(install_python_text "Install the python scripts. Not needed for pure server installations.")
   #check for numpy and h5py
   set(find_numpy "
@@ -249,7 +249,7 @@ from __future__ import print_function; import sys, os; sys.stdout = open(os.devn
 try: import numpy;
 except ImportError: print('OFF',file=sys.stderr,end='');
 else: print('ON',file=sys.stderr,end='');")
-  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${find_numpy}" ERROR_VARIABLE numpy_FOUND)
+  execute_process(COMMAND ${Python_EXECUTABLE} -c "${find_numpy}" ERROR_VARIABLE numpy_FOUND)
   if(${numpy_FOUND})
     message(STATUS "Numpy found")
 
@@ -258,7 +258,7 @@ from __future__ import print_function; import sys, os; #sys.stdout = open(os.dev
 try: import h5py;
 except ImportError: print('OFF',file=sys.stderr,end='');
 else: print('ON',file=sys.stderr,end='');")
-    execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "${find_h5py}" ERROR_VARIABLE h5py_FOUND)
+    execute_process(COMMAND ${Python_EXECUTABLE} -c "${find_h5py}" ERROR_VARIABLE h5py_FOUND)
 
     #Extra resilient h5py detection
     string(FIND ${h5py_FOUND} "ON" ON_FOUND)
@@ -269,7 +269,7 @@ else: print('ON',file=sys.stderr,end='');")
     if(${h5py_FOUND})
       message(STATUS "h5py found")
       option(INSTALL_PYTHON "${install_python_text}" ON)
-      set(SOMA_PYTHON_SHEBANG "#!${PYTHON_EXECUTABLE}")
+      set(SOMA_PYTHON_SHEBANG "#!${Python_EXECUTABLE}")
     else(${h5py_FOUND})
       message(STATUS "h5py NOT found. ${h5py_FOUND}")
       option(INSTALL_PYTHON "${install_python_text}" OFF)
@@ -278,10 +278,10 @@ else: print('ON',file=sys.stderr,end='');")
     message(STATUS "numpy NOT found. (not looking for h5py anymore)")
     option(INSTALL_PYTHON "${install_python_text}" OFF)
   endif(${numpy_FOUND})
-else(PYTHONINTERP_FOUND)
+else(PYTHON_FOUND)
   message(STATUS "no viable python found.")
   option(INSTALL_PYTHON "${install_python_text}" OFF)
-endif(PYTHONINTERP_FOUND)
+endif(PYTHON_FOUND)
 
 if(INSTALL_PYTHON)
   add_subdirectory(python_src)
