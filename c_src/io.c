@@ -1603,6 +1603,23 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
             fprintf(stderr, "ERROR: %s:%d unable to read electric field information.\n", __FILE__, __LINE__);
             return status;
         }
+    
+    if (p->ef.kernel_dim > 1)
+    {
+        status = init_kernel(p);
+        if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to initialize kernel for convolution.\n", __FILE__, __LINE__);
+            return status;
+        }
+
+        status = init_convolution(p);
+        if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to initialize convolution.\n", __FILE__, __LINE__);
+            return status;
+        }
+    }
 
     p->field_scaling_type = (soma_scalar_t *) malloc(p->n_types * sizeof(soma_scalar_t));
     if (p->field_scaling_type == NULL)
