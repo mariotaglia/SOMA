@@ -51,7 +51,7 @@ fi
 mv end.h5 noload.h5
 
 echo B
-${PYTHON_EXECUTABLE} compare_mixed_bead_data.py load.h5 noload.h5
+@Python_EXECUTABLE@ compare_mixed_bead_data.py load.h5 noload.h5
 echo C
 if [ ! $? -eq 0 ]; then
     exit -4

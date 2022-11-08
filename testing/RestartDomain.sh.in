@@ -59,15 +59,15 @@ fi
 mv end.h5 domainN.h5
 
 
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python compare_mixed_bead_data.py domain1.h5 domain2.h5
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python3 compare_mixed_bead_data.py domain1.h5 domain2.h5
 if [ ! $? -eq 0 ]; then
     exit -7
 fi
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python compare_mixed_bead_data.py domain1.h5 domain4.h5
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python3 compare_mixed_bead_data.py domain1.h5 domain4.h5
 if [ ! $? -eq 0 ]; then
     exit -8
 fi
-@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python compare_mixed_bead_data.py domain1.h5 domainN.h5
+@MPIEXEC@ @MPIEXEC_NUMPROC_FLAG@ 1 python3 compare_mixed_bead_data.py domain1.h5 domainN.h5
 if [ ! $? -eq 0 ]; then
     exit -9
 fi

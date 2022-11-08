@@ -19,28 +19,34 @@
 
 DELTA=0
 
-@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i coord.xml --no-ana-output
+@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i restartexact.xml --no-ana-output
 
 if [ ! $? -eq 0 ]; then
     exit -1
 fi
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 0 @ACC_FLAG@
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c restartexact.h5 -r 11 -t 1 @ACC_FLAG@
 mv end.h5 step0.h5
 
 if [ ! $? -eq 0 ]; then
     exit -5
 fi
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c coord.h5 -r 11 -t 1 @ACC_FLAG@
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c restartexact.h5 -r 11 -t 1 @ACC_FLAG@
+mv end.h5 norestart.h5
 
 if [ ! $? -eq 0 ]; then
     exit -2
 fi
 
-mv end.h5 norestart.h5
+@CMAKE_CURRENT_BINARY_DIR@/../python_src/ConfGen.py -i restartexact.xml -o step0.h5 --no-ana-output --update
 
-@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c step0.h5 -r 11 -t 1 @ACC_FLAG@
+if [ ! $? -eq 0 ]; then
+    exit -6
+fi
+mv end.h5 restart.h5
+
+@MPIEXEC@  @MPIEXEC_NUMPROC_FLAG@ 1 @CMAKE_CURRENT_BINARY_DIR@/../c_src/SOMA -c step0.h5 -r 11 -t 0 @ACC_FLAG@
 if [ ! $? -eq 0 ]; then
     exit -3
 fi

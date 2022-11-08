@@ -304,7 +304,7 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
     p->pc.len_dependencies = dim_dependency;
 
     //Read rate and dependencies:
-    status = H5Dread(dset_rate, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, p->pc.rate);
+    status = H5Dread(dset_rate, H5T_SOMA_NATIVE_SCALAR, H5S_ALL, H5S_ALL, plist_id, p->pc.rate);
     HDF5_ERROR_CHECK(status);
     status = H5Sclose(dspace_rate);
     HDF5_ERROR_CHECK(status);
@@ -367,8 +367,8 @@ int write_poly_conversion_hdf5(const struct Phase *const p, const hid_t file_id,
     if (p->pc.rate != NULL)
         {
             status =
-                write_hdf5(1, &list_len, file_id, "/polyconversion/rate", H5T_NATIVE_DOUBLE, H5T_NATIVE_DOUBLE,
-                           plist_id, p->pc.rate);
+                write_hdf5(1, &list_len, file_id, "/polyconversion/rate", H5T_SOMA_NATIVE_SCALAR,
+                           H5T_SOMA_NATIVE_SCALAR, plist_id, p->pc.rate);
             HDF5_ERROR_CHECK(status);
             status =
                 write_hdf5(1, &list_len, file_id, "/polyconversion/n_density_dependencies", H5T_STD_U32LE,
@@ -569,12 +569,13 @@ int fully_convert_polytypes(struct Phase *p)
                 {
                     //Minus 1 because the index in array are shifted by 1
                     int i = p->pc.array[cell] - 1;
-                    do
+                    if (p->polymers[poly].type == p->pc.input_type[i])
+                        p->polymers[poly].type = p->pc.output_type[i];
+                    for (i++; !p->pc.reaction_end[i - 1]; i++)
                         {
                             if (p->polymers[poly].type == p->pc.input_type[i])
                                 p->polymers[poly].type = p->pc.output_type[i];
-                            i++;
-                    } while (!p->pc.reaction_end[i - 1]);
+                        }
                 }
         }
     return 0;
@@ -594,9 +595,10 @@ int partially_convert_polytypes(struct Phase *p)
             if (p->pc.array[cell] != 0)
                 {
                     soma_scalar_t probability = 0.;
-                    int i = p->pc.array[cell] - 1;
+                    int i = p->pc.array[cell] - 2;
                     do
                         {
+                            i++;
                             if (mypoly->type == p->pc.input_type[i])
                                 {
                                     soma_scalar_t norm = 1 - probability;
@@ -621,8 +623,7 @@ int partially_convert_polytypes(struct Phase *p)
                                             probability += (1 - norm);
                                         }
                                 }
-                            i++;
-                    } while (!p->pc.reaction_end[i - 1]);
+                    } while (!p->pc.reaction_end[i]);
                 }
         }
 

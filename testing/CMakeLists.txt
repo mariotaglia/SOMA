@@ -102,7 +102,7 @@ if(ENABLE_MPI)
   #async
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/async.py.in ${CMAKE_CURRENT_BINARY_DIR}/async.py)
   if(DEFINED SOMA_PYTHON_SHEBANG)
-    add_test(NAME async WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} async.py ${ACC_FLAG})
+    add_test(NAME async WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} async.py ${ACC_FLAG})
   endif()
 endif(ENABLE_MPI)
 
@@ -118,18 +118,24 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/compare_mixed_bead_data.py.in ${CMAKE
 #Structure factor
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/structure_factor.py.in ${CMAKE_CURRENT_BINARY_DIR}/structure_factor.py)
 if(DEFINED SOMA_PYTHON_SHEBANG)
-  add_test(NAME StructureFactor WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} structure_factor.py ${ACC_FLAG})
+  add_test(NAME StructureFactor WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} structure_factor.py ${ACC_FLAG})
 endif()
 
 #External field
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/external_field.py.in ${CMAKE_CURRENT_BINARY_DIR}/external_field.py)
 if(DEFINED SOMA_PYTHON_SHEBANG)
-  add_test(NAME ExternalField WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} external_field.py)
+  add_test(NAME ExternalField WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} external_field.py)
 endif()
 
 if(HDF5_DIFF_EXECUTABLE)
 
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/RestartExact.sh.in ${CMAKE_CURRENT_BINARY_DIR}/RestartExact.sh)
+  if(ENABLE_MONOTYPE_CONVERSIONS)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../example/monoconversion.xml ${CMAKE_CURRENT_BINARY_DIR}/restartexact.xml COPYONLY)
+  else(ENABLE_MONOTYPE_CONVERSIONS)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../example/complex.xml ${CMAKE_CURRENT_BINARY_DIR}/restartexact.xml COPYONLY)
+  endif(ENABLE_MONOTYPE_CONVERSIONS)
+
   if(DEFINED SOMA_PYTHON_SHEBANG)
     add_test(NAME Restart WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./RestartExact.sh)
 
@@ -175,7 +181,7 @@ if(ENABLE_MIC)
   #mic
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mic.py.in ${CMAKE_CURRENT_BINARY_DIR}/mic.py)
   if(DEFINED SOMA_PYTHON_SHEBANG)
-    add_test(NAME mic WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND  ${PYTHON_EXECUTABLE} mic.py)
+    add_test(NAME mic WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND  ${Python_EXECUTABLE} mic.py)
   endif()
 endif(ENABLE_MIC)
 
@@ -184,21 +190,21 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/monoconversion.xml ${CMAKE_CURRENT_BI
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/monoconversion_dd.xml ${CMAKE_CURRENT_BINARY_DIR}/monoconversion_dd.xml)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/monoconversion_test.py.in ${CMAKE_CURRENT_BINARY_DIR}/monoconversion_test.py)
 if(DEFINED SOMA_PYTHON_SHEBANG)
-  add_test(NAME MonotypeConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} monoconversion_test.py --additional-flags=${ACC_FLAG})
+  add_test(NAME MonotypeConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} monoconversion_test.py --additional-flags=${ACC_FLAG})
 endif()
 
 else(ENABLE_MONOTYPE_CONVERSIONS)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/conversion.xml ${CMAKE_CURRENT_BINARY_DIR}/conversion.xml)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/conversion_test.py.in ${CMAKE_CURRENT_BINARY_DIR}/conversion_test.py)
 if(DEFINED SOMA_PYTHON_SHEBANG)
-  add_test(NAME PolytypeConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} conversion_test.py --additional-flags=${ACC_FLAG})
+  add_test(NAME PolytypeConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} conversion_test.py --additional-flags=${ACC_FLAG})
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/partial_conversion.xml ${CMAKE_CURRENT_BINARY_DIR}/partial_conversion.xml)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/partial_conversion_dd.xml ${CMAKE_CURRENT_BINARY_DIR}/partial_conversion_dd.xml)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/partial_conversion_test.py.in ${CMAKE_CURRENT_BINARY_DIR}/partial_conversion_test.py)
 if(DEFINED SOMA_PYTHON_SHEBANG)
-  add_test(NAME PolytypePartialConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} partial_conversion_test.py --additional-flags=${ACC_FLAG})
+  add_test(NAME PolytypePartialConversion WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} partial_conversion_test.py --additional-flags=${ACC_FLAG})
 endif()
 
 endif(ENABLE_MONOTYPE_CONVERSIONS)
@@ -209,34 +215,34 @@ if(DEFINED SOMA_PYTHON_SHEBANG)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/mobility.sh.in ${CMAKE_CURRENT_BINARY_DIR}/mobility.sh)
   add_test(NAME mobility-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ./mobility.sh)
 
-  add_test(NAME weight-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} weight.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=${ACC_FLAG})
+  add_test(NAME weight-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} weight.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=${ACC_FLAG})
 endif(DEFINED SOMA_PYTHON_SHEBANG)
 
 #stat
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/statistics.py)
 if(DEFINED SOMA_PYTHON_SHEBANG)
-  add_test(NAME default-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=${ACC_FLAG})#default
+  add_test(NAME default-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=${ACC_FLAG})#default
   if(ENABLE_MPI)
-    add_test(NAME MPI-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX} --additional-flags=${ACC_FLAG})
+    add_test(NAME MPI-stat WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX} --additional-flags=${ACC_FLAG})
   endif(ENABLE_MPI)
   #add_test(NAME PCG32-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND python statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=-pPCG32${ACC_FLAG}) #default case
-  add_test(NAME MT-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=-pMT${ACC_FLAG})
+  add_test(NAME MT-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=-pMT${ACC_FLAG})
   if(ENABLE_MIC)
-    add_test(NAME MIC-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=--bond-minimum-image-convention${ACC_FLAG})
+    add_test(NAME MIC-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=--bond-minimum-image-convention${ACC_FLAG})
   endif(ENABLE_MIC)
-  #add_test(NAME TT800-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --additional-flags=-pTT800${ACC_FLAG}) #not working prng
-  #add_test(NAME SMART-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --additional-flags=--move-type=SMART${ACC_FLAG}) #default
-  #add_test(NAME TRIAL-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --additional-flags=--move-type=TRIAL${ACC_FLAG}) #not working move type (possibly because of bad statistics)
-  #add_test(NAME POLYMER-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=--iteration-alg=POLYMER${ACC_FLAG}) #default
-  add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=--iteration-alg=SET${ACC_FLAG})
-  #add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --additional-flags=--iteration-alg=SET--set-generation-algorithm=SIMPLE${ACC_FLAG}) #default
-  add_test(NAME SET-FIXED-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} "--additional-flags=--iteration-alg=SET --set-generation-algorithm=FIXED${ACC_FLAG}") #default
+  #add_test(NAME TT800-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --additional-flags=-pTT800${ACC_FLAG}) #not working prng
+  #add_test(NAME SMART-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --additional-flags=--move-type=SMART${ACC_FLAG}) #default
+  #add_test(NAME TRIAL-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --additional-flags=--move-type=TRIAL${ACC_FLAG}) #not working move type (possibly because of bad statistics)
+  #add_test(NAME POLYMER-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=--iteration-alg=POLYMER${ACC_FLAG}) #default
+  add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} --additional-flags=--iteration-alg=SET${ACC_FLAG})
+  #add_test(NAME SET-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --additional-flags=--iteration-alg=SET--set-generation-algorithm=SIMPLE${ACC_FLAG}) #default
+  add_test(NAME SET-FIXED-stat- WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} statistics.py --prefix=${MPI_PREFIX_SINGLE} "--additional-flags=--iteration-alg=SET --set-generation-algorithm=FIXED${ACC_FLAG}") #default
 
 #domain stat test
 if(ENABLE_DOMAIN_DECOMPOSITION)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/domain_statistics.py.in ${CMAKE_CURRENT_BINARY_DIR}/domain_statistics.py)
 
-  add_test(NAME domain-statistics-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${PYTHON_EXECUTABLE} domain_statistics.py --additional-flags=${ACC_FLAG})
+  add_test(NAME domain-statistics-test WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} COMMAND ${Python_EXECUTABLE} domain_statistics.py --additional-flags=${ACC_FLAG})
 
 
 endif(ENABLE_DOMAIN_DECOMPOSITION)
