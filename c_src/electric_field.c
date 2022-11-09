@@ -400,25 +400,54 @@ int init_convolution(struct Phase *const p)
     }
 
     // get axes in between electrodes to allocate arrays
-    if (p->ef.el_pos_xy)
-        p->ef.conv_nz = (p->nz-2) / p->ef.stride;
-    else
-        p->ef.conv_nz = p->nz / p->ef.stride;
-    
-    if (p->ef.el_pos_xz)
-        p->ef.conv_ny = (p->ny-2) / p->ef.stride;
-    else
-        p->ef.conv_ny = p->ny / p->ef.stride;
-    
     if (p->ef.el_pos_yz)
         p->ef.conv_nx = (p->nx-2) / p->ef.stride;
     else
         p->ef.conv_nx = p->nx / p->ef.stride;
 
-    // convolution starts in 0th cell; depending on stride, an additional cell is added
-    if ((p->nx - 1) % p->ef.conv_nx == 0) p->ef.conv_nx += 1;
-    if ((p->ny - 1) % p->ef.conv_ny == 0) p->ef.conv_ny += 1;
-    if ((p->nz - 1) % p->ef.conv_nz == 0) p->ef.conv_nz += 1;
+    if (p->ef.el_pos_xz)
+        p->ef.conv_ny = (p->ny-2) / p->ef.stride;
+    else
+        p->ef.conv_ny = p->ny / p->ef.stride;
+
+    if (p->ef.el_pos_xy)
+        p->ef.conv_nz = (p->nz-2) / p->ef.stride;
+    else
+        p->ef.conv_nz = p->nz / p->ef.stride;   
+
+    // calculate max. index that can be calculated from convoluted array
+    // (max conv cells - offset for index) * stride + (stride - 1)
+    uint64_t max_conv_nx = (p->ef.conv_nx - 1) * p->ef.stride + p->ef.stride - 1;
+    uint64_t max_conv_ny = (p->ef.conv_ny - 1) * p->ef.stride + p->ef.stride - 1;
+    uint64_t max_conv_nz = (p->ef.conv_nz - 1) * p->ef.stride + p->ef.stride - 1;
+
+    // compare to max index of original array (minus electrodes), offset start of indexing
+    uint64_t max_nx = p->nx - 1;
+    uint64_t max_ny = p->ny - 1;
+    uint64_t max_nz = p->nz - 1;
+
+    // in case of electrode, offset index accordingly
+    if (p->ef.el_pos_yz)
+    {       
+        max_conv_nx += 1; 
+        max_nx -= 1;
+    }
+    if (p->ef.el_pos_xz)
+    {       
+        max_conv_ny += 1; 
+        max_ny -= 1;
+    }
+    if (p->ef.el_pos_xy)
+    {       
+        max_conv_nz += 1; 
+        max_nz -= 1;
+    }
+
+    // add additional cell to convoluted array in case max index of original cannot be reached
+    if (max_conv_nx < max_nx) p->ef.conv_nx += 1;
+    if (max_conv_ny < max_ny) p->ef.conv_ny += 1;
+    if (max_conv_nz < max_nz) p->ef.conv_nz += 1;
+
 
     // alloc p->ef.eps_arr_conv, p->ef.pre_deriv_conv, p->ef.Epot_conv, p->ef.Epot_tmp_conv
     // depending on electrode position; include two extra rows of cells to reattach electrodes (necessary for iteration)
@@ -1209,10 +1238,25 @@ void deconvolution_Epot(struct Phase *const p)
                             uint64_t ydc_i = yc * p->ef.stride + p->ef.y_offset + i;
                             uint64_t zdc_i = zc * p->ef.stride + p->ef.z_offset + j;
                             
-                            // omit if exceeding last row; >= because indexing starts at 0
-                            if (xdc_i >= p->nx) continue;
-                            if (ydc_i >= p->ny) continue;
-                            if (zdc_i >= p->nz) continue;
+                            // omit if exceeding last row; resolve electrode offset
+                            if (p->ef.el_pos_yz)
+                            {
+                                if (xdc_i >= p->nx-1) continue;
+                                if (ydc_i >= p->ny) continue;
+                                if (zdc_i >= p->nz) continue;
+                            }
+                            if (p->ef.el_pos_xz)
+                            {
+                                if (xdc_i >= p->nx) continue;
+                                if (ydc_i >= p->ny-1) continue;
+                                if (zdc_i >= p->nz) continue;
+                            }
+                            if (p->ef.el_pos_xy)
+                            {
+                                if (xdc_i >= p->nx) continue;
+                                if (ydc_i >= p->ny) continue;
+                                if (zdc_i >= p->nz-1) continue;
+                            }
                             
                             // to index Epot_conv and skip electrode planes, offset must be added to indeces
                             // cannot be done early, else deconvoluted indices will not start at "1"
