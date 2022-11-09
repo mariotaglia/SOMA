@@ -1301,17 +1301,23 @@ class Configuration(SomaXML):
                 del f["electrodes"]
             if "parameter/dielectric_constants" in f:
                 del f["parameter/dielectric_constants"]
-            if "parameter/ef_iter_per_MC" in f:
-                del f["parameter/ef_iter_per_MC"]
             if "parameter/ef_iter_limit" in f:
                 del f["parameter/ef_iter_limit"]
             if "parameter/ef_thresh_iter" in f:
                 del f["parameter/ef_thresh_iter"]
+            if "parameter/ef_kernel_dim" in f:
+                del f["parameter/ef_kernel_dim"]
+            if "parameter/ef_kernel_sigma" in f:
+                del f["parameter/ef_kernel_sigma"]
+            if "parameter/ef_stride" in f:
+                del f["parameter/ef_stride"]
             if type(self.electric_field.eps_list) is numpy.ndarray:
                 f.create_dataset("/parameter/dielectric_constants",data=self.electric_field.eps_list)
-                f.create_dataset("/parameter/ef_iter_per_MC",data=self.electric_field.iter_per_MC)
                 f.create_dataset("/parameter/ef_iter_limit",data=self.electric_field.iter_limit)
                 f.create_dataset("/parameter/ef_thresh_iter",data=self.electric_field.thresh_iter)
+                f.create_dataset("/parameter/ef_kernel_dim",data=self.electric_field.kernel_dim)
+                f.create_dataset("/parameter/ef_kernel_sigma",data=self.electric_field.kernel_sigma)
+                f.create_dataset("/parameter/ef_stride",data=self.electric_field.stride)
                 f.create_dataset("/epot_field",data=self.electric_field.epot_array)
                 f.create_dataset("/electrodes",data=self.electric_field.electrodes_array)
 
@@ -1909,12 +1915,15 @@ class Configuration(SomaXML):
             self.epot_array = numpy.zeros(shape=nxyz,dtype=soma_type.get_soma_scalar_type())
             self.electrodes_array = numpy.zeros(shape=nxyz,dtype=numpy.uint8)
             self.eps_list = False
-            self.iter_per_MC = False
             self.iter_limit = False
             self.thresh_iter = False
+            self.kernel_dim = False
+            self.kernel_sigma = False
+            self.stride = False
+            omitted_dim = False
             gridobj_list = []
             child_list = []
-            knownTags = ["point_cloud","box","cylinder","sphere","eps","thresh_iter","iter_per_MC","iter_limit"]
+            knownTags = ["point_cloud","box","cylinder","sphere","eps","thresh_iter","iter_limit","kernel_dim","kernel_sigma","stride"]
             for element in root.iter("electric_field"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1949,26 +1958,10 @@ class Configuration(SomaXML):
                             raise RuntimeError("Dielectric constants for particle types must be float convertible, but got "+str(eps_list)) from exception
                     self.eps_list = numpy.asarray(eps_list,dtype=soma_type.get_soma_scalar_type())
 
-                iter_per_MC_default = 200
-                if not 'iter_per_MC' in child_list:
-                    print("WARNING: Amount of iterations per MC step to solve electric field not specified, will default to "+str(iter_per_MC_default)+".")
-                    self.iter_per_MC = numpy.asarray(iter_per_MC_default,dtype=numpy.uint16)
-                else:
-                    iter_per_MC_str = ""
-                    for char in element.findall('iter_per_MC'):
-                        iter_per_MC_str += char.text
-                    
-                    iter_per_MC_str = iter_per_MC_str.strip()
-                    try:
-                        int(iter_per_MC_str)
-                    except ValueError as exception:
-                        raise RuntimeError("Amount of iterations per MC step to solve electric field must be a single integer convertible, but got \""+str(iter_per_MC_str)+"\".") from exception
-                    self.iter_per_MC = numpy.asarray(iter_per_MC_str,dtype=numpy.uint16)
-
-                iter_limit_default = 20000
+                iter_limit_default = 120000
                 if not 'iter_limit' in child_list:
                     print("WARNING: Upper limit of iterations to solve electric field not specified, will default to "+str(iter_limit_default)+".")
-                    self.iter_limit = numpy.asarray(iter_limit_default,dtype=numpy.uint16)
+                    self.iter_limit = numpy.asarray(iter_limit_default,dtype=numpy.uint64)
                 else:
                     iter_limit_str = ""
                     for char in element.findall('iter_limit'):
@@ -1979,7 +1972,7 @@ class Configuration(SomaXML):
                         int(iter_limit_str)
                     except ValueError as exception:
                         raise RuntimeError("Upper limit of iterations to solve electric field must be a single integer convertible, but got \""+str(iter_limit_str)+"\".") from exception
-                    self.iter_limit = numpy.asarray(iter_limit_str,dtype=numpy.uint16)
+                    self.iter_limit = numpy.asarray(iter_limit_str,dtype=numpy.uint64)
 
                 thresh_default = 0.001
                 if not 'thresh_iter' in child_list:
@@ -2000,8 +1993,65 @@ class Configuration(SomaXML):
                 if self.thresh_iter <= 0:
                     raise RuntimeError("Iteration threshold to solve electric field must be >0.")
 
-                if self.iter_per_MC > self.iter_limit:
-                    raise RuntimeError("The amount of iterations per MC step to solve the electric field (\"iter_per_MC\") must not exceed the upper limit of iterations (\"iter_limit\").")
+                kd_default = 1
+                if not 'kernel_dim' in child_list:
+                    print("WARNING: Kernel dimension for convolution not specified, will default to "+str(kd_default)+", skipping convolution.")
+                    self.kernel_dim = numpy.asarray(kd_default,dtype=numpy.uint8)
+                    omitted_dim = True
+                else:
+                    kernel_str = ""
+                    for char in element.findall('kernel_dim'):
+                        kernel_str += char.text
+                    
+                    kernel_str = kernel_str.strip()
+                    try:
+                        int(kernel_str)
+                    except ValueError as exception:
+                        raise RuntimeError("Kernel dimension for convolution must be integer convertible, but got \""+str(kernel_str)+"\".") from exception
+                    self.kernel_dim = numpy.asarray(kernel_str,dtype=numpy.uint8)
+
+                if self.kernel_dim <= 0 or self.kernel_dim % 2 == 0:
+                    raise RuntimeError("Kernel dimension for convolution must be uneven and greater than zero.")
+
+                ks_default = 1.0
+                if not 'kernel_sigma' in child_list:
+                    if not omitted_dim:
+                        print("WARNING: Kernel sigma not specified, will default to "+str(ks_default)+".")
+                    self.kernel_sigma = numpy.asarray(ks_default,dtype=soma_type.get_soma_scalar_type())
+                else:
+                    kernel_s_str = ""
+                    for char in element.findall('kernel_sigma'):
+                        kernel_s_str += char.text
+                    
+                    kernel_s_str = kernel_s_str.strip()
+                    try:
+                        float(kernel_s_str)
+                    except ValueError as exception:
+                        raise RuntimeError("Kernel sigma must be integer convertible, but got \""+str(kernel_s_str)+"\".") from exception
+                    self.kernel_sigma = numpy.asarray(kernel_s_str,dtype=soma_type.get_soma_scalar_type())
+
+                if self.kernel_sigma <= 0.0:
+                    raise RuntimeError("Kernel sigma for convolution must be greater than zero.")
+
+                stride_default = 1
+                if not 'stride' in child_list:
+                    if not omitted_dim:
+                        print("WARNING: Kernel stride for convolution not specified, will default to "+str(stride_default)+".")
+                    self.stride = numpy.asarray(stride_default,dtype=numpy.uint8)
+                else:
+                    stride_str = ""
+                    for char in element.findall('stride'):
+                        stride_str += char.text
+                    
+                    stride_str = stride_str.strip()
+                    try:
+                        int(stride_str)
+                    except ValueError as exception:
+                        raise RuntimeError("Kernel stride must be integer convertible, but got \""+str(stride_str)+"\".") from exception
+                    self.stride = numpy.asarray(stride_str,dtype=numpy.uint8)
+
+                if self.stride <= 0:
+                    raise RuntimeError("Kernel stride must be greater than zero.")
 
             if len(gridobj_list) == 1 and len(list(gridobj_list[0].get_keys())) == 1: # explain point cloud
                 raise RuntimeError("A minimum of 2 electrodes must be specified, but only found 1.")

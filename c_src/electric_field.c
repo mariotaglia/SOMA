@@ -35,7 +35,6 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.eps = NULL;
     p->ef.eps_arr = NULL;
     p->ef.electrodes = NULL;
-    p->ef.iter_per_MC = 0;
     p->ef.iter_limit = 0;
     p->ef.thresh_iter = 0.0;
     p->ef.Epot = NULL;
@@ -151,10 +150,6 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     status = read_hdf5(file_id, "/parameter/dielectric_constants", H5T_SOMA_NATIVE_SCALAR, plist_id, p->ef.eps);
     HDF5_ERROR_CHECK2(status, "/parameter/dielectric_constants");
 
-    //Read p->ef.iter_per_MC
-    status = read_hdf5(file_id, "/parameter/ef_iter_per_MC", H5T_NATIVE_UINT32, plist_id, &(p->ef.iter_per_MC));
-    HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_per_MC");
-
     //Read p->ef.iter_limit
     status = read_hdf5(file_id, "/parameter/ef_iter_limit", H5T_NATIVE_UINT32, plist_id, &(p->ef.iter_limit));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_limit");
@@ -184,23 +179,23 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
         return status;
     }
 
-    //Read stride for convolution
-    p->ef.stride = 2; // TO DO: READ FROM XML, default=1!
-    // status = read_hdf5(file_id, "/parameter/ef_stride", H5T_NATIVE_UINT8, plist_id, &(p->ef.stride));
-    // HDF5_ERROR_CHECK2(status, "/parameter/ef_stride");
-
     //Read kernel dim for convolution
-    p->ef.kernel_dim = 3; // TO DO: READ FROM XML -- MUST BE UNEVEN, default=1!
-    // status = read_hdf5(file_id, "/parameter/ef_kernel_dim", H5T_NATIVE_UINT8, plist_id, &(p->ef.kernel_dim));
-    // HDF5_ERROR_CHECK2(status, "/parameter/ef_kernel_dim");
+    // p->ef.kernel_dim = 3; // TO DO: READ FROM XML -- MUST BE UNEVEN, default=1!
+    status = read_hdf5(file_id, "/parameter/ef_kernel_dim", H5T_NATIVE_UINT8, plist_id, &(p->ef.kernel_dim));
+    HDF5_ERROR_CHECK2(status, "/parameter/ef_kernel_dim");
 
     //Calculate kernel radius
     p->ef.kernel_rad = p->ef.kernel_dim / 2;
 
     //Read std dev for kernel
-    p->ef.kernel_sigma = 1.0; // TO DO: READ FROM XML, default=1.0!
-    // status = read_hdf5(file_id, "/parameter/ef_kernel_sigma", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.kernel_sigma));
-    // HDF5_ERROR_CHECK2(status, "/parameter/ef_kernel_sigma");
+    // p->ef.kernel_sigma = 1.0; // TO DO: READ FROM XML, default=1.0!
+    status = read_hdf5(file_id, "/parameter/ef_kernel_sigma", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.kernel_sigma));
+    HDF5_ERROR_CHECK2(status, "/parameter/ef_kernel_sigma");
+
+    //Read kernel stride for convolution
+    // p->ef.stride = 2; 
+    status = read_hdf5(file_id, "/parameter/ef_stride", H5T_NATIVE_UINT8, plist_id, &(p->ef.stride));
+    HDF5_ERROR_CHECK2(status, "/parameter/ef_stride");
 
     return 0;   
 }
@@ -219,20 +214,30 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
                    p->ef.eps);
     HDF5_ERROR_CHECK2(status, "/parameter/dielectric_constants");
 
-    //Write amount of iterations per MC step
-    status =
-        write_hdf5(1, &one, file_id, "/parameter/ef_iter_per_MC", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &(p->ef.iter_per_MC)); // H5T_STD_U16LE
-    HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_per_MC");
-
     //Write upper limit of iterations
     status =
-        write_hdf5(1, &one, file_id, "/parameter/ef_iter_limit", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &(p->ef.iter_limit)); // H5T_STD_U16LE
+        write_hdf5(1, &one, file_id, "/parameter/ef_iter_limit", H5T_STD_U32LE, H5T_NATIVE_UINT32, plist_id, &(p->ef.iter_limit)); // H5T_STD_U16LE
     HDF5_ERROR_CHECK2(status, "/parameter/ef_iter_limit");
 
     //Write iteration threshold
     status =
         write_hdf5(1, &one, file_id, "/parameter/ef_thresh_iter", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.thresh_iter));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_thresh_iter");
+
+    //Write kernel dim
+    status =
+        write_hdf5(1, &one, file_id, "/parameter/ef_kernel_dim", H5T_STD_U8LE, H5T_NATIVE_UINT8, plist_id, &(p->ef.kernel_dim));
+    HDF5_ERROR_CHECK2(status, "/parameter/ef_kernel_dim");
+
+    //Write kernel sigma
+    status =
+        write_hdf5(1, &one, file_id, "/parameter/ef_kernel_sigma", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.kernel_sigma));
+    HDF5_ERROR_CHECK2(status, "/parameter/ef_kernel_sigma");
+
+    //Write kernel stride
+    status =
+        write_hdf5(1, &one, file_id, "/parameter/ef_stride", H5T_STD_U8LE, H5T_NATIVE_UINT8, plist_id, &(p->ef.stride));
+    HDF5_ERROR_CHECK2(status, "/parameter/ef_stride");
 
     /* //Write sqrt_Nbar */
     /* status = */
@@ -292,8 +297,8 @@ int init_kernel(struct Phase *const p)
         return -1;                                                                                                                    
     }
 
-    // allocate kernel_blur array
-    p->ef.kernel_blur = malloc((p->ef.kernel_dim * p->ef.kernel_dim * p->ef.kernel_dim * sizeof(soma_scalar_t)));                          
+    // allocate kernel_blur array always 3x3x3)
+    p->ef.kernel_blur = malloc((3 * 3 * 3 * sizeof(soma_scalar_t)));                          
     if (p->ef.kernel_blur == NULL)                                                                                                         
     {                                                                                                                                 
         fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);                                                                 
@@ -332,10 +337,10 @@ int init_kernel(struct Phase *const p)
         fprintf(stderr, "ERROR: Kernel initialization: %d. %s:%d.\n", kernel_err, __FILE__, __LINE__);
     }
 
-    // fill blur kernel with ones
-    for (uint16_t i = 0; i < (p->ef.kernel_dim * p->ef.kernel_dim * p->ef.kernel_dim); i++)
+    // fill blur kernel with ones and normalize
+    for (uint16_t i = 0; i < (3 * 3 * 3); i++)
     {
-        p->ef.kernel_blur[i] = 1.0 / (p->ef.kernel_dim * p->ef.kernel_dim * p->ef.kernel_dim);
+        p->ef.kernel_blur[i] = 1.0 / (3 * 3 * 3);
     }
 
     return 0;
@@ -516,6 +521,14 @@ int init_convolution(struct Phase *const p)
     // fill values for convoluted arrays electrode positions, determine offset to skip these planes during iteration
     // during convolution & iteration the remaining area in between electrodes will be filled;
     // planes consisting of electrodes will be skipped
+    
+    // soma_scalar_t eps_ave = 0;
+    // for (uint8_t t=0; t < p->n_types; t++)
+    // {
+    //     eps_ave += p->ef.eps[t];
+    // }
+    // eps_ave /= p->n_types;
+
     if (p->ef.el_pos_yz)
     {
         for (uint64_t y=0; y < p->ef.conv_ny; y++)
@@ -642,7 +655,7 @@ int init_convolution(struct Phase *const p)
 
 int copyin_electric_field(struct Phase *p)
 {
-    if (p->ef.iter_per_MC != 0)
+    if (p->ef.iter_limit != 0)
         {
 #ifdef _OPENACC
             //The ef struct itself is part of the phase struct and is already present of the device
@@ -671,7 +684,7 @@ int copyin_electric_field(struct Phase *p)
 
 int copyout_electric_field(struct Phase *p)
 {
-    if (p->ef.iter_per_MC != 0)
+    if (p->ef.iter_limit != 0)
         {
 #ifdef _OPENACC
 #pragma acc exit data copyout(p->ef.eps[0:p->n_types])
@@ -699,7 +712,7 @@ int copyout_electric_field(struct Phase *p)
 
 int update_self_electric_field(const struct Phase *const p)
 {
-    if (p->ef.iter_per_MC != 0)
+    if (p->ef.iter_limit != 0)
         {
 #ifdef _OPENACC
 #pragma acc update self(p->ef.eps[0:p->n_types])
@@ -842,29 +855,12 @@ soma_scalar_t iterate_field(struct Phase *const p)
 {
     soma_scalar_t max_i = 10.0;
     uint64_t k = 0;
-//    soma_scalar_t sum_new, sum_old;
-
-//     printf("\n area51[2247]: %d\n",p->area51[2247]);
-//     printf("\n p->ef.electrodes[2247]: %d\n",p->ef.electrodes[2247]);
-//     printf("\n p->ef.eps_arr[2247]: %.3f \n", p->ef.eps_arr[2247]);
-// #pragma acc update host (p->ef.eps_arr[0:p->n_cells])
-//     printf("\n p->ef.eps_arr[2247] (updated): %.3f \n", p->ef.eps_arr[2247]);
-//     printf("\n p->ef.pre_deriv[2247*6]: %.3f \n", p->ef.pre_deriv[2247*6]);
-// #pragma acc update host (p->ef.pre_deriv[0:p->n_cells*6])
-//     printf("\n p->ef.pre_deriv[2247*6] (updated): %.3f \n", p->ef.pre_deriv[2247*6]);
-    
-//     printf("\n thresh iter: %.3f\n", p->ef.thresh_iter);
-//     printf("\n=======\n");
-//     printf("\n p->ef.Epot[2247] before iter.: %.3f \n", p->ef.Epot[2247]);
-// #pragma acc update host (p->ef.Epot[0:p->n_cells]) */
-//     printf("\n p->ef.Epot[2247] (updated) before iter.: %.3f \n", p->ef.Epot[2247]);
 
     while(max_i > p->ef.thresh_iter && k < p->ef.iter_limit)
     {
         max_i = p->ef.thresh_iter;
-    	// sum_new = 0.0;
-    	// sum_old = 0.0;
-#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) //reduction(+:sum_new,sum_old) //deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
+
+#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) //deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
 #pragma omp parallel for collapse(3) reduction(max: max_i)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
@@ -896,23 +892,9 @@ soma_scalar_t iterate_field(struct Phase *const p)
                             //                     (p->ef.Epot[cell_to_index(p,x,y+1,z)] - p->ef.Epot[cell_to_index(p,x,y-1,z)]) +
                             //                     (p->ef.eps_arr[cell_to_index(p,x,y,z+1)] - p->ef.eps_arr[cell_to_index(p,x,y,z-1)]) *
                             //                     (p->ef.Epot[cell_to_index(p,x,y,z+1)] - p->ef.Epot[cell_to_index(p,x,y,z-1)]) );
-
-                            // //Single cell precision
-                			// max_i = fmax(max_i, fabs(p->ef.Epot_tmp[i] - p->ef.Epot[i]));
-
-                			// //Box average precision
-                			// sum_new += fabs(p->ef.Epot_tmp[i]);
-                			// sum_old += fabs(p->ef.Epot[i]);
                         }
                     }
-    // //Box average precision
-	// sum_old = sum_old / p->n_cells;
-	// sum_new = sum_new / p->n_cells;
-	// max_i = fmax(max_i, fabs(sum_new - sum_old));
 	
-	/* additional loop necessary for conv_crit since loop iterations could lead to data dependency using the jacobi stencil
-	   could be included in former loop, however, might lead to incorrect/inaccurate results - better trade of than looping again?
-	   OR: just use the difference between new and old solution (fabs(p->ef.Epot_tmp[i] - p->ef.Epot[i]) to trace conversion & omit this loop */
 #pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) //deviceptr(p->ef.Epot_tmp,p->ef.eps_arr)
 #pragma omp parallel for collapse(3)
         for (uint64_t x=0; x < p->nx; x++)
@@ -959,36 +941,6 @@ soma_scalar_t iterate_field(struct Phase *const p)
 // #pragma acc update device(p->ef)
         k += 1;
     }
-//     //Check if host-device interaction works and arrays are correctly updated on host
-//     printf("\n p->ef.Epot[2247] after iter.: %.3f \n", p->ef.Epot[2247]);
-// #pragma acc update host (p->ef.Epot[0:p->n_cells])
-//     printf("\n p->ef.Epot[2247] (updated) after iter.: %.3f \n", p->ef.Epot[2247]);
-
-//     soma_scalar_t max_host = 0.0;
-//     uint64_t err_cells = 0;
-//     for (uint64_t x=0; x < p->nx; x++)
-//         for (uint64_t y=0; y < p->ny; y++)
-//             for (uint64_t z=0; z < p->nz; z++)
-//             {
-//                 uint64_t l = cell_to_index(p,x,y,z);
-//                 if(p->ef.electrodes[l] != 1)
-//                 {
-//                     soma_scalar_t conv_crit = fabs( (d2Epotx(p,p->ef.Epot,x,y,z) +
-//                                                      d2Epoty(p,p->ef.Epot,x,y,z) +
-//                                                      d2Epotz(p,p->ef.Epot,x,y,z)) * p->ef.eps_arr[l] +
-//                                                     (dEpotx(p,p->ef.Epot,x,y,z) * dEpotx(p,p->ef.eps_arr,x,y,z) +
-//                                                      dEpoty(p,p->ef.Epot,x,y,z) * dEpoty(p,p->ef.eps_arr,x,y,z) +
-//                                                      dEpotz(p,p->ef.Epot,x,y,z) * dEpotz(p,p->ef.eps_arr,x,y,z)) );
-//                     if(max_host < conv_crit) max_host = conv_crit;
-//                     if(conv_crit > 1e2)
-//                     {
-//                         err_cells += 1;
-//                         // printf("\n %d,%d,%d\n",x,y,z);
-//                     }
-//                 }
-//             }
-//         printf("\n number of cells in which conv_crit is too high: %d\n", err_cells);
-//         printf("\n max of Epot field on host: %.3e\n", max_host);
     
     if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, k);
 
@@ -1013,18 +965,41 @@ void convolution_eps_arr(struct Phase *const p)
                     for (int8_t i = -p->ef.kernel_rad; i <= p->ef.kernel_rad; i++)
                         for (int8_t j = -p->ef.kernel_rad; j <= p->ef.kernel_rad; j++)
                         {
-                            // TO DO: resolve wrapping if kernel size > 3x3x3; if near electrode it might wrap back to opposing electrode
                             // compute original indices; offset to skip electrode planes
                             int64_t x_i = xc * p->ef.stride + p->ef.x_offset + h;
                             int64_t y_i = yc * p->ef.stride + p->ef.y_offset + i;
                             int64_t z_i = zc * p->ef.stride + p->ef.z_offset + j;
-                            // Resolve periodic boundaries
-                            if (x_i >= p->nx) x_i -= p->nx;
-                            if (x_i < 0) x_i += p->nx;
-                            if (y_i >= p->ny) y_i -= p->ny;
-                            if (y_i < 0) y_i += p->ny;
-                            if (z_i >= p->nz) z_i -= p->nz;
-                            if (z_i < 0) z_i += p->nz;
+                            // Resolve periodic boundaries, if kernel_dim > 3 make sure not to wrap back on opposing electrode
+                            if (p->ef.el_pos_yz)
+                            {
+                                if (x_i >= p->nx) x_i = p->nx - 1;
+                                if (x_i < 0) x_i = 0;    
+                            }
+                            else
+                            {
+                                if (x_i >= p->nx) x_i -= p->nx;
+                                if (x_i < 0) x_i += p->nx;    
+                            }
+                            if (p->ef.el_pos_xz)
+                            {
+                                if (x_i >= p->nx) x_i = p->nx - 1;
+                                if (x_i < 0) x_i = 0;
+                            }
+                            else
+                            {
+                                if (x_i >= p->nx) x_i -= p->nx;
+                                if (x_i < 0) x_i += p->nx;    
+                            }
+                            if (p->ef.el_pos_xy)
+                            {
+                                if (z_i >= p->nz) z_i = p->nz - 1;
+                                if (z_i < 0) z_i = 0;
+                            }
+                            else
+                            {
+                                if (z_i >= p->nz) z_i -= p->nz;
+                                if (z_i < 0) z_i += p->nz;
+                            }
                             
                             kernel_sum += p->ef.kernel[cell_to_index_kernel(p,h,i,j)] *
                                           p->ef.eps_arr[cell_to_index(p,x_i,y_i,z_i)];
@@ -1415,6 +1390,7 @@ int free_electric_field(struct Phase *const p)
     free(p->ef.E_field);
     free(p->ef.omega_field_el);
     free(p->ef.kernel);
+    free(p->ef.kernel_blur);
     free(p->ef.eps_arr_conv);
     free(p->ef.pre_deriv_conv);
     free(p->ef.Epot_conv);
@@ -1455,7 +1431,6 @@ void tests(struct Phase *const p,uint64_t k)
 
         // printf("=====\n");
         // printf("MC STEP: %d\n", p->time);
-        // printf("Iterations per MC: %ld\n",p->ef.iter_per_MC);
         // printf("Iteration limit: %ld\n",p->ef.iter_limit);
         // printf("Iteration threshold: %.5f\n",p->ef.thresh_iter);
         // printf("Sum electrode array: %ld\n",sum_electrodes);

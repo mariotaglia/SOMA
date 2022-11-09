@@ -61,12 +61,37 @@ inline uint64_t cell_to_index_conv(struct Phase *const p, const int64_t x, const
     int64_t yt = y;
     int64_t zt = z;
     // Wrap back if necessary; consider offset for electrode planes
-    if (xt >= p->ef.conv_nx + p->ef.x_offset * 2) xt -= p->ef.conv_nx + p->ef.x_offset * 2;
-    if (xt < 0) xt += p->ef.conv_nx;
-    if (yt >= p->ef.conv_ny + p->ef.y_offset * 2) yt -= p->ef.conv_ny + p->ef.y_offset * 2;
-    if (yt < 0) yt += p->ef.conv_ny;
-    if (zt >= p->ef.conv_nz + p->ef.z_offset * 2) zt -= p->ef.conv_nz + p->ef.z_offset * 2;
-    if (zt < 0) zt += p->ef.conv_nz;
+    // If kernel dimensions exceeds 3, create padding in order to not wrap back on opposing electrode
+    if (p->ef.el_pos_yz)
+    {
+        if (xt >= p->ef.conv_nx + p->ef.x_offset * 2) xt = (p->ef.conv_nx + p->ef.x_offset * 2) - 1;
+        if (xt < 0) xt = 0;
+    }
+    else
+    {
+        if (xt >= p->ef.conv_nx + p->ef.x_offset * 2) xt -= p->ef.conv_nx + p->ef.x_offset * 2;
+        if (xt < 0) xt += p->ef.conv_nx;
+    }
+    if (p->ef.el_pos_xz)
+    {
+        if (yt >= p->ef.conv_ny + p->ef.y_offset * 2) yt = (p->ef.conv_ny + p->ef.y_offset * 2) - 1;
+        if (yt < 0) yt = 0;
+    }
+    else
+    {
+        if (yt >= p->ef.conv_ny + p->ef.y_offset * 2) yt -= p->ef.conv_ny + p->ef.y_offset * 2;
+        if (yt < 0) yt += p->ef.conv_ny;
+    }
+    if (p->ef.el_pos_xy)
+    {
+        if (zt >= p->ef.conv_nz + p->ef.z_offset * 2) zt = (p->ef.conv_nz + p->ef.z_offset * 2) - 1;
+        if (zt < 0) zt = 0;
+    }
+    else
+    {
+        if (zt >= p->ef.conv_nz + p->ef.z_offset * 2) zt -= p->ef.conv_nz + p->ef.z_offset * 2;
+        if (zt < 0) zt += p->ef.conv_nz;
+    }
     // addition of "y_offset * 2, etc." necessary to add potential planes of electrodes
     return xt * (p->ef.conv_ny + p->ef.y_offset * 2) * (p->ef.conv_nz + p->ef.z_offset * 2) + yt * (p->ef.conv_nz + p->ef.z_offset * 2) + zt;
 }

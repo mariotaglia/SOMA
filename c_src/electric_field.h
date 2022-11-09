@@ -26,7 +26,6 @@ typedef struct ElectricField{
 	soma_scalar_t *eps;				//!< Array containing the dielectric constants for all particle types.
     soma_scalar_t *eps_arr;         //!< Array that saves information of calculated dielectric constant field.
     uint8_t *electrodes;            //!< Array containing the electrode positions.
-    uint64_t iter_per_MC;           //!< Value that determines maximum amount of iterations to solve the electric field.
     uint64_t iter_limit;            //!< Value that determines the upper limit of iterations to solve the electric field.
     soma_scalar_t thresh_iter;      //!< Value that determines the threshold to stop iterative solution of the electric field.
     soma_scalar_t *Epot;            //!< Array containing the electric potential field.
@@ -43,9 +42,9 @@ typedef struct ElectricField{
     uint8_t kernel_dim;             //!< Value containing kernel dimension.
     uint8_t kernel_rad;             //!< Value of kernel radius (integer).
     soma_scalar_t kernel_sigma;     //!< Value for standard deviation (sigam) of gaussian kernel.
-    unsigned int conv_nx;               //!< Convoluted x-spatial discretization.
-    unsigned int conv_ny;               //!< Convoluted y-spatial discretization.
-    unsigned int conv_nz;               //!< Convoluted z-spatial discretization.
+    unsigned int conv_nx;           //!< Convoluted x-spatial discretization.
+    unsigned int conv_ny;           //!< Convoluted y-spatial discretization.
+    unsigned int conv_nz;           //!< Convoluted z-spatial discretization.
     uint64_t n_cells_conv;          //!< Number of cells after convolution.
     bool el_pos_xy;                 //!< Bool to determine if electrode position is in xy-plane.
     bool el_pos_xz;                 //!< Bool to determine if electrode position is in xz-plane.
