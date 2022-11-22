@@ -448,7 +448,6 @@ int init_convolution(struct Phase *const p)
     if (max_conv_ny < max_ny) p->ef.conv_ny += 1;
     if (max_conv_nz < max_nz) p->ef.conv_nz += 1;
 
-
     // alloc p->ef.eps_arr_conv, p->ef.pre_deriv_conv, p->ef.Epot_conv, p->ef.Epot_tmp_conv
     // depending on electrode position; include two extra rows of cells to reattach electrodes (necessary for iteration)
     if (p->ef.el_pos_yz)
@@ -980,7 +979,7 @@ void convolution_eps_arr(struct Phase *const p)
 {
     uint64_t conv_err = 0;
     uint64_t err_x, err_y, err_z;
-    
+
     // convoluted indices "xc,yc,zc", "p->ef.conv_nx, etc." only describe the area between electrodes
 #pragma acc parallel loop present(p[0:1]) collapse(3)
 #pragma omp parallel for collapse(3)
@@ -1335,7 +1334,7 @@ int calc_electric_field_contr(struct Phase *const p)
         pre_derivatives_conv(p);
         max = iterate_field_conv(p);
         deconvolution_Epot(p);
-        smooth_Epot(p);
+        if (p->ef.stride > 1) smooth_Epot(p);
     }
     else
     {
