@@ -225,10 +225,10 @@ int read_poly_conversion_hdf5(struct Phase *const p, const hid_t file_id, const 
         }
 
     ///    Movement part
-    if (!(H5Lexists(file_id, "/polyconversion/movement", H5P_DEFAULT) > 0))
+    if (! (H5Lexists(file_id, "/polyconversion/movement", H5P_DEFAULT) > 0)){
           p->pc.deltaMC = tmp_deltaMC;
         return 0;
-
+    }
     p->pc.is_gas=calloc(p->n_types,sizeof(unsigned int));
     p->pc.is_liq=calloc(p->n_types,sizeof(unsigned int));
     p->pc.axis=3;
