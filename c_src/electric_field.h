@@ -23,39 +23,41 @@
 
 //! Top level struct for electric field implementation.
 typedef struct ElectricField{
-	soma_scalar_t *eps;				//!< Array containing the dielectric constants for all particle types.
-    soma_scalar_t *eps_arr;         //!< Array that saves information of calculated dielectric constant field.
-    uint8_t *electrodes;            //!< Array containing the electrode positions.
-    uint64_t iter_limit;            //!< Value that determines the upper limit of iterations to solve the electric field.
-    soma_scalar_t thresh_iter;      //!< Value that determines the threshold to stop iterative solution of the electric field.
-    soma_scalar_t *Epot;            //!< Array containing the electric potential field.
-    soma_scalar_t *Epot_tmp;        //!< Temporary array that contains the electric potential field after MC step.
-    soma_scalar_t *pre_deriv;       //!< Array containing precomputed derivatives of the dielectric constant field.
-    soma_scalar_t *H_el_field;      //!< Array containing the cell-wise contribution to electrostatic energy hamiltonian.
-    soma_scalar_t *E_field;         //!< Array containing the electric field.
-    soma_scalar_t H_el;             //!< Electrostatic energy hamiltonia.
-    soma_scalar_t *omega_field_el;  //!< Array containing electrotatic energy contribution to omega fields.
-  //soma_scalar_t  sqrt_Nbar;       //!< Value of \sqrt{\hat{N}}.
-    uint8_t stride;                 //!< Value of stride used for convolution.
-    soma_scalar_t *kernel;          //!< Array containing kernel for convolution.
-    soma_scalar_t *kernel_blur;     //!< Array containing simple blur kernel to smooth Epot after deconvolution.
-    uint8_t kernel_dim;             //!< Value containing kernel dimension.
-    uint8_t kernel_rad;             //!< Value of kernel radius (integer).
-    soma_scalar_t kernel_sigma;     //!< Value for standard deviation (sigam) of gaussian kernel.
-    unsigned int conv_nx;           //!< Convoluted x-spatial discretization.
-    unsigned int conv_ny;           //!< Convoluted y-spatial discretization.
-    unsigned int conv_nz;           //!< Convoluted z-spatial discretization.
-    uint64_t n_cells_conv;          //!< Number of cells after convolution.
-    bool el_pos_xy;                 //!< Bool to determine if electrode position is in xy-plane.
-    bool el_pos_xz;                 //!< Bool to determine if electrode position is in xz-plane.
-    bool el_pos_yz;                 //!< Bool to determine if electrode position is in yz-plane.
-    uint8_t x_offset;               //!< Offset for convoluted x axis; used to skip planes exhibiting electrodes during iteration.
-    uint8_t y_offset;               //!< Offset for convoluted y axis; used to skip planes exhibiting electrodes during iteration.
-    uint8_t z_offset;               //!< Offset for convoluted z axis; used to skip planes exhibiting electrodes during iteration.
-    soma_scalar_t *eps_arr_conv;    //!< Array containing the convoluted values of the dielectric constant field.
-    soma_scalar_t *pre_deriv_conv;  //!< Array containing the precomputed derivatives of the convoluted dielectric constant field.
-    soma_scalar_t *Epot_conv;       //!< Array containing the convoluted electric potential field.
-    soma_scalar_t *Epot_tmp_conv;   //!< Temporary array containing the convoluted electric potential field after MC step.
+	soma_scalar_t *eps;				    //!< Array containing the dielectric constants for all particle types.
+    soma_scalar_t *eps_arr;             //!< Array that saves information of calculated dielectric constant field.
+    uint8_t *electrodes;                //!< Array containing the electrode positions.
+    uint64_t iter_limit;                //!< Value that determines the upper limit of iterations to solve the electric field.
+    soma_scalar_t thresh_iter;          //!< Value that determines the threshold to stop iterative solution of the electric field.
+    uint64_t amt_iter;                  //!< Value that stores the amount of iterations to solve the electric field (per MC step).
+    soma_scalar_t *Epot;                //!< Array containing the electric potential field.
+    soma_scalar_t *Epot_tmp;            //!< Temporary array that contains the electric potential field after MC step.
+    soma_scalar_t *pre_deriv;           //!< Array containing precomputed derivatives of the dielectric constant field.
+    soma_scalar_t *H_el_field;          //!< Array containing the cell-wise contribution to electrostatic energy hamiltonian.
+    soma_scalar_t *E_field;             //!< Array containing the electric field.
+    soma_scalar_t H_el;                 //!< Electrostatic energy hamiltonia.
+    soma_scalar_t *omega_field_el;      //!< Array containing electrotatic energy contribution to omega fields.
+  //soma_scalar_t  sqrt_Nbar;           //!< Value of \sqrt{\hat{N}}.
+    uint8_t stride;                     //!< Value of stride used for convolution.
+    soma_scalar_t *kernel;              //!< Array containing kernel for convolution.
+    soma_scalar_t *kernel_norm_field;   //!< Array containing kernel normalization field.
+    soma_scalar_t *kernel_blur;         //!< Array containing simple blur kernel to smooth Epot after deconvolution.
+    uint8_t kernel_dim;                 //!< Value containing kernel dimension.
+    uint8_t kernel_rad;                 //!< Value of kernel radius (integer).
+    soma_scalar_t kernel_sigma;         //!< Value for standard deviation (sigam) of gaussian kernel.
+    unsigned int conv_nx;               //!< Convoluted x-spatial discretization.
+    unsigned int conv_ny;               //!< Convoluted y-spatial discretization.
+    unsigned int conv_nz;               //!< Convoluted z-spatial discretization.
+    uint64_t n_cells_conv;              //!< Number of cells after convolution.
+    bool el_pos_xy;                     //!< Bool to determine if electrode position is in xy-plane.
+    bool el_pos_xz;                     //!< Bool to determine if electrode position is in xz-plane.
+    bool el_pos_yz;                     //!< Bool to determine if electrode position is in yz-plane.
+    uint8_t x_offset;                   //!< Offset for convoluted x axis; used to skip planes exhibiting electrodes during iteration.
+    uint8_t y_offset;                   //!< Offset for convoluted y axis; used to skip planes exhibiting electrodes during iteration.
+    uint8_t z_offset;                   //!< Offset for convoluted z axis; used to skip planes exhibiting electrodes during iteration.
+    soma_scalar_t *eps_arr_conv;        //!< Array containing the convoluted values of the dielectric constant field.
+    soma_scalar_t *pre_deriv_conv;      //!< Array containing the precomputed derivatives of the convoluted dielectric constant field.
+    soma_scalar_t *Epot_conv;           //!< Array containing the convoluted electric potential field.
+    soma_scalar_t *Epot_tmp_conv;       //!< Temporary array containing the convoluted electric potential field after MC step.
     
 } ElectricField;
 

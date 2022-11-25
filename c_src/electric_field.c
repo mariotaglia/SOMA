@@ -37,6 +37,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.electrodes = NULL;
     p->ef.iter_limit = 0;
     p->ef.thresh_iter = 0.0;
+    p->ef.amt_iter = 0;
     p->ef.Epot = NULL;
     p->ef.Epot_tmp = NULL;
     p->ef.pre_deriv = NULL;
@@ -47,6 +48,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     //p->ef.sqrt_Nbar = 0.0;
     p->ef.stride = 0;
     p->ef.kernel = NULL;
+    p->ef.kernel_norm_field = NULL;
     p->ef.kernel_blur = NULL;
     p->ef.kernel_dim = 0;
     p->ef.kernel_rad = 0;
@@ -337,6 +339,20 @@ int init_kernel(struct Phase *const p)
         fprintf(stderr, "ERROR: Kernel initialization: %d. %s:%d.\n", kernel_err, __FILE__, __LINE__);
     }
 
+    // allocate normalization kernel array
+    p->ef.kernel_norm_field = (soma_scalar_t *) malloc(p->nx * p->ny * p->nz * sizeof(soma_scalar_t));         
+    if (p->ef.kernel_norm_field == NULL)                                                                                                         
+    {                                                                                                                                 
+        fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);                                                                 
+        return -1;                                                                                                                    
+    }
+
+    // fill normalization field
+    for (uint64_t i = 0; i < (p->nx * p->ny * p->nz); i++)
+    {
+        p->ef.kernel_norm_field[i] = 0.0;
+    }
+
     // fill blur kernel with ones and normalize
     for (uint16_t i = 0; i < (3 * 3 * 3); i++)
     {
@@ -585,19 +601,8 @@ int init_convolution(struct Phase *const p)
                 p->ef.Epot_tmp_conv[(p->ef.conv_nx + 1) * p->ef.conv_ny * p->ef.conv_nz + y * p->ef.conv_nz + z] = 
                     p->ef.Epot[(p->nx - 1) * p->ny * p->nz + (y * p->ef.stride) * p->nz + (z * p->ef.stride)];
             }
-        // TEST!
-        soma_scalar_t err_t = 0.0, err_b = 0.0;
-        for (uint64_t y=0; y < p->ef.conv_ny; y++)
-            for (uint64_t z=0; z < p->ef.conv_nz; z++)
-            {
-                err_t += p->ef.Epot_conv[0 * p->ef.conv_ny * p->ef.conv_nz + y * p->ef.conv_nz + z];
-                err_b += p->ef.Epot_conv[(p->ef.conv_nx + 1) * p->ef.conv_ny * p->ef.conv_nz + y * p->ef.conv_nz + z];
-            }
-        if (err_t != err_t || err_b != err_b)
-        {
-            fprintf(stderr, "ERROR: err_t = %f, err_b = %f. %s:%d\n", err_t, err_b, __FILE__, __LINE__);
-        }
     }
+
     if (p->ef.el_pos_xz)
     {
         for (uint64_t x=0; x < p->ef.conv_nx; x++)
@@ -627,6 +632,7 @@ int init_convolution(struct Phase *const p)
                     p->ef.Epot[(x * p->ef.stride) * p->ny * p->nz + (p->ny - 1) * p->nz + (z * p->ef.stride)];
             }
     }
+
     if (p->ef.el_pos_xy)
     {
         for (uint64_t x=0; x < p->ef.conv_nx; x++)
@@ -663,20 +669,56 @@ int init_convolution(struct Phase *const p)
         return -1;
     }
 
-    soma_scalar_t Epot_err = 0.0;
-    soma_scalar_t Epot_tmp_err = 0.0;
-    
-    for (uint64_t i=0; i < p->ef.n_cells_conv; i++)
-    {
-        Epot_err += p->ef.Epot_conv[i];
-        Epot_tmp_err += p->ef.Epot_tmp_conv[i];
-    }
-    if (Epot_err != Epot_tmp_err)
-    {
-        fprintf(stderr, "ERROR: Epot_conv containing nan: %f. %s:%d\n", Epot_err, __FILE__, __LINE__);
-        return -1; 
-    }
-
+    // fill kernel normalization field
+#pragma acc parallel loop present(p[0:1]) collapse(3)
+#pragma omp parallel for collapse(3)
+    for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
+        for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
+            for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
+            {
+                for (int8_t h = -p->ef.kernel_rad; h <= p->ef.kernel_rad; h++)
+                    for (int8_t i = -p->ef.kernel_rad; i <= p->ef.kernel_rad; i++)
+                        for (int8_t j = -p->ef.kernel_rad; j <= p->ef.kernel_rad; j++)
+                        {
+                            // Compute original indices; offset to skip electrode planes
+                            int64_t x_i = xc * p->ef.stride + p->ef.x_offset + h;
+                            int64_t y_i = yc * p->ef.stride + p->ef.y_offset + i;
+                            int64_t z_i = zc * p->ef.stride + p->ef.z_offset + j;
+                            // Resolve periodic/non-periodic boundaries, omit saving values in cells if index would exceed electrode position
+                            if (p->ef.el_pos_yz)
+                            {
+                                if (x_i >= p->nx) continue;
+                                if (x_i < 0) continue;
+                            }
+                            else
+                            {
+                                if (x_i >= p->nx) x_i -= p->nx;
+                                if (x_i < 0) x_i += p->nx;    
+                            }
+                            if (p->ef.el_pos_xz)
+                            {
+                                if (y_i >= p->ny) continue;
+                                if (y_i < 0) continue;
+                            }
+                            else
+                            {
+                                if (y_i >= p->ny) x_i -= p->ny;
+                                if (y_i < 0) y_i += p->ny;    
+                            }
+                            if (p->ef.el_pos_xy)
+                            {
+                                if (z_i >= p->nz) continue;
+                                if (z_i < 0) continue;
+                            }
+                            else
+                            {
+                                if (z_i >= p->nz) z_i -= p->nz;
+                                if (z_i < 0) z_i += p->nz;
+                            }
+                            
+                            p->ef.kernel_norm_field[cell_to_index(p,x_i,y_i,z_i)] += p->ef.kernel[cell_to_index_kernel(p,h,i,j)];
+                        }
+            }
     return 0;
 }
 
@@ -699,6 +741,7 @@ int copyin_electric_field(struct Phase *p)
             if (p->ef.kernel_dim > 1)
             {
 #pragma acc enter data copyin(p->ef.kernel[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
+#pragma acc enter data copyin(p->ef.kernel_norm_field[0:p->n_cells_local])
 #pragma acc enter data copyin(p->ef.kernel_blur[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
 #pragma acc enter data copyin(p->ef.eps_arr_conv[0:p->ef.n_cells_conv])
 #pragma acc enter data copyin(p->ef.pre_deriv_conv[0:p->ef.n_cells_conv*6])
@@ -727,6 +770,7 @@ int copyout_electric_field(struct Phase *p)
             if (p->ef.kernel_dim > 1)
             {
 #pragma acc exit data copyout(p->ef.kernel[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
+#pragma acc exit data copyout(p->ef.kernel_norm_field[0:p->n_cells_local])
 #pragma acc exit data copyout(p->ef.kernel_blur[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
 #pragma acc exit data copyout(p->ef.eps_arr_conv[0:p->ef.n_cells_conv])
 #pragma acc exit data copyout(p->ef.pre_deriv_conv[0:p->ef.n_cells_conv*6])
@@ -755,6 +799,7 @@ int update_self_electric_field(const struct Phase *const p)
             if (p->ef.kernel_dim > 1)
             {
 #pragma acc update self(p->ef.kernel[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
+#pragma acc update self(p->ef.kernel_norm_field[0:p->n_cells_local])
 #pragma acc update self(p->ef.kernel_blur[0:p->ef.kernel_dim*p->ef.kernel_dim*p->ef.kernel_dim])
 #pragma acc update self(p->ef.eps_arr_conv[0:p->ef.n_cells_conv])
 #pragma acc update self(p->ef.pre_deriv_conv[0:p->ef.n_cells_conv*6])
@@ -882,14 +927,14 @@ void pre_derivatives(struct Phase *const p)
 soma_scalar_t iterate_field(struct Phase *const p)
 {
     soma_scalar_t max_i = 10.0;
-    uint64_t k = 0;
+    p->ef.amt_iter = 0;
 
-    while(max_i > p->ef.thresh_iter && k < p->ef.iter_limit)
+    while(max_i > p->ef.thresh_iter && p->ef.amt_iter < p->ef.iter_limit)
     {
         max_i = p->ef.thresh_iter;
 
-#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) //deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
-#pragma omp parallel for collapse(3) reduction(max: max_i)
+#pragma acc parallel loop present(p[0:1]) collapse(3) //reduction(max: max_i) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
+#pragma omp parallel for collapse(3) //reduction(max: max_i)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
     	        for (uint64_t z=0; z < p->nz; z++)
@@ -924,7 +969,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
                     }
 	
 #pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) //deviceptr(p->ef.Epot_tmp,p->ef.eps_arr)
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3) reduction(max: max_i)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
                 for (uint64_t z=0; z < p->nz; z++)
@@ -960,17 +1005,17 @@ soma_scalar_t iterate_field(struct Phase *const p)
         			}
                 }
 
-        // if( (k+1) % 500==0 ) printf("\n max: %.3e\n", max_i);
+        // if( (p->ef.amt_iter+1) % 500==0 ) printf("\n max: %.3e\n", max_i);
 
 // #pragma acc update host(p->ef)
 //         soma_scalar_t *tmp = p->ef.Epot_tmp;
 //         p->ef.Epot_tmp = p->ef.Epot;
 //         p->ef.Epot = tmp;
 // #pragma acc update device(p->ef)
-        k += 1;
+        p->ef.amt_iter += 1;
     }
     
-    if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, k);
+    if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, p->ef.amt_iter);
 
     return max_i;
 }
@@ -1010,13 +1055,13 @@ void convolution_eps_arr(struct Phase *const p)
                             }
                             if (p->ef.el_pos_xz)
                             {
-                                if (x_i >= p->nx) x_i = p->nx - 1;
-                                if (x_i < 0) x_i = 0;
+                                if (y_i >= p->ny) y_i = p->ny - 1;
+                                if (y_i < 0) y_i = 0;
                             }
                             else
                             {
-                                if (x_i >= p->nx) x_i -= p->nx;
-                                if (x_i < 0) x_i += p->nx;    
+                                if (y_i >= p->ny) x_i -= p->ny;
+                                if (y_i < 0) y_i += p->ny;    
                             }
                             if (p->ef.el_pos_xy)
                             {
@@ -1115,9 +1160,9 @@ void pre_derivatives_conv(struct Phase *const p)
 soma_scalar_t iterate_field_conv(struct Phase *const p)
 {
     soma_scalar_t max_i = 10.0;
-    uint64_t k = 0;
+    p->ef.amt_iter = 0;
 
-    while(max_i > p->ef.thresh_iter && k < p->ef.iter_limit)
+    while(max_i > p->ef.thresh_iter && p->ef.amt_iter < p->ef.iter_limit)
     {
         max_i = p->ef.thresh_iter;
         
@@ -1204,9 +1249,9 @@ soma_scalar_t iterate_field_conv(struct Phase *const p)
 //         p->ef.Epot_tmp_conv = p->ef.Epot_conv;
 //         p->ef.Epot_conv = tmp_conv;
 // #pragma acc update device(p->ef)
-        k += 1;
+        p->ef.amt_iter += 1;
     }
-    if (p->time == 0 || (p->time + 1) % 500 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, k);
+    if (p->time == 0 || (p->time + 1) % 1 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, p->ef.amt_iter);
 
     // for (uint16_t u=0; u < (p->ef.conv_nx+2); u++)
     // {
@@ -1220,51 +1265,112 @@ soma_scalar_t iterate_field_conv(struct Phase *const p)
 
 void deconvolution_Epot(struct Phase *const p)
 {
+    if (p->ef.stride == 1)
+    {
 #pragma acc parallel loop present(p[0:1]) collapse(3)
 #pragma omp parallel for
     for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
         for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
             for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
             {
-                // #pragma here?
-                // fill cells between strides
-                for (uint8_t h=0; h < p->ef.stride; h++)
-                    for (uint8_t i=0; i < p->ef.stride; i++)
-                        for (uint8_t j=0; j < p->ef.stride; j++)
-                        {
-                            // compute deconvoluted indices; add offset to skip electrode planes
-                            uint64_t xdc_i = xc * p->ef.stride + p->ef.x_offset + h;
-                            uint64_t ydc_i = yc * p->ef.stride + p->ef.y_offset + i;
-                            uint64_t zdc_i = zc * p->ef.stride + p->ef.z_offset + j;
-                            
-                            // omit if exceeding last row; resolve electrode offset
-                            if (p->ef.el_pos_yz)
+                int64_t x_i = xc + p->ef.x_offset;
+                int64_t y_i = yc + p->ef.y_offset;
+                int64_t z_i = zc + p->ef.z_offset;
+                uint64_t cell_i = cell_to_index(p,x_i,y_i,z_i);
+                p->ef.Epot[cell_i] = p->ef.Epot_conv[cell_i]; 
+            }       
+    }
+
+    else
+    {
+        // empty Epot except electrode planes to fill with updated values 
+#pragma acc parallel loop present(p[0:1])
+#pragma omp parallel for
+        for (uint64_t c=0; c < p->n_cells; c++)
+        {
+            if (p->area51[c] != 1) p->ef.Epot[c] = 0.0;
+        }
+
+        // fill empty cells by weighing convoluted values with gauss kernel
+#pragma acc parallel loop present(p[0:1]) collapse(3)
+#pragma omp parallel for
+        for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
+            for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
+                for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
+                {
+                //     int64_t x_i = xc * p->ef.stride + p->ef.x_offset;
+                //     int64_t y_i = yc * p->ef.stride + p->ef.y_offset;
+                //     int64_t z_i = zc * p->ef.stride + p->ef.z_offset;
+                //     int64_t xc_i = xc + p->ef.x_offset;
+                //     uint64_t yc_i = yc + p->ef.y_offset;
+                //     uint64_t zc_i = zc + p->ef.z_offset;
+                //     p->ef.Epot[cell_to_index(p,x_i,y_i,z_i)] = p->ef.Epot_conv[cell_to_index_conv(p,xc_i,yc_i,zc_i)];
+                // }
+
+                    // kernel loop
+                    for (int8_t h=-p->ef.kernel_rad; h <= p->ef.kernel_rad; h++)
+                        for (int8_t i=-p->ef.kernel_rad; i <= p->ef.kernel_rad; i++)
+                            for (int8_t j=-p->ef.kernel_rad; j <= p->ef.kernel_rad; j++)
                             {
-                                if (xdc_i >= p->nx-1) continue;
-                                if (ydc_i >= p->ny) continue;
-                                if (zdc_i >= p->nz) continue;
+                                // Compute original indices; offset to skip electrode planes
+                                int64_t x_i = xc * p->ef.stride + p->ef.x_offset + h;
+                                int64_t y_i = yc * p->ef.stride + p->ef.y_offset + i;
+                                int64_t z_i = zc * p->ef.stride + p->ef.z_offset + j;
+                                // Resolve periodic/non-periodic boundaries, omit indeces that exceed electrode plane
+                                if (p->ef.el_pos_yz)
+                                {
+                                    if (x_i >= p->nx) continue;
+                                    if (x_i < 0) continue;
+                                }
+                                else
+                                {
+                                    if (x_i >= p->nx) x_i -= p->nx;
+                                    if (x_i < 0) x_i += p->nx;
+                                }
+                                if (p->ef.el_pos_xz)
+                                {
+                                    if (y_i >= p->ny) continue;
+                                    if (y_i < 0) continue;
+                                }
+                                else
+                                {
+                                    if (y_i >= p->ny) y_i -= p->ny;
+                                    if (y_i < 0) y_i += p->ny;
+                                }
+                                if (p->ef.el_pos_xy)
+                                {
+                                    if (z_i >= p->nz) continue;
+                                    if (z_i < 0) continue;
+                                }
+                                else
+                                {
+                                    if (z_i >= p->nz) z_i -= p->nz;
+                                    if (z_i < 0) z_i += p->nz;
+                                }
+                                
+                                uint64_t cell_i = cell_to_index(p,x_i,y_i,z_i);
+                                // outer planes are expected to be area51, independent of electrode shape
+                                if (p->area51[cell_i] != 1)
+                                {
+                                    uint64_t xc_i = xc + p->ef.x_offset;
+                                    uint64_t yc_i = yc + p->ef.y_offset;
+                                    uint64_t zc_i = zc + p->ef.z_offset;
+                                    p->ef.Epot[cell_i] += p->ef.Epot_conv[cell_to_index_conv(p,xc_i,yc_i,zc_i)] *
+                                                          p->ef.kernel[cell_to_index_kernel(p,h,i,j)];
+                                }
+                                
                             }
-                            if (p->ef.el_pos_xz)
-                            {
-                                if (xdc_i >= p->nx) continue;
-                                if (ydc_i >= p->ny-1) continue;
-                                if (zdc_i >= p->nz) continue;
-                            }
-                            if (p->ef.el_pos_xy)
-                            {
-                                if (xdc_i >= p->nx) continue;
-                                if (ydc_i >= p->ny) continue;
-                                if (zdc_i >= p->nz-1) continue;
-                            }
-                            
-                            // to index Epot_conv and skip electrode planes, offset must be added to indeces
-                            // cannot be done early, else deconvoluted indices will not start at "1"
-                            uint64_t xc_i = xc + p->ef.x_offset;
-                            uint64_t yc_i = yc + p->ef.y_offset;
-                            uint64_t zc_i = zc + p->ef.z_offset;
-                            p->ef.Epot[cell_to_index(p,xdc_i,ydc_i,zdc_i)] = p->ef.Epot_conv[cell_to_index_conv(p,xc_i,yc_i,zc_i)];
-                        }
-            }
+                }
+
+        // normalize values 
+#pragma acc parallel loop present(p[0:1])
+#pragma omp parallel for
+        for (uint64_t c=0; c < p->n_cells; c++)
+        {
+            if (p->area51[c] != 1) p->ef.Epot[c] /= p->ef.kernel_norm_field[c];
+        }
+    }
+
 }
 
 void smooth_Epot(struct Phase *const p)
@@ -1318,7 +1424,6 @@ void smooth_Epot(struct Phase *const p)
 int calc_electric_field_contr(struct Phase *const p)
 {
     soma_scalar_t max = p->ef.thresh_iter;
-    // uint64_t k = 0;
     
 //     if (p->time==0)
 //     {
@@ -1334,7 +1439,7 @@ int calc_electric_field_contr(struct Phase *const p)
         pre_derivatives_conv(p);
         max = iterate_field_conv(p);
         deconvolution_Epot(p);
-        if (p->ef.stride > 1) smooth_Epot(p);
+        // if (p->ef.stride > 1) smooth_Epot(p);
     }
     else
     {
@@ -1408,7 +1513,7 @@ int calc_electric_field_contr(struct Phase *const p)
 
             }
 
-    //tests(p,k);
+    //tests(p,p->ef.amt_iter);
     //p->ef.H_el = sum_H_el;
 // #pragma acc update self(p->ef.omega_field_el)
 //     if (p->ef.omega_field_el != p->ef.omega_field_el)
@@ -1433,6 +1538,7 @@ int free_electric_field(struct Phase *const p)
     free(p->ef.E_field);
     free(p->ef.omega_field_el);
     free(p->ef.kernel);
+    free(p->ef.kernel_norm_field);
     free(p->ef.kernel_blur);
     free(p->ef.eps_arr_conv);
     free(p->ef.pre_deriv_conv);
@@ -1442,11 +1548,11 @@ int free_electric_field(struct Phase *const p)
     return 0;
 }
 
-void tests(struct Phase *const p,uint64_t k)
+void tests(struct Phase *const p,uint64_t amt_iter)
 {
     uint32_t counter = 1;
     update_self_electric_field(p);
-    k += 1;
+    amt_iter += 1;
     if (p->time % counter == 0)
     {
         uint64_t sum_electrodes = 0;
