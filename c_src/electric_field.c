@@ -1015,7 +1015,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
         p->ef.amt_iter += 1;
     }
     
-    if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, p->ef.amt_iter);
+    // if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, p->ef.amt_iter);
 
     return max_i;
 }
@@ -1251,7 +1251,7 @@ soma_scalar_t iterate_field_conv(struct Phase *const p)
 // #pragma acc update device(p->ef)
         p->ef.amt_iter += 1;
     }
-    if (p->time == 0 || (p->time + 1) % 1 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, p->ef.amt_iter);
+    // if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, p->ef.amt_iter);
 
     // for (uint16_t u=0; u < (p->ef.conv_nx+2); u++)
     // {

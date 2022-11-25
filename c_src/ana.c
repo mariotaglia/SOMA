@@ -1123,6 +1123,24 @@ int analytics(struct Phase *const p)
                                  sizeof(soma_scalar_t));
             written = true;
         }
+    //amount of iterations per MC step
+    if (p->ana_info.delta_mc_amount_iter != 0 && p->time % p->ana_info.delta_mc_amount_iter == 0)
+        {
+            update_self_phase(p, 0);
+            soma_scalar_t *const amt_iter = (soma_scalar_t * const)malloc(1 * sizeof(uint64_t));
+            if (amt_iter == NULL)
+                {
+                    fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
+                    return -2;
+                }
+            
+            amt_iter[0] = p->ef.amt_iter;
+            fprintf(stderr, "ERROR: Malloc %s:%d amt_iter=%d\n", __FILE__, __LINE__,p->ef.amt_iter);
+            if (p->info_MPI.sim_rank == 0)
+                extent_ana_by_field(amt_iter, 1, "/amount_iter", p->ana_info.file_id);
+            written = true;
+            free(amt_iter);
+        }
 
     //dump
     if (p->ana_info.delta_mc_dump != 0 && p->time % p->ana_info.delta_mc_dump == 0)

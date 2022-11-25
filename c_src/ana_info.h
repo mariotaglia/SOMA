@@ -43,6 +43,7 @@ typedef struct Ana_Info {
     unsigned int delta_mc_Epot_field;           //!<\#mc_sweeps between the ana of the electrostatic potential field
     unsigned int delta_mc_E_field;              //!<\#mc_sweeps between the ana of the electric field
     unsigned int delta_mc_dielectric_field;     //!<\#mc_sweeps between the ana of the dielectric field
+    unsigned int delta_mc_amount_iter;          //!<\#mc_sweeps between the ana of the amount of iterations to solve the electric field
     soma_scalar_t *q_static;    //!< absolute value of wave vector to be calculated for static structure factor
     soma_scalar_t *q_dynamical; //!< absolute value of wave vector to be calculated for dynamical structure factor
     unsigned int q_size_static; //!< number of wave vector to calculate for static structure factor
