@@ -54,6 +54,7 @@ typedef struct ElectricField{
     uint8_t x_offset;                   //!< Offset for convoluted x axis; used to skip planes exhibiting electrodes during iteration.
     uint8_t y_offset;                   //!< Offset for convoluted y axis; used to skip planes exhibiting electrodes during iteration.
     uint8_t z_offset;                   //!< Offset for convoluted z axis; used to skip planes exhibiting electrodes during iteration.
+    soma_scalar_t *electrodes_conv;     //!< Array containing the convoluted values of the electrode field.
     soma_scalar_t *eps_arr_conv;        //!< Array containing the convoluted values of the dielectric constant field.
     soma_scalar_t *pre_deriv_conv;      //!< Array containing the precomputed derivatives of the convoluted dielectric constant field.
     soma_scalar_t *Epot_conv;           //!< Array containing the convoluted electric potential field.

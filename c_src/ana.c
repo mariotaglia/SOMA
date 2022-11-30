@@ -1135,7 +1135,7 @@ int analytics(struct Phase *const p)
                 }
             
             amt_iter[0] = p->ef.amt_iter;
-            fprintf(stderr, "ERROR: Malloc %s:%d amt_iter=%d\n", __FILE__, __LINE__,p->ef.amt_iter);
+            
             if (p->info_MPI.sim_rank == 0)
                 extent_ana_by_field(amt_iter, 1, "/amount_iter", p->ana_info.file_id);
             written = true;
