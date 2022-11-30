@@ -78,6 +78,12 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     \returns Errorcode */
 int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id);
 
+/*! Helper function to determine electrode locations in order to resolve non-periodic boundaries
+    \private
+    \param p Fully CPU initialized Phase struct
+    \returns Errorcode */
+int init_efield(struct Phase *const p);
+
 /*! Helper function to allocate and compute gaussian kernel for convolution
     \private
     \param p Fully CPU initialized Phase struct

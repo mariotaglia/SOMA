@@ -284,6 +284,57 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
     return 0;
 }
 
+int init_efield(struct Phase *const p)
+{
+    // determine on which outer surfaces (xy,xz,yz) electrodes are present
+    // necessary to resolve non-periodic boundaries
+    uint64_t electr_sum_xy_red = 0;
+    uint64_t electr_sum_xz_red = 0;
+    uint64_t electr_sum_yz_red = 0;
+
+    for (uint64_t x=0; x < p->nx; x++)
+        for (uint64_t y=0; y < p->ny; y++)
+        {
+            if ((x > 0 && x < (p->nx-1)) && (y > 0 && y < (p->ny-1)))
+            {
+                electr_sum_xy_red += p->ef.electrodes[x * p->ny * p->nz + y * p->nz + 0];
+            }
+        }
+
+    for (uint64_t x=0; x < p->nx; x++)
+        for (uint64_t z=0; z < p->nz; z++)
+        {
+            if ((x > 0 && x < (p->nx-1)) && (z > 0 && z < (p->nz-1)))
+            {
+                electr_sum_xz_red += p->ef.electrodes[x * p->ny * p->nz + 0 * p->nz + z];
+            }                
+        }
+
+    for (uint64_t y=0; y < p->ny; y++)
+        for (uint64_t z=0; z < p->nz; z++)
+        {
+            if ((y > 0 && y < (p->ny-1)) && (z > 0 && z < (p->nz-1)))
+            {
+                electr_sum_yz_red += p->ef.electrodes[0 * p->ny * p->nz + y * p->nz + z];
+            }               
+        }
+    // verify electrode on opposite surfaces
+    if (electr_sum_xy_red > 1) p->ef.el_pos_xy = true;
+    if (electr_sum_xz_red > 1) p->ef.el_pos_xz = true;
+    if (electr_sum_yz_red > 1) p->ef.el_pos_yz = true;
+
+    if ((p->ef.el_pos_xy && p->ef.el_pos_xz) ||
+        (p->ef.el_pos_xy && p->ef.el_pos_yz) || 
+        (p->ef.el_pos_xz && p->ef.el_pos_yz) ||
+        (!p->ef.el_pos_xy && !p->ef.el_pos_xz && !p->ef.el_pos_yz))
+    {
+        fprintf(stderr, "ERROR: Electrode position could not be clearly assigned to one plane %s:%d.\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    return 0;
+}
+
 int init_kernel(struct Phase *const p)
 {
     if (p->ef.stride > p->nx || p->ef.stride > p->ny || p->ef.stride > p->nz)
@@ -365,52 +416,9 @@ int init_kernel(struct Phase *const p)
 
 int init_convolution(struct Phase *const p)
 {
-    // DISCLAIMER: Convolution only works for two electrodes opposing electrodes located on outer planes of the box 
-    // check on which surfaces (xy,xz,yz) electrodes are present
-    uint64_t electr_sum_xy_red = 0;
-    uint64_t electr_sum_xz_red = 0;
-    uint64_t electr_sum_yz_red = 0;
-
-    for (uint64_t x=0; x < p->nx; x++)
-        for (uint64_t y=0; y < p->ny; y++)
-        {
-            if ((x > 0 && x < (p->nx-1)) && (y > 0 && y < (p->ny-1)))
-            {
-                electr_sum_xy_red += p->ef.electrodes[x * p->ny * p->nz + y * p->nz + 0];
-            }
-        }
-
-    for (uint64_t x=0; x < p->nx; x++)
-        for (uint64_t z=0; z < p->nz; z++)
-        {
-            if ((x > 0 && x < (p->nx-1)) && (z > 0 && z < (p->nz-1)))
-            {
-                electr_sum_xz_red += p->ef.electrodes[x * p->ny * p->nz + 0 * p->nz + z];
-            }                
-        }
-
-    for (uint64_t y=0; y < p->ny; y++)
-        for (uint64_t z=0; z < p->nz; z++)
-        {
-            if ((y > 0 && y < (p->ny-1)) && (z > 0 && z < (p->nz-1)))
-            {
-                electr_sum_yz_red += p->ef.electrodes[0 * p->ny * p->nz + y * p->nz + z];
-            }               
-        }
-    // verify electrode on opposite surfaces
-    if (electr_sum_xy_red > 1) p->ef.el_pos_xy = true;
-    if (electr_sum_xz_red > 1) p->ef.el_pos_xz = true;
-    if (electr_sum_yz_red > 1) p->ef.el_pos_yz = true;
-
-    if ((p->ef.el_pos_xy && p->ef.el_pos_xz) ||
-        (p->ef.el_pos_xy && p->ef.el_pos_yz) || 
-        (p->ef.el_pos_xz && p->ef.el_pos_yz) ||
-        (!p->ef.el_pos_xy && !p->ef.el_pos_xz && !p->ef.el_pos_yz))
-    {
-        fprintf(stderr, "ERROR: Electrode position could not be clearly assigned to one plane %s:%d.\n", __FILE__, __LINE__);
-        return -1;
-    }
-
+    // DISCLAIMER: Convolution only works for two electrodes opposing electrodes located on outer planes of the box
+    // which is resolved in 'ini_efield()'
+    
     // get axes in between electrodes to allocate arrays
     if (p->ef.el_pos_yz)
         p->ef.conv_nx = (p->nx-2) / p->ef.stride;
@@ -738,7 +746,7 @@ int init_convolution(struct Phase *const p)
                     if (z_i >= p->nz) z_i -= p->nz;
                     if (z_i < 0) z_i += p->nz;
                     
-                    // first and second electrode cells 
+                    // first and second electrode cell 
                     uint64_t c_el_1 = cell_to_index(p,0,y_i,z_i);
                     uint64_t c_el_2 = cell_to_index(p,p->nx-1,y_i,z_i);
                     
@@ -766,7 +774,7 @@ int init_convolution(struct Phase *const p)
                     if (z_i >= p->nz) z_i -= p->nz;
                     if (z_i < 0) z_i += p->nz;
                     
-                    // first and second electrode cells 
+                    // first and second electrode cell 
                     uint64_t c_el_1 = cell_to_index(p,x_i,0,z_i);
                     uint64_t c_el_2 = cell_to_index(p,x_i,p->ny-1,z_i);
                     
@@ -794,7 +802,7 @@ int init_convolution(struct Phase *const p)
                     if (y_i >= p->ny) y_i -= p->ny;
                     if (y_i < 0) y_i += p->ny;
                     
-                    // first and second electrode cells 
+                    // first and second electrode cell 
                     uint64_t c_el_1 = cell_to_index(p,x_i,y_i,0);
                     uint64_t c_el_2 = cell_to_index(p,x_i,y_i,p->nz-1);
                     
@@ -1225,14 +1233,7 @@ void pre_derivatives_conv(struct Phase *const p)
                         p->ef.pre_deriv_conv[pos6+j] = 1.0/6.0;
                 }
                 else
-                {
-                    // uint64_t xc_i = xc + p->ef.x_offset;
-                    // uint64_t yc_i = yc + p->ef.y_offset;
-                    // uint64_t zc_i = zc + p->ef.z_offset;
-                    // uint64_t i = cell_to_index_conv(p,xc_i,yc_i,zc_i);
-                    // uint64_t pos6 = (xc * (p->ef.conv_ny + p->ef.y_offset * 2) * (p->ef.conv_nz + p->ef.z_offset * 2) +
-                    //                  yc * (p->ef.conv_nz + p->ef.z_offset * 2) + zc) * 6;
-                    
+                {                    
                     soma_scalar_t cr = 1.0/(24.0 * p->ef.eps_arr_conv[i]);
 
                     soma_scalar_t epsx = cr * ( p->ef.eps_arr_conv[cell_to_index_conv(p,xc+1,yc,zc)] -
@@ -1335,27 +1336,6 @@ soma_scalar_t iterate_field_conv(struct Phase *const p)
                          dEpotz(p,p->ef.eps_arr_conv,xc_i,yc_i,zc_i,ny,nz) );
 
                     if (max_i < conv_crit) max_i = conv_crit;
-                    // uint64_t j = cell_to_index_conv(p,xc,yc,zc);
-
-                    // if (p->ef.electrodes_conv[j] != 1)
-                    // {
-                    //     uint64_t nx = p->ef.conv_nx + (p->ef.x_offset * 2);
-                    //     uint64_t ny = p->ef.conv_ny + (p->ef.y_offset * 2);
-                    //     uint64_t nz = p->ef.conv_nz + (p->ef.z_offset * 2);
-                    //     // Laplace equation, welling2017 eq. 5
-                    //     soma_scalar_t conv_crit = 
-                    //         (d2Epotx(p,p->ef.Epot_tmp_conv,xc,yc,zc,nx,ny,nz) +
-                    //          d2Epoty(p,p->ef.Epot_tmp_conv,xc,yc,zc,ny,nz) +
-                    //          d2Epotz(p,p->ef.Epot_tmp_conv,xc,yc,zc,ny,nz) ) * p->ef.eps_arr_conv[j] +
-                    //         (dEpotx(p,p->ef.Epot_tmp_conv,xc,yc,zc,nx,ny,nz) * 
-                    //          dEpotx(p,p->ef.eps_arr_conv,xc,yc,zc,nx,ny,nz) +
-                    //          dEpoty(p,p->ef.Epot_tmp_conv,xc,yc,zc,ny,nz) *
-                    //          dEpoty(p,p->ef.eps_arr_conv,xc,yc,zc,ny,nz) +
-                    //          dEpotz(p,p->ef.Epot_tmp_conv,xc,yc,zc,ny,nz) *
-                    //          dEpotz(p,p->ef.eps_arr_conv,xc,yc,zc,ny,nz) );
-
-                    //     if (max_i < conv_crit) max_i = conv_crit;
-                    // }
                 }
 
         // save new solution to Epot_conv
@@ -1376,13 +1356,6 @@ soma_scalar_t iterate_field_conv(struct Phase *const p)
         p->ef.amt_iter += 1;
     }
     // if (p->time == 0 || (p->time + 1) % 100 == 0) printf("MC step: %d, iterations to solve ef: %ld \n",p->time+1, p->ef.amt_iter);
-
-    // for (uint16_t u=0; u < (p->ef.conv_nx+2); u++)
-    // {
-    //     uint64_t indexu = u * p->ef.conv_ny * p->ef.conv_nz + 0 * p->ef.conv_nz + 0;
-    //     fprintf(stderr, "%.3f \t", p->ef.Epot_conv[indexu]);
-    // }
-    // fprintf(stderr,"\n");
         
     return max_i;
 }
@@ -1404,7 +1377,7 @@ void deconvolution_Epot(struct Phase *const p)
                 p->ef.Epot[cell_i] = p->ef.Epot_conv[cell_i]; 
             }       
     }
-
+    // devonvolution for stride > 1 where empty cells have to be filled
     else
     {
         // empty Epot except electrode planes to fill with updated values 
@@ -1477,7 +1450,7 @@ void deconvolution_Epot(struct Phase *const p)
                             }
                 }
 
-        // fill empty cells of electrode planes by weighing convoluted values with gauss kernel (only in 2D within electrode)
+        // fill empty cells of electrode planes by weighing convoluted values with gauss kernel (only in 2D within electrode plane)
         if (p->ef.el_pos_yz)
         {
 #pragma acc parallel loop present(p[0:1]) collapse(2)
@@ -1496,7 +1469,7 @@ void deconvolution_Epot(struct Phase *const p)
                             if (z_i >= p->nz) z_i -= p->nz;
                             if (z_i < 0) z_i += p->nz;
                             
-                            // first and second electrode cells 
+                            // first and second electrode cell 
                             uint64_t c_el_1 = cell_to_index(p,0,y_i,z_i);
                             uint64_t c_el_2 = cell_to_index(p,p->nx-1,y_i,z_i);
                             
@@ -1532,7 +1505,7 @@ void deconvolution_Epot(struct Phase *const p)
                             if (z_i >= p->nz) z_i -= p->nz;
                             if (z_i < 0) z_i += p->nz;
                             
-                            // first and second electrode cells 
+                            // first and second electrode cell 
                             uint64_t c_el_1 = cell_to_index(p,x_i,0,z_i);
                             uint64_t c_el_2 = cell_to_index(p,x_i,p->ny-1,z_i);
                             
@@ -1568,7 +1541,7 @@ void deconvolution_Epot(struct Phase *const p)
                             if (y_i >= p->ny) y_i -= p->ny;
                             if (y_i < 0) y_i += p->ny;
                             
-                            // first and second electrode cells 
+                            // first and second electrode cell 
                             uint64_t c_el_1 = cell_to_index(p,x_i,y_i,0);
                             uint64_t c_el_2 = cell_to_index(p,x_i,y_i,p->nz-1);
                             

@@ -1603,6 +1603,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
             fprintf(stderr, "ERROR: %s:%d unable to read electric field information.\n", __FILE__, __LINE__);
             return status;
         }
+
+    status = init_efield(p);
+    if (status != 0)
+        {
+            fprintf(stderr, "ERROR: %s:%d unable to read electrode information for electric field.\n", __FILE__, __LINE__);
+            return status;
+        }
     
     if (p->ef.kernel_dim > 1)
     {

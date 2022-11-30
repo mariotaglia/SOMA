@@ -35,13 +35,37 @@ inline uint64_t cell_to_index(struct Phase *const p, const int64_t x, const int6
     int64_t xt = x;
     int64_t yt = y;
     int64_t zt = z;
-    // Wrap back if necessary
-    if (xt >= p->nx) xt -= p->nx;
-    if (xt < 0) xt += p->nx;
-    if (yt >= p->ny) yt -= p->ny;
-    if (yt < 0) yt += p->ny;
-    if (zt >= p->nz) zt -= p->nz;
-    if (zt < 0) zt += p->nz;
+    // Wrap back if necessary; add padding in case non-periodic boundaries
+    if (p->ef.el_pos_yz)
+    {
+        if (xt >= p->nx) xt = p->nx-1;
+        if (xt < 0) xt = 0;
+    }
+    else
+    {
+        if (xt >= p->nx) xt -= p->nx;
+        if (xt < 0) xt += p->nx;
+    }
+    if (p->ef.el_pos_xz)
+    {
+        if (yt >= p->ny) yt = p->ny-1;
+        if (yt < 0) yt = 0;
+    }
+    else
+    {
+        if (yt >= p->ny) yt -= p->ny;
+        if (yt < 0) yt += p->ny;   
+    }
+    if (p->ef.el_pos_xy)
+    {
+        if (zt >= p->nz) zt = p->nz-1;
+        if (zt < 0) zt = 0;   
+    }   
+    else
+    {
+        if (zt >= p->nz) zt -= p->nz;
+        if (zt < 0) zt += p->nz;
+    }
     return xt * p->ny * p->nz + yt * p->nz + zt;
 }
 
@@ -60,8 +84,8 @@ inline uint64_t cell_to_index_conv(struct Phase *const p, const int64_t x, const
     int64_t xt = x;
     int64_t yt = y;
     int64_t zt = z;
-    // Wrap back if necessary; consider offset for electrode planes
-    // If kernel dimensions exceeds 3, create padding in order to not wrap back on opposing electrode
+    // Wrap back if necessary; consider offset for electrode planes & non-periodic boundaries
+    // in order to not wrap back on opposing electrode
     if (p->ef.el_pos_yz)
     {
         if (xt >= p->ef.conv_nx + p->ef.x_offset * 2) xt = (p->ef.conv_nx + p->ef.x_offset * 2) - 1;
