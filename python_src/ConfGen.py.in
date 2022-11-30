@@ -1194,8 +1194,8 @@ class Configuration(SomaXML):
         ## initialize the ElectricField class & update Area51
         self.electric_field = Configuration.ElectricField(self.root,self.nxyz,self.n_types[0],self.area51,self.args)
 
-        ## calculate sqrt(Nbar)
-        self.sqrt_Nbar = self.calculate_sqrt_Nbar()
+        # ## calculate sqrt(Nbar)
+        # self.sqrt_Nbar = self.calculate_sqrt_Nbar()
         
         self.good = True
 
@@ -1228,7 +1228,7 @@ class Configuration(SomaXML):
             create_list += [("/parameter/poly_type_offset",self.poly_arch.poly_type_offset)]
             create_list += [("/parameter/poly_arch_length",self.poly_arch_length)]
             create_list += [("/parameter/poly_arch",self.poly_arch.poly_arch)]
-            create_list += [("/parameter/sqrt_Nbar",self.sqrt_Nbar)]
+            # create_list += [("/parameter/sqrt_Nbar",self.sqrt_Nbar)]
             create_list += [("/poly_type",self.poly_type)]
             create_list += [("/poly_tag",self.poly_tag)]
             create_list += [("/parameter/density_weights",self.density_weights)]
@@ -1602,19 +1602,19 @@ class Configuration(SomaXML):
             assert tmp[i] > 0
         return tmp
     
-    ## Calculate sqrt(Nbar)
-    ## @return sqrt(Nbar)
-    def calculate_sqrt_Nbar(self):
-        sqrt_Nbar_tmp = 0
+    # ## Calculate sqrt(Nbar)
+    # ## @return sqrt(Nbar)
+    # def calculate_sqrt_Nbar(self):
+    #     sqrt_Nbar_tmp = 0
 
         
-        for poly in self.molecule_set_list:
-            sum_ptype = 0
-            for ptype in self.types._internal_dict_exact.keys():
-                sum_ptype += poly.mol.long_str.count(ptype)
-            sqrt_Nbar_tmp += poly.N * sum_ptype / self.reference_Nbeads
-        sqrt_Nbar = sqrt_Nbar_tmp * 1 / (self.lxyz[0] * self.lxyz[1] * self.lxyz[2])
-        return sqrt_Nbar
+    #     for poly in self.molecule_set_list:
+    #         sum_ptype = 0
+    #         for ptype in self.types._internal_dict_exact.keys():
+    #             sum_ptype += poly.mol.long_str.count(ptype)
+    #         sqrt_Nbar_tmp += poly.N * sum_ptype / self.reference_Nbeads
+    #     sqrt_Nbar = sqrt_Nbar_tmp * 1 / (self.lxyz[0] * self.lxyz[1] * self.lxyz[2])
+    #     return sqrt_Nbar
     
     ## Create the area51 (forbidden area)
     ## @return area51 array

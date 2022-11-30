@@ -36,7 +36,7 @@ typedef struct ElectricField{
     soma_scalar_t *E_field;             //!< Array containing the electric field.
     soma_scalar_t H_el;                 //!< Electrostatic energy hamiltonia.
     soma_scalar_t *omega_field_el;      //!< Array containing electrotatic energy contribution to omega fields.
-  //soma_scalar_t  sqrt_Nbar;           //!< Value of \sqrt{\hat{N}}.
+    soma_scalar_t  sqrt_Nbar;           //!< Value of \sqrt{\hat{N}}.
     uint8_t stride;                     //!< Value of stride used for convolution.
     soma_scalar_t *kernel;              //!< Array containing kernel for convolution.
     soma_scalar_t *kernel_norm_field;   //!< Array containing kernel normalization field.
@@ -77,6 +77,12 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     \param plist_id Access properties to use.
     \returns Errorcode */
 int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, const hid_t plist_id);
+
+/*! Helper function to calculate sqrt(N_bar)
+    \private
+    \param p Fully CPU initialized Phase struct
+    \returns Errorcode */
+void calc_sqrt_Nbar(struct Phase *const p);
 
 /*! Helper function to determine electrode locations in order to resolve non-periodic boundaries
     \private
@@ -158,11 +164,6 @@ soma_scalar_t iterate_field_conv(struct Phase *const p);
     \private
     \param p Phase describing the system */
 void deconvolution_Epot(struct Phase *const p);
-
-/*! Helper function to smooth Epot array after deconvolution
-    \private
-    \param p Phase describing the system */
-void smooth_Epot(struct Phase *const p);
 
 /*! Main routine, calculates electrostatic energy contribution per cell and total (welling2017, eq. 7)
     \private

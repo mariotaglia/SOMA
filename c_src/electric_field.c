@@ -45,7 +45,7 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     p->ef.H_el = 0.0;
     p->ef.E_field = NULL;
     p->ef.omega_field_el = NULL;
-    //p->ef.sqrt_Nbar = 0.0;
+    p->ef.sqrt_Nbar = 0.0;
     p->ef.stride = 0;
     p->ef.kernel = NULL;
     p->ef.kernel_norm_field = NULL;
@@ -161,10 +161,6 @@ int read_electric_field_hdf5(struct Phase *const p, const hid_t file_id, const h
     status = read_hdf5(file_id, "/parameter/ef_thresh_iter", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.thresh_iter));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_thresh_iter");
 
-    /* //Read p->ef.sqrt_Nbar */
-    /* status = read_hdf5(file_id, "/parameter/sqrt_Nbar", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.sqrt_Nbar)); */
-    /* HDF5_ERROR_CHECK2(status, "/parameter/sqrt_Nbar"); */
-
     //Read electrode array
     status = read_field_custom_hdf5(p, (void **) &(p->ef.electrodes), "/electrodes", sizeof(uint8_t), H5T_STD_U8LE, MPI_UINT8_T, file_id, plist_id);
     if (status != 0)
@@ -242,11 +238,6 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
         write_hdf5(1, &one, file_id, "/parameter/ef_stride", H5T_STD_U8LE, H5T_NATIVE_UINT8, plist_id, &(p->ef.stride));
     HDF5_ERROR_CHECK2(status, "/parameter/ef_stride");
 
-    /* //Write sqrt_Nbar */
-    /* status = */
-    /*     write_hdf5(1, &one, file_id, "/parameter/sqrt_Nbar", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->ef.sqrt_Nbar)); */
-    /* HDF5_ERROR_CHECK2(status, "/parameter/sqrt_Nbar"); */
-
     //Write electrodes field
     status = write_field_custom_hdf5(p, (void **) &(p->ef.electrodes), "/electrodes", H5T_STD_U8LE, H5T_NATIVE_UINT8, file_id, plist_id);
     if (status != 0)
@@ -284,8 +275,47 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
     return 0;
 }
 
+void calc_sqrt_Nbar(struct Phase *const p)
+{
+    uint16_t n_mono_t;
+    uint64_t sum_chains_t_scaled = 0;
+    uint64_t * type_num = (uint64_t*) calloc(0, p->n_poly_type * sizeof(uint64_t));
+
+    //loop over all polymer chains, save type in type_num
+    for (uint64_t c=0; c < p->n_polymers; c++)
+    {
+        // Polymer * poly = &(p->polymers[c]);
+        uint8_t poly_type_c = p->polymers[c].type;
+        type_num[poly_type_c] += 1;
+    }
+
+    if (p->info_MPI.domain_rank == 0)
+    {
+        MPI_Reduce(MPI_IN_PLACE, type_num, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+    }
+    else
+    {
+        MPI_Reduce(type_num, NULL, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain);
+    }
+
+     for (uint8_t t=0; t < p->n_poly_type; t++)
+    {
+        n_mono_t = p->poly_arch[p->poly_type_offset[t]];
+        sum_chains_t_scaled += type_num[t] * n_mono_t / p->reference_Nbeads;
+    }
+
+    p->ef.sqrt_Nbar = sum_chains_t_scaled * (1 / (p->Lx * p->Ly * p->Lz));
+
+#pragma acc update device(p->ef.sqrt_Nbar)
+
+    free(type_num);
+}
+
+
 int init_efield(struct Phase *const p)
 {
+    calc_sqrt_Nbar(p);
+    
     // determine on which outer surfaces (xy,xz,yz) electrodes are present
     // necessary to resolve non-periodic boundaries
     uint64_t electr_sum_xy_red = 0;
@@ -907,42 +937,6 @@ int update_self_electric_field(const struct Phase *const p)
     return 0;
 }
 
-
-/* void calc_sqrt_Nbar(struct Phase *const p) */
-/* { */
-/*     uint16_t n_mono_t; */
-/*     uint64_t sum_chains_t_scaled = 0; */
-/*     uint64_t * type_num = (uint64_t*) calloc(0, p->n_poly_type * sizeof(uint64_t)); */
-
-/*     //loop over all polymer chains, save type in type_num */
-/*     for (uint64_t c=0; c < p->n_polymers; c++) */
-/*         { */
-/*             // Polymer * poly = &(p->polymers[c]); */
-/*             uint8_t poly_type_c = p->polymers[c].type; */
-/*             type_num[poly_type_c] += 1; */
-/*         } */
-
-/*     if (p->info_MPI.domain_rank == 0) */
-/*     { */
-/*         MPI_Reduce(MPI_IN_PLACE, type_num, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain); */
-/*     } */
-/*     else */
-/*     { */
-/*         MPI_Reduce(type_num, NULL, p->n_poly_type, MPI_UINT8_T, MPI_SUM, 0, p->info_MPI.SOMA_comm_domain); */
-/*     } */
-
-/*     for (uint8_t t=0; t < p->n_poly_type; t++) */
-/*     { */
-/*         n_mono_t = p->poly_arch[p->poly_type_offset[t]]; */
-/*         sum_chains_t_scaled += type_num[t] * n_mono_t / p->reference_Nbeads;         */
-/*     } */
-
-/*     p->ef.sqrt_Nbar = sum_chains_t_scaled * (1 / (p->Lx * p->Ly * p->Lz)); */
-
-/* #pragma acc update device(p->ef.sqrt_Nbar) */
-
-/*     free(type_num); */
-/* } */
 
 void calc_dielectric_field(struct Phase *const p)
 {
@@ -1570,64 +1564,10 @@ void deconvolution_Epot(struct Phase *const p)
 
 }
 
-void smooth_Epot(struct Phase *const p)
-{
-#pragma acc parallel loop present(p[0:1])
-#pragma omp parallel for
-    for (uint64_t c=0; c < p->n_cells; c++)
-    {
-        p->ef.Epot_tmp[c] = p->ef.Epot[c];
-    }
-
-    // resolve electrode position; skip these planes
-    uint64_t nx_cells = p->nx;
-    uint64_t ny_cells = p->ny;
-    uint64_t nz_cells = p->nz;
-    if (p->ef.el_pos_yz) nx_cells -= 2;
-    if (p->ef.el_pos_xz) ny_cells -= 2;
-    if (p->ef.el_pos_xy) nz_cells -= 2;
-
-#pragma acc parallel loop present(p[0:1]) collapse(3)
-#pragma omp parallel for
-    for (uint64_t x=p->ef.x_offset; x < nx_cells; x++)
-        for (uint64_t y=p->ef.y_offset; y < ny_cells; y++)
-            for (uint64_t z=p->ef.z_offset; z < nz_cells; z++)
-            {
-                soma_scalar_t kernel_blur_sum = 0.0;
-
-                for (int8_t h=-1; h <= 1; h++)
-                    for (int8_t i=0-1; i <= 1; i++)
-                        for (int8_t j=-1; j <= 1; j++)
-                        {
-                            int64_t x_i = x + h;
-                            int64_t y_i = y + i;
-                            int64_t z_i = z + j;
-                            // resolve periodic boundaries
-                            if(x_i >= p->nx) x_i -= p->nx;
-                            if(x_i < p->nx) x_i += p->nx;
-                            if(y_i >= p->ny) y_i -= p->ny;
-                            if(y_i < p->ny) y_i += p->ny;
-                            if(z_i >= p->nz) z_i -= p->nz;
-                            if(z_i < p->nz) z_i += p->nz;
-
-                            kernel_blur_sum += p->ef.kernel_blur[cell_to_index_kernel(p,h,i,j)] *
-                                               p->ef.Epot_tmp[cell_to_index(p,x_i,y_i,z_i)];
-                        }
-
-                p->ef.Epot[cell_to_index(p,x,y,z)] = kernel_blur_sum;
-            }
-}
-
 int calc_electric_field_contr(struct Phase *const p)
 {
     soma_scalar_t max = p->ef.thresh_iter;
     
-//     if (p->time==0)
-//     {
-// #pragma acc update device(p->sqrt_Nbar)
-//     // calc_sqrt_Nbar(p);
-//     }
-
     calc_dielectric_field(p);
 
     if (p->ef.kernel_dim > 1)
@@ -1636,7 +1576,6 @@ int calc_electric_field_contr(struct Phase *const p)
         pre_derivatives_conv(p);
         max = iterate_field_conv(p);
         deconvolution_Epot(p);
-        // if (p->ef.stride > 1) smooth_Epot(p);
     }
     else
     {
@@ -1687,24 +1626,8 @@ int calc_electric_field_contr(struct Phase *const p)
                             }
                         }
                         
-                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->sqrt_Nbar) * dEpot_sq;
+                        p->ef.omega_field_el[i+m*p->n_cells_local] = 1.0 * 0.5 * diff_part / (phi_sum * phi_sum * p->ef.sqrt_Nbar) * dEpot_sq;
 
-                        // eps_res = 0.0;
-                        // phi_other = 0.0;
-                        // for (uint8_t n = 0; n < p->n_types; n++)
-                        // {
-                        //     if (n != m)
-                        //     {
-                        //         eps_res += p->ef.eps[n];
-                        //         phi_other += p->fields_unified[i+n*p->n_cells_local] * p->field_scaling_type[n];
-                        //     }
-                        // }
-
-                        // phi_self = p->fields_unified[i+m*p->n_cells_local] * p->field_scaling_type[m];
-                        // eps_diff = (p->ef.eps[m] - eps_res) / (p->n_types * p->num_all_beads) *
-                        //            (phi_other) / ((phi_self + phi_other) * (phi_self + phi_other)); 
-                        
-                        // p->ef.omega_field_el[i+m*p->n_cells_local] = eps_diff * dEpot_sq;
                     }
                 }
 
