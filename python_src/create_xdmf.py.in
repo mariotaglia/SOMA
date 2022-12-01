@@ -64,12 +64,21 @@ def get_content_dict(arguments):
     content_dict = dict()
     content_dict["/density_field"] = False
     content_dict["/umbrella_field"] = False
+    content_dict["/Epot_field"] = False
+    content_dict["/E_field"] = False
+    content_dict["/dielectric_field"] = False
     if arguments['a']:
         with h5py.File(arguments['a'],"r") as f:
             if "/density_field" in f:
                 content_dict["/density_field"] = True
             if "/umbrella_field" in f:
                 content_dict["density_field"] = True
+            if "/Epot_field" in f:
+                content_dict["/Epot_field"] = True
+            if "/E_field" in f:
+                content_dict["/E_field"] = True
+            if "/dielectric_field" in f:
+                content_dict["/dielectric_field"] = True
     return content_dict
 
 def get_topo_geo(nxyz):
@@ -395,12 +404,39 @@ def main(argv):
     timesteps = get_timesteps(arguments)
     string += "<Grid GridType=\"Collection\" CollectionType=\"Temporal\">\n"
     isumbr=False
+    isepot=False
+    isefld=False
+    isdiel=False
+    dims_arr=[]
     if arguments['a']:
         with h5py.File(arguments['a'],"r") as f:
-            if '/umbrella_field' in f:
+            if content_dict["/umbrella_field"]:
                 Dataset=f['umbrella_field']
                 if Dataset.size>0:
                     isumbr=True
+                    dims = f["/umbrella_field"].shape
+                    dims_arr.append(dims[0])
+            if content_dict["/Epot_field"]:
+                Dataset=f['Epot_field']
+                if Dataset.size>0:
+                    isepot=True
+                    dims = f["/Epot_field"].shape
+                    dims_arr.append(dims[0])
+            if content_dict["/E_field"]:
+                Dataset=f['E_field']
+                if Dataset.size>0:
+                    isefld=True
+                    dims = f["/E_field"].shape
+                    dims_arr.append(dims[0])
+            if content_dict["/dielectric_field"]:
+                Dataset=f['dielectric_field']
+                if Dataset.size>0:
+                    isdiel=True
+                    dims = f["/dielectric_field"].shape
+                    dims_arr.append(dims[0])
+
+    if sum(dims_arr) % timesteps+1 != 0:
+        sys.stdout.write("WARNING: Timestep increments of saved fields differ. May result in unpredicted behavior.\n")
 
     for time in range(timesteps):
         string += open_grid(time)
@@ -413,9 +449,12 @@ def main(argv):
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
             string += get_umbrella_field(nxyz,arguments,types,type)
         string += get_area51(nxyz,arguments)
-        string += get_Epot_field(time,timesteps,nxyz,arguments)
-        string += get_E_field(time,timesteps,nxyz,arguments)
-        string += get_dielectric_field(time,timesteps,nxyz,arguments)
+        if isepot:
+            string += get_Epot_field(time,timesteps,nxyz,arguments)
+        if isefld:
+            string += get_E_field(time,timesteps,nxyz,arguments)
+        if isdiel:
+            string += get_dielectric_field(time,timesteps,nxyz,arguments)
         string += get_electrodes(nxyz,arguments)
         string += get_H_el_field(nxyz,arguments) # redundant?
         string += "</Grid>\n"
