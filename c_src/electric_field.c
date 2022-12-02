@@ -270,8 +270,6 @@ int write_electric_field_hdf5(const struct Phase *const p, const hid_t file_id, 
         return status;
     }
 
-    //TO DO: WRITE CONV VARIABLES/VALUES!!!!!
-
     return 0;
 }
 
@@ -306,11 +304,8 @@ void calc_sqrt_Nbar(struct Phase *const p)
 
     p->ef.sqrt_Nbar = sum_chains_t_scaled * (1 / (p->Lx * p->Ly * p->Lz));
 
-#pragma acc update device(p->ef.sqrt_Nbar)
-
     free(type_num);
 }
-
 
 int init_efield(struct Phase *const p)
 {
@@ -447,7 +442,7 @@ int init_kernel(struct Phase *const p)
 int init_convolution(struct Phase *const p)
 {
     // DISCLAIMER: Convolution only works for two electrodes opposing electrodes located on outer planes of the box
-    // which is resolved in 'ini_efield()'
+    // which is resolved in 'init_efield()'
     
     // get axes in between electrodes to allocate arrays
     if (p->ef.el_pos_yz)
@@ -705,9 +700,7 @@ int init_convolution(struct Phase *const p)
         return -1;
     }
 
-    // fill kernel normalization field
-#pragma acc parallel loop present(p[0:1]) collapse(3)
-#pragma omp parallel for collapse(3)
+    // fill kernel normalization field, no #pragma since required fields are not yet on device
     for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
         for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
             for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
@@ -760,8 +753,6 @@ int init_convolution(struct Phase *const p)
     // fill electrode planes (2D) of kernel field depending on electrode positions
     if (p->ef.el_pos_yz)
     {
-#pragma acc parallel loop present(p[0:1]) collapse(2)
-#pragma omp parallel for collapse(2)
     for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
         for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
         {
@@ -788,8 +779,6 @@ int init_convolution(struct Phase *const p)
 
     if (p->ef.el_pos_xz)
     {
-#pragma acc parallel loop present(p[0:1]) collapse(2)
-#pragma omp parallel for collapse(2)
     for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
         for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
         {
@@ -816,8 +805,6 @@ int init_convolution(struct Phase *const p)
 
     if (p->ef.el_pos_xy)
     {
-#pragma acc parallel loop present(p[0:1]) collapse(2)
-#pragma omp parallel for collapse(2)
     for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
         for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
         {
@@ -1023,8 +1010,8 @@ soma_scalar_t iterate_field(struct Phase *const p)
     {
         max_i = p->ef.thresh_iter;
 
-#pragma acc parallel loop present(p[0:1]) collapse(3) //reduction(max: max_i) deviceptr(p->ef.electrodes,p->ef.Epot,p->ef.Epot_tmp,p->ef.pre_deriv)
-#pragma omp parallel for collapse(3) //reduction(max: max_i)
+#pragma acc parallel loop present(p[0:1]) collapse(3)
+#pragma omp parallel for collapse(3)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
     	        for (uint64_t z=0; z < p->nz; z++)
@@ -1058,7 +1045,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
                         }
                     }
 	
-#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i) //deviceptr(p->ef.Epot_tmp,p->ef.eps_arr)
+#pragma acc parallel loop present(p[0:1]) collapse(3) reduction(max: max_i)
 #pragma omp parallel for collapse(3) reduction(max: max_i)
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)
@@ -1081,7 +1068,7 @@ soma_scalar_t iterate_field(struct Phase *const p)
          			}
                 } 
 	
-#pragma acc parallel loop present(p[0:1]) collapse(3) //deviceptr(p->ef.Epot,p->ef.Epot_tmp)
+#pragma acc parallel loop present(p[0:1]) collapse(3)
 #pragma omp parallel for
         for (uint64_t x=0; x < p->nx; x++)
             for (uint64_t y=0; y < p->ny; y++)

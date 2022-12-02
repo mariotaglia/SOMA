@@ -1103,6 +1103,7 @@ int analytics(struct Phase *const p)
     //Epot_field
     if (p->ana_info.delta_mc_Epot_field != 0 && p->time % p->ana_info.delta_mc_Epot_field == 0)
         {
+            update_self_phase(p, 0);
             extent_density_field_ef(p, p->ef.Epot, "/Epot_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;
@@ -1111,6 +1112,7 @@ int analytics(struct Phase *const p)
     //E_field
     if (p->ana_info.delta_mc_E_field != 0 && p->time % p->ana_info.delta_mc_E_field == 0)
         {
+            update_self_phase(p, 0);
             extent_density_field_ef(p, p->ef.E_field, "/E_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;
@@ -1119,6 +1121,7 @@ int analytics(struct Phase *const p)
     //dielectric_field
     if (p->ana_info.delta_mc_dielectric_field != 0 && p->time % p->ana_info.delta_mc_dielectric_field == 0)
         {
+            update_self_phase(p, 0);
             extent_density_field_ef(p, p->ef.eps_arr, "/dielectric_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;
