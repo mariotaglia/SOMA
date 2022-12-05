@@ -435,7 +435,7 @@ def main(argv):
                     dims = f["/dielectric_field"].shape
                     dims_arr.append(dims[0])
 
-    if sum(dims_arr) % timesteps+1 != 0:
+    if sum(dims_arr) % timesteps != 0:
         sys.stdout.write("WARNING: Timestep increments of saved fields differ. May result in unpredicted behavior.\n")
 
     for time in range(timesteps):
