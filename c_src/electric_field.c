@@ -1346,7 +1346,7 @@ void deconvolution_Epot(struct Phase *const p)
     if (p->ef.stride == 1)
     {
 #pragma acc parallel loop present(p[0:1]) collapse(3)
-#pragma omp parallel for
+#pragma omp parallel for collapse(3)
     for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
         for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
             for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
@@ -1371,7 +1371,7 @@ void deconvolution_Epot(struct Phase *const p)
 
         // fill empty cells by weighing convoluted values with gauss kernel; omit electrode planes - will be resolved subsequently in 2D
 #pragma acc parallel loop present(p[0:1]) collapse(3)
-#pragma omp parallel for
+#pragma omp parallel for collapse(3)
         for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
             for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
                 for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
@@ -1417,16 +1417,17 @@ void deconvolution_Epot(struct Phase *const p)
                                     if (z_i < 0) z_i += p->nz;
                                 }
                                 
+                                // indeces of original cell (cell_i), convoluted cell (cc_i), kernel cell (kc_i)
                                 uint64_t cell_i = cell_to_index(p,x_i,y_i,z_i);
-                                // skip electrode planes (expected to be in area51)
-                                // if (p->area51[cell_i] != 1)
-                                // {
                                 uint64_t xc_i = xc + p->ef.x_offset;
                                 uint64_t yc_i = yc + p->ef.y_offset;
                                 uint64_t zc_i = zc + p->ef.z_offset;
-                                p->ef.Epot[cell_i] += p->ef.Epot_conv[cell_to_index_conv(p,xc_i,yc_i,zc_i)] *
-                                                          p->ef.kernel[cell_to_index_kernel(p,h,i,j)];
-                                // }
+                                uint64_t cc_i = cell_to_index_conv(p,xc_i,yc_i,zc_i);
+                                uint8_t kc_i = cell_to_index_kernel(p,h,i,j);
+#pragma acc atomic update
+#pragma omp atomic
+                                p->ef.Epot[cell_i] += p->ef.Epot_conv[cc_i] * p->ef.kernel[kc_i];
+
                                 
                             }
                 }
@@ -1450,19 +1451,24 @@ void deconvolution_Epot(struct Phase *const p)
                             if (z_i >= p->nz) z_i -= p->nz;
                             if (z_i < 0) z_i += p->nz;
                             
-                            // first and second electrode cell 
-                            uint64_t c_el_1 = cell_to_index(p,0,y_i,z_i);
-                            uint64_t c_el_2 = cell_to_index(p,p->nx-1,y_i,z_i);
+                            // first and second electrode planes (el1, el2)
+                            uint64_t cell_i_el1 = cell_to_index(p,0,y_i,z_i);
+                            uint64_t cell_i_el2 = cell_to_index(p,p->nx-1,y_i,z_i);
+                            uint64_t cc_i_el1 = cell_to_index_conv(p,0,yc,zc);
+                            uint64_t cc_i_el2 = cell_to_index_conv(p,p->ef.conv_nx+1,yc,zc);
+                            uint8_t kc_i = cell_to_index_kernel(p,0,i,j);
                             
-                            if (p->ef.electrodes[c_el_1] != 1) 
+                            if (p->ef.electrodes[cell_i_el1] != 1) 
                             {
-                                p->ef.Epot[c_el_1] += p->ef.Epot_conv[cell_to_index_conv(p,0,yc,zc)] *
-                                                                   p->ef.kernel[cell_to_index_kernel(p,0,i,j)];
+#pragma acc atomic update
+#pragma omp atomic
+                                p->ef.Epot[cell_i_el1] += p->ef.Epot_conv[cc_i_el1] * p->ef.kernel[kc_i];
                             }
-                            if (p->ef.electrodes[c_el_2] != 1)
+                            if (p->ef.electrodes[cell_i_el2] != 1)
                             {
-                                p->ef.Epot[c_el_2] += p->ef.Epot_conv[cell_to_index_conv(p,p->ef.conv_nx+1,yc,zc)] *
-                                                                   p->ef.kernel[cell_to_index_kernel(p,0,i,j)];
+#pragma acc atomic update
+#pragma omp atomic
+                                p->ef.Epot[cell_i_el2] += p->ef.Epot_conv[cc_i_el2] * p->ef.kernel[kc_i];
                             }
                         }
                 }
@@ -1486,19 +1492,24 @@ void deconvolution_Epot(struct Phase *const p)
                             if (z_i >= p->nz) z_i -= p->nz;
                             if (z_i < 0) z_i += p->nz;
                             
-                            // first and second electrode cell 
-                            uint64_t c_el_1 = cell_to_index(p,x_i,0,z_i);
-                            uint64_t c_el_2 = cell_to_index(p,x_i,p->ny-1,z_i);
+                            // first and second electrode planes (el1, el2)
+                            uint64_t cell_i_el1 = cell_to_index(p,x_i,0,z_i);
+                            uint64_t cell_i_el2 = cell_to_index(p,x_i,p->ny-1,z_i);
+                            uint64_t cc_i_el1 = cell_to_index_conv(p,xc,0,zc);
+                            uint64_t cc_i_el2 = cell_to_index_conv(p,xc,p->ef.conv_ny+1,zc);
+                            uint8_t kc_i = cell_to_index_kernel(p,h,0,j);
                             
-                            if (p->ef.electrodes[c_el_1] != 1) 
+                            if (p->ef.electrodes[cell_i_el1] != 1) 
                             {
-                                p->ef.Epot[c_el_1] += p->ef.Epot_conv[cell_to_index_conv(p,xc,0,zc)] *
-                                                                   p->ef.kernel[cell_to_index_kernel(p,h,0,j)];
+#pragma acc atomic update
+#pragma omp atomic
+                                p->ef.Epot[cell_i_el1] += p->ef.Epot_conv[cc_i_el1] * p->ef.kernel[kc_i];
                             }
-                            if (p->ef.electrodes[c_el_2] != 1)
+                            if (p->ef.electrodes[cell_i_el2] != 1)
                             {
-                                p->ef.Epot[c_el_2] += p->ef.Epot_conv[cell_to_index_conv(p,xc,p->ef.conv_ny+1,zc)] *
-                                                                   p->ef.kernel[cell_to_index_kernel(p,h,0,j)];
+#pragma acc atomic update
+#pragma omp atomic
+                                p->ef.Epot[cell_i_el2] += p->ef.Epot_conv[cc_i_el2] * p->ef.kernel[kc_i];
                             }
                         }
                 }
@@ -1522,19 +1533,24 @@ void deconvolution_Epot(struct Phase *const p)
                             if (y_i >= p->ny) y_i -= p->ny;
                             if (y_i < 0) y_i += p->ny;
                             
-                            // first and second electrode cell 
-                            uint64_t c_el_1 = cell_to_index(p,x_i,y_i,0);
-                            uint64_t c_el_2 = cell_to_index(p,x_i,y_i,p->nz-1);
+                            // first and second electrode planes (el1, el2)
+                            uint64_t cell_i_el1 = cell_to_index(p,x_i,y_i,0);
+                            uint64_t cell_i_el2 = cell_to_index(p,x_i,y_i,p->nz-1);
+                            uint64_t cc_i_el1 = cell_to_index_conv(p,xc,yc,0);
+                            uint64_t cc_i_el2 = cell_to_index_conv(p,xc,yc,p->ef.conv_nz+1);
+                            uint8_t kc_i = cell_to_index_kernel(p,h,i,0);
                             
-                            if (p->ef.electrodes[c_el_1] != 1) 
+                            if (p->ef.electrodes[cell_i_el1] != 1) 
                             {
-                                p->ef.Epot[c_el_1] += p->ef.Epot_conv[cell_to_index_conv(p,xc,yc,0)] *
-                                                                   p->ef.kernel[cell_to_index_kernel(p,h,i,0)];
+#pragma acc atomic update
+#pragma omp atomic
+                                p->ef.Epot[cell_i_el1] += p->ef.Epot_conv[cc_i_el1] * p->ef.kernel[kc_i];
                             }
-                            if (p->ef.electrodes[c_el_2] != 1)
+                            if (p->ef.electrodes[cell_i_el2] != 1)
                             {
-                                p->ef.Epot[c_el_2] += p->ef.Epot_conv[cell_to_index_conv(p,xc,yc,p->ef.conv_nz+1)] *
-                                                                   p->ef.kernel[cell_to_index_kernel(p,h,i,0)];
+#pragma acc atomic update
+#pragma omp atomic
+                                p->ef.Epot[cell_i_el2] += p->ef.Epot_conv[cc_i_el2] * p->ef.kernel[kc_i];
                             }
                         }
                 }
