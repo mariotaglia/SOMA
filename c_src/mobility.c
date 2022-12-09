@@ -203,8 +203,9 @@ int free_mobility(struct Phase *p)
     return 0;
 }
 
+
 soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned int particle_type,
-                                    const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z)
+                                    const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z, const soma_scalar_t dphi)
 {
     switch (p->mobility.type)
         {
@@ -246,7 +247,11 @@ soma_scalar_t get_mobility_modifier(const struct Phase *const p, const unsigned 
             for (unsigned int j = 0; j < p->n_types; j++)
                 {
                     const uint64_t cellindex = coord_to_index_unified(p, x, y, z, j);
-                    a_sum +=
+                    if (j==particle_type)
+                            a_sum +=
+                            a[particle_type * p->n_types + j] * p->field_scaling_type[j] * (p->fields_unified[cellindex]+dphi);
+                    else
+                      a_sum +=
                         a[particle_type * p->n_types + j] * p->field_scaling_type[j] * p->fields_unified[cellindex];
                 }
 
