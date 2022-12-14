@@ -1064,6 +1064,7 @@ class SomaXML:
     knownTags += ["k_umbrella"]
     knownTags += ["structure_q"]
     knownTags += ["polyconversion"]
+    knownTags += ["movement"]
     knownTags += ["mobility_modifier"]
     knownTags += ["density_weights"]
     knownTags += ["electric_field"]
@@ -1286,6 +1287,12 @@ class Configuration(SomaXML):
                 f.create_dataset("/polyconversion/input_type",data=self.poly_conversion.pc_list[:,0])
                 f.create_dataset("/polyconversion/output_type",data=self.poly_conversion.pc_list[:,1])
                 f.create_dataset("/polyconversion/end",data=self.poly_conversion.pc_list[:,2])
+                if(self.poly_conversion.movement):
+                    f.create_group("polyconversion/movement")
+                    f.create_dataset("polyconversion/movement/axis",data=self.poly_conversion.movement_axis)
+                    f.create_dataset("polyconversion/movement/distance",data=self.poly_conversion.movement_distance)
+                    f.create_dataset("polyconversion/movement/gas_types",data=self.poly_conversion.movement_gas)
+                    f.create_dataset("polyconversion/movement/liquid_types",data=self.poly_conversion.movement_liq)
 
             if "mobility" in f:
                 del f["mobility"]
@@ -1666,9 +1673,14 @@ class Configuration(SomaXML):
             self.array = None
             self.pc_list = None
             self.delta_mc = numpy.asarray( [0], dtype=numpy.uint32)
+            self.movement=0
+            self.movement_distance=None
+            self.movement_axis=None
+            self.movement_gas=[]
+            self.movement_liq=[]
             child_list = []
             pc_list = []
-            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC"]
+            knownTags = ["point_cloud","box","cylinder","sphere","conversion_list","DeltaMC","movement"]
             for element in root.iter("polyconversion"):
                 for child in element:
                     if not child.tag in knownTags:
@@ -1716,6 +1728,33 @@ class Configuration(SomaXML):
                             RuntimeError("Invalid conserion attempt! Input type "+str(input_type)+" has "+str(Ninput)+" beads but output type "+str(output_type)+" has "+str(Noutput)+" types.")
 
                         pc_list.append([input_type,output_type,bool(end)])
+
+                for movement in element.findall("movement"):
+                    movement_tags = ["axis","distance","gas_types","liquid_types"]
+                    for ax in movement.findall("axis"):
+                        self.movement_axis=(int(ax.text))
+                        
+                    for dst in movement.findall("distance"):
+                        self.movement_distance=(int(dst.text))
+
+                    gt_str=""
+                    for gt in movement.findall("gas_types"):
+                        gt_str+=gt.text
+                    for line in gt_str.split("\n"):
+                        line=line.strip().split()
+                        if len(line) == 1 and line[0] != '#':
+                            self.movement_gas.append(int(line[0]))
+
+                    lt_str=""
+                    for lt in movement.findall("liquid_types"):
+                        lt_str+=lt.text
+                    for line in lt_str.split("\n"):
+                        line=line.strip().split()
+                        if len(line) == 1 and line[0] != '#':
+                            self.movement_liq.append(int(line[0]))
+
+                    ##implement error check -> self.movement=0
+                    self.movement=1
 
             pbc = True
             if len(child_list) > 0:
