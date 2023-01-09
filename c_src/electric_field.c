@@ -962,6 +962,19 @@ void calc_dielectric_field(struct Phase *const p)
             p->ef.eps_arr[i] = 1.0 * tmp_eps_phi_n / tmp_phi_n;
         }
     }
+    // new (test) stuff
+    if (p->ef.el_pos_yz)
+    {
+        for (uint64_t y=0; y < p->ny; y++)
+            for (uint64_t z=0; z < p->nz; z++)
+            {
+                uint64_t i_1 = cell_to_index(p,0,y,z);
+                uint64_t i_2 = cell_to_index(p,p->nx-1,y,z);
+
+                p->ef.eps_arr[i_1] = p->ef.eps_arr[cell_to_index(p,1,y,z)];
+                p->ef.eps_arr[i_2] = p->ef.eps_arr[cell_to_index(p,p->nx-2,y,z)];
+            }
+    }
 }
 
 void pre_derivatives(struct Phase *const p)
@@ -1075,10 +1088,12 @@ soma_scalar_t iterate_field(struct Phase *const p)
                 for (uint64_t z=0; z < p->nz; z++)
     		    {
     		        uint64_t j = cell_to_index(p,x,y,z);
+                    // soma_scalar_t alpha = 1.01;
 
         			if(p->ef.electrodes[j] != 1)
         			{
-        			    p->ef.Epot[j] = p->ef.Epot_tmp[j];
+        			    // p->ef.Epot[j] = alpha * p->ef.Epot_tmp[j] + (1 - alpha) * p->ef.Epot[j]; // alpha > 1 -> further towards new sol.
+                        p->ef.Epot[j] = p->ef.Epot_tmp[j];
         			}
                 }
 
@@ -1187,6 +1202,44 @@ void convolution_eps_arr(struct Phase *const p)
     {
         fprintf(stderr, "ERROR: Calculating convoluted eps_arr: %ld. %s:%d.", eps_conv_err, __FILE__, __LINE__);
     } 
+
+    // copy eps values of cells in contact with electrodes to electrodes 
+    if (p->ef.el_pos_yz)
+    {
+        for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
+            for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
+            {
+                uint64_t ic_1 = cell_to_index_conv(p,0,yc,zc);
+                uint64_t ic_2 = cell_to_index_conv(p,p->ef.conv_nx+1,yc,zc);
+
+                p->ef.eps_arr_conv[ic_1] = p->ef.eps_arr_conv[cell_to_index_conv(p,1,yc,zc)];
+                p->ef.eps_arr_conv[ic_2] = p->ef.eps_arr_conv[cell_to_index_conv(p,p->ef.conv_nx,yc,zc)];
+            }
+    }
+    if (p->ef.el_pos_xz)
+    {
+        for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
+            for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
+            {
+                uint64_t ic_1 = cell_to_index_conv(p,xc,0,zc);
+                uint64_t ic_2 = cell_to_index_conv(p,xc,p->ef.conv_ny+1,zc);
+
+                p->ef.eps_arr_conv[ic_1] = p->ef.eps_arr_conv[cell_to_index_conv(p,xc,1,zc)];
+                p->ef.eps_arr_conv[ic_2] = p->ef.eps_arr_conv[cell_to_index_conv(p,xc,p->ef.conv_ny,zc)];
+            }
+    }
+    if (p->ef.el_pos_xy)
+    {
+        for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
+            for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
+            {
+                uint64_t ic_1 = cell_to_index_conv(p,xc,yc,0);
+                uint64_t ic_2 = cell_to_index_conv(p,xc,yc,p->ef.conv_nz+1);
+
+                p->ef.eps_arr_conv[ic_1] = p->ef.eps_arr_conv[cell_to_index_conv(p,xc,yc,,1)];
+                p->ef.eps_arr_conv[ic_2] = p->ef.eps_arr_conv[cell_to_index_conv(p,xc,yc,p->ef.conv_nz)];
+            }
+    }
 }
 
 void pre_derivatives_conv(struct Phase *const p)
@@ -1388,7 +1441,7 @@ void deconvolution_Epot(struct Phase *const p)
                                 // Resolve periodic/non-periodic boundaries, omit indeces within electrode planes
                                 if (p->ef.el_pos_yz)
                                 {
-                                    if (x_i >= p->nx-1) continue;
+                                    if (x_i >= p->nx-1) continue; //problem here?
                                     if (x_i <= 0) continue;
                                 }
                                 else
