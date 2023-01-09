@@ -1236,7 +1236,7 @@ void convolution_eps_arr(struct Phase *const p)
                 uint64_t ic_1 = cell_to_index_conv(p,xc,yc,0);
                 uint64_t ic_2 = cell_to_index_conv(p,xc,yc,p->ef.conv_nz+1);
 
-                p->ef.eps_arr_conv[ic_1] = p->ef.eps_arr_conv[cell_to_index_conv(p,xc,yc,,1)];
+                p->ef.eps_arr_conv[ic_1] = p->ef.eps_arr_conv[cell_to_index_conv(p,xc,yc,1)];
                 p->ef.eps_arr_conv[ic_2] = p->ef.eps_arr_conv[cell_to_index_conv(p,xc,yc,p->ef.conv_nz)];
             }
     }
