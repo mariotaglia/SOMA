@@ -1206,6 +1206,8 @@ void convolution_eps_arr(struct Phase *const p)
     // copy eps values of cells in contact with electrodes to electrodes 
     if (p->ef.el_pos_yz)
     {
+#pragma acc parallel loop present(p[0:1]) collapse(2)
+#pragma omp parallel for collapse(2)
         for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
             for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
             {
@@ -1218,6 +1220,8 @@ void convolution_eps_arr(struct Phase *const p)
     }
     if (p->ef.el_pos_xz)
     {
+#pragma acc parallel loop present(p[0:1]) collapse(2)
+#pragma omp parallel for collapse(2)
         for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
             for (uint64_t zc=0; zc < p->ef.conv_nz; zc++)
             {
@@ -1230,6 +1234,8 @@ void convolution_eps_arr(struct Phase *const p)
     }
     if (p->ef.el_pos_xy)
     {
+#pragma acc parallel loop present(p[0:1]) collapse(2)
+#pragma omp parallel for collapse(2)
         for (uint64_t xc=0; xc < p->ef.conv_nx; xc++)
             for (uint64_t yc=0; yc < p->ef.conv_ny; yc++)
             {
