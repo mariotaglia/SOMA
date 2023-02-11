@@ -90,6 +90,7 @@ set(soma_link_flags "-lm -ldl -lz")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+  set(CMKAE_C_FLAGS "${CMAKE_C_FLAGS} -I/home/mtaglia/opt/kinsol/include -L/home/mtaglia/opt/kinsol/lib64 -lsundials_kinsol -lsundials_nvecserial -lsundials_nvecmanyvector -lm -Wl,-rpath,/home/mtaglia/opt/kinsol/lib64")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
