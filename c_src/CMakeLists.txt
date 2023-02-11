@@ -34,6 +34,7 @@ set(soma_source
   polytype_conversion.c
   monotype_conversion.c
   mobility.c
+  kinsol_soma.c
   )
 
 configure_file(soma_config.h.in soma_config.h)

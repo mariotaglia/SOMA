@@ -311,6 +311,13 @@ void update_omega_fields(const struct Phase *const p)
         last_time_call = p->time;
     else                        //Quick exit, because the property has already been calculated for the time step.
         return;
+
+    fprintf(stdout, "Exit, will insert kinsol here \n");
+    kinKrylovDemo_ls();
+    fprintf(stdout, "End now \n");
+
+
+    exit(1);
     switch (p->hamiltonian)
         {
         case SCMF0:

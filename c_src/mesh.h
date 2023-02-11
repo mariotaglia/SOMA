@@ -210,4 +210,12 @@ void update_omega_fields_scmf0(const struct Phase *const p);
 //! \note In case of the use of the density_weights every \f$\phi_i\f$ is multiplied with its weight \f$w_i\f$.
 void update_omega_fields_scmf1(const struct Phase *const p);
 
+
+
+void kinKrylovDemo_ls(void);
+//! Calls kinsol
+
+
+
 #endif                          //SOMA_MESH_H
+				//
