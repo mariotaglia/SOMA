@@ -1409,6 +1409,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     HDF5_ERROR_CHECK2(status, "/parameter/lxyz");
     p->Lx = lxyz[0];
     p->Ly = lxyz[1];
+    p->Lz = lxyz[2];
  
     // read Nposions Nnegions
     unsigned int Nions[2];
