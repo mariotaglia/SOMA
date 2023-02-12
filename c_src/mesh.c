@@ -315,6 +315,7 @@ void update_omega_fields(const struct Phase *const p)
     fprintf(stdout, "Exit, will insert kinsol here \n");
     kinKrylovDemo_ls();
     fprintf(stdout, "Bjerrum lenght is: %f \n ", p->Bjerrum);
+//    fprintf(stdout, "Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
     fprintf(stdout, "End now \n");
     exit(1);
 

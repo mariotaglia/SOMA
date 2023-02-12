@@ -1056,6 +1056,7 @@ class SomaXML:
     knownTags += ["lxyz"]
     knownTags += ["Bjerrum"]
     knownTags += ["nxyz"]
+    knownTags += ["Nions"]
     knownTags += ["hamiltonian"]
     knownTags += ["area51"]
     knownTags += ["external_field"]
@@ -1161,6 +1162,9 @@ class Configuration(SomaXML):
         ## Grid dimension in grid points
         self.nxyz = self.create_nxyz()
 
+        ## Number of positive and negative ions in the grid
+        self.Nions = self.create_Nions()
+
         ## Hamiltonian of system
         self.hamiltonian = self.create_hamiltonian()
 
@@ -1219,6 +1223,7 @@ class Configuration(SomaXML):
             create_list += [("/parameter/lxyz",self.lxyz)]
             create_list += [("/parameter/Bjerrum",self.Bjerrum)]
             create_list += [("/parameter/nxyz",self.nxyz)]
+            create_list += [("/parameter/Nions",self.Nions)]
             create_list += [("/parameter/hamiltonian",self.hamiltonian)]
             create_list += [("/parameter/k_umbrella",self.k_umbrella)]
             create_list += [("/parameter/xn",self.xn)]
@@ -1606,6 +1611,21 @@ class Configuration(SomaXML):
         assert len(string) == 3
         tmp = numpy.zeros((3,),dtype=numpy.uint32)
         for i in range(3):
+            tmp[i] = int(string[i])
+            assert tmp[i] > 0
+        return tmp
+
+## Ion concentrations
+    def create_Nions(self):
+        string = ""
+        for element in self.root.iter('Nions'):
+            string += element.text
+        string = string.strip()
+
+        string = string.split()
+        assert len(string) == 2
+        tmp = numpy.zeros((2,),dtype=numpy.uint32)
+        for i in range(2):
             tmp[i] = int(string[i])
             assert tmp[i] > 0
         return tmp
