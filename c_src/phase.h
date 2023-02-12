@@ -281,6 +281,12 @@ typedef struct Phase {
     struct SelfDocumentation sd;        //!< struct that contains all elements for the self documenation functionality
     struct PolymerHeavy ph;     //!< struct containing the pointer to the heavy memory of the polymers.
     struct RNG_HEAVY rh;        //!< struct containing the pointer to the heavy memory of alternative PRNGs, if needed.
+
+/* Variables of Electrostatics */
+/* Number of pos and neg ions in simulation box */
+    unsigned int Nposions, Nnegions;
+    soma_scalar_t Bjerrum;   // Bjerrum lenght in units of Re 
+
 } Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
@@ -321,5 +327,7 @@ int free_phase(struct Phase *const p);
   \return the number of chains that have more than 1/50 of the monomers in the total system.
 */
 int mc_set_init(struct Phase *const p);
+
+
 
 #endif                          //PHASE_H

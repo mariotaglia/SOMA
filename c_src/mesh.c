@@ -314,10 +314,11 @@ void update_omega_fields(const struct Phase *const p)
 
     fprintf(stdout, "Exit, will insert kinsol here \n");
     kinKrylovDemo_ls();
+    fprintf(stdout, "Bjerrum lenght is: %f \n ", p->Bjerrum);
     fprintf(stdout, "End now \n");
-
-
     exit(1);
+
+
     switch (p->hamiltonian)
         {
         case SCMF0:
