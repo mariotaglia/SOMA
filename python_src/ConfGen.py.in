@@ -1512,16 +1512,15 @@ class Configuration(SomaXML):
         time_array[0] = time
         return time_array
 
-## Create the box dimensions.
+## Create the "Bjerrum" attribute.
     ## @return box dimension array
     def create_Bjerrum(self):
         string = ""
         for element in self.root.iter('Bjerrum'):
             string += element.text
         string = string.strip()
-
         tmp = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
-        tmp[0] = float(string[0])
+        tmp[0] = float(string)
         assert tmp[0] > 0
         return tmp
  
