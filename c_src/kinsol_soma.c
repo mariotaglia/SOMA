@@ -157,7 +157,7 @@ int call_kinsol(const struct Phase *const p)
   data = AllocUserData(); 
   if (check_flag((void *)data, "AllocUserData", 2)) return(1);
 
-//  data = &p; // Pointer to phase information
+  *data = *p; // Pointer to phase information
 
 //  InitUserData(data); */
 
