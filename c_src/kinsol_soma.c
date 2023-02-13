@@ -14,7 +14,7 @@
 #include <sundials/sundials_dense.h>     /* use generic dense solver in precond. */
 #include <sundials/sundials_types.h>     /* defs. of realtype, sunindextype      */
 
-
+#include "mesh.h"
 
 #include "kinsol_soma.h" 
 
@@ -358,7 +358,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 //  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
 //  int jx, jy, is, idyu, idyl, idxr, idxl;
 
-  int i;	
+  int i, ix, iy, iz, cell;	
   static int iter = 0;
   const struct Phase *const p = user_data;
 
@@ -368,10 +368,24 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
   NEQ = (int) p->n_cells_local;
 
+  printf("nx, ny, nz, cell, %d, %d, %d \n", p->nx, p->ny, p->nz);
+  
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          printf("ix, iy, iz, cell, %d, %d, %d, %d \n", ix, iy, iz, cell);
+		     }
+	 	}
+	  }
+
+
   printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
   printf("func: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
   printf("func: Number of Equations: %d \n", NEQ);
 
+  exit(1);
   for (i = 0; i < NEQ ; i++) {
    NV_Ith_S(fval,i) = NV_Ith_S(cc,i); // Residual vector
    printf("fval, cc %f. %f \n", NV_Ith_S(fval,i), NV_Ith_S(cc,i)); 
