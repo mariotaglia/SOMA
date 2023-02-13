@@ -98,8 +98,8 @@ static int PrecSolveBD(N_Vector cc, N_Vector cscale,
 */
 /* Private Helper Functions */
 
-/* static UserData AllocUserData(void);
-static void InitUserData(UserData data);
+static Phase *AllocUserData(void);
+/*static void InitUserData(UserData data);
 static void FreeUserData(UserData data); */
 
  static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ);
@@ -132,7 +132,7 @@ int call_kinsol(const struct Phase *const p)
   int flag, maxl, maxlrst;
   void *kmem;
   SUNLinearSolver LS;
-  void *userdata;
+  Phase *data;
 
   int NEQ; //<- Number of equations 
   NEQ = (int) p->n_cells_local;
@@ -142,8 +142,6 @@ int call_kinsol(const struct Phase *const p)
   fprintf(stdout, "call_kinsol: Bjerrum lenght is: %f \n ", p->Bjerrum);
   fprintf(stdout, "call_kinsol: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
 
-  userdata = p; // Pointer to phase information
-
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
   SUNContext_Create(NULL, &sunctx);
@@ -151,15 +149,17 @@ int call_kinsol(const struct Phase *const p)
   cc = sc = constraints = NULL;
   kmem = NULL;
   LS = NULL;
-/*  data = NULL; */
+  data = NULL; 
 
   /* Allocate memory, and set problem data, initial values, tolerances */
   globalstrategy = KIN_NONE;
 
-/*  data = AllocUserData(); */
+  data = AllocUserData(); 
+  if (check_flag((void *)data, "AllocUserData", 2)) return(1);
 
-/*  if (check_flag((void *)data, "AllocUserData", 2)) return(1);
-  InitUserData(data); */
+//  data = &p; // Pointer to phase information
+
+//  InitUserData(data); */
 
   /* Create serial vectors of length NEQ */
   cc = N_VNew_Serial(NEQ, sunctx);
@@ -193,7 +193,7 @@ int call_kinsol(const struct Phase *const p)
     flag = KINInit(kmem, func, cc);
     if (check_flag(&flag, "KINInit", 1)) return(1);
 
-    flag = KINSetUserData(kmem, userdata);
+    flag = KINSetUserData(kmem, data);
     if (check_flag(&flag, "KINSetUserData", 1)) return(1);
     flag = KINSetConstraints(kmem, constraints);
     if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
@@ -672,3 +672,20 @@ static int check_flag(void *flagvalue, const char *funcname, int opt)
 
   return(0);
 }
+
+
+
+
+/*
+ * Allocate memory for data structure of type Phase
+ */
+
+static Phase *AllocUserData(void)
+{
+  Phase *data;
+  
+  data = malloc(sizeof *data);
+//  printf("data size %lu \n", sizeof *data);
+  return(data);
+}
+
