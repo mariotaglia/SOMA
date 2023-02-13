@@ -175,11 +175,11 @@ int call_kinsol(const struct Phase *const p)
 
   constraints = N_VNew_Serial(NEQ, sunctx);
   if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
-  N_VConst(TWO, constraints);
+  N_VConst(ZERO, constraints);
 
   fnormtol=FTOL; scsteptol=STOL;
 
-  linsolver = 0; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
+  linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* (Re-)Initialize user data */
     SetInitialProfiles(cc, sc, NEQ);
@@ -358,17 +358,29 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 //  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
 //  int jx, jy, is, idyu, idyl, idxr, idxl;
 
+  int i;	
+  static int iter = 0;
   const struct Phase *const p = user_data;
 
   int NEQ; //<- Number of equations 
+	   
+  iter++;	   
+
   NEQ = (int) p->n_cells_local;
 
-  printf("fkfun: Bjerrum lenght is: %f \n ", p->Bjerrum);
-  printf("fkfun: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
-  printf("fkfun: Number of Equations: %d", NEQ);
+  printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
+  printf("func: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
+  printf("func: Number of Equations: %d \n", NEQ);
 
+  for (i = 0; i < NEQ ; i++) {
+   NV_Ith_S(fval,i) = 0.01; // Residual vector
+   printf("fval, cc %f. %f \n", NV_Ith_S(fval,i), NV_Ith_S(cc,i)); 
+   }
+  printf("func: Iter:, %d \n", iter);
 
-  exit(0);
+  return(0);
+}
+  
 
 /*  data = (UserData)user_data;
   delx = data->dx;
@@ -422,8 +434,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
 
 
-  return(0);
-}
+//}
 
 /*
  * Set initial conditions in cc
