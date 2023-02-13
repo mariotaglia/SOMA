@@ -102,7 +102,7 @@ static int PrecSolveBD(N_Vector cc, N_Vector cscale,
 static void InitUserData(UserData data);
 static void FreeUserData(UserData data); */
 
- static void SetInitialProfiles(N_Vector cc, N_Vector sc);
+ static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ);
 /* static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
                         realtype fnormtol, realtype scsteptol,
 			int linsolver);
@@ -183,7 +183,7 @@ int call_kinsol(const struct Phase *const p)
   linsolver = 0; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* (Re-)Initialize user data */
-    SetInitialProfiles(cc, sc);
+    SetInitialProfiles(cc, sc, NEQ);
 
     /* Call KINCreate/KINInit to initialize KINSOL:
        A pointer to KINSOL problem memory is returned and stored in kmem. */
@@ -426,13 +426,26 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
  * Set initial conditions in cc
  */
 
-static void SetInitialProfiles(N_Vector cc, N_Vector sc)
+static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ)
+{ 
+   int i;
+
+// Initial guess for electrostatic potential is phi = 0 everywhere
+
+for (i = 0 ; i < NEQ ; i++) {
+   NV_Ith_S(cc,i) = 0.0;
+   NV_Ith_S(sc,i) = 0.0;
+   }
+}
+   
+   /*static void SetInitialProfiles(N_Vector cc, N_Vector sc)
 {
   int i, jx, jy;
   realtype *cloc, *sloc;
   realtype  ctemp[NUM_SPECIES], stemp[NUM_SPECIES];
 
-  /* Initialize arrays ctemp and stemp used in the loading process */
+  printf("ENTER SET INITIAL PROFILES \n");
+
   for (i = 0; i < NUM_SPECIES/2; i++) {
     ctemp[i] = PREYIN;
     stemp[i] = ONE;
@@ -442,7 +455,6 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc)
     stemp[i] = RCONST(0.00001);
   }
 
-  /* Load initial profiles into cc and sc vector from ctemp and stemp. */
   for (jy = 0; jy < MY; jy++) {
     for (jx = 0; jx < MX; jx++) {
       cloc = IJ_Vptr(cc,jx,jy);
@@ -453,8 +465,12 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc)
       }
     }
   }
+  for (i = 0 ; i <= NSMX * MY ; i++) {
+	  printf("Value %d ,  cc = %f \n", i, cc[i]); 
+	  printf("Value %d ,  cloc = %f \n", i, cloc[i]); 
+  }
 }
-
+*/
 /*
  * Print first lines of output (problem description)
  */
