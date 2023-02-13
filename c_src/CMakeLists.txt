@@ -69,6 +69,7 @@ set(soma_header
   polytype_conversion.h
   monotype_conversion.h
   mobility.h
+  kinsol_soma.h
   )
 
 add_library(soma_lib ${soma_source})

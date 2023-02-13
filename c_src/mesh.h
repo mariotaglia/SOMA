@@ -212,7 +212,7 @@ void update_omega_fields_scmf1(const struct Phase *const p);
 
 
 
-void kinKrylovDemo_ls(void);
+int call_kinsol(const struct Phase *const p);
 //! Calls kinsol
 
 
