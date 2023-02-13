@@ -102,19 +102,20 @@ static int PrecSolveBD(N_Vector cc, N_Vector cscale,
 static void InitUserData(UserData data);
 static void FreeUserData(UserData data); */
 
-static void SetInitialProfiles(N_Vector cc, N_Vector sc);
-static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
+ static void SetInitialProfiles(N_Vector cc, N_Vector sc);
+/* static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
                         realtype fnormtol, realtype scsteptol,
 			int linsolver);
-static void PrintOutput(N_Vector cc);
-static void PrintFinalStats(void *kmem, int linsolver);
+*/
+// static void PrintOutput(N_Vector cc);
+// static void PrintFinalStats(void *kmem, int linsolver);
 
 /*
 static void WebRate(realtype xx, realtype yy, realtype *cxy, realtype *ratesxy,
                     void *user_data);
 */
-static realtype DotProd(int size, realtype *x1, realtype *x2);
-static int check_flag(void *flagvalue, const char *funcname, int opt);
+// static realtype DotProd(int size, realtype *x1, realtype *x2);
+ static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 /*
  *--------------------------------------------------------------------
@@ -131,11 +132,12 @@ int call_kinsol(const struct Phase *const p)
   int flag, maxl, maxlrst;
   void *kmem;
   SUNLinearSolver LS;
-
+  void *userdata;
 
   fprintf(stdout, "FUNC: Bjerrum lenght is: %f \n ", p->Bjerrum);
   fprintf(stdout, "FUNC: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
 
+  userdata = p; // Pointer to phase information
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -186,7 +188,7 @@ int call_kinsol(const struct Phase *const p)
     flag = KINInit(kmem, func, cc);
     if (check_flag(&flag, "KINInit", 1)) return(1);
 
-    flag = KINSetUserData(kmem, p);
+    flag = KINSetUserData(kmem, userdata);
     if (check_flag(&flag, "KINSetUserData", 1)) return(1);
     flag = KINSetConstraints(kmem, constraints);
     if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
@@ -348,8 +350,8 @@ int call_kinsol(const struct Phase *const p)
 
 static int func(N_Vector cc, N_Vector fval, void *user_data)
 {
-  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
-  int jx, jy, is, idyu, idyl, idxr, idxl;
+//  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
+//  int jx, jy, is, idyu, idyl, idxr, idxl;
 
 
   const struct Phase *const p = user_data;
@@ -450,7 +452,7 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc)
 /*
  * Print first lines of output (problem description)
  */
-
+/*
 static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
                         realtype fnormtol, realtype scsteptol,
 			int linsolver)
@@ -512,11 +514,11 @@ static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
          PREDIN, PREDIN, PREDIN);
 #endif
 }
-
+*/
 /*
  * Print sampled values of current cc
  */
-
+/*
 static void PrintOutput(N_Vector cc)
 {
   int is, jx, jy;
@@ -525,9 +527,10 @@ static void PrintOutput(N_Vector cc)
   jy = 0; jx = 0;
   ct = IJ_Vptr(cc,jx,jy);
   printf("\nAt bottom left:");
-
+*/
   /* Print out lines with up to 6 values per line */
-  for (is = 0; is < NUM_SPECIES; is++){
+/*
+for (is = 0; is < NUM_SPECIES; is++){
     if ((is%6)*6 == is) printf("\n");
 #if defined(SUNDIALS_EXTENDED_PRECISION)
     printf(" %Lg",ct[is]);
@@ -541,9 +544,9 @@ static void PrintOutput(N_Vector cc)
   jy = MY-1; jx = MX-1;
   ct = IJ_Vptr(cc,jx,jy);
   printf("\n\nAt top right:");
-
+*/
   /* Print out lines with up to 6 values per line */
-  for (is = 0; is < NUM_SPECIES; is++) {
+/*  for (is = 0; is < NUM_SPECIES; is++) {
     if ((is%6)*6 == is) printf("\n");
 #if defined(SUNDIALS_EXTENDED_PRECISION)
     printf(" %Lg",ct[is]);
@@ -555,11 +558,11 @@ static void PrintOutput(N_Vector cc)
   }
   printf("\n\n");
 }
-
+*/
 /*
  * Print final statistics contained in iopt
  */
-
+/*
 static void PrintFinalStats(void *kmem, int linsolver)
 {
   long int nni, nfe, nli, npe, nps, ncfl, nfeSG;
@@ -589,7 +592,7 @@ static void PrintFinalStats(void *kmem, int linsolver)
   if (linsolver < 3) printf("\n=========================================================\n\n");
 
 }
-
+*/
 /*
  * Check function return value...
  *    opt == 0 means SUNDIALS function allocates memory so check if
