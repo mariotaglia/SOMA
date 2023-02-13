@@ -284,8 +284,9 @@ typedef struct Phase {
 
 /* Variables of Electrostatics */
 /* Number of pos and neg ions in simulation box */
-    unsigned int Nposions, Nnegions;
-    soma_scalar_t Bjerrum;   // Bjerrum lenght in units of Re 
+    unsigned int Nposions; //!< number of positive ions in simulation box
+    unsigned int Nnegions; //!< number of negative ions in simulation box
+    soma_scalar_t Bjerrum;   //!< Bjerrum lenght in units of Re 
 
 } Phase;
 

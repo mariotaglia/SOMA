@@ -35,7 +35,7 @@
 #define MX          5              /* MX = number of x mesh points */
 #define MY          5              /* MY = number of y mesh points */
 #define NSMX        (NUM_SPECIES * MX)
-#define NEQ         (NSMX * MY)    /* number of equations in the system */
+// #define NEQ         (NSMX * MY)    /* number of equations in the system */
 #define AA          RCONST(1.0)    /* value of coefficient AA in above eqns */
 #define EE          RCONST(10000.) /* value of coefficient EE in above eqns */
 #define GG          RCONST(0.5e-6) /* value of coefficient GG in above eqns */
@@ -134,8 +134,14 @@ int call_kinsol(const struct Phase *const p)
   SUNLinearSolver LS;
   void *userdata;
 
-  fprintf(stdout, "FUNC: Bjerrum lenght is: %f \n ", p->Bjerrum);
-  fprintf(stdout, "FUNC: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
+  int NEQ; //<- Number of equations 
+
+  NEQ = (int) p->n_cells_local;
+
+  fprintf(stdout, "call_kinsol: Number of cells: %lu \n ", p->n_cells_local);
+  fprintf(stdout, "call_kinsol: Number of equations: %d \n ", NEQ);
+  fprintf(stdout, "call_kinsol: Bjerrum lenght is: %f \n ", p->Bjerrum);
+  fprintf(stdout, "call_kinsol: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
 
   userdata = p; // Pointer to phase information
 
