@@ -128,7 +128,6 @@ int call_kinsol(const struct Phase *const p)
   int globalstrategy, linsolver;
   realtype fnormtol, scsteptol;
   N_Vector cc, sc, constraints;
-/*  UserData data; */
   int flag, maxl, maxlrst;
   void *kmem;
   SUNLinearSolver LS;
@@ -216,7 +215,7 @@ int call_kinsol(const struct Phase *const p)
       /* Create SUNLinSol_SPGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 15;
-      LS = SUNLinSol_SPGMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1);
 
       /* Attach the linear solver to KINSOL */
@@ -241,7 +240,7 @@ int call_kinsol(const struct Phase *const p)
       /* Create SUNLinSol_SPBCGS object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 15;
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1);
 
       /* Attach the linear solver to KINSOL */
@@ -261,7 +260,7 @@ int call_kinsol(const struct Phase *const p)
       /* Create SUNLinSol_SPTFQMR object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 25;
-      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPTFQMR", 0)) return(1);
 
       /* Attach the linear solver to KINSOL */
@@ -281,7 +280,7 @@ int call_kinsol(const struct Phase *const p)
       /* Create SUNLinSol_SPFGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 15;
-      LS = SUNLinSol_SPFGMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPFGMR(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPFGMR", 0)) return(1);
 
       /* Attach the linear solver to KINSOL */
@@ -308,6 +307,7 @@ int call_kinsol(const struct Phase *const p)
 
 
     /* Call KINSol and print output concentration profile */
+
     flag = KINSol(kmem,           /* KINSol memory block */
 		  cc,             /* initial guess on input; solution vector */
 		  globalstrategy, /* global strategy choice */
@@ -373,7 +373,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   printf("func: Number of Equations: %d \n", NEQ);
 
   for (i = 0; i < NEQ ; i++) {
-   NV_Ith_S(fval,i) = 0.01; // Residual vector
+   NV_Ith_S(fval,i) = NV_Ith_S(cc,i); // Residual vector
    printf("fval, cc %f. %f \n", NV_Ith_S(fval,i), NV_Ith_S(cc,i)); 
    }
   printf("func: Iter:, %d \n", iter);
@@ -447,7 +447,7 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ)
 // Initial guess for electrostatic potential is phi = 0 everywhere
 
 for (i = 0 ; i < NEQ ; i++) {
-   NV_Ith_S(cc,i) = 0.0; // Initial Guess
+   NV_Ith_S(cc,i) = 0.01; // Initial Guess
    NV_Ith_S(sc,i) = 1.0; // Scaling vector
    }
 }
