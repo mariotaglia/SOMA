@@ -135,7 +135,6 @@ int call_kinsol(const struct Phase *const p)
   void *userdata;
 
   int NEQ; //<- Number of equations 
-
   NEQ = (int) p->n_cells_local;
 
   fprintf(stdout, "call_kinsol: Number of cells: %lu \n ", p->n_cells_local);
@@ -359,11 +358,15 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 //  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
 //  int jx, jy, is, idyu, idyl, idxr, idxl;
 
-
   const struct Phase *const p = user_data;
 
-  fprintf(stdout, "FUNC2: Bjerrum lenght is: %f \n ", p->Bjerrum);
-  fprintf(stdout, "FUNC2: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
+  int NEQ; //<- Number of equations 
+  NEQ = (int) p->n_cells_local;
+
+  printf("fkfun: Bjerrum lenght is: %f \n ", p->Bjerrum);
+  printf("fkfun: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
+  printf("fkfun: Number of Equations: %d", NEQ);
+
 
   exit(0);
 
@@ -433,8 +436,8 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ)
 // Initial guess for electrostatic potential is phi = 0 everywhere
 
 for (i = 0 ; i < NEQ ; i++) {
-   NV_Ith_S(cc,i) = 0.0;
-   NV_Ith_S(sc,i) = 0.0;
+   NV_Ith_S(cc,i) = 0.0; // Initial Guess
+   NV_Ith_S(sc,i) = 1.0; // Scaling vector
    }
 }
    
