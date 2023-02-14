@@ -1646,9 +1646,9 @@ class Configuration(SomaXML):
 
         string = string.split()
         assert len(string) == 2
-        tmp = numpy.zeros((2,),dtype=numpy.uint32)
+        tmp = numpy.zeros((2,),dtype=soma_type.get_soma_scalar_type())
         for i in range(2):
-            tmp[i] = int(string[i])
+            tmp[i] = float(string[i])
             assert tmp[i] > 0
         return tmp
 

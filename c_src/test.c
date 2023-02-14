@@ -51,10 +51,10 @@ int check_electro(struct Phase *const p)
 
   printf("check_electro: Total number of A beads: %f \n ", sumrhoA);
   printf("check_electro: Total charge of A beads: %f \n ", ((soma_scalar_t) sumrhoA)*p->Acharge);
-  printf("check_electro: Total number of +1 salt ions: %d \n ", p->Nposions);
-  printf("check_electro: Total number of -1 salt ions: %d \n ", p->Nnegions);
-  int Nionsdiff = p->Nposions-p->Nnegions;
-  soma_scalar_t  netcharge = ((soma_scalar_t) Nionsdiff) + ((soma_scalar_t) sumrhoA)*p->Acharge;
+  printf("check_electro: Total number of +1 salt ions: %f \n ", p->Nposions);
+  printf("check_electro: Total number of -1 salt ions: %f \n ", p->Nnegions);
+  soma_scalar_t Nionsdiff = p->Nposions-p->Nnegions;
+  soma_scalar_t  netcharge = Nionsdiff + sumrhoA*p->Acharge;
   printf("check_electro: Net charge:  %f \n ", netcharge);
 
   if (netcharge != 0) {

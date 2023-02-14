@@ -139,7 +139,7 @@ int call_kinsol(const struct Phase *const p)
   fprintf(stdout, "call_kinsol: Number of cells: %lu \n ", p->n_cells_local);
   fprintf(stdout, "call_kinsol: Number of equations: %d \n ", NEQ);
   fprintf(stdout, "call_kinsol: Bjerrum lenght is: %f \n ", p->Bjerrum);
-  fprintf(stdout, "call_kinsol: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
+  fprintf(stdout, "call_kinsol: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -414,8 +414,8 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhoposion[ix][iy][iz] = rhoposion[ix][iy][iz] * ((soma_scalar_t) p->Nposions) / sumposions; 
-                          rhonegion[ix][iy][iz] = rhonegion[ix][iy][iz] * ((soma_scalar_t) p->Nnegions) / sumnegions; 
+                          rhoposion[ix][iy][iz] = rhoposion[ix][iy][iz] * p->Nposions / sumposions; 
+                          rhonegion[ix][iy][iz] = rhonegion[ix][iy][iz] * p->Nnegions / sumnegions; 
 
 		     }
 	 	}
@@ -455,7 +455,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   printf("func: sumrhoA: %f \n ", sumrhoA);
   printf("func: sumrhoQ: %f \n ", sumrhoQ);
   printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
-  printf("func: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
+  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
   printf("func: Number of Equations: %d \n", NEQ);
 
   exit(1);
