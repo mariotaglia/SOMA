@@ -362,29 +362,98 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   static int iter = 0;
   const struct Phase *const p = user_data;
 
-  int NEQ; //<- Number of equations 
-  soma_scalar_t  rhoA[p->nx][p->ny][p->nz]; // number density of A segments in 3D lattice 
-  soma_scalar_t  sumrhoA = 0;                   // total number of A segments 
+  int NEQ = (int) p->n_cells_local;  //<- Number of equations 
 
+  soma_scalar_t  rhoA[p->nx][p->ny][p->nz]; // number of A segments in 3D lattice 
+  soma_scalar_t  sumrhoA = 0;                   // total number of A segments 
+  soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
+  soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
+  soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+  soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
+  soma_scalar_t  rhoposion[p->nx][p->ny][p->nz]; // number of positive ions in 3D lattice
+  soma_scalar_t  rhonegion[p->nx][p->ny][p->nz]; // number of negative ions in 3D lattice
+  soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
+  soma_scalar_t  phi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
+  soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
+  soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
+   
   iter++;	   
 
-  NEQ = (int) p->n_cells_local;
 
   printf("nx, ny, nz, cell, %d, %d, %d \n", p->nx, p->ny, p->nz);
+  printf("deltax, deltay, deltaz, %f, %f, %f \n", deltax, deltay, deltaz);
   
+// phi from kinsol's input
+
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          phi[ix][iy][iz] = NV_Ith_S(cc,cell); 
+		     }
+	 	}
+	  }
+
+// Pos ion and neg ion
+
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhoposion[ix][iy][iz] = exp(-phi[ix][iy][iz]);
+			  sumposions += rhoposion[ix][iy][iz]; 
+
+			  rhonegion[ix][iy][iz] = exp(phi[ix][iy][iz]);
+			  sumnegions += rhonegion[ix][iy][iz]; 
+
+		     }
+	 	}
+	  }
+
+// Normalize to match totalnumber
+
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhoposion[ix][iy][iz] = rhoposion[ix][iy][iz] * ((soma_scalar_t) p->Nposions) / sumposions; 
+                          rhonegion[ix][iy][iz] = rhonegion[ix][iy][iz] * ((soma_scalar_t) p->Nnegions) / sumnegions; 
+
+		     }
+	 	}
+	  }
+
+// rhoA from unified fields 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           rhoA[ix][iy][iz] = p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
 	                  sumrhoA += rhoA[ix][iy][iz];
-                          printf("ix, iy, iz, cell, %d, %d, %d, %d, %f \n", ix, iy, iz, cell, rhoA[ix][iy][iz]);
+//                          printf("ix, iy, iz, cell, %d, %d, %d, %d, %f \n", ix, iy, iz, cell, rhoA[ix][iy][iz]);
 		     }
 	 	}
 	  }
 
 
+// rhoQ from all contributions 
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhoQ[ix][iy][iz] = rhoA[ix][iy][iz] * p->Acharge; 
+                          rhoQ[ix][iy][iz] += rhoposion[ix][iy][iz]-rhonegion[ix][iy][iz]; 
+			  sumrhoQ += rhoQ[ix][iy][iz];	  
+                          printf("ix, iy, iz, cell, %d, %d, %d, %f \n", ix, iy, iz, rhoQ[ix][iy][iz]);
+		     }
+	 	}
+	  }
+
+
+
+
+
+  /// Create equations to solve
+
   printf("func: sumrhoA: %f \n ", sumrhoA);
+  printf("func: sumrhoQ: %f \n ", sumrhoQ);
   printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
   printf("func: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
   printf("func: Number of Equations: %d \n", NEQ);
