@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
     /* initialize phase */
     const int init = init_phase(p);
     MPI_ERROR_CHECK(init, "Cannot init values.");
+
     if (!p->mt_data_read)       //this has to happen before bead_data_creation, because otherwise segfaults may arise with an uninitialized p->ph.monomer_types.ptr during update_fields.
         {
             const int create_mt_array = generate_monomer_type_array(p);
@@ -168,6 +169,10 @@ int main(int argc, char *argv[])
 
             const int polytype_conversion = test_poly_conversion(p);
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
+
+	    const int electro = check_electro(p); 
+            MPI_ERROR_CHECK(electro, "Charge balance test failed, check number of ions.");
+
         }
     int stop_iteration = false;
 

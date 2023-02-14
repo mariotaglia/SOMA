@@ -50,6 +50,7 @@ int init_phase(struct Phase *const p)
     p->tps_elapsed_steps = 1;   //Bla default, bigger 0
 
     uint64_t n_polymer_offset = 0;
+
 #if ( ENABLE_MPI == 1 )
     MPI_Scan(&(p->n_polymers), &n_polymer_offset, 1, MPI_UINT64_T, MPI_SUM, p->info_MPI.SOMA_comm_sim);
     n_polymer_offset -= p->n_polymers;

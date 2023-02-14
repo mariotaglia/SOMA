@@ -364,6 +364,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
   int NEQ; //<- Number of equations 
   soma_scalar_t  rhoA[p->nx][p->ny][p->nz]; // number density of A segments in 3D lattice 
+  soma_scalar_t  sumrhoA = 0;                   // total number of A segments 
 
   iter++;	   
 
@@ -376,12 +377,14 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           rhoA[ix][iy][iz] = p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
+	                  sumrhoA += rhoA[ix][iy][iz];
                           printf("ix, iy, iz, cell, %d, %d, %d, %d, %f \n", ix, iy, iz, cell, rhoA[ix][iy][iz]);
 		     }
 	 	}
 	  }
 
 
+  printf("func: sumrhoA: %f \n ", sumrhoA);
   printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
   printf("func: Nposions, Nnegions: %d, %d \n ", p->Nposions, p->Nnegions);
   printf("func: Number of Equations: %d \n", NEQ);

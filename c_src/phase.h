@@ -331,5 +331,4 @@ int free_phase(struct Phase *const p);
 int mc_set_init(struct Phase *const p);
 
 
-
 #endif                          //PHASE_H

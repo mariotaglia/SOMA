@@ -30,6 +30,41 @@
 #include "mc.h"
 #include "independent_sets.h"
 
+
+int check_electro(struct Phase *const p)
+{
+
+  int ix, iy, iz, cell;
+  soma_scalar_t  sumrhoA = 0;                   // total number of A segments 
+
+  printf("nx, ny, nz, cell, %d, %d, %d \n", p->nx, p->ny, p->nz);
+
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+          for (iy = 0 ; iy < (int) p->ny ; iy++) {
+                          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          sumrhoA += p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
+     			  }
+                }
+          }
+
+
+  printf("check_electro: Total number of A beads: %f \n ", sumrhoA);
+  printf("check_electro: Total charge of A beads: %f \n ", ((soma_scalar_t) sumrhoA)*p->Acharge);
+  printf("check_electro: Total number of +1 salt ions: %d \n ", p->Nposions);
+  printf("check_electro: Total number of -1 salt ions: %d \n ", p->Nnegions);
+  int Nionsdiff = p->Nposions-p->Nnegions;
+  soma_scalar_t  netcharge = ((soma_scalar_t) Nionsdiff) + ((soma_scalar_t) sumrhoA)*p->Acharge;
+  printf("check_electro: Net charge:  %f \n ", netcharge);
+
+  if (netcharge != 0) {
+     return(-2);
+     }  
+
+return(0);
+}
+
+
 int test_particle_types(const struct Phase *const p)
 {
     for (uint64_t i = 0; i < p->n_poly_type; i++)
