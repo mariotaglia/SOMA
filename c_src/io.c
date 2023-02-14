@@ -619,6 +619,11 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
         write_hdf5(1, &one, file_id, "/parameter/Bjerrum", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Bjerrum));
     HDF5_ERROR_CHECK2(status, "/parameter/Bjerrum");
 
+    //Charge of A segment 
+    status = 
+        write_hdf5(1, &one, file_id, "/parameter/Acharge", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Acharge));
+    HDF5_ERROR_CHECK2(status, "/parameter/Acharge");
+
     //p->harmonic_normb_variable_scale
     status =
         write_hdf5(1, &one, file_id, "/parameter/harmonic_normb_variable_scale", H5T_IEEE_F64LE, H5T_SOMA_NATIVE_SCALAR,
@@ -1418,9 +1423,13 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     p->Nposions = Nions[0];
     p->Nnegions = Nions[1];
 
-    // read Bjeerrum
+    // read Bjerrum
     status = read_hdf5(file_id, "/parameter/Bjerrum", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Bjerrum));
     HDF5_ERROR_CHECK2(status, "/parameter/Bjerrum");
+
+    // read Acharge
+    status = read_hdf5(file_id, "/parameter/Acharge", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Acharge));
+    HDF5_ERROR_CHECK2(status, "/parameter/Acharge");
 
 
     //Read in the polymer architectures.

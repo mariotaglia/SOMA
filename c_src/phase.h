@@ -287,6 +287,7 @@ typedef struct Phase {
     unsigned int Nposions; //!< number of positive ions in simulation box
     unsigned int Nnegions; //!< number of negative ions in simulation box
     soma_scalar_t Bjerrum;   //!< Bjerrum lenght in units of Re 
+    soma_scalar_t Acharge;   //!< Charge of A segment 
 
 } Phase;
 

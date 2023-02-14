@@ -363,7 +363,8 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   const struct Phase *const p = user_data;
 
   int NEQ; //<- Number of equations 
-	   
+  soma_scalar_t  rhoA[p->nx][p->ny][p->nz]; // number density of A segments in 3D lattice 
+
   iter++;	   
 
   NEQ = (int) p->n_cells_local;
@@ -373,9 +374,9 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          printf("ix, iy, iz, cell, %d, %d, %d, %d \n", ix, iy, iz, cell);
+                          rhoA[ix][iy][iz] = p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
+                          printf("ix, iy, iz, cell, %d, %d, %d, %d, %f \n", ix, iy, iz, cell, rhoA[ix][iy][iz]);
 		     }
 	 	}
 	  }
