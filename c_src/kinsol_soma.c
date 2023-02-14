@@ -358,7 +358,8 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 //  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
 //  int jx, jy, is, idyu, idyl, idxr, idxl;
 
-  int i, ix, iy, iz, cell;	
+  int ix, iy, iz, cell;	
+  int ixp ,ixm, iyp, iym, izp, izm;
   static int iter = 0;
   const struct Phase *const p = user_data;
 
@@ -376,7 +377,10 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  phi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
-   
+  
+  soma_scalar_t constq = 0; // constant for Poisson equation
+
+
   iter++;	   
 
 
@@ -447,10 +451,37 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 	  }
 
 
+  
 
 
+/// Calculate residual from Poisson's equation
 
-  /// Create equations to solve
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+
+	  ixp = (ix+1) % (p->nx);
+          ixm = (ix-1) % (p->nx);
+ 
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+
+		  iyp = (iy+1)%(p->ny);
+		  iym = (iy-1)%(p->ny);
+
+	          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+        
+			  izp = (iz+1)%(p->nz);
+			  izm = (iz-1)%(p->nz);
+                  	  cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+			  res[ix][iy][iz] = -rhoQ[ix][iy][iz]*constq;
+			  res[ix][iy][iz] += phi[ixp][iy][iz]-2.*phi[ix][iy][iz]+phi[ixm][iy][iz];	  
+			  res[ix][iy][iz] += phi[ix][iyp][iz]-2.*phi[ix][iy][iz]+phi[ix][iym][iz];	  
+			  res[ix][iy][iz] += phi[ix][iy][izp]-2.*phi[ix][iy][iz]+phi[ix][iy][izm];	  
+		  
+			  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
+	                  
+		     }
+	 	}
+	  }
 
   printf("func: sumrhoA: %f \n ", sumrhoA);
   printf("func: sumrhoQ: %f \n ", sumrhoQ);
@@ -459,11 +490,6 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   printf("func: Number of Equations: %d \n", NEQ);
 
   exit(1);
-  for (i = 0; i < NEQ ; i++) {
-   NV_Ith_S(fval,i) = NV_Ith_S(cc,i); // Residual vector
-   printf("fval, cc %f. %f \n", NV_Ith_S(fval,i), NV_Ith_S(cc,i)); 
-   }
-  printf("func: Iter:, %d \n", iter);
 
   return(0);
 }
