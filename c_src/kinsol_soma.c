@@ -102,7 +102,7 @@ static Phase *AllocUserData(void);
 /*static void InitUserData(UserData data);
 static void FreeUserData(UserData data); */
 
- static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ);
+ static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct Phase *const p);
 /* static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
                         realtype fnormtol, realtype scsteptol,
 			int linsolver);
@@ -117,7 +117,14 @@ static void WebRate(realtype xx, realtype yy, realtype *cxy, realtype *ratesxy,
 // static realtype DotProd(int size, realtype *x1, realtype *x2);
  static int check_flag(void *flagvalue, const char *funcname, int opt);
 
-/*
+
+
+ soma_scalar_t scale;
+ int iter = 0;
+ soma_scalar_t norma;  // sum of residuals
+
+ 
+ /*
  *--------------------------------------------------------------------
  * MAIN PROGRAM
  *--------------------------------------------------------------------
@@ -133,14 +140,12 @@ int call_kinsol(const struct Phase *const p)
   SUNLinearSolver LS;
   Phase *data;
 
+
   int NEQ; //<- Number of equations 
   NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so phi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
-  fprintf(stdout, "call_kinsol: Number of cells: %lu \n ", p->n_cells_local);
-  fprintf(stdout, "call_kinsol: Number of equations: %d \n ", NEQ);
-  fprintf(stdout, "call_kinsol: Bjerrum lenght is: %f \n ", p->Bjerrum);
-  fprintf(stdout, "call_kinsol: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
+  iter = 0; // number of iterations
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -185,7 +190,7 @@ int call_kinsol(const struct Phase *const p)
   linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* (Re-)Initialize user data */
-    SetInitialProfiles(cc, sc, NEQ);
+    SetInitialProfiles(cc, sc, NEQ, p);
 
     /* Call KINCreate/KINInit to initialize KINSOL:
        A pointer to KINSOL problem memory is returned and stored in kmem. */
@@ -214,9 +219,9 @@ int call_kinsol(const struct Phase *const p)
     case(USE_SPGMR):
 
       /* Print header */
-      printf(" -------");
-      printf(" \n| SPGMR |\n");
-      printf(" -------\n");
+//      printf(" -------");
+//      printf(" \n| SPGMR |\n");
+//      printf(" -------\n");
 
       /* Create SUNLinSol_SPGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
@@ -239,9 +244,9 @@ int call_kinsol(const struct Phase *const p)
     case(USE_SPBCGS):
 
       /* Print header */
-      printf(" --------");
-      printf(" \n| SPBCGS |\n");
-      printf(" --------\n");
+//      printf(" --------");
+//      printf(" \n| SPBCGS |\n");
+//      printf(" --------\n");
 
       /* Create SUNLinSol_SPBCGS object with right preconditioning and the
          maximum Krylov dimension maxl */
@@ -265,9 +270,9 @@ int call_kinsol(const struct Phase *const p)
     case(USE_SPTFQMR):
 
       /* Print header */
-      printf(" ---------");
-      printf(" \n| SPTFQMR |\n");
-      printf(" ---------\n");
+//      printf(" ---------");
+//      printf(" \n| SPTFQMR |\n");
+//      printf(" ---------\n");
 
       /* Create SUNLinSol_SPTFQMR object with right preconditioning and the
          maximum Krylov dimension maxl */
@@ -285,9 +290,9 @@ int call_kinsol(const struct Phase *const p)
     case(USE_SPFGMR):
 
       /* Print header */
-      printf(" -------");
-      printf(" \n| SPFGMR |\n");
-      printf(" -------\n");
+ //     printf(" -------");
+ //     printf(" \n| SPFGMR |\n");
+ //     printf(" -------\n");
 
       /* Create SUNLinSol_SPFGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
@@ -327,12 +332,10 @@ int call_kinsol(const struct Phase *const p)
 		  sc);            /* scaling vector for function values fval */
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
+    printf("Electrostatic converged in %d iters, with norm %.3e \n", iter, norma*scale);
     /*
-    printf("\n\nComputed equilibrium species concentrations:\n");
-    PrintOutput(cc);*/
     
-    /* Print final statistics and free memory */
-    /*PrintFinalStats(kmem, linsolver); */
+    /* Free memory */
 
     KINFree(&kmem);
     SUNLinSolFree(LS);
@@ -368,7 +371,6 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
   int ix, iy, iz, cell;	
   int ixp ,ixm, iyp, iym, izp, izm;
-  static int iter = 0;
   const struct Phase *const p = user_data;
 
   int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so phi(nx,ny,nz) can
@@ -389,14 +391,9 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
   soma_scalar_t constq = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
-  soma_scalar_t norma = 0.0; // sum of residuals
 
   iter++;	   
 
-
-//  printf("nx, ny, nz, cell, %d, %d, %d \n", p->nx, p->ny, p->nz);
-//  printf("deltax, deltay, deltaz, %f, %f, %f \n", deltax, deltay, deltaz);
-  
 // phi from kinsol's input
 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
@@ -410,11 +407,6 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
 phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
 
-//cell = cell_coordinate_to_index(p, p->nx-1, p->ny-1, p->nz-1);
-//printf("ccc %d, %f", cell, NV_Ith_S(cc,cell-1));
-///printf("cccc %d, %f", cell, NV_Ith_S(cc,cell));
-//exit(1);
-
 // Pos ion and neg ion
 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
@@ -426,9 +418,6 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 			  rhonegion[ix][iy][iz] = exp(phi[ix][iy][iz]);
 			  sumnegions += rhonegion[ix][iy][iz]; 
 
-//                          printf("+ ix, iy, iz, cell, %d, %d, %d, %f \n", ix, iy, iz, rhoposion[ix][iy][iz]);
-//                          printf("- ix, iy, iz, cell, %d, %d, %d, %f \n", ix, iy, iz, rhonegion[ix][iy][iz]);
-//                          printf("phi ix, iy, iz, cell, %d, %d, %d, %f \n", ix, iy, iz, phi[ix][iy][iz]);
 		     }
 	 	}
 	  }
@@ -463,19 +452,16 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           rhoQ[ix][iy][iz] = rhoA[ix][iy][iz] * p->Acharge; 
-//                          printf("1 ix, iy, iz, cell, %d, %d, %d, %f \n", ix, iy, iz, rhoQ[ix][iy][iz]);
                           rhoQ[ix][iy][iz] += rhoposion[ix][iy][iz]-rhonegion[ix][iy][iz]; 
 			  sumrhoQ += rhoQ[ix][iy][iz];	  
-//                          printf("2 ix, iy, iz, cell, %d, %d, %d, %f \n", ix, iy, iz, rhoQ[ix][iy][iz]);
 		     }
 	 	}
 	  }
 
 
-  
-
-
 /// Calculate residual from Poisson's equation
+
+  norma = 0.0; 
 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
@@ -514,7 +500,7 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
 
-  printf("func: iter, norm %d %.3e \n", iter, norma);
+//  printf("func: iter, norm %d %.3e \n", iter, norma);
 
 //  exit(1);
   return(0);
@@ -579,16 +565,34 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
  * Set initial conditions in cc
  */
 
-static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ)
+static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct Phase *const p)
 { 
-   int i;
+   int i, ix, iy, iz;
+   int cell; 
+   soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
+   soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
+   soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
+   soma_scalar_t constq = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+   soma_scalar_t  sumrhoA = 0;                   // total number of A segments
+
+   for (ix = 0 ; ix < (int) p->nx ; ix++) {
+          for (iy = 0 ; iy < (int) p->ny ; iy++) {
+                          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          sumrhoA += p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
+     			  }
+                }
+          }
+
+
+   scale = 1./constq/sumrhoA*((soma_scalar_t) p->n_cells_local);
+
 
 // Initial guess for electrostatic potential is phi = 0 everywhere
 
 for (i = 0 ; i < NEQ ; i++) {
    NV_Ith_S(cc,i) = 0.0; // Initial Guess
-   NV_Ith_S(sc,i) = 0.00001; // Scaling vector
-   }
+   NV_Ith_S(sc,i) = scale;   }
 }
    
    /*static void SetInitialProfiles(N_Vector cc, N_Vector sc)
