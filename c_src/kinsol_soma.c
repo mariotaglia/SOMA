@@ -176,9 +176,9 @@ int call_kinsol(const struct Phase *const p)
   if (check_flag((void *)data->rates, "N_VNew_Serial", 0)) return(1);
 */
 
-  constraints = N_VNew_Serial(NEQ, sunctx);
-  if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
-  N_VConst(ZERO, constraints);
+// constraints = N_VNew_Serial(NEQ, sunctx);
+//  if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
+//  N_VConst(ZERO, constraints);
 
   fnormtol=FTOL; scsteptol=STOL;
 
@@ -198,8 +198,10 @@ int call_kinsol(const struct Phase *const p)
 
     flag = KINSetUserData(kmem, data);
     if (check_flag(&flag, "KINSetUserData", 1)) return(1);
-    flag = KINSetConstraints(kmem, constraints);
-    if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
+
+//    flag = KINSetConstraints(kmem, constraints);  // CONSTRAINTS NO NEEDED
+//    if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
+
     flag = KINSetFuncNormTol(kmem, fnormtol);
     if (check_flag(&flag, "KINSetFuncNormTol", 1)) return(1);
     flag = KINSetScaledStepTol(kmem, scsteptol);
@@ -218,7 +220,7 @@ int call_kinsol(const struct Phase *const p)
 
       /* Create SUNLinSol_SPGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
-      maxl = 15;
+      maxl = 1000;
       LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1);
 
@@ -227,7 +229,7 @@ int call_kinsol(const struct Phase *const p)
       if (check_flag(&flag, "KINSetLinearSolver", 1)) return 1;
 
       /* Set the maximum number of restarts */
-      maxlrst = 2;
+      maxlrst = 100;
       flag = SUNLinSol_SPGMRSetMaxRestarts(LS, maxlrst);
       if (check_flag(&flag, "SUNLinSol_SPGMRSetMaxRestarts", 1)) return(1);
 
@@ -251,6 +253,12 @@ int call_kinsol(const struct Phase *const p)
       flag = KINSetLinearSolver(kmem, LS, NULL);
       if (check_flag(&flag, "KINSetLinearSolver", 1)) return 1;
 
+      /* Set the maximum number of restarts */
+      maxlrst = 10;
+      flag = SUNLinSol_SPGMRSetMaxRestarts(LS, maxlrst);
+      if (check_flag(&flag, "SUNLinSol_SPGMRSetMaxRestarts", 1)) return(1);
+
+
       break;
 
     /* (c) SPTFQMR */
@@ -263,7 +271,7 @@ int call_kinsol(const struct Phase *const p)
 
       /* Create SUNLinSol_SPTFQMR object with right preconditioning and the
          maximum Krylov dimension maxl */
-      maxl = 25;
+      maxl = 1000;
       LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPTFQMR", 0)) return(1);
 
@@ -506,7 +514,7 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
 
-  printf("func: iter, norm %d %f \n", iter, norma);
+  printf("func: iter, norm %d %.3e \n", iter, norma);
 
 //  exit(1);
   return(0);
@@ -579,7 +587,7 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ)
 
 for (i = 0 ; i < NEQ ; i++) {
    NV_Ith_S(cc,i) = 0.0; // Initial Guess
-   NV_Ith_S(sc,i) = 1.0; // Scaling vector
+   NV_Ith_S(sc,i) = 0.00001; // Scaling vector
    }
 }
    
