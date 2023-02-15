@@ -20,6 +20,11 @@
  You should have received a copy of the GNU Lesser General Public License
  along with SOMA.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+
+
+
+
 #ifndef SOMA_MESH_H
 #define SOMA_MESH_H
 /*! \file mesh.h
@@ -219,3 +224,6 @@ int call_kinsol(const struct Phase *const p);
 
 #endif                          //SOMA_MESH_H
 				//
+
+
+void calc_ions(struct Phase *const p);

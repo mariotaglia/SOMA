@@ -151,6 +151,8 @@ int main(int argc, char *argv[])
     MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
 #endif                          //ENABLE_MPI
 
+    calc_ions(p);  // calc ion concetration
+
     if (!p->args.skip_tests_flag)
         {
             const int test_p = test_particle_types(p);
@@ -169,9 +171,6 @@ int main(int argc, char *argv[])
 
             const int polytype_conversion = test_poly_conversion(p);
             MPI_ERROR_CHECK(polytype_conversion, "Polytype conversion test failed");
-
-	    const int electro = check_electro(p); 
-            MPI_ERROR_CHECK(electro, "Charge balance test failed, check number of ions.");
 
         }
     int stop_iteration = false;

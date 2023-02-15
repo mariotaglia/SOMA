@@ -600,12 +600,9 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
     status = write_hdf5(1, &three, file_id, "/parameter/nxyz", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, nxyz);
     HDF5_ERROR_CHECK2(status, "/parameter/nxyz");
 
-    //Nposions Nnegions
-    hsize_t two = 2;
-    soma_scalar_t Nions[2] = { p->Nposions, p->Nnegions};
-    status = write_hdf5(1, &two, file_id, "/parameter/Nions", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, Nions);
+    //Nions
+    status = write_hdf5(1, &one, file_id, "/parameter/Nions", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
-
 
     //Lx Ly Lz
     soma_scalar_t lxyz[3] = { p->Lx, p->Ly, p->Lz };
@@ -1416,12 +1413,9 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     p->Ly = lxyz[1];
     p->Lz = lxyz[2];
  
-    // read Nposions Nnegions
-    soma_scalar_t Nions[2];
-    status = read_hdf5(file_id, "/parameter/Nions", H5T_SOMA_NATIVE_SCALAR, plist_id, Nions);
+    // read Nions
+    status = read_hdf5(file_id, "/parameter/Nions", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
-    p->Nposions = Nions[0];
-    p->Nnegions = Nions[1];
 
     // read Bjerrum
     status = read_hdf5(file_id, "/parameter/Bjerrum", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Bjerrum));

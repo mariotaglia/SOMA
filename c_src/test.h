@@ -25,9 +25,6 @@
 struct Phase;
 
 
-int check_electro(struct Phase *const p);
-/*! \brief Checks that the total number of positive and negative charges match
- */
 
 
 

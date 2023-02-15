@@ -468,3 +468,50 @@ void update_omega_fields_scmf1(const struct Phase *const p)
     self_omega_field(p);
     add_pair_omega_fields_scmf1(p);
 }
+
+
+
+void calc_ions(struct Phase *const p)
+{
+
+  int ix, iy, iz, cell;
+  soma_scalar_t sumrhoA = 0;                   // total number of A segments 
+  soma_scalar_t fixedcharge;
+
+  printf("nx, ny, nz, cell, %d, %d, %d \n", p->nx, p->ny, p->nz);
+
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+          for (iy = 0 ; iy < (int) p->ny ; iy++) {
+                          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          sumrhoA += p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
+     			  }
+                }
+          }
+
+  printf("calc_ions: Total number of A beads: %f \n ", sumrhoA);
+
+  fixedcharge = ((soma_scalar_t) sumrhoA)*p->Acharge;
+
+  printf("calc_ions: Total charge of A beads: %f \n ", fixedcharge);
+  printf("calc_ions: Total number of added salt ions: %f \n ", p->Nions);
+
+  p->Nposions = p->Nnegions = p->Nions;
+
+  if (fixedcharge > 0.0) { 
+      p->Nnegions += fixedcharge; 
+      }
+  else {
+      p->Nposions = -fixedcharge;
+  }
+
+  printf("calc_ions: Total number of +1 salt ions: %f \n ", p->Nposions);
+  printf("calc_ions: Total number of -1 salt ions: %f \n ", p->Nnegions);
+  soma_scalar_t Nionsdiff = p->Nposions-p->Nnegions;
+  soma_scalar_t  netcharge = Nionsdiff + sumrhoA*p->Acharge;
+  printf("check_electro: Net charge:  %f \n ", netcharge);
+
+}
+
+
+

@@ -333,8 +333,6 @@ int call_kinsol(const struct Phase *const p)
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
     printf("Electrostatic converged in %d iters, with norm %.3e \n", iter, norma*scale);
-    /*
-    
     /* Free memory */
 
     KINFree(&kmem);

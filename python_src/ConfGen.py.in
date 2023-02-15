@@ -1644,9 +1644,9 @@ class Configuration(SomaXML):
         string = string.strip()
 
         string = string.split()
-        assert len(string) == 2
-        tmp = numpy.zeros((2,),dtype=soma_type.get_soma_scalar_type())
-        for i in range(2):
+        assert len(string) == 1
+        tmp = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
+        for i in range(1):
             tmp[i] = float(string[i])
             assert tmp[i] >= 0.0
         return tmp
