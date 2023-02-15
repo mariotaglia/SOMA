@@ -485,7 +485,7 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 			  izm = (iz-1)%(p->nz);
                   	  cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-			  res[ix][iy][iz] = -rhoQ[ix][iy][iz]*constq;
+			  res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
 
 			  res[ix][iy][iz] += (phi[ixp][iy][iz]-2.*phi[ix][iy][iz]+phi[ixm][iy][iz])/(deltax*deltax);	  
 			  res[ix][iy][iz] += (phi[ix][iyp][iz]-2.*phi[ix][iy][iz]+phi[ix][iym][iz])/(deltay*deltay);	  
