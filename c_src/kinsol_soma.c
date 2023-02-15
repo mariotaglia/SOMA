@@ -182,7 +182,7 @@ int call_kinsol(const struct Phase *const p)
 
   fnormtol=FTOL; scsteptol=STOL;
 
-  linsolver = 3; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
+  linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* (Re-)Initialize user data */
     SetInitialProfiles(cc, sc, NEQ);
@@ -400,7 +400,12 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 	 	}
 	  }
 
-phi[p->nx][p->ny][p->nz] = 0.0; // choice of zero of electrostatic potential due to PBC
+phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
+
+//cell = cell_coordinate_to_index(p, p->nx-1, p->ny-1, p->nz-1);
+//printf("ccc %d, %f", cell, NV_Ith_S(cc,cell-1));
+///printf("cccc %d, %f", cell, NV_Ith_S(cc,cell));
+//exit(1);
 
 // Pos ion and neg ion
 
