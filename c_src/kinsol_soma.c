@@ -134,7 +134,8 @@ int call_kinsol(const struct Phase *const p)
   Phase *data;
 
   int NEQ; //<- Number of equations 
-  NEQ = (int) p->n_cells_local;
+  NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so phi(nx,ny,nz) can
+				       be fixed to zero (see notes) */
 
   fprintf(stdout, "call_kinsol: Number of cells: %lu \n ", p->n_cells_local);
   fprintf(stdout, "call_kinsol: Number of equations: %d \n ", NEQ);
@@ -349,10 +350,6 @@ int call_kinsol(const struct Phase *const p)
  *--------------------------------------------------------------------
  */
 
-/*
- * System function for predator-prey system
- */
-
 static int func(N_Vector cc, N_Vector fval, void *user_data)
 {
 //  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
@@ -363,7 +360,9 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   static int iter = 0;
   const struct Phase *const p = user_data;
 
-  int NEQ = (int) p->n_cells_local;  //<- Number of equations 
+  int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so phi(nx,ny,nz) can
+				       be fixed to zero (see notes) */
+
 
   soma_scalar_t  rhoA[p->nx][p->ny][p->nz]; // number of A segments in 3D lattice 
   soma_scalar_t  sumrhoA = 0;                   // total number of A segments 
@@ -378,7 +377,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
-  soma_scalar_t constq = 0; // constant for Poisson equation
+  soma_scalar_t constq = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
 
 
   iter++;	   
@@ -393,10 +392,12 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          phi[ix][iy][iz] = NV_Ith_S(cc,cell); 
+                          if (cell < NEQ) phi[ix][iy][iz] = NV_Ith_S(cc,cell); 
 		     }
 	 	}
 	  }
+
+phi[p->nx][p->ny][p->nz] = 0.0; // choice of zero of electrostatic potential due to PBC
 
 // Pos ion and neg ion
 
@@ -473,11 +474,12 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
                   	  cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 			  res[ix][iy][iz] = -rhoQ[ix][iy][iz]*constq;
-			  res[ix][iy][iz] += phi[ixp][iy][iz]-2.*phi[ix][iy][iz]+phi[ixm][iy][iz];	  
-			  res[ix][iy][iz] += phi[ix][iyp][iz]-2.*phi[ix][iy][iz]+phi[ix][iym][iz];	  
-			  res[ix][iy][iz] += phi[ix][iy][izp]-2.*phi[ix][iy][iz]+phi[ix][iy][izm];	  
+
+			  res[ix][iy][iz] += (phi[ixp][iy][iz]-2.*phi[ix][iy][iz]+phi[ixm][iy][iz])/(deltax*deltax);	  
+			  res[ix][iy][iz] += (phi[ix][iyp][iz]-2.*phi[ix][iy][iz]+phi[ix][iym][iz])/(deltay*deltay);	  
+			  res[ix][iy][iz] += (phi[ix][iy][izp]-2.*phi[ix][iy][iz]+phi[ix][iy][izm])/(deltaz*deltaz);	  
 		  
-			  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
+			  if (cell < NEQ) NV_Ith_S(fval,cell) = -res[ix][iy][iz];
 	                  
 		     }
 	 	}
