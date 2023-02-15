@@ -36,6 +36,8 @@ int check_electro(struct Phase *const p)
 
   int ix, iy, iz, cell;
   soma_scalar_t  sumrhoA = 0;                   // total number of A segments 
+  soma_scalar_t const maxerror = 1e-6;          // maximum deviation from global neutrality
+ 
 
   printf("nx, ny, nz, cell, %d, %d, %d \n", p->nx, p->ny, p->nz);
 
@@ -57,7 +59,7 @@ int check_electro(struct Phase *const p)
   soma_scalar_t  netcharge = Nionsdiff + sumrhoA*p->Acharge;
   printf("check_electro: Net charge:  %f \n ", netcharge);
 
-  if (netcharge != 0) {
+  if (fabs(netcharge) > maxerror) {
      return(-2);
      }  
 
