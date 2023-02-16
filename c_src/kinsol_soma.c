@@ -282,10 +282,14 @@ int call_kinsol(const struct Phase *const p)
     /* Save solution */
     
     // Save profile, need to implement in a function   
-          
+    // Store solution in umbrella field --- until a better implementation : )
+
+
     for (i = 0 ; i < NEQ ; i++) {
 	ccx[i] = NV_Ith_S(cc,i); 
+	p->umbrella_field[i] = ccx[i];
     }
+    p->umbrella_field[p->n_cells_local] = 0.0;
     flagsolved = 0;
 
     /* Free memory */
