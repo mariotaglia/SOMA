@@ -48,12 +48,14 @@ static int PrecSolveBD(N_Vector cc, N_Vector cscale,
 /* Private Helper Functions */
 
 static Phase *AllocUserData(void);
-static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct Phase *const p);
+static void SetInitialProfiles(N_Vector cc);
+static realtype SetScale(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 soma_scalar_t scale;
 int iter = 0;
 soma_scalar_t norma;  // sum of residuals
+
  
  /*
  *--------------------------------------------------------------------
@@ -63,11 +65,15 @@ soma_scalar_t norma;  // sum of residuals
 
 int call_kinsol(const struct Phase *const p)
 {
- int globalstrategy, linsolver;
+  static realtype *ccx; // last solution
+
+  int i;
+  int globalstrategy, linsolver;
   realtype const fnormtol=1.e-7, scsteptol=1.e-13; // tolerances
   N_Vector cc, sc, constraints;
-  static N_Vector ccx; // last solution
   static int flagsolved = 1; // turn to 0 after first solution 
+  static realtype scale; 
+
   int flag, maxl, maxlrst;
   void *kmem;
   SUNLinearSolver LS;
@@ -108,7 +114,6 @@ int call_kinsol(const struct Phase *const p)
   sc = N_VNew_Serial(NEQ, sunctx);
   if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
 
-
 /* Template for using constrainst, not in use 
  constraints = N_VNew_Serial(NEQ, sunctx);
  if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
@@ -117,17 +122,23 @@ int call_kinsol(const struct Phase *const p)
   linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* (Re-)Initialize user data */
- 
-
-    printf("flagsolved, %d \n", flagsolved);
 
     if (flagsolved) {
-	   SetInitialProfiles(cc, sc, NEQ, p);
+	   SetInitialProfiles(cc);
+	   // Allocate ccx to store solution at the ned
+	   ccx = (realtype*)malloc(NEQ*sizeof(realtype));
+	   if (ccx == NULL) return(1);
     } 
     else {
-	   cc = ccx;
-    }       	   
-    printf("flagsolved, %d, %f \n", flagsolved, NV_Ith_S(ccx,0));
+	  // Recover profile, need to implement in a function   
+            for (i = 0 ; i < NEQ ; i++) {
+		   NV_Ith_S(cc,i) = ccx[i]; 
+            }
+    }
+
+    /* Set scale vector */
+    if (flagsolved) scale = SetScale(p);
+    N_VConst(scale, sc);
 
     /* Call KINCreate/KINInit to initialize KINSOL:
        A pointer to KINSOL problem memory is returned and stored in kmem. */
@@ -268,8 +279,12 @@ int call_kinsol(const struct Phase *const p)
 
 
     /* Save solution */
-
-    ccx = cc;
+    
+    // Save profile, need to implement in a function   
+          
+    for (i = 0 ; i < NEQ ; i++) {
+	ccx[i] = NV_Ith_S(cc,i); 
+    }
     flagsolved = 0;
 
     /* Free memory */
@@ -502,17 +517,16 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
  * Set initial conditions in cc
  */
 
-static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct Phase *const p)
+static realtype SetScale(const struct Phase *const p)
 { 
-   int i, ix, iy, iz;
+   int ix, iy, iz;
    int cell; 
    soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
    soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
    soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
    soma_scalar_t constq = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
    soma_scalar_t  sumrhoA = 0;                   // total number of A segments
-
-   printf("flagsolved!!!!!");
+   
    for (ix = 0 ; ix < (int) p->nx ; ix++) {
           for (iy = 0 ; iy < (int) p->ny ; iy++) {
                           for (iz = 0 ; iz < (int)  p->nz ; iz++) {
@@ -524,15 +538,16 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct P
 
 
    scale = 1./constq/sumrhoA*((soma_scalar_t) p->n_cells_local);
-
-
-// Initial guess for electrostatic potential is phi = 0 everywhere
-
-for (i = 0 ; i < NEQ ; i++) {
-   NV_Ith_S(cc,i) = 0.0; // Initial Guess
-   NV_Ith_S(sc,i) = scale;   }
+   return(scale);
+   }   
+ 
+static void SetInitialProfiles(N_Vector cc)
+{ 
+   printf("Set initial guess for electrostatics \n");
+   N_VConst(0.0, cc);  
 }
-   
+ 
+
    /*static void SetInitialProfiles(N_Vector cc, N_Vector sc)
 {
   int i, jx, jy;
