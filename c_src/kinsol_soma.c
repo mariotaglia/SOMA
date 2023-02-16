@@ -18,41 +18,9 @@
 
 #include "kinsol_soma.h" 
 
-
-/* helpful macros */
-
-#ifndef MAX
-#define MAX(A, B) ((A) > (B) ? (A) : (B))
-#endif
-
 /* Problem Constants */
 
-#define NUM_SPECIES     6  /* must equal 2*(number of prey or predators)
-                              number of prey = number of predators       */
-
 #define PI       RCONST(3.1415926535898)   /* pi */
-
-#define MX          5              /* MX = number of x mesh points */
-#define MY          5              /* MY = number of y mesh points */
-#define NSMX        (NUM_SPECIES * MX)
-// #define NEQ         (NSMX * MY)    /* number of equations in the system */
-#define AA          RCONST(1.0)    /* value of coefficient AA in above eqns */
-#define EE          RCONST(10000.) /* value of coefficient EE in above eqns */
-#define GG          RCONST(0.5e-6) /* value of coefficient GG in above eqns */
-#define BB          RCONST(1.0)    /* value of coefficient BB in above eqns */
-#define DPREY       RCONST(1.0)    /* value of coefficient dprey above */
-#define DPRED       RCONST(0.5)    /* value of coefficient dpred above */
-#define ALPHA       RCONST(1.0)    /* value of coefficient alpha above */
-#define AX          RCONST(1.0)    /* total range of x variable */
-#define AY          RCONST(1.0)    /* total range of y variable */
-#define FTOL        RCONST(1.e-7)  /* ftol tolerance */
-#define STOL        RCONST(1.e-13) /* stol tolerance */
-#define THOUSAND    RCONST(1000.0) /* one thousand */
-#define ZERO        RCONST(0.)     /* 0. */
-#define ONE         RCONST(1.0)    /* 1. */
-#define TWO         RCONST(2.0)    /* 2. */
-#define PREYIN      RCONST(1.0)    /* initial guess for prey concentrations. */
-#define PREDIN      RCONST(30000.0)/* initial guess for predator concs.      */
 
 /* Linear Solver Loop Constants */
 
@@ -61,33 +29,12 @@
 #define USE_SPTFQMR 2
 #define USE_SPFGMR  3
 
-/* User-defined vector access macro: IJ_Vptr */
-
-/* IJ_Vptr is defined in order to translate from the underlying 3D structure
-   of the dependent variable vector to the 1D storage scheme for an N-vector.
-   IJ_Vptr(vv,i,j) returns a pointer to the location in vv corresponding to
-   indices is = 0, jx = i, jy = j.    */
-
-#define IJ_Vptr(vv,i,j)   (&NV_Ith_S(vv, i*NUM_SPECIES + j*NSMX))
-
-/* Type : UserData
-   contains preconditioner blocks, pivot arrays, and problem constants 
-
-typedef struct {
-  realtype **P[MX][MY];
-  sunindextype *pivot[MX][MY];
-  realtype **acoef, *bcoef;
-  N_Vector rates;
-  realtype *cox, *coy;
-  realtype ax, ay, dx, dy;
-  realtype uround, sqruround;
-  int mx, my, ns, np;
-} *UserData;  */
-
 /* Functions Called by the KINSOL Solver */
 
 static int func(N_Vector cc, N_Vector fval, void *user_data);
 
+
+/* Templateis for preconditioner, currently not in use */
 /*static int PrecSetupBD(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        void *user_data);
@@ -96,33 +43,17 @@ static int PrecSolveBD(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        N_Vector vv, void *user_data);
 */
+
+
 /* Private Helper Functions */
 
 static Phase *AllocUserData(void);
-/*static void InitUserData(UserData data);
-static void FreeUserData(UserData data); */
+static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct Phase *const p);
+static int check_flag(void *flagvalue, const char *funcname, int opt);
 
- static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct Phase *const p);
-/* static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
-                        realtype fnormtol, realtype scsteptol,
-			int linsolver);
-*/
-// static void PrintOutput(N_Vector cc);
-// static void PrintFinalStats(void *kmem, int linsolver);
-
-/*
-static void WebRate(realtype xx, realtype yy, realtype *cxy, realtype *ratesxy,
-                    void *user_data);
-*/
-// static realtype DotProd(int size, realtype *x1, realtype *x2);
- static int check_flag(void *flagvalue, const char *funcname, int opt);
-
-
-
- soma_scalar_t scale;
- int iter = 0;
- soma_scalar_t norma;  // sum of residuals
-
+soma_scalar_t scale;
+int iter = 0;
+soma_scalar_t norma;  // sum of residuals
  
  /*
  *--------------------------------------------------------------------
@@ -132,20 +63,22 @@ static void WebRate(realtype xx, realtype yy, realtype *cxy, realtype *ratesxy,
 
 int call_kinsol(const struct Phase *const p)
 {
-  int globalstrategy, linsolver;
-  realtype fnormtol, scsteptol;
+ int globalstrategy, linsolver;
+  realtype const fnormtol=1.e-7, scsteptol=1.e-13; // tolerances
   N_Vector cc, sc, constraints;
+  static N_Vector ccx; // last solution
+  static int flagsolved = 1; // turn to 0 after first solution 
   int flag, maxl, maxlrst;
   void *kmem;
   SUNLinearSolver LS;
   Phase *data;
-
 
   int NEQ; //<- Number of equations 
   NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so phi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
   iter = 0; // number of iterations
+
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -176,21 +109,25 @@ int call_kinsol(const struct Phase *const p)
   if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
 
 
-/* CHECK WHAT NEXT LINE DOES OJO 
-  data->rates = N_VNew_Serial(NEQ, sunctx);
-  if (check_flag((void *)data->rates, "N_VNew_Serial", 0)) return(1);
-*/
-
-// constraints = N_VNew_Serial(NEQ, sunctx);
-//  if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
-//  N_VConst(ZERO, constraints);
-
-  fnormtol=FTOL; scsteptol=STOL;
+/* Template for using constrainst, not in use 
+ constraints = N_VNew_Serial(NEQ, sunctx);
+ if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
+ N_VConst(0, constraints); */
 
   linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* (Re-)Initialize user data */
-    SetInitialProfiles(cc, sc, NEQ, p);
+ 
+
+    printf("flagsolved, %d \n", flagsolved);
+
+    if (flagsolved) {
+	   SetInitialProfiles(cc, sc, NEQ, p);
+    } 
+    else {
+	   cc = ccx;
+    }       	   
+    printf("flagsolved, %d, %f \n", flagsolved, NV_Ith_S(ccx,0));
 
     /* Call KINCreate/KINInit to initialize KINSOL:
        A pointer to KINSOL problem memory is returned and stored in kmem. */
@@ -313,17 +250,12 @@ int call_kinsol(const struct Phase *const p)
 
     }
 
-    /* Set preconditioner functions */
+    /* Set preconditioner functions, not in use*/
 /*    flag = KINSetPreconditioner(kmem, PrecSetupBD, PrecSolveBD);
     if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 */
     
-    /* Print out the problem size, solution parameters, initial guess. */
-    /*PrintHeader(globalstrategy, maxl, maxlrst, fnormtol, scsteptol, linsolver);*/
-    
-
-
-    /* Call KINSol and print output concentration profile */
+    /* Call KINSol */
 
     flag = KINSol(kmem,           /* KINSol memory block */
 		  cc,             /* initial guess on input; solution vector */
@@ -333,6 +265,13 @@ int call_kinsol(const struct Phase *const p)
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
     printf("Electrostatic converged in %d iters, with norm %.3e \n", iter, norma*scale);
+
+
+    /* Save solution */
+
+    ccx = cc;
+    flagsolved = 0;
+
     /* Free memory */
 
     KINFree(&kmem);
@@ -573,6 +512,7 @@ static void SetInitialProfiles(N_Vector cc, N_Vector sc, int NEQ, const struct P
    soma_scalar_t constq = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
    soma_scalar_t  sumrhoA = 0;                   // total number of A segments
 
+   printf("flagsolved!!!!!");
    for (ix = 0 ; ix < (int) p->nx ; ix++) {
           for (iy = 0 ; iy < (int) p->ny ; iy++) {
                           for (iz = 0 ; iz < (int)  p->nz ; iz++) {
