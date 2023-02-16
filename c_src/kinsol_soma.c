@@ -54,7 +54,7 @@ static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 int iter = 0;
 soma_scalar_t norma;  // sum of residuals
-
+realtype fnorm;
  
  /*
  *--------------------------------------------------------------------
@@ -68,7 +68,7 @@ int call_kinsol(const struct Phase *const p)
 
   int i;
   int globalstrategy, linsolver;
-  realtype const fnormtol=1.e-7, scsteptol=1.e-13; // tolerances
+  realtype const fnormtol=1.e-6, scsteptol=1.e-6; // tolerances
   N_Vector cc, sc, constraints;
   static int flagsolved = 1; // turn to 0 after first solution 
   static realtype scale; 
@@ -274,7 +274,9 @@ int call_kinsol(const struct Phase *const p)
 		  sc);            /* scaling vector for function values fval */
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
-//    printf("Electrostatic converged in %d iters, with norm %.3e \n", iter, norma*scale);
+    flag = KINGetFuncNorm(kmem, &fnorm);
+
+    printf("Electrostatic converged in %d iters, with norm %.3e %.3e \n", iter, fnorm, norma*scale);
 
 
     /* Save solution */
@@ -438,13 +440,14 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 		  
 			  if (cell < NEQ) { 
 				  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
-				  norma += fabs(-res[ix][iy][iz]);
+				  norma += pow(res[ix][iy][iz],2);
 //				  printf("func: cell, res %d %f \n", cell, rhoA[ix][iy][iz]);
 			  }     
 		     }
 	 	}
 	  }
 
+norma = sqrt(norma);  
 //  printf("func: sumrhoA: %f \n ", sumrhoA);
 //  printf("func: sumrhoQ: %f \n ", sumrhoQ);
 //  printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
