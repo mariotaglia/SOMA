@@ -312,11 +312,8 @@ void update_omega_fields(const struct Phase *const p)
     else                        //Quick exit, because the property has already been calculated for the time step.
         return;
 
-    fprintf(stdout, "Exit, will insert kinsol here \n");
+    // Update electric potential
     call_kinsol(p);
-    call_kinsol(p);
-    exit(1);
-
 
     switch (p->hamiltonian)
         {

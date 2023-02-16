@@ -52,7 +52,6 @@ static void SetInitialProfiles(N_Vector cc);
 static realtype SetScale(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
-soma_scalar_t scale;
 int iter = 0;
 soma_scalar_t norma;  // sum of residuals
 
@@ -275,7 +274,7 @@ int call_kinsol(const struct Phase *const p)
 		  sc);            /* scaling vector for function values fval */
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
-    printf("Electrostatic converged in %d iters, with norm %.3e \n", iter, norma*scale);
+//    printf("Electrostatic converged in %d iters, with norm %.3e \n", iter, norma*scale);
 
 
     /* Save solution */
@@ -521,6 +520,7 @@ static realtype SetScale(const struct Phase *const p)
 { 
    int ix, iy, iz;
    int cell; 
+   realtype scale;
    soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
    soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
    soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
