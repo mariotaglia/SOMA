@@ -79,7 +79,7 @@ int call_kinsol(const struct Phase *const p)
   Phase *data;
 
   int NEQ; //<- Number of equations 
-  NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so phi(nx,ny,nz) can
+  NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
   iter = 0; // number of iterations
@@ -326,7 +326,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   int ixp ,ixm, iyp, iym, izp, izm;
   const struct Phase *const p = user_data;
 
-  int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so phi(nx,ny,nz) can
+  int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
 
@@ -339,7 +339,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  rhoposion[p->nx][p->ny][p->nz]; // number of positive ions in 3D lattice
   soma_scalar_t  rhonegion[p->nx][p->ny][p->nz]; // number of negative ions in 3D lattice
   soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
-  soma_scalar_t  phi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
+  soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
@@ -347,28 +347,28 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
   iter++;	   
 
-// phi from kinsol's input
+// psi from kinsol's input
 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          if (cell < NEQ) phi[ix][iy][iz] = NV_Ith_S(cc,cell); 
+                          if (cell < NEQ) psi[ix][iy][iz] = NV_Ith_S(cc,cell); 
 		     }
 	 	}
 	  }
 
-phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
+psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
 
 // Pos ion and neg ion
 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhoposion[ix][iy][iz] = exp(-phi[ix][iy][iz]);
+                          rhoposion[ix][iy][iz] = exp(-psi[ix][iy][iz]);
 			  sumposions += rhoposion[ix][iy][iz]; 
 
-			  rhonegion[ix][iy][iz] = exp(phi[ix][iy][iz]);
+			  rhonegion[ix][iy][iz] = exp(psi[ix][iy][iz]);
 			  sumnegions += rhonegion[ix][iy][iz]; 
 
 		     }
@@ -434,9 +434,9 @@ phi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 
 			  res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
 
-			  res[ix][iy][iz] += (phi[ixp][iy][iz]-2.*phi[ix][iy][iz]+phi[ixm][iy][iz])/(deltax*deltax);	  
-			  res[ix][iy][iz] += (phi[ix][iyp][iz]-2.*phi[ix][iy][iz]+phi[ix][iym][iz])/(deltay*deltay);	  
-			  res[ix][iy][iz] += (phi[ix][iy][izp]-2.*phi[ix][iy][iz]+phi[ix][iy][izm])/(deltaz*deltaz);	  
+			  res[ix][iy][iz] += (psi[ixp][iy][iz]-2.*psi[ix][iy][iz]+psi[ixm][iy][iz])/(deltax*deltax);	  
+			  res[ix][iy][iz] += (psi[ix][iyp][iz]-2.*psi[ix][iy][iz]+psi[ix][iym][iz])/(deltay*deltay);	  
+			  res[ix][iy][iz] += (psi[ix][iy][izp]-2.*psi[ix][iy][iz]+psi[ix][iy][izm])/(deltaz*deltaz);	  
 		  
 			  if (cell < NEQ) { 
 				  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
