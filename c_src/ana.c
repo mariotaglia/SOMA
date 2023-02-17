@@ -1006,8 +1006,9 @@ int analytics(struct Phase *const p)
         }
 
     //umbrella_field
+    
     if (p->ana_info.delta_mc_umbrella_field != 0 && p->time % p->ana_info.delta_mc_umbrella_field == 0)
-        {
+        {   
             if (p->info_MPI.sim_size == 1)
                 {
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
@@ -1015,6 +1016,7 @@ int analytics(struct Phase *const p)
             extent_density_field(p, p->umbrella_field, "/umbrella_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;
+	    printf("Save umbrella \n");	
         }
 
     // Dynamical Structure Factor.
