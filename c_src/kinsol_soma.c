@@ -279,7 +279,8 @@ int call_kinsol(const struct Phase *const p)
 
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
-    if (flag==0) {  // converged
+//        printf("flag %d \n", flag);
+        if ((flag == 0)||(flag == 1)||(flag == 2)) {  // converged
         KINGetFuncNorm(kmem, &fnorm);
         printf("Electrostatic converged in %d iters, with norm %.3e %.3e \n", iter, fnorm, norma*scale);
         /* Save solution */
