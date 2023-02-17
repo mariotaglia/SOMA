@@ -136,7 +136,7 @@ int call_kinsol(const struct Phase *const p)
 	  // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
 		   NV_Ith_S(cc,i) = ccx[i]; 
-                   fnormtol = 1e-4;   
+                   fnormtol = 1e-5;   
 	           scsteptol = 1e-13; 
             }
     }
@@ -289,11 +289,18 @@ int call_kinsol(const struct Phase *const p)
         /* Save solution */
         // Save profile, need to implement in a function   
         // Store solution in umbrella field --- until a better implementation : )
+        int avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
-        	ccx[i] = NV_Ith_S(cc,i); 
+        	ccx[i] = NV_Ith_S(cc,i);
+                avpsi += ccx[i]; 
         	p->umbrella_field[i] = ccx[i];
         }
         p->umbrella_field[p->n_cells_local] = 0.0;
+        avpsi = avpsi / ((soma_scalar_t) p->n_cells_local); 
+
+        for (i = 0 ; i < (int) p->n_cells_local ; i++) {
+        	p->umbrella_field[i] -= avpsi;
+        }
         flagsolved = 0;
     }
     else {  // did not converged
