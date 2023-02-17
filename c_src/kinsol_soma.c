@@ -68,7 +68,7 @@ int call_kinsol(const struct Phase *const p)
 
   int i;
   int globalstrategy, linsolver;
-  realtype const fnormtol=1.e-6, scsteptol=1.e-6; // tolerances
+  realtype fnormtol, scsteptol; // tolerances
   N_Vector cc, sc, constraints;
   static int flagsolved = 1; // turn to 0 after first solution 
   static realtype scale; 
@@ -127,11 +127,15 @@ int call_kinsol(const struct Phase *const p)
 	   // Allocate ccx to store solution at the ned
 	   ccx = (realtype*)malloc(NEQ*sizeof(realtype));
 	   if (ccx == NULL) return(1);
+           fnormtol = 1e-7;   // use small norm for first calculation or restart
+	   scsteptol = 1e-7; 
     } 
     else {
 	  // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
 		   NV_Ith_S(cc,i) = ccx[i]; 
+                   fnormtol = 1e-5;   
+	           scsteptol = 1e-5; 
             }
     }
 
@@ -272,25 +276,26 @@ int call_kinsol(const struct Phase *const p)
 		  globalstrategy, /* global strategy choice */
 		  sc,             /* scaling vector, for the variable cc */
 		  sc);            /* scaling vector for function values fval */
+
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
-    flag = KINGetFuncNorm(kmem, &fnorm);
-
-    printf("Electrostatic converged in %d iters, with norm %.3e %.3e \n", iter, fnorm, norma*scale);
-
-
-    /* Save solution */
-    
-    // Save profile, need to implement in a function   
-    // Store solution in umbrella field --- until a better implementation : )
-
-
-    for (i = 0 ; i < NEQ ; i++) {
-	ccx[i] = NV_Ith_S(cc,i); 
-	p->umbrella_field[i] = ccx[i];
+    if (flag==0) {  // converged
+        KINGetFuncNorm(kmem, &fnorm);
+        printf("Electrostatic converged in %d iters, with norm %.3e %.3e \n", iter, fnorm, norma*scale);
+        /* Save solution */
+        // Save profile, need to implement in a function   
+        // Store solution in umbrella field --- until a better implementation : )
+        for (i = 0 ; i < NEQ ; i++) {
+        	ccx[i] = NV_Ith_S(cc,i); 
+        	p->umbrella_field[i] = ccx[i];
+        }
+        p->umbrella_field[p->n_cells_local] = 0.0;
+        flagsolved = 0;
     }
-    p->umbrella_field[p->n_cells_local] = 0.0;
-    flagsolved = 0;
+    else {  // did not converged
+        printf("Kinsol failed to converge last step, restart initial guess \n");
+        flagsolved = 1;
+    }
 
     /* Free memory */
 
