@@ -136,7 +136,7 @@ int call_kinsol(const struct Phase *const p)
 	  // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
 		   NV_Ith_S(cc,i) = ccx[i]; 
-                   fnormtol = 1e-5;   
+                   fnormtol = 1e-2;   
 	           scsteptol = 1e-13; 
             }
     }

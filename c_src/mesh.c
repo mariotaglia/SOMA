@@ -388,6 +388,14 @@ void self_omega_field(const struct Phase *const p)
                                 -inverse_refbeads * p->k_umbrella[T_types] *
                                 (p->umbrella_field[cell + T_types * p->n_cells_local] -
                                  p->field_scaling_type[T_types] * p->fields_unified[cell + T_types * p->n_cells_local]); */
+
+                        if (T_types == 0) { // only for A segments for now...
+
+                            p->omega_field_unified[cell + T_types * p->n_cells_local] +=
+                                p->umbrella_field[cell + T_types * p->n_cells_local] * p->Acharge;
+                         }
+
+
                         }
                 }
         }
