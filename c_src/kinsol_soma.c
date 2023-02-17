@@ -128,14 +128,14 @@ int call_kinsol(const struct Phase *const p)
 	   ccx = (realtype*)malloc(NEQ*sizeof(realtype));
 	   if (ccx == NULL) return(1);
            fnormtol = 1e-7;   // use small norm for first calculation or restart
-	   scsteptol = 1e-7; 
+	   scsteptol = 1e-13; 
     } 
     else {
 	  // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
 		   NV_Ith_S(cc,i) = ccx[i]; 
-                   fnormtol = 1e-5;   
-	           scsteptol = 1e-5; 
+                   fnormtol = 1e-4;   
+	           scsteptol = 1e-13; 
             }
     }
 
@@ -199,7 +199,7 @@ int call_kinsol(const struct Phase *const p)
 //      printf(" \n| SPBCGS |\n");
 //      printf(" --------\n");
 
-      /* Create SUNLinSol_SPBCGS object with right preconditioning and the
+      /* Create SUNLinSol_SPBCGS object and the
          maximum Krylov dimension maxl */
       maxl = 1000;
       LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
@@ -279,10 +279,11 @@ int call_kinsol(const struct Phase *const p)
 
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
-//        printf("flag %d \n", flag);
-        if ((flag == 0)||(flag == 1)||(flag == 2)) {  // converged
         KINGetFuncNorm(kmem, &fnorm);
-        printf("Electrostatic converged in %d iters, with norm %.3e %.3e \n", iter, fnorm, norma*scale);
+//        printf("flag %d \n", flag);
+        if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
+							       //
+        printf("Electrostatic converged with flag %d in %d iters, with norm %.3e \n", flag, iter, fnorm);
         /* Save solution */
         // Save profile, need to implement in a function   
         // Store solution in umbrella field --- until a better implementation : )
@@ -448,6 +449,8 @@ psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 			  res[ix][iy][iz] += (psi[ix][iyp][iz]-2.*psi[ix][iy][iz]+psi[ix][iym][iz])/(deltay*deltay);	  
 			  res[ix][iy][iz] += (psi[ix][iy][izp]-2.*psi[ix][iy][iz]+psi[ix][iy][izm])/(deltaz*deltaz);	  
 		  
+			  res[ix][iy][iz] = -res[ix][iy][iz];
+                          
 			  if (cell < NEQ) { 
 				  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
 				  norma += pow(res[ix][iy][iz],2);
