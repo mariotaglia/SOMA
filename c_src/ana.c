@@ -1016,7 +1016,6 @@ int analytics(struct Phase *const p)
             extent_density_field(p, p->umbrella_field, "/umbrella_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;
-	    printf("Save umbrella \n");	
         }
 
     // Dynamical Structure Factor.
