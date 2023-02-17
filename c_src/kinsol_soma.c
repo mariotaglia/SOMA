@@ -29,6 +29,8 @@
 #define USE_SPTFQMR 2
 #define USE_SPFGMR  3
 
+int mod(int a, int b); // modulus
+
 /* Functions Called by the KINSOL Solver */
 
 static int func(N_Vector cc, N_Vector fval, void *user_data);
@@ -429,18 +431,18 @@ psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
-	  ixp = (ix+1) % (p->nx);
-          ixm = (ix-1) % (p->nx);
+	  ixp = mod((ix+1),p->nx);
+          ixm = mod((ix-1),p->nx);
  
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 
-		  iyp = (iy+1)%(p->ny);
-		  iym = (iy-1)%(p->ny);
+		  iyp = mod((iy+1),p->ny);
+		  iym = mod((iy-1),p->ny);
 
 	          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
         
-			  izp = (iz+1)%(p->nz);
-			  izm = (iz-1)%(p->nz);
+			  izp = mod((iz+1),p->nz);
+			  izm = mod((iz-1),p->nz);
                   	  cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 			  res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
@@ -801,3 +803,10 @@ static Phase *AllocUserData(void)
   return(data);
 }
 
+
+
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}
