@@ -340,7 +340,7 @@ def main(argv):
             if isumbr==True:
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
             string += get_umbrella_field(nxyz,arguments,types,type)
-        if isumbr==True:
+        if iselec==True:
             string += add_electric_field(time,timesteps,nxyz,arguments)
         string += get_electric_field(nxyz,arguments)
     
