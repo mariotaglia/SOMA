@@ -49,6 +49,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     p->ana_info.delta_mc_non_bonded_energy = 0;
     p->ana_info.delta_mc_bonded_energy = 0;
     p->ana_info.delta_mc_umbrella_field = 0;
+    p->ana_info.delta_mc_electric_field = 0;
     p->ana_info.delta_mc_dynamical_structure = 0;
     p->ana_info.delta_mc_static_structure = 0;
     p->ana_info.delta_mc_mono_type_fraction = 0;

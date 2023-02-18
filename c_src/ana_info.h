@@ -38,6 +38,7 @@ typedef struct Ana_Info {
     unsigned int delta_mc_non_bonded_energy;    //!< \# mc_sweeps between the ana of the non-bonded energy
     unsigned int delta_mc_bonded_energy;        //!< \# mc_sweeps between the ana of the bonded energy
     unsigned int delta_mc_umbrella_field;       //!<\#mc_sweeps between the ana of the string fields
+    unsigned int delta_mc_electric_field;       //!<\#mc_sweeps between the ana of the string fields
     unsigned int delta_mc_dynamical_structure;  //!<\#mc_sweeps between the ana of the dynamical structure factor
     unsigned int delta_mc_static_structure;     //!<\#mc_sweeps between the ana of the static structure factor
     soma_scalar_t *q_static;    //!< absolute value of wave vector to be calculated for static structure factor
