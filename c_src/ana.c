@@ -1020,7 +1020,9 @@ int analytics(struct Phase *const p)
         }
 
     //electric_field
+   
     
+    printf("EXTENT ELECTRIC \n %d", p->ana_info.delta_mc_electric_field);
     if (p->ana_info.delta_mc_electric_field != 0 && p->time % p->ana_info.delta_mc_electric_field == 0)
         {   
             if (p->info_MPI.sim_size == 1)
