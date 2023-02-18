@@ -138,6 +138,9 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     delta_mc[12] = &(p->ana_info.delta_mc_static_structure);
     names[13] = "/monomer_type_fraction";
     delta_mc[13] = &(p->ana_info.delta_mc_mono_type_fraction);
+    names[14] = "/electric_field";
+    delta_mc[14] = &(p->ana_info.delta_mc_umbrella_field);
+
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for (unsigned int i = 0; i < SOMA_NUM_OBS; i++)
         {
@@ -386,6 +389,183 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             p->ana_info.delta_mc_density_field = tmd_delta_mc;
         }
 
+/// Electric field
+
+    if (p->ana_info.delta_mc_electric_field > 0)
+        {
+            //Exception safety:
+            const unsigned int tmd_delta_mc_string = p->ana_info.delta_mc_electric_field;
+            p->ana_info.delta_mc_electric_field = 0;
+#pragma acc update device(p->ana_info)
+            const hsize_t three = 3;
+            const hsize_t one = 1;
+
+            hid_t dataset = H5Dopen2(p->ana_info.file_id, "/electric_field", H5P_DEFAULT);
+            status = dataset;
+            HDF5_ERROR_CHECK(status);
+
+            //First try to open the attributes. If they exist check for
+            //consistence with the current data. If they do not exist
+            //create them and fill with data.
+
+            htri_t nxyz_exists = H5Aexists(dataset, "nxyz");
+            if (nxyz_exists > 0)
+                {               //Nxyz attr exists
+                    hid_t nxyz_attr = H5Aopen_by_name(dataset, "/electric_field", "nxyz", H5P_DEFAULT, H5P_DEFAULT);
+                    unsigned int nxyz_tmp[3];
+                    status = H5Aread(nxyz_attr, H5T_NATIVE_UINT, nxyz_tmp);
+                    HDF5_ERROR_CHECK(status);
+                    if ((nxyz_tmp[0] != p->nx) || (nxyz_tmp[1] != p->ny) || (nxyz_tmp[2] != p->nz))
+                        {
+                            fprintf(stderr, "WARNING: existing nxyz attr of electric_field"
+                                    "does not match with the system data. No density field output possible. (Try with fresh ana.h5 file.).\n");
+                            return 0;
+                        }
+                    status = H5Aclose(nxyz_attr);
+                    HDF5_ERROR_CHECK(status);
+                }
+            else
+                {               //Create the nxyz attr
+                    hid_t nxyz_dataspace = H5Screate_simple(1, &three, NULL);
+                    unsigned int nxyz_tmp[3] = { p->nx, p->ny, p->nz };
+                    hid_t nxyz_attr =
+                        H5Acreate2(dataset, "nxyz", H5T_STD_U32LE, nxyz_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+                    HDF5_ERROR_CHECK(nxyz_attr);
+                    status = H5Awrite(nxyz_attr, H5T_NATIVE_UINT, nxyz_tmp);
+                    HDF5_ERROR_CHECK(status);
+                    status = H5Aclose(nxyz_attr);
+                    HDF5_ERROR_CHECK(status);
+                }
+
+            htri_t ntypes_exists = H5Aexists(dataset, "ntypes");
+            if (ntypes_exists > 0)
+                {               //n_types attr exists
+                    hid_t ntypes_attr = H5Aopen_by_name(dataset, "/electric_field", "ntypes", H5P_DEFAULT, H5P_DEFAULT);
+                    unsigned int ntypes_tmp;
+                    status = H5Aread(ntypes_attr, H5T_NATIVE_UINT, &ntypes_tmp);
+                    HDF5_ERROR_CHECK(status);
+                    if ((ntypes_tmp != 1))
+                        {
+                            fprintf(stderr, "Error: ntypes for electric field should be 1."
+                                    "Currently, it does not match with the system data. No density field output possible. \n");
+                            return 0;
+                        }
+                    status = H5Aclose(ntypes_attr);
+                    HDF5_ERROR_CHECK(status);
+                }
+            else
+                {               //Create the nxyz attr
+                    hid_t ntypes_dataspace = H5Screate_simple(1, &one, NULL);
+                    hid_t ntypes_attr = H5Acreate2(dataset, "ntypes", H5T_STD_U32LE,
+                                                   ntypes_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+                    HDF5_ERROR_CHECK(ntypes_attr);
+                    status = H5Awrite(ntypes_attr, H5T_NATIVE_UINT, &one);
+                    HDF5_ERROR_CHECK(status);
+                    status = H5Aclose(ntypes_attr);
+                    HDF5_ERROR_CHECK(status);
+                }
+
+            htri_t lxyz_exists = H5Aexists(dataset, "lxyz");
+            if (lxyz_exists > 0)
+                {               //lxyz attr exists
+                    hid_t lxyz_attr = H5Aopen_by_name(dataset, "/electric_field", "lxyz", H5P_DEFAULT, H5P_DEFAULT);
+                    soma_scalar_t lxyz_tmp[3];
+                    status = H5Aread(lxyz_attr, H5T_SOMA_NATIVE_SCALAR, lxyz_tmp);
+                    HDF5_ERROR_CHECK(status);
+                    if ((lxyz_tmp[0] != p->Lx) || (lxyz_tmp[1] != p->Ly) || (lxyz_tmp[2] != p->Lz))
+                        {
+                            fprintf(stderr, "WARNING: existing lxyz attr of electric_field"
+                                    "does not match with the system data. No dumping possible.\n");
+                            return 0;
+                        }
+                    status = H5Aclose(lxyz_attr);
+                    HDF5_ERROR_CHECK(status);
+                }
+            else
+                {               //Create the lxyz attr
+                    hid_t lxyz_dataspace = H5Screate_simple(1, &three, NULL);
+                    soma_scalar_t lxyz_tmp[3] = { p->Lx, p->Ly, p->Lz };
+                    hid_t lxyz_attr =
+                        H5Acreate2(dataset, "lxyz", H5T_SOMA_FILE_SCALAR, lxyz_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+                    HDF5_ERROR_CHECK(lxyz_attr);
+                    status = H5Awrite(lxyz_attr, H5T_SOMA_NATIVE_SCALAR, lxyz_tmp);
+                    HDF5_ERROR_CHECK(status);
+                    status = H5Aclose(lxyz_attr);
+                    HDF5_ERROR_CHECK(status);
+                }
+
+// type scale attribute not need for electric field
+	    
+/*            htri_t typescale_exists = H5Aexists(dataset, "typescale");
+            if (typescale_exists > 0)
+                {               //type_scale attr exists
+                    hid_t typescale_attr =
+                        H5Aopen_by_name(dataset, "/electric_field", "typescale", H5P_DEFAULT, H5P_DEFAULT);
+                    soma_scalar_t *const typescale_tmp =
+                        (soma_scalar_t * const)malloc(sizeof(soma_scalar_t));
+                    if (typescale_tmp == NULL)
+                        {
+                            fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
+                            return -2;
+                        }
+                    status = H5Aread(typescale_attr, H5T_SOMA_NATIVE_SCALAR, typescale_tmp);
+                    HDF5_ERROR_CHECK(status);
+                    bool match = true;
+                    for (unsigned int i = 0; i < p->n_types; i++)
+                        if (typescale_tmp[i] != p->field_scaling_type[i])
+                            match = false;
+                    if (!match)
+                        {
+                            fprintf(stderr, "Error: existing typescale attr of electric_field"
+                                    "does not match with the system data. No electric_field output possible. (Try with fresh ana.h5 file.)\n");
+                            return 0;
+                        }
+                    status = H5Aclose(typescale_attr);
+                    HDF5_ERROR_CHECK(status);
+                    free(typescale_tmp);
+                }
+            else
+                {               //Create the typescale attr
+                    const hsize_t ntypes = 1;
+                    hid_t typescale_dataspace = H5Screate_simple(1, &ntypes, NULL);
+                    hid_t typescale_attr = H5Acreate2(dataset, "typescale", H5T_SOMA_FILE_SCALAR,
+                                                      typescale_dataspace, H5P_DEFAULT, H5P_DEFAULT);
+                    HDF5_ERROR_CHECK(typescale_attr);
+                    status = H5Awrite(typescale_attr, H5T_SOMA_NATIVE_SCALAR, p->field_scaling_type);
+                    HDF5_ERROR_CHECK(status);
+                    status = H5Aclose(typescale_attr);
+                    HDF5_ERROR_CHECK(status);
+                }
+*/
+
+            // Check and set the dimesion of the density field.
+            hid_t d_space = H5Dget_space(dataset);
+            HDF5_ERROR_CHECK(d_space);
+            const unsigned int ndims = H5Sget_simple_extent_ndims(d_space);
+            if (ndims != 5)
+                {
+                    fprintf(stderr, "ERROR: %s:%d not the correct number of dimensions for a electric_field.\n",
+                            __FILE__, __LINE__);
+                    return -3;
+                }
+            hsize_t dims[5];    //ndims
+            status = H5Sget_simple_extent_dims(d_space, dims, NULL);
+            HDF5_ERROR_CHECK(status);
+            if (dims[1] != 1 || dims[2] != p->nx || dims[3] != p->ny || dims[4] != p->nz)
+                {
+                    fprintf(stderr,
+                            "Error: The electric_field dimensions do not match! No electric_field output possible. \n");
+                    return 0;
+                }
+            status = H5Dclose(dataset);
+            HDF5_ERROR_CHECK(status);
+
+            //If everything was successful set the ana period again.
+            p->ana_info.delta_mc_electric_field = tmd_delta_mc_string;
+        }
+
+    /// umbrella field
+
     if (p->ana_info.delta_mc_umbrella_field > 0)
         {
             //Exception safety:
@@ -555,6 +735,8 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
             //If everything was successful set the ana period again.
             p->ana_info.delta_mc_umbrella_field = tmd_delta_mc_string;
         }
+
+/// end umbrella
 
     p->end_mono = NULL;
     if (p->ana_info.delta_mc_Re > 0)

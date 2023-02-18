@@ -118,6 +118,8 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
         fprintf(ftmp, "\tExternal field present: yes\n");
     if (p->umbrella_field)
         fprintf(ftmp, "\tUmbrella field present: yes\n");
+    if (p->electric_field)
+        fprintf(ftmp, "\tElectric field present: yes\n");
     if (p->pc.deltaMC)
         fprintf(ftmp, "\tPolytype conversion active %d,\t", p->pc.deltaMC);
     if (p->pc.rate)

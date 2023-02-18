@@ -64,12 +64,15 @@ def get_content_dict(arguments):
     content_dict = dict()
     content_dict["/density_field"] = False
     content_dict["/umbrella_field"] = False
+    content_dict["/electric_field"] = False
     if arguments['a']:
         with h5py.File(arguments['a'],"r") as f:
             if "/density_field" in f:
                 content_dict["/density_field"] = True
             if "/umbrella_field" in f:
-                content_dict["density_field"] = True
+                content_dict["umbrella_field"] = True
+             if "/electric_field" in f:
+                content_dict["electric_field"] = True
     return content_dict
 
 def get_topo_geo(nxyz):
@@ -215,6 +218,46 @@ def add_umbrella_field_conf(nxyz,n_types,t,h5file):
     string += "</Attribute>\n"
     return string
 
+def add_electric_field(timestep,timesteps,nxyz,arguments):
+    string =""
+    if arguments['a']:
+        h5file = arguments['a']
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Elec"+"\">\n"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += "<!-- The source is 5 dimensions -->\n"
+        string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
+        string += "<DataItem Dimensions=\"3 5\" Format=\"XML\">\n"
+        string += str(timestep)+" "+"0"+" 0 0 0\n"
+        string += "1 1 1 1 1\n"
+        string += "1 1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+        string += "</DataItem>\n"
+        string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+"1"+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += h5file+":/electric_field\n"
+        string +="</DataItem>\n"
+        string +="</DataItem>\n"
+        string += "</Attribute>\n"
+    return string
+
+def add_electric_field_conf(nxyz,t,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Elec"+str(t)+"\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += "<!-- The source is 4 dimensions -->\n"
+    string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1,1 Count=1,*,*,* -->\n"
+    string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
+    string += str(t)+" 0 0 0\n"
+    string += "1 1 1 1\n"
+    string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+    string += "</DataItem>\n"
+    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Endian=\"Little\" Dimensions=\""+"1"+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/electric_field\n"
+    string +="</DataItem>\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
 
 def get_area51(nxyz,arguments):
     string = ""
@@ -241,6 +284,15 @@ def get_umbrella_field(nxyz,arguments,types,t):
          f.close()
      return string
 
+def get_electric_field(nxyz,arguments):
+     string = ""
+     if arguments['c']:
+         f = h5py.File(arguments['c'],"r")
+         if '/electric_field' in f:
+             string += add_electric_field_conf(nxyz,t,arguments["c"])
+         f.close()
+     return string
+
 def main(argv):
     parser = argparse.ArgumentParser(description="Script to create paraview input files.")
     parser.add_argument('-a',metavar='ana_file',type=str,required=False,help="Input ana file.")
@@ -262,12 +314,21 @@ def main(argv):
     timesteps = get_timesteps(arguments)
     string += "<Grid GridType=\"Collection\" CollectionType=\"Temporal\">\n"
     isumbr=False
+    iselec=False
+
     if arguments['a']:
         with h5py.File(arguments['a'],"r") as f:
             if '/umbrella_field' in f:
                 Dataset=f['umbrella_field']
                 if Dataset.size>0:
                     isumbr=True
+
+    if arguments['a']:
+        with h5py.File(arguments['a'],"r") as f:
+            if '/electric_field' in f:
+                Dataset=f['electric_field']
+                if Dataset.size>0:
+                    iselec=True
 
     for time in range(timesteps):
         string += open_grid(time)
@@ -279,6 +340,10 @@ def main(argv):
             if isumbr==True:
                 string += add_umbrella_field(time,type,timesteps,types,nxyz,arguments)
             string += get_umbrella_field(nxyz,arguments,types,type)
+        if isumbr==True:
+            string += add_electric_field(time,timesteps,nxyz,arguments)
+        string += get_electric_field(nxyz,arguments)
+    
         string += get_area51(nxyz,arguments)
         string += "</Grid>\n"
     string += "</Grid>\n"

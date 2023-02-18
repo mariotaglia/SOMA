@@ -129,7 +129,7 @@ int write_area51_hdf5(const struct Phase *const p, const hid_t file_id, const hi
     return 0;
 }
 
-/*! Helper function to write scalar fields (external_field, umbrella_field) to the config HDF5 file.
+/*! Helper function to write scalar fields (external_field, umbrella_field, electric_field) to the config HDF5 file.
     \private
     \param p Phase describing the system
     \param file_id File identifier of open HDF5 file.
@@ -702,6 +702,17 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
                 }
         }
 
+    if (p->electric_field)
+        {
+            hid_t status = write_field_hdf5(p, file_id, plist_id, p->electric_field, "/electric_field");
+            if (status != 0)
+                {
+                    fprintf(stderr, "ERROR: %s:%d cannot write electric_field.\n", __FILE__, __LINE__);
+                    return status;
+                }
+        }
+
+
     status = write_poly_conversion_hdf5(p, file_id, plist_id);
     if (status != 0)
         {
@@ -853,7 +864,7 @@ int read_area51_hdf5(struct Phase *const p, const hid_t file_id, const hid_t pli
     return 0;
 }
 
-/*! Helper function to read scalar fields (external_field, umbrella_field) from the config HDF5 file.
+/*! Helper function to read scalar fields (external_field, umbrella_field, electric_field) from the config HDF5 file.
     \private
     \param p Phase describing the system
     \param file_id File identifier of open HDF5 file.
@@ -1491,6 +1502,7 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     p->area51 = NULL;
     p->external_field_unified = NULL;
     p->umbrella_field = NULL;
+    p->electric_field = NULL;
 
     if (H5Lexists(file_id, "/area51", H5P_DEFAULT) > 0)
         {
@@ -1599,6 +1611,17 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                     return status;
                 }
         }
+
+    if (H5Lexists(file_id, "/electric_field", H5P_DEFAULT) > 0)
+        {
+            hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->electric_field), "/electric_field");
+            if (status != 0)
+                {
+                    fprintf(stderr, "ERROR: failed to read electric_field %s:%d.\n", __FILE__, __LINE__);
+                    return status;
+                }
+        }
+
 
     status = read_poly_conversion_hdf5(p, file_id, plist_id);
     if (status != 0)

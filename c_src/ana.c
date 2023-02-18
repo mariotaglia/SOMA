@@ -1003,6 +1003,11 @@ int analytics(struct Phase *const p)
             extent_density_field(p, p->fields_unified, "/density_field", H5T_NATIVE_UINT16, MPI_UINT16_T,
                                  sizeof(uint16_t));
             written = true;
+
+            //electric field
+	    extent_density_field(p, p->electric_field, "/electric_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
+                                 sizeof(soma_scalar_t));
+            written = true;
         }
 
     //umbrella_field
@@ -1017,6 +1022,20 @@ int analytics(struct Phase *const p)
                                  sizeof(soma_scalar_t));
             written = true;
         }
+
+    //electric_field
+    
+    if (p->ana_info.delta_mc_electric_field != 0 && p->time % p->ana_info.delta_mc_electric_field == 0)
+        {   
+            if (p->info_MPI.sim_size == 1)
+                {
+#pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
+                }
+            extent_density_field(p, p->electric_field, "/electric_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
+                                 sizeof(soma_scalar_t));
+            written = true;
+        }
+
 
     // Dynamical Structure Factor.
     if (p->ana_info.delta_mc_dynamical_structure != 0 && p->time % p->ana_info.delta_mc_dynamical_structure == 0)

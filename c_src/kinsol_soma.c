@@ -288,18 +288,17 @@ int call_kinsol(const struct Phase *const p)
         printf("Electrostatic converged with flag %d in %d iters, with norm %.3e \n", flag, iter, fnorm);
         /* Save solution */
         // Save profile, need to implement in a function   
-        // Store solution in umbrella field --- until a better implementation : )
         int avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
         	ccx[i] = NV_Ith_S(cc,i);
                 avpsi += ccx[i]; 
-        	p->umbrella_field[i] = ccx[i];
+        	p->electric_field[i] = ccx[i];
         }
-        p->umbrella_field[p->n_cells_local] = 0.0;
+        p->electric_field[p->n_cells_local] = 0.0;
         avpsi = avpsi / ((soma_scalar_t) p->n_cells_local); 
 
         for (i = 0 ; i < (int) p->n_cells_local ; i++) {
-        	p->umbrella_field[i] -= avpsi;
+        	p->electric_field[i] -= avpsi;
         }
         flagsolved = 0;
     }

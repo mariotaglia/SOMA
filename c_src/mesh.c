@@ -329,7 +329,7 @@ void update_omega_fields(const struct Phase *const p)
 }
 
 //! Set the self interaction terms to the omega fields. This
-//! includes the intercation with the external field and the umbrella
+//! includes the intercation with the external, umbrella and electric fields
 //! potential.
 //! \private Helper function
 //! \param p Phase of the system to init the omega fields
@@ -383,20 +383,20 @@ void self_omega_field(const struct Phase *const p)
                     //umbrella part
                     if (p->umbrella_field != NULL)
                         {
-// OJO DESACTIVO UMBRELLA DESCOMETAR				
-/*                            p->omega_field_unified[cell + T_types * p->n_cells_local] +=
+                                p->omega_field_unified[cell + T_types * p->n_cells_local] +=
                                 -inverse_refbeads * p->k_umbrella[T_types] *
                                 (p->umbrella_field[cell + T_types * p->n_cells_local] -
-                                 p->field_scaling_type[T_types] * p->fields_unified[cell + T_types * p->n_cells_local]); */
+                                 p->field_scaling_type[T_types] * p->fields_unified[cell + T_types * p->n_cells_local]); 
 
+                        }
+		    // electric field
+		    
                         if (T_types == 0) { // only for A segments for now...
 
                             p->omega_field_unified[cell + T_types * p->n_cells_local] +=
-                                p->umbrella_field[cell + T_types * p->n_cells_local] * p->Acharge;
+                                p->electric_field[cell] * p->Acharge;
                          }
 
-
-                        }
                 }
         }
 }

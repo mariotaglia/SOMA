@@ -98,6 +98,7 @@ typedef struct Phase {
     //soma_scalar_t ** external_field; /*!< \brief external fields that act on the polymers, one field per type */
     soma_scalar_t *external_field_unified;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
     soma_scalar_t *umbrella_field;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
+    soma_scalar_t *electric_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of electric_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
 
     soma_scalar_t *A;           /*!< \brief stores the diffusion constants for each type */

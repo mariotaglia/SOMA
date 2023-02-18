@@ -1054,7 +1054,7 @@ class SomaXML:
     knownTags += ["poly_arch"]
     knownTags += ["reference_Nbeads"]
     knownTags += ["lxyz"]
-    knownTags += ["Bjerrum"]
+    knownTags += ["Bjerrum"] 
     knownTags += ["Acharge"]
     knownTags += ["nxyz"]
     knownTags += ["Nions"]
@@ -1062,6 +1062,7 @@ class SomaXML:
     knownTags += ["area51"]
     knownTags += ["external_field"]
     knownTags += ["umbrella_field"]
+    knownTags += ["electric_field"]
     knownTags += ["analysis"]
     knownTags += ["cm_a"]
     knownTags += ["k_umbrella"]
@@ -1194,6 +1195,9 @@ class Configuration(SomaXML):
         ##String Field array
         self.umbrella_field = self.create_umbrella_field()
 
+        ##String Field array
+        self.electric_field = self.create_electric_field()
+
         #Density weights
         self.density_weights = self.create_density_weights()
 
@@ -1283,10 +1287,17 @@ class Configuration(SomaXML):
                                 assert (tmp_size == array.size),"Error prefactors must have the same length."
 
                     f["external_field"].attrs["serie_length"] = tmp_size
+
+
             if "/umbrella_field" in f:
                 del f["/umbrella_field"]
             if type(self.umbrella_field) is numpy.ndarray:
                 f.create_dataset("/umbrella_field",data=self.umbrella_field)
+
+            if "/electric_field" in f:
+                del f["/electric_field"]
+            if type(self.electric_field) is numpy.ndarray:
+                f.create_dataset("/electric_field",data=self.electric_field)
 
             if "polyconversion" in f:
                 del f["polyconversion"]
@@ -2111,6 +2122,13 @@ class Configuration(SomaXML):
 
         return tmp
 
+    ## Create the electric field and initialize to zero.
+    ## @return string field array
+    def create_electric_field(self):
+
+        tmp = False
+        tmp = numpy.zeros((self.n_types[0],self.nxyz[0],self.nxyz[1],self.nxyz[2]),dtype=soma_type.get_soma_scalar_type())
+        return tmp
 
     ## Create the hamiltonian hdf5 field
     ## @return hamiltonian data array
