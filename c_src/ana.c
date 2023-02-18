@@ -744,6 +744,8 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
 
+    printf("NOMBRE : %s \n", name);
+
     if (p->info_MPI.sim_rank == 0)
         {
             //Gather all data on the sim_rank_0
@@ -1007,7 +1009,7 @@ int analytics(struct Phase *const p)
         }
 
     //umbrella_field
-    
+    printf("MC %d %d \n", p->ana_info.delta_mc_umbrella_field, p->ana_info.delta_mc_electric_field); 
     if (p->ana_info.delta_mc_umbrella_field != 0 && p->time % p->ana_info.delta_mc_umbrella_field == 0)
         {   
             if (p->info_MPI.sim_size == 1)
@@ -1021,13 +1023,11 @@ int analytics(struct Phase *const p)
 
     //electric_field
    
-    
-    printf("EXTENT ELECTRIC \n %d", p->ana_info.delta_mc_electric_field);
     if (p->ana_info.delta_mc_electric_field != 0 && p->time % p->ana_info.delta_mc_electric_field == 0)
         {   
             if (p->info_MPI.sim_size == 1)
                 {
-#pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
+#pragma acc update self(p->fields_unified[0:p->n_cells])
                 }
             extent_density_field(p, p->electric_field, "/electric_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));

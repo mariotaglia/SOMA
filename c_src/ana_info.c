@@ -140,7 +140,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     names[13] = "/monomer_type_fraction";
     delta_mc[13] = &(p->ana_info.delta_mc_mono_type_fraction);
     names[14] = "/electric_field";
-    delta_mc[14] = &(p->ana_info.delta_mc_umbrella_field);
+    delta_mc[14] = &(p->ana_info.delta_mc_electric_field);
 
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for (unsigned int i = 0; i < SOMA_NUM_OBS; i++)
