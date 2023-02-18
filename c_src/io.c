@@ -562,12 +562,30 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
         write_hdf5(2, xn_dim, file_id, "/parameter/xn", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, p->xn);
     HDF5_ERROR_CHECK2(status, "/parameter/xn");
 
-    //A data
     hsize_t n_types_size = p->n_types;
+    //A data
     status =
         write_hdf5(1, &n_types_size, file_id, "/parameter/A", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
                    p->A);
     HDF5_ERROR_CHECK2(status, "/parameter/A");
+
+    //charges data
+    status =
+        write_hdf5(1, &n_types_size, file_id, "/parameter/charges", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
+                   p->charges);
+    HDF5_ERROR_CHECK2(status, "/parameter/charges");
+
+    //bls data
+    status =
+        write_hdf5(1, &n_types_size, file_id, "/parameter/bls", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
+                   p->bls);
+    HDF5_ERROR_CHECK2(status, "/parameter/bls");
+
+    //born_a data
+    status =
+        write_hdf5(1, &n_types_size, file_id, "/parameter/born_a", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
+                   p->born_a);
+    HDF5_ERROR_CHECK2(status, "/parameter/born_a");
 
     //Convert field_scaling_type to density weight for writing
     for (unsigned int i = 0; i < p->n_types; i++)
@@ -1374,6 +1392,42 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     // read p->A
     status = read_hdf5(file_id, "/parameter/A", H5T_SOMA_NATIVE_SCALAR, plist_id, p->A);
     HDF5_ERROR_CHECK2(status, "/parameter/A");
+
+    //charge array for the particles
+    p->charges = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
+    if (p->charges == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    // read p->charges
+    status = read_hdf5(file_id, "/parameter/charges", H5T_SOMA_NATIVE_SCALAR, plist_id, p->charges);
+    HDF5_ERROR_CHECK2(status, "/parameter/charges");
+
+    //bls array for the particles
+    p->bls = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
+    if (p->bls == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    // read p->bls
+    status = read_hdf5(file_id, "/parameter/bls", H5T_SOMA_NATIVE_SCALAR, plist_id, p->bls);
+    HDF5_ERROR_CHECK2(status, "/parameter/bls");
+
+    //born_a array for the particles
+    p->born_a = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
+    if (p->born_a == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    // read p->born_a
+    status = read_hdf5(file_id, "/parameter/born_a", H5T_SOMA_NATIVE_SCALAR, plist_id, p->born_a);
+    HDF5_ERROR_CHECK2(status, "/parameter/born_a");
 
     // read p->time
     status = read_hdf5(file_id, "/parameter/time", H5T_NATIVE_UINT, plist_id, &(p->time));

@@ -102,6 +102,9 @@ typedef struct Phase {
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
 
     soma_scalar_t *A;           /*!< \brief stores the diffusion constants for each type */
+    soma_scalar_t *charges;     /*!< \brief stores the charges for each type */
+    soma_scalar_t *bls;         /*!< \brief stores the Bjerrum lengths for each type */
+    soma_scalar_t *born_a;      /*!< \brief stores the Born radius for each type */
     soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
     //!  Mobility of the center of mass for all polymer types.
     //!  Length is p->n_poly_types. NULL if no mobility wanted.
