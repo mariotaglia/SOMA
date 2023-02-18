@@ -1049,6 +1049,9 @@ class SomaXML:
     knownTags += ["interactions"]
     knownTags += ["equivalent_particle_types"]
     knownTags += ["A"]
+    knownTags += ["charges"]
+    knownTags += ["born_a"]
+    knownTags += ["bls"]
     knownTags += ["time"]
     knownTags += ["harmonicvariablescale"]
     knownTags += ["poly_arch"]
@@ -1111,6 +1114,18 @@ class Configuration(SomaXML):
         ## mobility A array of the Configuration
         self.A = self.create_A()
         assert type(self.A) is numpy.ndarray
+
+        ## charge array of the Configuration
+        self.charges = self.create_charges()
+        assert type(self.charges) is numpy.ndarray
+
+        ## born_a array of the Configuration
+        self.born_a = self.create_born_a()
+        assert type(self.born_a) is numpy.ndarray
+
+        ## bls array of the Configuration
+        self.bls = self.create_bls()
+        assert type(self.bls) is numpy.ndarray
 
         ## umbrella constant for the configuration
         self.k_umbrella = self.create_k_umbrella()
@@ -1228,6 +1243,9 @@ class Configuration(SomaXML):
             create_list = []
             create_list += [("/version",numpy.asarray([1],dtype=numpy.uint))]
             create_list += [("/parameter/A",self.A)]
+            create_list += [("/parameter/charges",self.charges)]
+            create_list += [("/parameter/born_a",self.born_a)]
+            create_list += [("/parameter/bls",self.bls)]
             create_list += [("/parameter/lxyz",self.lxyz)]
             create_list += [("/parameter/Bjerrum",self.Bjerrum)]
             create_list += [("/parameter/Acharge",self.Acharge)]
@@ -1439,6 +1457,69 @@ class Configuration(SomaXML):
             a_array[i] = a_dict[i]
 
         return a_array
+
+    ## Create the "charges" array
+    ## @return charges array
+    def create_charges(self):
+        ch_array = numpy.zeros((self.types.n_types_equiv,),dtype=soma_type.get_soma_scalar_type())
+        ch_str = ""
+        for ch in self.root.iter('charges'):
+            ch_str += ch.text
+        ch_dict = {}
+        for line in ch_str.split("\n"):
+            line = line.strip()
+            if len(line) > 0 and line[0] != '#':
+                line = line.split()
+                assert (len(line) == 2),("charges entry should be composed by 'type_name value', but got "+str(line))
+                ch_dict[self.types.get_equiv(line[0])] = float(line[1])
+        assert(len(ch_dict) == self.types.n_types_equiv),"Each particle type needs a charge."
+        assert(len(ch_dict) <= self.types.n_types_equiv),"You can not specify more charges, than types available."
+        for i in ch_dict.keys():
+            ch_array[i] = ch_dict[i]
+        return ch_array
+
+    ## Create the "born_a" array
+    ## @return born_a array
+    def create_born_a(self):
+        ba_array = numpy.zeros((self.types.n_types_equiv,),dtype=soma_type.get_soma_scalar_type())
+        ba_str = ""
+        for ba in self.root.iter('born_a'):
+            ba_str += ba.text
+        ba_dict = {}
+        for line in ba_str.split("\n"):
+            line = line.strip()
+            if len(line) > 0 and line[0] != '#':
+                line = line.split()
+                assert (len(line) == 2),("born_a entry should be composed by 'type_name value', but got "+str(line))
+                ba_dict[self.types.get_equiv(line[0])] = float(line[1])
+        assert(len(ba_dict) == self.types.n_types_equiv),"Each particle type needs a born_a."
+        assert(len(ba_dict) <= self.types.n_types_equiv),"You can not specify more born_a, than types available."
+        for i in ba_dict.keys():
+            ba_array[i] = ba_dict[i]
+        return ba_array
+
+    ## Create the "bls" array
+    ## @return bls array
+    def create_bls(self):
+        bl_array = numpy.zeros((self.types.n_types_equiv,),dtype=soma_type.get_soma_scalar_type())
+        bl_str = ""
+        for bl in self.root.iter('bls'):
+            bl_str += bl.text
+        bl_dict = {}
+        for line in bl_str.split("\n"):
+            line = line.strip()
+            if len(line) > 0 and line[0] != '#':
+                line = line.split()
+                assert (len(line) == 2),("bls entry should be composed by 'type_name value', but got "+str(line))
+                bl_dict[self.types.get_equiv(line[0])] = float(line[1])
+        assert(len(bl_dict) == self.types.n_types_equiv),"Each particle type needs a bls."
+        assert(len(bl_dict) <= self.types.n_types_equiv),"You can not specify more bls, than types available."
+        for i in bl_dict.keys():
+            bl_array[i] = bl_dict[i]
+        return bl_array
+
+
+
 
     ## Create the "k_umbrella" strength of the umbrella potential
     ## @return k_umbrella Array
