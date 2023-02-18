@@ -71,7 +71,7 @@ def get_content_dict(arguments):
                 content_dict["/density_field"] = True
             if "/umbrella_field" in f:
                 content_dict["umbrella_field"] = True
-             if "/electric_field" in f:
+            if "/electric_field" in f:
                 content_dict["electric_field"] = True
     return content_dict
 

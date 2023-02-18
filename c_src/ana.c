@@ -1004,10 +1004,6 @@ int analytics(struct Phase *const p)
                                  sizeof(uint16_t));
             written = true;
 
-            //electric field
-	    extent_density_field(p, p->electric_field, "/electric_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
-                                 sizeof(soma_scalar_t));
-            written = true;
         }
 
     //umbrella_field
