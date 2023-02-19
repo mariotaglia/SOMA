@@ -503,7 +503,7 @@ void calc_ions(struct Phase *const p)
       p->Nnegions += sumrhoQ; 
       }
   else {
-      p->Nposions = -sumrhoQ;
+      p->Nposions += -sumrhoQ;
   }
 
   printf("calc_ions: Total number of +1 salt ions: %f \n ", p->Nposions);
@@ -511,6 +511,7 @@ void calc_ions(struct Phase *const p)
   soma_scalar_t Nionsdiff = p->Nposions-p->Nnegions;
   soma_scalar_t  netcharge = Nionsdiff + sumrhoQ;
   printf("check_electro: Net charge:  %f \n ", netcharge);
+  assert(fabs(netcharge) < 1.0e-5);
 
 }
 
