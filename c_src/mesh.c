@@ -494,7 +494,7 @@ void calc_ions(struct Phase *const p)
           }
   }	  
 
-  printf("calc_ions: Total charge of A beads: %f \n ", sumrhoQ);
+  printf("calc_ions: Total charge of fixed beads: %f \n ", sumrhoQ);
   printf("calc_ions: Total number of added salt ions: %f \n ", p->Nions);
 
   p->Nposions = p->Nnegions = p->Nions;
