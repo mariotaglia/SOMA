@@ -13,7 +13,6 @@
 #include <sunlinsol/sunlinsol_spfgmr.h>  /* access to SPFGMR SUNLinearSolver     */
 #include <sundials/sundials_dense.h>     /* use generic dense solver in precond. */
 #include <sundials/sundials_types.h>     /* defs. of realtype, sunindextype      */
-
 #include "mesh.h"
 
 #include "kinsol_soma.h" 
@@ -341,16 +340,16 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 //  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
 //  int jx, jy, is, idyu, idyl, idxr, idxl;
 
-  int ix, iy, iz, cell;	
+#include <assert.h>
+
+  int ix, iy, iz, cell;
+  unsigned int type;	
   int ixp ,ixm, iyp, iym, izp, izm;
   const struct Phase *const p = user_data;
-
   int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
 
-  soma_scalar_t  rhoA[p->nx][p->ny][p->nz]; // number of A segments in 3D lattice 
-  soma_scalar_t  sumrhoA = 0;                   // total number of A segments 
   soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
   soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
   soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
@@ -406,30 +405,21 @@ psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 	 	}
 	  }
 
-// rhoA from unified fields 
+// rhoQ from unified fields 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhoQ[ix][iy][iz] = 0.0 ; 
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          rhoA[ix][iy][iz] = p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
-	                  sumrhoA += rhoA[ix][iy][iz];
+				  for (type = 0 ; type < p->n_types; type++) {
+                                       rhoQ[ix][iy][iz] += p->fields_unified[cell+p->n_cells_local*type]*p->charges[type];
+			   } 
 //                          printf("ix, iy, iz, cell, %d, %d, %d, %d, %f \n", ix, iy, iz, cell, rhoA[ix][iy][iz]);
-		     }
-	 	}
-	  }
-
-
-// rhoQ from all contributions 
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhoQ[ix][iy][iz] = rhoA[ix][iy][iz] * p->Acharge; 
                           rhoQ[ix][iy][iz] += rhoposion[ix][iy][iz]-rhonegion[ix][iy][iz]; 
 			  sumrhoQ += rhoQ[ix][iy][iz];	  
 		     }
 	 	}
 	  }
-
 
 /// Calculate residual from Poisson's equation
 
@@ -468,9 +458,10 @@ psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 	 	}
 	  }
 
-norma = sqrt(norma);  
-//  printf("func: sumrhoA: %f \n ", sumrhoA);
+  norma = sqrt(norma);  
 //  printf("func: sumrhoQ: %f \n ", sumrhoQ);
+  assert(fabs(sumrhoQ) < 1.0e-5);
+
 //  printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
