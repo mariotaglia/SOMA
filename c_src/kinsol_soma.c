@@ -378,32 +378,66 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
 psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
 
-// Pos ion and neg ion
 
+// Pos ion 
+if (p->Nposions > 0) {
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           rhoposion[ix][iy][iz] = exp(-psi[ix][iy][iz]);
 			  sumposions += rhoposion[ix][iy][iz]; 
-
-			  rhonegion[ix][iy][iz] = exp(psi[ix][iy][iz]);
-			  sumnegions += rhonegion[ix][iy][iz]; 
-
 		     }
 	 	}
 	  }
-
 // Normalize to match totalnumber
-
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           rhoposion[ix][iy][iz] = rhoposion[ix][iy][iz] * p->Nposions / sumposions; 
-                          rhonegion[ix][iy][iz] = rhonegion[ix][iy][iz] * p->Nnegions / sumnegions; 
-
 		     }
 	 	}
 	  }
+} else {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhoposion[ix][iy][iz] = 0.0;
+		     }
+	 	}
+	  }
+}
+
+
+
+// Neg ion 
+if (p->Nnegions > 0) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhonegion[ix][iy][iz] = exp(psi[ix][iy][iz]);
+			  sumnegions += rhonegion[ix][iy][iz]; 
+		     }
+	 	}
+	  }
+// Normalize to match totalnumber
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhonegion[ix][iy][iz] = rhonegion[ix][iy][iz] * p->Nnegions / sumnegions; 
+		     }
+	 	}
+	  }
+} else {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                          rhonegion[ix][iy][iz] = 0.0;
+		     }
+	 	}
+	  }
+}
+
+
 
 // rhoQ from unified fields 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
