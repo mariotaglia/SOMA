@@ -135,7 +135,7 @@ int call_kinsol(const struct Phase *const p)
 	  // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
 		   NV_Ith_S(cc,i) = ccx[i]; 
-                   fnormtol = 1e-2;   
+                   fnormtol = 1e-5;   
 	           scsteptol = 1e-13; 
             }
     }
@@ -284,10 +284,10 @@ int call_kinsol(const struct Phase *const p)
 //        printf("flag %d \n", flag);
         if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-        printf("Electrostatic converged with flag %d in %d iters, with norm %.3e \n", flag, iter, fnorm);
+        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
-        int avpsi = 0; //average psi
+        soma_scalar_t avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
         	ccx[i] = NV_Ith_S(cc,i);
                 avpsi += ccx[i]; 
