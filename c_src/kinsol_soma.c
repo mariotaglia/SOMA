@@ -284,7 +284,7 @@ int call_kinsol(const struct Phase *const p)
 //        printf("flag %d \n", flag);
         if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
@@ -293,11 +293,11 @@ int call_kinsol(const struct Phase *const p)
                 avpsi += ccx[i]; 
         	p->electric_field[i] = ccx[i];
         }
-        p->electric_field[p->n_cells_local] = 0.0;
+        p->electric_field[p->n_cells_local-1] = 0.0;
         avpsi = avpsi / ((soma_scalar_t) p->n_cells_local); 
 
         for (i = 0 ; i < (int) p->n_cells_local ; i++) {
-        	p->electric_field[i] -= avpsi;
+        	p->electric_field[i] += -avpsi;
         }
         flagsolved = 0;
     }
