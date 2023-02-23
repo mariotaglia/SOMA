@@ -312,15 +312,8 @@ void update_omega_fields(const struct Phase *const p)
     else                        //Quick exit, because the property has already been calculated for the time step.
         return;
 
-    // Update electric potential
-    //
-    if (p->efieldsolver == 0) 
-    	call_PB(p);
-    else if (p->efieldsolver == 1) 
-    	call_EN(p);
-    else if (p->efieldsolver == -1) 
-    	call_NO(p);
-    
+   
+    update_electric_field(p);
 
     switch (p->hamiltonian)
         {
@@ -522,4 +515,20 @@ void calc_ions(struct Phase *const p)
  
   assert(fabs(netcharge) < 1.0e-6);
 }
+
+
+
+
+void update_electric_field(const struct Phase *const p)
+{
+    // Update electric potential
+    //
+    if (p->efieldsolver == 0) 
+    	call_PB(p);
+    else if (p->efieldsolver == 1) 
+    	call_EN(p);
+    else if (p->efieldsolver == -1) 
+    	call_NO(p);
+}  
+
 

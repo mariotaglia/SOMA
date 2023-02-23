@@ -740,7 +740,7 @@ int extent_electric_field(const struct Phase *const p, void *const field_pointer
                          hid_t hdf5_type, const MPI_Datatype mpi_type, const size_t data_size)
 {
     const char *const name = field_name;
-    update_density_fields(p);
+    update_electric_field(p);
 
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
