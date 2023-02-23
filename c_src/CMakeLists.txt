@@ -35,6 +35,7 @@ set(soma_source
   monotype_conversion.c
   mobility.c
   kinsol_soma.c
+  donnan.c
   )
 
 configure_file(soma_config.h.in soma_config.h)
@@ -70,6 +71,7 @@ set(soma_header
   monotype_conversion.h
   mobility.h
   kinsol_soma.h
+  donnan.h
   )
 
 add_library(soma_lib ${soma_source})

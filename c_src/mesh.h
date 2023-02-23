@@ -217,14 +217,15 @@ void update_omega_fields_scmf1(const struct Phase *const p);
 
 
 
-int call_kinsol(const struct Phase *const p);
-//! Calls kinsol
-
-
-
 #endif                          //SOMA_MESH_H
 				//
 
+int call_kinsol(const struct Phase *const p);
+//! Calls kinsol
+
+int call_donnan(const struct Phase *const p);
+//! Calls donnan efield solver
+
+
 
 void calc_ions(struct Phase *const p);
-int call_donnan(const struct Phase *const p);
