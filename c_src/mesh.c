@@ -488,8 +488,6 @@ void calc_ions(struct Phase *const p)
   unsigned int type ;
   soma_scalar_t sumrhoQ = 0.0;                   // total number of A segments 
 
-  printf("nx, ny, nz, cell, %d, %d, %d \n", p->nx, p->ny, p->nz);
-
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
           for (iy = 0 ; iy < (int) p->ny ; iy++) {
                           for (iz = 0 ; iz < (int)  p->nz ; iz++) {
@@ -501,9 +499,6 @@ void calc_ions(struct Phase *const p)
           }
   }	  
 
-  fprintf(stdout, "calc_ions: Total charge of fixed beads: %f \n ", sumrhoQ);
-  fprintf(stdout, "calc_ions: Total number of added salt ions: %f \n ", p->Nions);
-
   p->Nposions = p->Nnegions = p->Nions;
 
   if (sumrhoQ > 0.0) { 
@@ -513,12 +508,18 @@ void calc_ions(struct Phase *const p)
       p->Nposions += -sumrhoQ;
   }
 
-  fprintf(stdout, "calc_ions: Total number of +1 salt ions: %f \n ", p->Nposions);
-  fprintf(stdout, "calc_ions: Total number of -1 salt ions: %f \n ", p->Nnegions);
   soma_scalar_t Nionsdiff = p->Nposions-p->Nnegions;
   soma_scalar_t  netcharge = Nionsdiff + sumrhoQ;
-  fprintf(stdout, "check_electro: Net charge:  %f \n ", netcharge);
-  assert(fabs(netcharge) < 1.0e-6);
 
+  if (p->info_MPI.sim_rank == 0) {
+    fprintf(stdout, "calc_ions: Total charge of fixed beads: %f \n ", sumrhoQ);
+    fprintf(stdout, "calc_ions: Total number of added salt ions: %f \n ", p->Nions);
+    fprintf(stdout, "calc_ions: Total number of +1 salt ions: %f \n ", p->Nposions);
+    fprintf(stdout, "calc_ions: Total number of -1 salt ions: %f \n ", p->Nnegions);
+    fprintf(stdout, "check_electro: Net charge:  %f \n ", netcharge);
+     fflush(stdout);
+  }
+ 
+  assert(fabs(netcharge) < 1.0e-6);
 }
 

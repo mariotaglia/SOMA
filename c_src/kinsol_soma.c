@@ -35,7 +35,8 @@ int mod(int a, int b); // modulus
 static int func(N_Vector cc, N_Vector fval, void *user_data);
 
 
-/* Templateis for preconditioner, currently not in use */
+/* Template for preconditioner, currently not in use */
+
 /*static int PrecSetupBD(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        void *user_data);
@@ -59,7 +60,7 @@ realtype fnorm;
  
  /*
  *--------------------------------------------------------------------
- * MAIN PROGRAM
+ * MAIN ROUTINE
  *--------------------------------------------------------------------
  */
 
@@ -124,6 +125,8 @@ int call_PB(const struct Phase *const p)
     /* (Re-)Initialize user data */
 
     if (flagsolved) {
+           if (p->info_MPI.sim_rank == 0) 
+              fprintf(stdout, "Set initial guess for electrostatics \n");
 	   SetInitialProfiles(cc);
 	   // Allocate ccx to store solution at the ned
 	   ccx = (realtype*)malloc(NEQ*sizeof(realtype));
@@ -302,7 +305,8 @@ int call_PB(const struct Phase *const p)
         flagsolved = 0;
     }
     else {  // did not converged
-        printf("Kinsol failed to converge last step, restart initial guess \n");
+        if (p->info_MPI.sim_rank == 0) 
+             fprintf(stdout, "Kinsol failed to converge last step, restart initial guess \n");
         flagsolved = 1;
     }
 
@@ -320,15 +324,6 @@ int call_PB(const struct Phase *const p)
   return(0);
 }
 
-
-
-/* Readability definitions used in other routines below */
-/*
-#define acoef  (data->acoef)
-#define bcoef  (data->bcoef)
-#define cox    (data->cox)
-#define coy    (data->coy)
-*/
 /*
  *--------------------------------------------------------------------
  * FUNCTIONS CALLED BY KINSOL
@@ -437,8 +432,6 @@ if (p->Nnegions > 0) {
 	  }
 }
 
-
-
 // rhoQ from unified fields 
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
@@ -507,60 +500,6 @@ if (p->Nnegions > 0) {
 }
   
 
-/*  data = (UserData)user_data;
-  delx = data->dx;
-  dely = data->dy; */
-
-
-
-  /* Loop over all mesh points, evaluating rate array at each point*/
-//  for (jy = 0; jy < MY; jy++) {
-
-//    yy = dely*jy;
-
-    /* Set lower/upper index shifts, special at boundaries. */
-/*    idyl = (jy != 0   ) ? NSMX : -NSMX;
-    idyu = (jy != MY-1) ? NSMX : -NSMX;
-
-    for (jx = 0; jx < MX; jx++) {
-
-      xx = delx*jx;
-*/
-      /* Set left/right index shifts, special at boundaries. */
-/*      idxl = (jx !=  0  ) ?  NUM_SPECIES : -NUM_SPECIES;
-      idxr = (jx != MX-1) ?  NUM_SPECIES : -NUM_SPECIES;
-
-      cxy = IJ_Vptr(cc,jx,jy);
-      rxy = IJ_Vptr(data->rates,jx,jy);
-      fxy = IJ_Vptr(fval,jx,jy);
-*/
-      /* Get species interaction rate array at (xx,yy) */
-/*      WebRate(xx, yy, cxy, rxy, user_data);
-
-      for(is = 0; is < NUM_SPECIES; is++) {
-*/
-        /* Differencing in x direction */
-/*        dcyli = *(cxy+is) - *(cxy - idyl + is) ;
-        dcyui = *(cxy + idyu + is) - *(cxy+is);
-*/
-        /* Differencing in y direction */
-/*        dcxli = *(cxy+is) - *(cxy - idxl + is);
-        dcxri = *(cxy + idxr +is) - *(cxy+is);
-*/
-        /* Compute the total rate value at (xx,yy) */
-/*        fxy[is] = (coy)[is] * (dcyui - dcyli) +
-          (cox)[is] * (dcxri - dcxli) + rxy[is];
-*/
-//      } /* end of is loop */
-
-//    } /* end of jx loop */
-
-//  } /* end of jy loop */
-
-
-
-//}
-
 /*
  * Set initial conditions in cc
  */
@@ -592,198 +531,9 @@ static realtype SetScale(const struct Phase *const p)
  
 static void SetInitialProfiles(N_Vector cc)
 { 
-   printf("Set initial guess for electrostatics \n");
-   N_VConst(0.0, cc);  
+  N_VConst(0.0, cc);  
 }
  
-
-   /*static void SetInitialProfiles(N_Vector cc, N_Vector sc)
-{
-  int i, jx, jy;
-  realtype *cloc, *sloc;
-  realtype  ctemp[NUM_SPECIES], stemp[NUM_SPECIES];
-
-  printf("ENTER SET INITIAL PROFILES \n");
-
-  for (i = 0; i < NUM_SPECIES/2; i++) {
-    ctemp[i] = PREYIN;
-    stemp[i] = ONE;
-  }
-  for (i = NUM_SPECIES/2; i < NUM_SPECIES; i++) {
-    ctemp[i] = PREDIN;
-    stemp[i] = RCONST(0.00001);
-  }
-
-  for (jy = 0; jy < MY; jy++) {
-    for (jx = 0; jx < MX; jx++) {
-      cloc = IJ_Vptr(cc,jx,jy);
-      sloc = IJ_Vptr(sc,jx,jy);
-      for (i = 0; i < NUM_SPECIES; i++) {
-        cloc[i] = ctemp[i];
-        sloc[i] = stemp[i];
-      }
-    }
-  }
-  for (i = 0 ; i <= NSMX * MY ; i++) {
-	  printf("Value %d ,  cc = %f \n", i, cc[i]); 
-	  printf("Value %d ,  cloc = %f \n", i, cloc[i]); 
-  }
-}
-*/
-/*
- * Print first lines of output (problem description)
- */
-/*
-static void PrintHeader(int globalstrategy, int maxl, int maxlrst,
-                        realtype fnormtol, realtype scsteptol,
-			int linsolver)
-{
-  printf("\nPredator-prey test problem --  KINSol (serial version)\n\n");
-  printf("Mesh dimensions = %d X %d\n", MX, MY);
-  printf("Number of species = %d\n", NUM_SPECIES);
-  printf("Total system size = %d\n\n", NEQ);
-  printf("Flag globalstrategy = %d (0 = None, 1 = Linesearch)\n",
-         globalstrategy);
-
-  switch(linsolver) {
-
-  case(USE_SPGMR):
-    printf("Linear solver is SPGMR with maxl = %d, maxlrst = %d\n",
-	   maxl, maxlrst);
-    break;
-
-  case(USE_SPBCGS):
-    printf("Linear solver is SPBCGS with maxl = %d\n", maxl);
-    break;
-
-  case(USE_SPTFQMR):
-    printf("Linear solver is SPTFQMR with maxl = %d\n", maxl);
-    break;
-
-  case(USE_SPFGMR):
-    printf("Linear solver is SPFGMR with maxl = %d, maxlrst = %d\n",
-	   maxl, maxlrst);
-    break;
-
-  }
-
-  printf("Preconditioning uses interaction-only block-diagonal matrix\n");
-  printf("Positivity constraints imposed on all components \n");
-#if defined(SUNDIALS_EXTENDED_PRECISION)
-  printf("Tolerance parameters:  fnormtol = %Lg   scsteptol = %Lg\n",
-         fnormtol, scsteptol);
-#elif defined(SUNDIALS_DOUBLE_PRECISION)
-  printf("Tolerance parameters:  fnormtol = %g   scsteptol = %g\n",
-         fnormtol, scsteptol);
-#else
-  printf("Tolerance parameters:  fnormtol = %g   scsteptol = %g\n",
-         fnormtol, scsteptol);
-#endif
-
-  printf("\nInitial profile of concentration\n");
-#if defined(SUNDIALS_EXTENDED_PRECISION)
-  printf("At all mesh points:  %Lg %Lg %Lg   %Lg %Lg %Lg\n",
-         PREYIN, PREYIN, PREYIN,
-         PREDIN, PREDIN, PREDIN);
-#elif defined(SUNDIALS_DOUBLE_PRECISION)
-  printf("At all mesh points:  %g %g %g   %g %g %g\n",
-         PREYIN, PREYIN, PREYIN,
-         PREDIN, PREDIN, PREDIN);
-#else
-  printf("At all mesh points:  %g %g %g   %g %g %g\n",
-         PREYIN, PREYIN, PREYIN,
-         PREDIN, PREDIN, PREDIN);
-#endif
-}
-*/
-/*
- * Print sampled values of current cc
- */
-/*
-static void PrintOutput(N_Vector cc)
-{
-  int is, jx, jy;
-  realtype *ct;
-
-  jy = 0; jx = 0;
-  ct = IJ_Vptr(cc,jx,jy);
-  printf("\nAt bottom left:");
-*/
-  /* Print out lines with up to 6 values per line */
-/*
-for (is = 0; is < NUM_SPECIES; is++){
-    if ((is%6)*6 == is) printf("\n");
-#if defined(SUNDIALS_EXTENDED_PRECISION)
-    printf(" %Lg",ct[is]);
-#elif defined(SUNDIALS_DOUBLE_PRECISION)
-    printf(" %g",ct[is]);
-#else
-    printf(" %g",ct[is]);
-#endif
-  }
-
-  jy = MY-1; jx = MX-1;
-  ct = IJ_Vptr(cc,jx,jy);
-  printf("\n\nAt top right:");
-*/
-  /* Print out lines with up to 6 values per line */
-/*  for (is = 0; is < NUM_SPECIES; is++) {
-    if ((is%6)*6 == is) printf("\n");
-#if defined(SUNDIALS_EXTENDED_PRECISION)
-    printf(" %Lg",ct[is]);
-#elif defined(SUNDIALS_DOUBLE_PRECISION)
-    printf(" %g",ct[is]);
-#else
-    printf(" %g",ct[is]);
-#endif
-  }
-  printf("\n\n");
-}
-*/
-/*
- * Print final statistics contained in iopt
- */
-/*
-static void PrintFinalStats(void *kmem, int linsolver)
-{
-  long int nni, nfe, nli, npe, nps, ncfl, nfeSG;
-  int flag;
-
-  flag = KINGetNumNonlinSolvIters(kmem, &nni);
-  check_flag(&flag, "KINGetNumNonlinSolvIters", 1);
-  flag = KINGetNumFuncEvals(kmem, &nfe);
-  check_flag(&flag, "KINGetNumFuncEvals", 1);
-
-  flag = KINGetNumLinIters(kmem, &nli);
-  check_flag(&flag, "KINGetNumLinIters", 1);
-  flag = KINGetNumPrecEvals(kmem, &npe);
-  check_flag(&flag, "KINGetNumPrecEvals", 1);
-  flag = KINGetNumPrecSolves(kmem, &nps);
-  check_flag(&flag, "KINGetNumPrecSolves", 1);
-  flag = KINGetNumLinConvFails(kmem, &ncfl);
-  check_flag(&flag, "KINGetNumLinConvFails", 1);
-  flag = KINGetNumLinFuncEvals(kmem, &nfeSG);
-  check_flag(&flag, "KINGetNumLinFuncEvals", 1);
-
-  printf("Final Statistics.. \n");
-  printf("nni    = %5ld    nli   = %5ld\n", nni, nli);
-  printf("nfe    = %5ld    nfeSG = %5ld\n", nfe, nfeSG);
-  printf("nps    = %5ld    npe   = %5ld     ncfl  = %5ld\n", nps, npe, ncfl);
-
-  if (linsolver < 3) printf("\n=========================================================\n\n");
-
-}
-*/
-/*
- * Check function return value...
- *    opt == 0 means SUNDIALS function allocates memory so check if
- *             returned NULL pointer
- *    opt == 1 means SUNDIALS function returns a flag so check if
- *             flag >= 0
- *    opt == 2 means function allocates memory so check if returned
- *             NULL pointer
- */
-
 static int check_flag(void *flagvalue, const char *funcname, int opt)
 {
   int *errflag;
@@ -818,9 +568,6 @@ static int check_flag(void *flagvalue, const char *funcname, int opt)
   return(0);
 }
 
-
-
-
 /*
  * Allocate memory for data structure of type Phase
  */
@@ -833,7 +580,6 @@ static Phase *AllocUserData(void)
 //  printf("data size %lu \n", sizeof *data);
   return(data);
 }
-
 
 
 int mod(int a, int b)
