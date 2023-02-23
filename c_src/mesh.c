@@ -313,7 +313,13 @@ void update_omega_fields(const struct Phase *const p)
         return;
 
     // Update electric potential
-    call_kinsol(p);
+    //
+    printf("ELECTRIC FIELD \n");
+    printf("ELECTRIC FIELD %d \n", p->efieldsolver);
+    if (p->efieldsolver == 0) 
+    	call_kinsol(p);
+    else if (p->efieldsolver == 1)
+    	call_donnan(p);
 
     switch (p->hamiltonian)
         {
@@ -516,4 +522,21 @@ void calc_ions(struct Phase *const p)
 }
 
 
+int call_donnan(const struct Phase *const p)
+{
+unsigned int i, type;
+soma_scalar_t  rhoQ[p->n_cells_local]; // total charge density
 
+for (i = 0 ; i < p->n_cells_local ; i++) {
+        rhoQ[i] = 0.0 ; 
+        for (type = 0 ; type < p->n_types; type++) {
+                   rhoQ[i] += p->fields_unified[i+p->n_cells_local*type]*p->charges[type];
+        } 
+
+   	p->electric_field[i] = rhoQ[i] + sqrt(rhoQ[i]*rhoQ[i] + 4.*p->Nions*p->Nions) ;
+	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nions) ;
+	p->electric_field[i] = log(p->electric_field[i]);
+}
+
+  return(0);
+}

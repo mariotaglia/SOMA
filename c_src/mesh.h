@@ -227,3 +227,4 @@ int call_kinsol(const struct Phase *const p);
 
 
 void calc_ions(struct Phase *const p);
+int call_donnan(const struct Phase *const p);

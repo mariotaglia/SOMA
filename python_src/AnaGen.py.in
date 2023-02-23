@@ -96,10 +96,6 @@ class AnalysisFile(ConfGen.SomaXML):
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,4*self.n_poly_types), 0 )
             self.ana_dict["Rg"] = copy.deepcopy(element)
 
-            #GIT_VERSION
-            element = AnaElement(str, 1, 0 )
-            self.ana_dict["GIT_VERSION"] = copy.deepcopy(element)
-
             #bond_anisotropy
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,6*self.n_poly_types), 0 )
             self.ana_dict["bond_anisotropy"] = copy.deepcopy( element )
