@@ -52,8 +52,6 @@ while (iterror > maxiterror) {
 	p->electric_field[i] = -log(p->electric_field[i]);
      }
 
-        if (p->electric_field[i] < 0.0)
-
         Qposnew += exp(-p->electric_field[i]);
         Qnegnew += exp(p->electric_field[i]);
     }
