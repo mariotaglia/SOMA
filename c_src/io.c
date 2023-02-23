@@ -587,6 +587,10 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
                    p->born_a);
     HDF5_ERROR_CHECK2(status, "/parameter/born_a");
 
+    //efieldsolver
+    status = write_hdf5(1, &one, file_id, "/parameter/efieldsolver", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->efieldsolver));
+    HDF5_ERROR_CHECK2(status, "/parameter/efieldsolver");
+
     //Convert field_scaling_type to density weight for writing
     for (unsigned int i = 0; i < p->n_types; i++)
         p->field_scaling_type[i] /= (p->n_accessible_cells / (soma_scalar_t) p->num_all_beads);
@@ -1423,6 +1427,10 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     // read p->born_a
     status = read_hdf5(file_id, "/parameter/born_a", H5T_SOMA_NATIVE_SCALAR, plist_id, p->born_a);
     HDF5_ERROR_CHECK2(status, "/parameter/born_a");
+
+    // read p->efieldsolver
+    status = read_hdf5(file_id, "/parameter/efieldsolver", H5T_NATIVE_UINT, plist_id, &(p->efieldsolver));
+    HDF5_ERROR_CHECK2(status, "/parameter/efieldsolver");
 
     // read p->time
     status = read_hdf5(file_id, "/parameter/time", H5T_NATIVE_UINT, plist_id, &(p->time));

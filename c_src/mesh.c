@@ -314,8 +314,6 @@ void update_omega_fields(const struct Phase *const p)
 
     // Update electric potential
     //
-    printf("ELECTRIC FIELD \n");
-    printf("ELECTRIC FIELD %d \n", p->efieldsolver);
     if (p->efieldsolver == 0) 
     	call_kinsol(p);
     else if (p->efieldsolver == 1)

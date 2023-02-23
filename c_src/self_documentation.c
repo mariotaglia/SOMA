@@ -118,8 +118,17 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
         fprintf(ftmp, "\tExternal field present: yes\n");
     if (p->umbrella_field)
         fprintf(ftmp, "\tUmbrella field present: yes\n");
-    if (p->electric_field)
+    if (p->electric_field) {
         fprintf(ftmp, "\tElectric field present: yes\n");
+        if(p->efieldsolver == 0) 
+                fprintf(ftmp, "\tUsing PB efield solver\n");
+        else if (p->efieldsolver == 1)	
+		fprintf(ftmp, "\tUsing EN efield solver\n");
+//        else  {
+//		fprintf(ftmp, "\tNo efield solver defined\n");
+//		finalize_MPI(&(p->info_MPI));
+//	}	 
+    }
     if (p->pc.deltaMC)
         fprintf(ftmp, "\tPolytype conversion active %d,\t", p->pc.deltaMC);
     if (p->pc.rate)

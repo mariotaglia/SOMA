@@ -108,7 +108,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 #endif                          //SOMA_NUM_OBS
 //! Number of known observables to SOMA.
 //! \private
-#define SOMA_NUM_OBS 16
+#define SOMA_NUM_OBS 15
     const char *names[SOMA_NUM_OBS];
     unsigned int *delta_mc[SOMA_NUM_OBS];
     names[0] = "/Re";

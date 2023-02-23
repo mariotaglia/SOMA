@@ -1631,8 +1631,8 @@ class Configuration(SomaXML):
                 print("Electroneutrality solver for electrostatic")
                 efield_array[0] = 1
             case _:
-                print("No solver entered for electrostatic, use PB")
-                efield_array[0] = 0
+                assert False, "No solver entered for electrostatic, options are: PB, EN"
+                
         return efield_array
 
 
