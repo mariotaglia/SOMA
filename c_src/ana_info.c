@@ -108,7 +108,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 #endif                          //SOMA_NUM_OBS
 //! Number of known observables to SOMA.
 //! \private
-#define SOMA_NUM_OBS 15
+#define SOMA_NUM_OBS 16
     const char *names[SOMA_NUM_OBS];
     unsigned int *delta_mc[SOMA_NUM_OBS];
     names[0] = "/Re";
@@ -141,6 +141,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     delta_mc[13] = &(p->ana_info.delta_mc_mono_type_fraction);
     names[14] = "/electric_field";
     delta_mc[14] = &(p->ana_info.delta_mc_electric_field);
+
 
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for (unsigned int i = 0; i < SOMA_NUM_OBS; i++)
