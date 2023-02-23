@@ -63,7 +63,7 @@ realtype fnorm;
  *--------------------------------------------------------------------
  */
 
-int call_kinsol(const struct Phase *const p)
+int call_PB(const struct Phase *const p)
 {
   static realtype *ccx; // last solution
 

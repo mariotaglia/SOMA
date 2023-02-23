@@ -220,12 +220,13 @@ void update_omega_fields_scmf1(const struct Phase *const p);
 #endif                          //SOMA_MESH_H
 				//
 
-int call_kinsol(const struct Phase *const p);
+int call_PB(const struct Phase *const p);
 //! Calls kinsol
 
-int call_donnan(const struct Phase *const p);
-//! Calls donnan efield solver
+int call_EN(const struct Phase *const p);
+//! Calls electroneutrality efield solver
 
-
+int call_NO(const struct Phase *const p);
+//! No efield solver, set efield to zero
 
 void calc_ions(struct Phase *const p);

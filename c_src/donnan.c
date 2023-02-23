@@ -5,10 +5,11 @@
 #include "soma_config.h"
 #include "float.h"
 
-int call_donnan(const struct Phase *const p);
+int call_EN(const struct Phase *const p);
+int call_NO(const struct Phase *const p);
 
 
-int call_donnan(const struct Phase *const p)
+int call_EN(const struct Phase *const p)
 {
 unsigned int i, type;
 soma_scalar_t  rhoQ[p->n_cells_local]; // total number of charges
@@ -65,5 +66,16 @@ while (iterror > maxiterror) {
 //        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 }
 	
+  return(0);
+}
+
+
+
+int call_NO(const struct Phase *const p)
+{
+unsigned int i;
+
+for (i = 0 ; i < p->n_cells_local ; i++) 
+	p->electric_field[i] = 0.0;
   return(0);
 }

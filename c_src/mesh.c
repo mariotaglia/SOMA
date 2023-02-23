@@ -315,10 +315,12 @@ void update_omega_fields(const struct Phase *const p)
     // Update electric potential
     //
     if (p->efieldsolver == 0) 
-    	call_kinsol(p);
-    else if (p->efieldsolver == 1) {
-    	call_donnan(p);
-    }
+    	call_PB(p);
+    else if (p->efieldsolver == 1) 
+    	call_EN(p);
+    else if (p->efieldsolver == -1) 
+    	call_NO(p);
+    
 
     switch (p->hamiltonian)
         {
@@ -499,8 +501,8 @@ void calc_ions(struct Phase *const p)
           }
   }	  
 
-  printf("calc_ions: Total charge of fixed beads: %f \n ", sumrhoQ);
-  printf("calc_ions: Total number of added salt ions: %f \n ", p->Nions);
+  fprintf(stdout, "calc_ions: Total charge of fixed beads: %f \n ", sumrhoQ);
+  fprintf(stdout, "calc_ions: Total number of added salt ions: %f \n ", p->Nions);
 
   p->Nposions = p->Nnegions = p->Nions;
 
@@ -511,12 +513,12 @@ void calc_ions(struct Phase *const p)
       p->Nposions += -sumrhoQ;
   }
 
-  printf("calc_ions: Total number of +1 salt ions: %f \n ", p->Nposions);
-  printf("calc_ions: Total number of -1 salt ions: %f \n ", p->Nnegions);
+  fprintf(stdout, "calc_ions: Total number of +1 salt ions: %f \n ", p->Nposions);
+  fprintf(stdout, "calc_ions: Total number of -1 salt ions: %f \n ", p->Nnegions);
   soma_scalar_t Nionsdiff = p->Nposions-p->Nnegions;
   soma_scalar_t  netcharge = Nionsdiff + sumrhoQ;
-  printf("check_electro: Net charge:  %f \n ", netcharge);
-  assert(fabs(netcharge) < 1.0e-5);
+  fprintf(stdout, "check_electro: Net charge:  %f \n ", netcharge);
+  assert(fabs(netcharge) < 1.0e-6);
 
 }
 
