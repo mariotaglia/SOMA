@@ -59,7 +59,6 @@ static realtype SetScale(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 int iter = 0;
-soma_scalar_t norma;  // sum of residuals
 realtype fnorm;
  
  /*
@@ -395,6 +394,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
 // psi from kinsol's input
 
+#pragma omp parallel for  
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
@@ -408,16 +408,23 @@ psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potenti
 
 
 // Pos ion 
+
+
 if (p->Nposions > 0) {
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+      
+#pragma omp parallel for reduction(+:sumposions) 
+     for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           rhoposion[ix][iy][iz] = exp(-psi[ix][iy][iz]);
 			  sumposions += rhoposion[ix][iy][iz]; 
-		     }
-	 	}
-	  }
+	                  }
+           }
+      }
+
 // Normalize to match totalnumber
+
+#pragma omp parallel for  
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
@@ -425,10 +432,13 @@ if (p->Nposions > 0) {
 		     }
 	 	}
 	  }
-} else {
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+}
+else {
+
+#pragma omp parallel for  
+      for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           rhoposion[ix][iy][iz] = 0.0;
 		     }
 	 	}
@@ -439,7 +449,9 @@ if (p->Nposions > 0) {
 
 // Neg ion 
 if (p->Nnegions > 0) {
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+
+#pragma omp parallel for reduction(+:sumnegions) 
+     for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           rhonegion[ix][iy][iz] = exp(psi[ix][iy][iz]);
@@ -447,7 +459,9 @@ if (p->Nnegions > 0) {
 		     }
 	 	}
 	  }
+
 // Normalize to match totalnumber
+#pragma omp parallel for  
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
@@ -455,7 +469,10 @@ if (p->Nnegions > 0) {
 		     }
 	 	}
 	  }
-} else {
+} 
+else {
+
+#pragma omp parallel for  
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
@@ -465,10 +482,17 @@ if (p->Nnegions > 0) {
 	  }
 }
 
+
+
+
 // rhoQ from unified fields 
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+
+
+
+#pragma omp parallel for reduction(+:sumrhoQ) 
+    for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           rhoQ[ix][iy][iz] = 0.0 ; 
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
 				  for (type = 0 ; type < p->n_types; type++) {
@@ -483,8 +507,7 @@ if (p->Nnegions > 0) {
 
 /// Calculate residual from Poisson's equation
 
-  norma = 0.0; 
-
+#pragma omp parallel for  
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
 	  ixp = mod((ix+1),p->nx);
@@ -511,14 +534,12 @@ if (p->Nnegions > 0) {
                           
 			  if (cell < NEQ) { 
 				  NV_Ith_OMP(fval,cell) = -res[ix][iy][iz];
-				  norma += pow(res[ix][iy][iz],2);
 //				  printf("func: cell, res %d %f \n", cell, rhoA[ix][iy][iz]);
 			  }     
 		     }
 	 	}
 	  }
 
-  norma = sqrt(norma);  
 //  printf("func: sumrhoQ: %f \n ", sumrhoQ);
   assert(fabs(sumrhoQ) < 1.0e-5);
 
