@@ -85,7 +85,8 @@ int call_PB(const struct Phase *const p)
 				       be fixed to zero (see notes) */
 
   iter = 0; // number of iterations
-
+ 
+  const int flagguess = 1; // 0 = use last solution, 1 = use estimate from EN solver
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -97,7 +98,7 @@ int call_PB(const struct Phase *const p)
   data = NULL; 
 
   /* Allocate memory, and set problem data, initial values, tolerances */
-  globalstrategy = KIN_NONE; /* KIN_NONE = basic Newton iteration
+  globalstrategy = KIN_NONE ; /* KIN_NONE = basic Newton iteration
 				KIN_LINESEARCH = Newton with globalization
 				KIN_FP = fixed point interaction
 				KIN_PICARD = Picard interaction */
@@ -107,7 +108,7 @@ int call_PB(const struct Phase *const p)
 
   *data = *p; // Pointer to phase information
 
-//  InitUserData(data); */
+//  InitUserData(data);
 
   /* Create serial vectors of length NEQ */
   cc = N_VNew_Serial(NEQ, sunctx);
@@ -122,9 +123,20 @@ int call_PB(const struct Phase *const p)
 
   linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
+    /* Allocate ccx */
+   if (flagsolved) {
+	   ccx = (realtype*)malloc(NEQ*sizeof(realtype));
+	   if (ccx == NULL) return(1);
+    } 
+
+
+    /* Initial guess */
+
+
     /* (Re-)Initialize user data */
 
-    if (flagsolved) {
+   if (flagguess == 0) {
+        if (flagsolved) {
            if (p->info_MPI.sim_rank == 0) 
               fprintf(stdout, "Set initial guess for electrostatics \n");
 	   SetInitialProfiles(cc);
@@ -133,15 +145,25 @@ int call_PB(const struct Phase *const p)
 	   if (ccx == NULL) return(1);
            fnormtol = 1e-7;   // use small norm for first calculation or restart
 	   scsteptol = 1e-13; 
-    } 
-    else {
-	  // Recover profile, need to implement in a function   
+        } 
+        else {
+	    // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
 		   NV_Ith_S(cc,i) = ccx[i]; 
                    fnormtol = 1e-5;   
 	           scsteptol = 1e-13; 
             }
-    }
+        }
+   }	 
+   else if (flagguess == 1) {
+	call_EN(p); 
+
+        for (i = 0 ; i < NEQ ; i++) {
+           NV_Ith_S(cc,i) = p->electric_field[i] - p->electric_field[NEQ]; // sets efield to zero in the last cell
+           fnormtol = 1e-5;  
+	   scsteptol = 1e-13; 
+	}
+   }
 
     /* Set scale vector */
     if (flagsolved) scale = SetScale(p);
@@ -285,9 +307,9 @@ int call_PB(const struct Phase *const p)
 
         KINGetFuncNorm(kmem, &fnorm);
 //        printf("flag %d \n", flag);
-        if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
+    if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
@@ -303,11 +325,10 @@ int call_PB(const struct Phase *const p)
         	p->electric_field[i] += -avpsi;
         }
         flagsolved = 0;
-    }
+    } // converge
     else {  // did not converged
         if (p->info_MPI.sim_rank == 0) 
              fprintf(stdout, "Kinsol failed to converge last step, restart initial guess \n");
-        flagsolved = 1;
     }
 
     /* Free memory */
