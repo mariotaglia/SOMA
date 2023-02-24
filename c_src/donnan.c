@@ -31,6 +31,8 @@ while (iterror > maxiterror) {
     Qnegnew = 0.0;
     Qposnew = 0.0; 
 
+ if (p->Nnegions > p->Nposions) {    	
+#pragma omp parallel for    
     for (i = 0 ; i < p->n_cells_local ; i++) {
         rhoQ[i] = 0.0; 
         for (type = 0 ; type < p->n_types; type++) {
@@ -39,22 +41,39 @@ while (iterror > maxiterror) {
         rhoQ[i] = rhoQ[i] / vcell ; // units of charge per Re^3
 
 
-     if (p->Nnegions > p->Nposions) {    	
 	p->electric_field[i] = rhoQ[i];
 	p->electric_field[i] += sqrt(rhoQ[i]*rhoQ[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg) ;
 	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nnegions/Qneg) ;
 	p->electric_field[i] = log(p->electric_field[i]);
      }
-     else {
+ }
+
+ else {
+#pragma omp parallel for  
+    for (i = 0 ; i < p->n_cells_local ; i++) {
+        rhoQ[i] = 0.0; 
+        for (type = 0 ; type < p->n_types; type++) {
+                   rhoQ[i] += p->fields_unified[i+p->n_cells_local*type]*p->charges[type];
+        } 
+        rhoQ[i] = rhoQ[i] / vcell ; // units of charge per Re^3
+
 	p->electric_field[i] = -rhoQ[i];
 	p->electric_field[i] += sqrt(rhoQ[i]*rhoQ[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg) ;
 	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nposions/Qpos) ;
 	p->electric_field[i] = -log(p->electric_field[i]);
      }
+ }    
 
+#pragma omp parallel for reduction (+:Qposnew) 
+    for (i = 0 ; i < p->n_cells_local ; i++) {
         Qposnew += exp(-p->electric_field[i]);
+    }
+
+#pragma omp parallel for reduction (+:Qnegnew)
+    for (i = 0 ; i < p->n_cells_local ; i++) {
         Qnegnew += exp(p->electric_field[i]);
     }
+
 
         Qposnew = Qposnew*vcell;
         Qnegnew = Qnegnew*vcell;

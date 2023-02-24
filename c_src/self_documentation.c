@@ -124,11 +124,9 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
                 fprintf(ftmp, "\tUsing PB efield solver\n");
         else if (p->efieldsolver == 1)	
 		fprintf(ftmp, "\tUsing EN efield solver\n");
-//        else  {
-//		fprintf(ftmp, "\tNo efield solver defined\n");
-//		finalize_MPI(&(p->info_MPI));
-//	}	 
-    }
+        else if (p->efieldsolver == -1)	
+		fprintf(ftmp, "\tNO efield solver, charges will be ignored\n");
+	}	 
     if (p->pc.deltaMC)
         fprintf(ftmp, "\tPolytype conversion active %d,\t", p->pc.deltaMC);
     if (p->pc.rate)
