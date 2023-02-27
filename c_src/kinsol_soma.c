@@ -148,33 +148,24 @@ int call_PB(const struct Phase *const p)
    fnormtol = 1e-5;   
    scsteptol = 1e-13; 
  
-   if (p->efieldsolver == 0) {   // EN as initial guess
+   if (p->efieldsolver == 2) {   // homogeneous as initial guess, then reuse last solution
         if (flagsolved) {
            if (p->info_MPI.sim_rank == 0) 
               fprintf(stdout, "Set initial guess for electrostatics \n");
 	   SetInitialProfiles(cc);
-	   // Allocate ccx to store solution at the ned
-	   ccx = (realtype*)malloc(NEQ*sizeof(realtype));
-	   if (ccx == NULL) return(1);
-           fnormtol = 1e-7;   // use small norm for first calculation or restart
-	   scsteptol = 1e-13; 
         } 
         else {
 	    // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
 		   NV_Ith_OMP(cc,i) = ccx[i]; 
-                   fnormtol = 1e-5;   
-	           scsteptol = 1e-13; 
             }
         }
    }	 
-   else if (p->efieldsolver == 2) { // homogeneous as initial guess, then reuse last solution
+   else if (p->efieldsolver == 0) { // EN as initial
 	call_EN(p); 
 
         for (i = 0 ; i < NEQ ; i++) {
            NV_Ith_OMP(cc,i) = p->electric_field[i] - p->electric_field[NEQ]; // sets efield to zero in the last cell
-           fnormtol = 1e-5;  
-	   scsteptol = 1e-13; 
 	}
    }
    else {
