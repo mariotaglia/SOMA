@@ -523,7 +523,7 @@ void update_electric_field(const struct Phase *const p)
 {
     // Update electric potential
     //
-    if (p->efieldsolver == 0) 
+    if ((p->efieldsolver == 0)||(p->efieldsolver == 2)) 
     	call_PB(p);
     else if (p->efieldsolver == 1) 
     	call_EN(p);

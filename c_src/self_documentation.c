@@ -119,9 +119,11 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
     if (p->umbrella_field)
         fprintf(ftmp, "\tUmbrella field present: yes\n");
     if (p->electric_field) {
-        fprintf(ftmp, "\tElectric field present: yes\n");
+           fprintf(ftmp, "\tElectric field present: yes\n");
         if(p->efieldsolver == 0) 
-                fprintf(ftmp, "\tUsing PB efield solver\n");
+           fprintf(ftmp, "\tUsing PB efield solver (EN as initial guess)\n");
+        if(p->efieldsolver == 2)
+           fprintf(ftmp, "\tUsing PB efield solver (homogeneous as initial guess)\n");
         else if (p->efieldsolver == 1)	
 		fprintf(ftmp, "\tUsing EN efield solver\n");
         else if (p->efieldsolver == -1)	

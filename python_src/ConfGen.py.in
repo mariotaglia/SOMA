@@ -1625,8 +1625,11 @@ class Configuration(SomaXML):
         
         match efield_str:
             case "PB":
-                print("Poisson Boltzmann solver for electrostatic")
+                print("Poisson Boltzmann solver for electrostatic (EN as initial guess)")
                 efield_array[0] = 0
+            case "PH":
+                print("Poisson Boltzmann solver for electrostatic (homogeneous as initial guess)")
+                efield_array[0] = 2
             case "EN":
                 print("Electroneutrality solver for electrostatic")
                 efield_array[0] = 1
@@ -1634,7 +1637,7 @@ class Configuration(SomaXML):
                 print("No electrostatic solver (charges will be neglected)")
                 efield_array[0] = -1
             case _:
-                assert False, "No solver entered for electrostatic, options are: PB, EN, NO"
+                assert False, "No solver entered for electrostatic, options are: PB, PH, EN, NO"
                 
         return efield_array
 

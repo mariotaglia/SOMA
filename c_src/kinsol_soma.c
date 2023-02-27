@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 #include <kinsol/kinsol.h>               /* access to KINSOL func., consts.      */
 #include <nvector/nvector_openmp.h>    /* access to OpenMP N_Vector            */
@@ -88,8 +89,6 @@ int call_PB(const struct Phase *const p)
 				       be fixed to zero (see notes) */
 
   iter = 0; // number of iterations
- 
-  const int flagguess = 1; // 0 = use last solution, 1 = use estimate from EN solver
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -146,7 +145,10 @@ int call_PB(const struct Phase *const p)
 
     /* (Re-)Initialize user data */
 
-   if (flagguess == 0) {
+   fnormtol = 1e-5;   
+   scsteptol = 1e-13; 
+ 
+   if (p->efieldsolver == 0) {   // EN as initial guess
         if (flagsolved) {
            if (p->info_MPI.sim_rank == 0) 
               fprintf(stdout, "Set initial guess for electrostatics \n");
@@ -166,7 +168,7 @@ int call_PB(const struct Phase *const p)
             }
         }
    }	 
-   else if (flagguess == 1) {
+   else if (p->efieldsolver == 2) { // homogeneous as initial guess, then reuse last solution
 	call_EN(p); 
 
         for (i = 0 ; i < NEQ ; i++) {
@@ -175,6 +177,11 @@ int call_PB(const struct Phase *const p)
 	   scsteptol = 1e-13; 
 	}
    }
+   else {
+       fprintf(stderr, "Invalid value of p->efieldsolver in kinsol_soma.c\n");
+       assert(0);
+   } 
+
 
     /* Set scale vector */
     if (flagsolved) scale = SetScale(p);
@@ -540,7 +547,21 @@ else {
 	 	}
 	  }
 
-//  printf("func: sumrhoQ: %f \n ", sumrhoQ);
+
+/* DEBUG print norm
+soma_scalar_t norma = 0;
+        for (ix = 0 ; ix < (int) p->nx ; ix++) {
+               for (iy = 0 ; iy < (int) p->ny ; iy++) {
+                  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+			  if (cell < NEQ)  
+              			  norma += res[ix][iy][iz]; 
+                          }
+                     }
+                }
+
+  printf("func: sumrhoQ: %f \n ", sumrhoQ);
+*/
+
   assert(fabs(sumrhoQ) < 1.0e-5);
 
 //  printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
@@ -566,7 +587,8 @@ static realtype SetScale(const struct Phase *const p)
    soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
    soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
    soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
-   soma_scalar_t constq = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+   soma_scalar_t constq1 = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+   soma_scalar_t constq2 = 4.0*PI*0.01/(deltax*deltay*deltaz); // value for Bjerrum = 0.01
    soma_scalar_t  sumrhoA = 0;                   // total number of A segments
    
    for (ix = 0 ; ix < (int) p->nx ; ix++) {
@@ -577,9 +599,12 @@ static realtype SetScale(const struct Phase *const p)
      			  }
                 }
           }
+  
+   if (constq1 > constq2)  // prevents a very large scale constant if a very small BL is used
+        scale = 1./constq1/sumrhoA*((soma_scalar_t) p->n_cells_local);
+   else 
+        scale = 1./constq2/sumrhoA*((soma_scalar_t) p->n_cells_local);
 
-
-   scale = 1./constq/sumrhoA*((soma_scalar_t) p->n_cells_local);
    return(scale);
    }   
  
