@@ -318,7 +318,7 @@ int call_PB(const struct Phase *const p)
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
@@ -386,7 +386,8 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
-  soma_scalar_t constq = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+  soma_scalar_t constq = 4.0*PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+  soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
 
   iter++;	   
 
@@ -485,8 +486,6 @@ else {
 
 // rhoQ from unified fields 
 
-
-
 #pragma omp parallel for reduction(+:sumrhoQ) 
     for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
@@ -503,55 +502,86 @@ else {
 	 	}
 	  }
 
+// local_bl from unified fields 
+
+int tmpsegsum;
+
+#pragma omp parallel for reduction(+:sumrhoQ) 
+    for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+
+                          invbl[ix][iy][iz] = 0.0 ; 
+			  tmpsegsum = 0;
+
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+		          for (type = 0 ; type < p->n_types; type++) {
+
+                             invbl[ix][iy][iz] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])/p->bls[type];
+                             tmpsegsum +=  p->fields_unified[cell+p->n_cells_local*type];
+			  } 
+
+                            invbl[ix][iy][iz] = invbl[ix][iy][iz] / ((soma_scalar_t) tmpsegsum);
+
+		     }
+	 	}
+	  }
+
 /// Calculate residual from Poisson's equation
 
 #pragma omp parallel for  
   for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
-	  ixp = mod((ix+1),p->nx);
-          ixm = mod((ix-1),p->nx);
+     ixp = mod((ix+1),p->nx);
+     ixm = mod((ix-1),p->nx);
  
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+     for (iy = 0 ; iy < (int) p->ny ; iy++) {
 
-		  iyp = mod((iy+1),p->ny);
-		  iym = mod((iy-1),p->ny);
+        iyp = mod((iy+1),p->ny);
+        iym = mod((iy-1),p->ny);
 
-	          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+	for (iz = 0 ; iz < (int)  p->nz ; iz++) {
         
-			  izp = mod((iz+1),p->nz);
-			  izm = mod((iz-1),p->nz);
-                  	  cell = cell_coordinate_to_index(p, ix, iy, iz);
+	izp = mod((iz+1),p->nz);
+	izm = mod((iz-1),p->nz);
+        cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-			  res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
+	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
 
+        res[ix][iy][iz] += (invbl[ixp][iy][iz]*(psi[ixp][iy][iz]-psi[ix][iy][iz])-invbl[ix][iy][iz]*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(deltax*deltax); 
+        res[ix][iy][iz] += (invbl[ix][iyp][iz]*(psi[ix][iyp][iz]-psi[ix][iy][iz])-invbl[ix][iy][iz]*(psi[ix][iy][iz]-psi[ix][iym][iz]))/(deltay*deltay); 
+        res[ix][iy][iz] += (invbl[ix][iy][izp]*(psi[ix][iy][izp]-psi[ix][iy][iz])-invbl[ix][iy][iz]*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(deltaz*deltaz); 
+
+/*
 			  res[ix][iy][iz] += (psi[ixp][iy][iz]-2.*psi[ix][iy][iz]+psi[ixm][iy][iz])/(deltax*deltax);	  
 			  res[ix][iy][iz] += (psi[ix][iyp][iz]-2.*psi[ix][iy][iz]+psi[ix][iym][iz])/(deltay*deltay);	  
 			  res[ix][iy][iz] += (psi[ix][iy][izp]-2.*psi[ix][iy][iz]+psi[ix][iy][izm])/(deltaz*deltaz);	  
-		  
+*/		  
 			  res[ix][iy][iz] = -res[ix][iy][iz];
                           
 			  if (cell < NEQ) { 
 				  NV_Ith_OMP(fval,cell) = -res[ix][iy][iz];
-//				  printf("func: cell, res %d %f \n", cell, rhoA[ix][iy][iz]);
+//				  printf("func: cell, res %d %f \n", cell, res[ix][iy][iz]);
 			  }     
 		     }
 	 	}
 	  }
 
 
-/* DEBUG print norm
+/* DEBUG print norm  
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < (int) p->nx ; ix++) {
                for (iy = 0 ; iy < (int) p->ny ; iy++) {
                   for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+                  cell = cell_coordinate_to_index(p, ix, iy, iz);
 			  if (cell < NEQ)  
               			  norma += res[ix][iy][iz]; 
                           }
                      }
                 }
 
-  printf("func: sumrhoQ: %f \n ", sumrhoQ);
-*/
+  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); */
 
   assert(fabs(sumrhoQ) < 1.0e-5);
 
@@ -572,30 +602,28 @@ soma_scalar_t norma = 0;
 
 static realtype SetScale(const struct Phase *const p)
 { 
-   int ix, iy, iz;
-   int cell; 
+   unsigned int type;
    realtype scale;
    soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
    soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
    soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
-   soma_scalar_t constq1 = 4.0*PI*p->Bjerrum/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
-   soma_scalar_t constq2 = 4.0*PI*0.01/(deltax*deltay*deltaz); // value for Bjerrum = 0.01
-   soma_scalar_t  sumrhoA = 0;                   // total number of A segments
-   
-   for (ix = 0 ; ix < (int) p->nx ; ix++) {
-          for (iy = 0 ; iy < (int) p->ny ; iy++) {
-                          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          sumrhoA += p->fields_unified[cell]; // density of A segments because no n_type offset is used                           
-     			  }
-                }
-          }
-  
-   if (constq1 > constq2)  // prevents a very large scale constant if a very small BL is used
-        scale = 1./constq1/sumrhoA*((soma_scalar_t) p->n_cells_local);
-   else 
-        scale = 1./constq2/sumrhoA*((soma_scalar_t) p->n_cells_local);
 
+   soma_scalar_t constq = 4.0*PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+   
+   soma_scalar_t Bjerrum;
+
+// find the largest Bjerrum length in the system, smaller scale
+// Cannot be smaller than 0.01 to prevent a very large scaling factor
+
+   Bjerrum = 0.01;
+
+   for (type = 0; type < p->n_types; type++) {
+	   if (p->bls[type] > Bjerrum)
+		   Bjerrum = p->bls[type];
+   }
+
+   scale = 1./constq/Bjerrum/1. ;  // the factor 1. is an estimation for the average charge per lattice site
+	   
    return(scale);
    }   
  
