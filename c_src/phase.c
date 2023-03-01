@@ -179,6 +179,22 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
+    p->invblav = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
+    if (p->invblav == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    p->d_invblav = (soma_scalar_t *) malloc(p->n_cells_local * p->n_types * sizeof(soma_scalar_t));
+    if (p->d_invblav == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
+
     // Set all values to zero
     p->num_all_beads = 0;
     p->num_all_beads_local = 0;

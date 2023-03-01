@@ -501,28 +501,13 @@ else {
 	 	}
 	  }
 
-// local_bl from unified fields 
+// recast inverse of average bjerrum length into x,y,z coordinates
 
-int tmpsegsum;
-
-#pragma omp parallel for reduction(+:sumrhoQ) 
     for (ix = 0 ; ix < (int) p->nx ; ix++) {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-
-                          invbl[ix][iy][iz] = 0.0 ; 
-			  tmpsegsum = 0;
-
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-
-		          for (type = 0 ; type < p->n_types; type++) {
-
-                             invbl[ix][iy][iz] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])/p->bls[type];
-                             tmpsegsum +=  p->fields_unified[cell+p->n_cells_local*type];
-			  } 
-
-                            invbl[ix][iy][iz] = invbl[ix][iy][iz] / ((soma_scalar_t) tmpsegsum);
-
+                          invbl[ix][iy][iz] = p->invblav[cell] ; 
 		     }
 	 	}
 	  }

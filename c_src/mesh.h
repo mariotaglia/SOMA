@@ -230,5 +230,8 @@ int call_NO(const struct Phase *const p);
 //! No efield solver, set efield to zero
 
 void calc_ions(struct Phase *const p);
+void calc_invbls(struct Phase *const p);
+void update_invblav(const struct Phase *const p);
+void update_d_invblav(const struct Phase *const p);
 
 void update_electric_field(const struct Phase *const p);

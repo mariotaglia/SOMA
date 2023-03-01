@@ -315,6 +315,8 @@ void update_omega_fields(const struct Phase *const p)
     else                        //Quick exit, because the property has already been calculated for the time step.
         return;
 
+    update_invblav(p); // update invblav (inverse of average Bjerrum length)
+    update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
    
     update_electric_field(p);
 
@@ -338,7 +340,6 @@ void update_omega_fields(const struct Phase *const p)
 //! \param p Phase of the system to init the omega fields
 void self_omega_field(const struct Phase *const p)
 {
-
 
 
     // soma_scalar_t density=0;
@@ -407,16 +408,17 @@ void self_omega_field(const struct Phase *const p)
 
      unsigned int  ix, iy, iz;
      unsigned int  ixp, ixm, iyp, iym, izp, izm, cell;
+
      soma_scalar_t psi[p->nx][p->ny][p->nz]; 
 
      soma_scalar_t gradpsi2[p->n_cells_local]; 
-     unsigned int Ntot[p->n_cells_local]; 
 
      soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
      soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
      soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
  
-     soma_scalar_t temp, frac; // auxiliary variables
+     soma_scalar_t temp ; // auxiliary variables
+     soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
 
 
 #pragma omp parallel for  
@@ -442,42 +444,25 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 
                cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	       temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/deltax; 
+	       temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/2./deltax; 
                gradpsi2[cell] = temp*temp;
 
-	       temp = (psi[ix][iyp][iz]-psi[ix][iym][iz])/deltay; 
+	       temp = (psi[ix][iyp][iz]-psi[ix][iym][iz])/2./deltay; 
                gradpsi2[cell] += temp*temp;
 
-	       temp = (psi[ix][iy][izp]-psi[ix][iy][izm])/deltaz; 
+	       temp = (psi[ix][iy][izp]-psi[ix][iy][izm])/2./deltaz; 
                gradpsi2[cell] += temp*temp;
 
               } // iz 
        } // iy
 } // ix
 
-#pragma omp parallel for  
-   for (ix = 0 ; ix < p->nx ; ix++) {
-       for (iy = 0 ; iy < p->ny ; iy++) {
-           for (iz = 0 ; iz < p->nz ; iz++) {
-	      cell = cell_coordinate_to_index(p, ix, iy, iz);
-              Ntot[cell] = 0;
-
-	      for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
-                 Ntot[cell] += p->fields_unified[cell+p->n_cells_local*type]; // total number of segments in cell  
-	      } // types
-
-	   } // iz
-         }  // iy 
-      }   // ix
-
-
 for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
     for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
-  
-    frac = p->fields_unified[cell+p->n_cells_local*type]/((soma_scalar_t) Ntot[cell]);	     
-
-    p->omega_field_unified[cell + type*p->n_cells_local] 
-	    += -(4.0*M_PI/8.0)*p->bls[type]*gradpsi2[cell]*(1.0-frac)*deltax*deltay*deltaz/((soma_scalar_t) Ntot[cell]);
+ 
+//    printf("cell, type, gradpsi2, dl/dN todo  %d %d %f %f %f \n", cell,type,gradpsi2[cell],p->d_invblav[cell + type*p->n_cells_local], gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local]);
+	    
+    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
 
     } // cell 	    
 } // type	
@@ -623,3 +608,74 @@ int mod(int a, int b)
     int r = a % b;
     return r < 0 ? r + b : r;
 }
+
+void calc_invbls(struct Phase *const p) 
+{
+unsigned int type;
+
+  p->invbls = (soma_scalar_t *) malloc((p->n_types) * sizeof(soma_scalar_t));
+  p->invblav_zero = 0.0; 
+
+  for (type = 0; type < p->n_types ; type++) {
+	p->invbls[type] = 1./p->bls[type];
+	p->invblav_zero += 1./p->bls[type];
+  }
+        p->invblav_zero = p->invblav_zero/((soma_scalar_t) p->n_types);
+}
+
+
+void update_invblav(const struct Phase *const p) 
+
+{
+int tmpsegsum;
+unsigned int cell, type;
+
+
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+
+                          p->invblav[cell] = 0.0 ; 
+			  tmpsegsum = 0;
+
+		          for (type = 0 ; type < p->n_types; type++) {
+
+                             p->invblav[cell] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])*p->invbls[type];
+                             tmpsegsum +=  p->fields_unified[cell+p->n_cells_local*type];
+			  } 
+                          if(tmpsegsum != 0)    
+                            p->invblav[cell] = p->invblav[cell] / ((soma_scalar_t) tmpsegsum);
+			  else if (tmpsegsum == 0)
+                            p->invblav[cell] = p->invblav_zero; // prevents divergence if tmpsegsum = 0
+				  
+	  }
+}
+
+
+void update_d_invblav(const struct Phase *const p) 
+
+{
+unsigned int cell, type;
+unsigned int Ntot[p->n_cells_local]; 
+
+#pragma omp parallel for  
+ for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+   Ntot[cell] = 0;
+   for (type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
+         Ntot[cell] += p->fields_unified[cell+p->n_cells_local*type]; // total number of segments in cell  
+     } // types
+   if(Ntot[cell] == 0) 
+	   Ntot[cell] = 1;  // prevents divergence of de/dN when N = 0
+ } // cell
+
+
+for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
+
+#pragma omp parallel for
+ for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+
+  p->d_invblav[cell+p->n_cells_local*type] = (p->invbls[type] - p->invblav[cell])/((soma_scalar_t) Ntot[cell]);
+  }
+}
+
+}
+
+

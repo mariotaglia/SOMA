@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
 #endif                          //ENABLE_MPI
 
     calc_ions(p);  // calc ion concetration
+    calc_invbls(p);  // calc inverse of bls
 
     if (!p->args.skip_tests_flag)
         {
