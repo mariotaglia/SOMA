@@ -30,6 +30,9 @@
 #include "mpiroutines.h"
 #include "soma_config.h"
 
+
+int mod(int a, int b); // modulus
+
 /* #pragma acc routine seq */
 /* inline void increment_16_bit_uint(uint16_t*const ptr) */
 /* { */
@@ -335,6 +338,22 @@ void update_omega_fields(const struct Phase *const p)
 //! \param p Phase of the system to init the omega fields
 void self_omega_field(const struct Phase *const p)
 {
+
+     unsigned int  ix, iy, iz;
+     unsigned int  ixp, ixm, iyp, iym, izp, izm, cell;
+     soma_scalar_t psi[p->nx][p->ny][p->nz]; 
+
+     soma_scalar_t gradpsi2[p->n_cells_local]; 
+     unsigned int Ntot[p->n_cells_local]; 
+
+     soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
+     soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
+     soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+ 
+     soma_scalar_t temp;
+
+
+
     // soma_scalar_t density=0;
     // for(int c=0;c<(p->n_types * p->n_cells_local);c++)
     //   density+=p->fields_unified[c];
@@ -394,9 +413,66 @@ void self_omega_field(const struct Phase *const p)
                             p->omega_field_unified[cell + T_types * p->n_cells_local] +=
                                 p->electric_field[cell] * p->charges[T_types];
 
-                }
-        }
-}
+                } // cells
+        }  // types
+
+// Dielectric contribution
+
+#pragma omp parallel for  
+for (ix = 0 ; ix < p->nx ; ix++) {
+      for (iy = 0 ; iy < p->ny ; iy++) {
+           for (iz = 0 ; iz < p->nz ; iz++) {
+              cell = cell_coordinate_to_index(p, ix, iy, iz);
+	      psi[ix][iy][iz] = p->electric_field[cell];
+	   }
+       }
+}  
+
+#pragma omp parallel for  
+for (ix = 0 ; ix < p->nx ; ix++) {
+      ixp = mod((ix+1),p->nx);
+      ixm = mod((ix-1),p->nx);
+      for (iy = 0 ; iy < p->ny ; iy++) {
+         iyp = mod((iy+1),p->ny);
+         iym = mod((iy-1),p->ny);
+            for (iz = 0 ; iz < p->nz ; iz++) {
+               izp = mod((iz+1),p->nz);
+               izm = mod((iz-1),p->nz);
+
+               cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+	       temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/deltax; 
+               gradpsi2[cell] = temp*temp;
+
+	       temp = (psi[ix][iyp][iz]-psi[ix][iym][iz])/deltay; 
+               gradpsi2[cell] += temp*temp;
+
+	       temp = (psi[ix][iy][izp]-psi[ix][iy][izm])/deltaz; 
+               gradpsi2[cell] += temp*temp;
+
+              } // iz 
+       } // iy
+} // ix
+
+#pragma omp parallel for  
+   for (ix = 0 ; ix < p->nx ; ix++) {
+       for (iy = 0 ; iy < p->ny ; iy++) {
+           for (iz = 0 ; iz < p->nz ; iz++) {
+	      cell = cell_coordinate_to_index(p, ix, iy, iz);
+              Ntot[cell] = 0;
+
+	      for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
+                 Ntot[cell] += p->fields_unified[cell+p->n_cells_local*type];  // this may have the same info as p->tempfield !!! CHECK !!!  
+
+                 printf("cell, Ntot/delta^3, tempfield %d, %f, %f \n", cell, Ntot[cell]/deltax/deltay/deltaz, p->tempfield[cell]);  
+
+	      } // types
+            } // iz
+         }  // iy 
+     }   // ix
+
+} // routine
+
 
 //! Add the pair interactions to the omega fields via the SCMF0 hamiltonian.
 //! \private Helper function
@@ -531,4 +607,8 @@ void update_electric_field(const struct Phase *const p)
     	call_NO(p);
 }  
 
-
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}

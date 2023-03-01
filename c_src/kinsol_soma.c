@@ -16,6 +16,8 @@
 #include <sundials/sundials_types.h>     /* defs. of realtype, sunindextype      */
 #include "mesh.h"
 
+int mod(int a, int b); // modulus
+
 #include "kinsol_soma.h" 
 
 #ifdef _OPENMP
@@ -33,7 +35,6 @@
 #define USE_SPTFQMR 2
 #define USE_SPFGMR  3
 
-int mod(int a, int b); // modulus
 
 /* Functions Called by the KINSOL Solver */
 
@@ -318,7 +319,7 @@ int call_PB(const struct Phase *const p)
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
@@ -549,11 +550,15 @@ int tmpsegsum;
 
 	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
 
-        res[ix][iy][iz] += (invbl[ixp][iy][iz]*(psi[ixp][iy][iz]-psi[ix][iy][iz])-invbl[ix][iy][iz]*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(deltax*deltax); 
-        res[ix][iy][iz] += (invbl[ix][iyp][iz]*(psi[ix][iyp][iz]-psi[ix][iy][iz])-invbl[ix][iy][iz]*(psi[ix][iy][iz]-psi[ix][iym][iz]))/(deltay*deltay); 
-        res[ix][iy][iz] += (invbl[ix][iy][izp]*(psi[ix][iy][izp]-psi[ix][iy][iz])-invbl[ix][iy][iz]*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(deltaz*deltaz); 
+        res[ix][iy][iz] += 0.5*((invbl[ixp][iy][iz]+invbl[ix][iy][iz])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(deltax*deltax); 
+        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ixm][iy][iz])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(deltax*deltax); 
+        res[ix][iy][iz] += 0.5*((invbl[ix][iyp][iz]+invbl[ix][iy][iz])*(psi[ix][iyp][iz]-psi[ix][iy][iz]))/(deltay*deltay); 
+        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iym][iz])*(psi[ix][iy][iz]-psi[ix][iym][iz]))/(deltay*deltay); 
+        res[ix][iy][iz] += 0.5*((invbl[ix][iy][izp]+invbl[ix][iy][iz])*(psi[ix][iy][izp]-psi[ix][iy][iz]))/(deltaz*deltaz); 
+        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iy][izm])*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(deltaz*deltaz); 
 
-/*
+/* OLD (with constant dielectric)
+ 
 			  res[ix][iy][iz] += (psi[ixp][iy][iz]-2.*psi[ix][iy][iz]+psi[ixm][iy][iz])/(deltax*deltax);	  
 			  res[ix][iy][iz] += (psi[ix][iyp][iz]-2.*psi[ix][iy][iz]+psi[ix][iym][iz])/(deltay*deltay);	  
 			  res[ix][iy][iz] += (psi[ix][iy][izp]-2.*psi[ix][iy][iz]+psi[ix][iy][izm])/(deltaz*deltaz);	  
@@ -680,8 +685,4 @@ static Phase *AllocUserData(void)
 }
 
 
-int mod(int a, int b)
-{
-    int r = a % b;
-    return r < 0 ? r + b : r;
-}
+
