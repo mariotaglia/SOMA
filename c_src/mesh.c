@@ -339,19 +339,6 @@ void update_omega_fields(const struct Phase *const p)
 void self_omega_field(const struct Phase *const p)
 {
 
-     unsigned int  ix, iy, iz;
-     unsigned int  ixp, ixm, iyp, iym, izp, izm, cell;
-     soma_scalar_t psi[p->nx][p->ny][p->nz]; 
-
-     soma_scalar_t gradpsi2[p->n_cells_local]; 
-     unsigned int Ntot[p->n_cells_local]; 
-
-     soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
-     soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
-     soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
- 
-     soma_scalar_t temp;
-
 
 
     // soma_scalar_t density=0;
@@ -418,6 +405,20 @@ void self_omega_field(const struct Phase *const p)
 
 // Dielectric contribution
 
+     unsigned int  ix, iy, iz;
+     unsigned int  ixp, ixm, iyp, iym, izp, izm, cell;
+     soma_scalar_t psi[p->nx][p->ny][p->nz]; 
+
+     soma_scalar_t gradpsi2[p->n_cells_local]; 
+     unsigned int Ntot[p->n_cells_local]; 
+
+     soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
+     soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
+     soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+ 
+     soma_scalar_t temp, frac; // auxiliary variables
+
+
 #pragma omp parallel for  
 for (ix = 0 ; ix < p->nx ; ix++) {
       for (iy = 0 ; iy < p->ny ; iy++) {
@@ -462,16 +463,26 @@ for (ix = 0 ; ix < p->nx ; ix++) {
               Ntot[cell] = 0;
 
 	      for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
-                 Ntot[cell] += p->fields_unified[cell+p->n_cells_local*type];  // this may have the same info as p->tempfield !!! CHECK !!!  
-
-                 printf("cell, Ntot/delta^3, tempfield %d, %f, %f \n", cell, Ntot[cell]/deltax/deltay/deltaz, p->tempfield[cell]);  
-
+                 Ntot[cell] += p->fields_unified[cell+p->n_cells_local*type]; // total number of segments in cell  
 	      } // types
-            } // iz
-         }  // iy 
-     }   // ix
 
-} // routine
+	   } // iz
+         }  // iy 
+      }   // ix
+
+
+for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
+    for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
+  
+    frac = p->fields_unified[cell+p->n_cells_local*type]/((soma_scalar_t) Ntot[cell]);	     
+
+    p->omega_field_unified[cell + type*p->n_cells_local] 
+	    += -(4.0*M_PI/8.0)*p->bls[type]*gradpsi2[cell]*(1.0-frac)*deltax*deltay*deltaz/((soma_scalar_t) Ntot[cell]);
+
+    } // cell 	    
+} // type	
+
+} // end routine
 
 
 //! Add the pair interactions to the omega fields via the SCMF0 hamiltonian.

@@ -26,8 +26,6 @@ int mod(int a, int b); // modulus
 
 /* Problem Constants */
 
-#define PI       RCONST(3.1415926535898)   /* pi */
-
 /* Linear Solver Loop Constants */
 
 #define USE_SPGMR   0
@@ -387,7 +385,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
-  soma_scalar_t constq = 4.0*PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+  soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
   soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
 
   iter++;	   
@@ -613,7 +611,7 @@ static realtype SetScale(const struct Phase *const p)
    soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
    soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
 
-   soma_scalar_t constq = 4.0*PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+   soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
    
    soma_scalar_t Bjerrum;
 
