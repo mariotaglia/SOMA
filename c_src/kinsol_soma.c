@@ -507,7 +507,8 @@ else {
 	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          invbl[ix][iy][iz] = p->invblav[cell] ; 
+                          invbl[ix][iy][iz] = p->invblav[cell] ;
+//				  printf("func: cell, res %d %f \n", cell, p->invblav[cell]);
 		     }
 	 	}
 	  }
@@ -531,7 +532,7 @@ else {
 	izm = mod((iz-1),p->nz);
         cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
+	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq/invbl[ix][iy][iz];
 
         res[ix][iy][iz] += 0.5*((invbl[ixp][iy][iz]+invbl[ix][iy][iz])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(deltax*deltax); 
         res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ixm][iy][iz])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(deltax*deltax); 
@@ -540,7 +541,7 @@ else {
         res[ix][iy][iz] += 0.5*((invbl[ix][iy][izp]+invbl[ix][iy][iz])*(psi[ix][iy][izp]-psi[ix][iy][iz]))/(deltaz*deltaz); 
         res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iy][izm])*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(deltaz*deltaz); 
 
-/* OLD (with constant dielectric)
+/* OLD (with constant dielectric) 
  
 			  res[ix][iy][iz] += (psi[ixp][iy][iz]-2.*psi[ix][iy][iz]+psi[ixm][iy][iz])/(deltax*deltax);	  
 			  res[ix][iy][iz] += (psi[ix][iyp][iz]-2.*psi[ix][iy][iz]+psi[ix][iym][iz])/(deltay*deltay);	  
@@ -550,14 +551,14 @@ else {
                           
 			  if (cell < NEQ) { 
 				  NV_Ith_OMP(fval,cell) = -res[ix][iy][iz];
-//				  printf("func: cell, res %d %f \n", cell, res[ix][iy][iz]);
+//				  printf("func: cell, res %d %f \n", cell, invbl[ix][iy][iz]);
 			  }     
 		     }
 	 	}
 	  }
 
 
-/* DEBUG print norm  
+/* DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < (int) p->nx ; ix++) {
                for (iy = 0 ; iy < (int) p->ny ; iy++) {
@@ -569,8 +570,8 @@ soma_scalar_t norma = 0;
                      }
                 }
 
-  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); */
-
+  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); 
+*/
   assert(fabs(sumrhoQ) < 1.0e-5);
 
 //  printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
