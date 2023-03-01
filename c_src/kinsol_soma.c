@@ -591,7 +591,6 @@ soma_scalar_t norma = 0;
 
 static realtype SetScale(const struct Phase *const p)
 { 
-   unsigned int type;
    realtype scale;
    soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
    soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
@@ -599,19 +598,7 @@ static realtype SetScale(const struct Phase *const p)
 
    soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
    
-   soma_scalar_t Bjerrum;
-
-// find the largest Bjerrum length in the system, smaller scale
-// Cannot be smaller than 0.01 to prevent a very large scaling factor
-
-   Bjerrum = 0.01;
-
-   for (type = 0; type < p->n_types; type++) {
-	   if (p->bls[type] > Bjerrum)
-		   Bjerrum = p->bls[type];
-   }
-
-   scale = 1./constq/Bjerrum/1. ;  // the factor 1. is an estimation for the average charge per lattice site
+   scale = 1./constq/1. ;  // the factor 1. is an estimation for the average charge per lattice site
 	   
    return(scale);
    }   

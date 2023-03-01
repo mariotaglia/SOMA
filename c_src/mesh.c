@@ -643,9 +643,8 @@ unsigned int cell, type;
 			  } 
                           if(tmpsegsum != 0)    
                             p->invblav[cell] = p->invblav[cell] / ((soma_scalar_t) tmpsegsum);
-			  else if (tmpsegsum == 0)
+			  else if (tmpsegsum == 0) 
                             p->invblav[cell] = p->invblav_zero; // prevents divergence if tmpsegsum = 0
-				  
 	  }
 }
 
