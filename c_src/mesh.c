@@ -468,7 +468,7 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
  
 //    printf("cell, type, gradpsi2, dl/dN todo  %d %d %f %f %f \n", cell,type,gradpsi2[cell],p->d_invblav[cell + type*p->n_cells_local], gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local]);
 	    
-    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq/vcell*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
+    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq*vcell*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
 
     } // cell 	    
 } // type	
