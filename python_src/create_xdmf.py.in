@@ -270,7 +270,7 @@ def add_npos_field(timestep,timesteps,nxyz,arguments):
     string =""
     if arguments['a']:
         h5file = arguments['a']
-        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Elec"+"\">\n"
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Npos"+"\">\n"
         string += "<!-- Result will be 3 dimensions -->"
         string += "<!-- Result will be 3 dimensions -->"
         string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
@@ -288,9 +288,50 @@ def add_npos_field(timestep,timesteps,nxyz,arguments):
         string += "</Attribute>\n"
     return string
 
+def add_npos_field_conf(nxyz,t,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Npos"+str(t)+"\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += "<!-- The source is 4 dimensions -->\n"
+    string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1,1 Count=1,*,*,* -->\n"
+    string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
+    string += str(t)+" 0 0 0\n"
+    string += "1 1 1 1\n"
+    string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+    string += "</DataItem>\n"
+    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Endian=\"Little\" Dimensions=\""+"1"+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/npos_field\n"
+    string +="</DataItem>\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
+
+def add_nneg_field(timestep,timesteps,nxyz,arguments):
+    string =""
+    if arguments['a']:
+        h5file = arguments['a']
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Nneg"+"\">\n"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += "<!-- The source is 5 dimensions -->\n"
+        string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
+        string += "<DataItem Dimensions=\"3 5\" Format=\"XML\">\n"
+        string += str(timestep)+" "+"0"+" 0 0 0\n"
+        string += "1 1 1 1 1\n"
+        string += "1 1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+        string += "</DataItem>\n"
+        string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+"1"+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += h5file+":/nneg_field\n"
+        string +="</DataItem>\n"
+        string +="</DataItem>\n"
+        string += "</Attribute>\n"
+    return string
+
 def add_nneg_field_conf(nxyz,t,h5file):
     string =""
-    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Elec"+str(t)+"\">\n"
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Nneg"+str(t)+"\">\n"
     string += "<!-- Result will be 3 dimensions -->"
     string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
     string += "<!-- The source is 4 dimensions -->\n"
@@ -306,6 +347,12 @@ def add_nneg_field_conf(nxyz,t,h5file):
     string +="</DataItem>\n"
     string += "</Attribute>\n"
     return string
+
+
+
+
+
+
 
 def get_area51(nxyz,arguments):
     string = ""
@@ -428,7 +475,7 @@ def main(argv):
         if isnpos==True:
             string += add_npos_field(time,timesteps,nxyz,arguments)
         string += get_npos_field(nxyz,arguments)
-         if isnneg==True:
+        if isnneg==True:
             string += add_nneg_field(time,timesteps,nxyz,arguments)
         string += get_nneg_field(nxyz,arguments)
 

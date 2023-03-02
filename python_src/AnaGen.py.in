@@ -22,7 +22,6 @@
 
 ## \file AnaGen.py Script to convert hdf5 and SOMA xml input files to ana input files.
 
-
 import sys
 sys.path.append( @SOMA_PYTHON_INSTALL_DIR@ )
 import numpy

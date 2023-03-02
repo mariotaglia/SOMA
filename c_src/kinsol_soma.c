@@ -378,8 +378,6 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
   const soma_scalar_t  vcell = deltax*deltay*deltaz;
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
-  soma_scalar_t  rhoposion[p->n_cells_local]; // number density of positive ions in 3D lattice
-  soma_scalar_t  rhonegion[p->n_cells_local]; // number density of negative ions in 3D lattice
   soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
   soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  psic[p->n_cells_local]; // electrostatic potential 3D lattice, units of kBT/|e|
@@ -415,15 +413,15 @@ psic[p->n_cells_local-1] = 0.0; // choice of zero of electrostatic potential due
 if (p->Nposions > 0) {
 #pragma omp parallel for reduction(+:sumposions) 
      for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-            rhoposion[cell] = exp(-psic[cell])*p->exp_born[cell];
-	    sumposions += rhoposion[cell]; 
+            p->npos_field[cell] = exp(-psic[cell])*p->exp_born[cell];
+	    sumposions += p->npos_field[cell]; 
       }
 
 // Normalize to match totalnumber and divide by cell volume
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-            rhoposion[cell] = rhoposion[cell] * p->Nposions / sumposions / vcell; 
+            p->npos_field[cell] = p->npos_field[cell] * p->Nposions / sumposions / vcell; 
     }
 } // if
 
@@ -431,7 +429,7 @@ else {
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-             rhoposion[cell] = 0.0;
+             p->npos_field[cell] = 0.0;
     }
 }
 
@@ -440,21 +438,21 @@ if (p->Nnegions > 0) {
 
 #pragma omp parallel for reduction(+:sumnegions) 
     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-             rhonegion[cell] = exp(psic[cell])*p->exp_born[cell];
-	     sumnegions += rhonegion[cell]; 
+             p->nneg_field[cell] = exp(psic[cell])*p->exp_born[cell];
+	     sumnegions += p->nneg_field[cell]; 
     }
 
 // Normalize to match totalnumber and divide by cell volume
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-           rhonegion[cell] = rhonegion[cell] * p->Nnegions / sumnegions / vcell; 
+           p->nneg_field[cell] = p->nneg_field[cell] * p->Nnegions / sumnegions / vcell; 
     }
 } // if 
 else {
 
 #pragma omp parallel for  
      for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-           rhonegion[cell] = 0.0;
+           p->nneg_field[cell] = 0.0;
      }
 }
 
@@ -467,7 +465,7 @@ else {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 			  rhoQ[ix][iy][iz] = p->rhoF[cell];
-                          rhoQ[ix][iy][iz] += rhoposion[cell]-rhonegion[cell]; 
+                          rhoQ[ix][iy][iz] += p->npos_field[cell]-p->nneg_field[cell]; 
 			  sumrhoQ += rhoQ[ix][iy][iz];	  
 		     }
 	 	}

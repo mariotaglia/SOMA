@@ -68,7 +68,12 @@ while (iterror > maxiterror) {
 
 //        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 }
-	
+
+#pragma omp parallel for  
+    for (i = 0 ; i < p->n_cells_local ; i++) {
+        p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos ; 
+        p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg  ; 
+     }
   return(0);
 }
 

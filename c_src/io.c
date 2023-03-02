@@ -723,6 +723,25 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
                 }
         }
 
+    if (p->npos_field)
+        {
+            hid_t status = write_field_hdf5(p, file_id, plist_id, p->npos_field, "/npos_field");
+            if (status != 0)
+                {
+                    fprintf(stderr, "ERROR: %s:%d cannot write npos_field.\n", __FILE__, __LINE__);
+                    return status;
+                }
+        }
+
+    if (p->nneg_field)
+        {
+            hid_t status = write_field_hdf5(p, file_id, plist_id, p->nneg_field, "/nneg_field");
+            if (status != 0)
+                {
+                    fprintf(stderr, "ERROR: %s:%d cannot write nneg_field.\n", __FILE__, __LINE__);
+                    return status;
+                }
+        }
 
     status = write_poly_conversion_hdf5(p, file_id, plist_id);
     if (status != 0)
@@ -1537,6 +1556,8 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     p->external_field_unified = NULL;
     p->umbrella_field = NULL;
     p->electric_field = NULL;
+    p->npos_field = NULL;
+    p->nneg_field = NULL;
 
     if (H5Lexists(file_id, "/area51", H5P_DEFAULT) > 0)
         {
@@ -1656,6 +1677,25 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
                 }
         }
 
+    if (H5Lexists(file_id, "/npos_field", H5P_DEFAULT) > 0)
+        {
+            hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->npos_field), "/npos_field");
+            if (status != 0)
+                {
+                    fprintf(stderr, "ERROR: failed to read npos_field %s:%d.\n", __FILE__, __LINE__);
+                    return status;
+                }
+        }
+
+    if (H5Lexists(file_id, "/nneg_field", H5P_DEFAULT) > 0)
+        {
+            hid_t status = read_field_hdf5(p, file_id, plist_id, &(p->nneg_field), "/nneg_field");
+            if (status != 0)
+                {
+                    fprintf(stderr, "ERROR: failed to read nneg_field %s:%d.\n", __FILE__, __LINE__);
+                    return status;
+                }
+        }
 
     status = read_poly_conversion_hdf5(p, file_id, plist_id);
     if (status != 0)

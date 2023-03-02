@@ -2209,6 +2209,7 @@ class Configuration(SomaXML):
 
     ## Create the electric field and initialize to zero.
     ## @return string field array
+
     def create_electric_field(self):
 
         tmp = False
