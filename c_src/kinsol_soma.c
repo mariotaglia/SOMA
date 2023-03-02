@@ -55,7 +55,7 @@ static int PrecSolveBD(N_Vector cc, N_Vector cscale,
 
 static Phase *AllocUserData(void);
 static void SetInitialProfiles(N_Vector cc);
-static realtype SetScale(void);
+static realtype SetScale(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 int iter = 0;
@@ -174,7 +174,7 @@ int call_PB(const struct Phase *const p)
 
 
     /* Set scale vector */
-    if (flagsolved) scale = SetScale();
+    if (flagsolved) scale = SetScale(p);
     N_VConst(scale, sc);
 
     /* Call KINCreate/KINInit to initialize KINSOL:
@@ -554,16 +554,21 @@ soma_scalar_t norma = 0;
  * Set initial conditions in cc
  */
 
-static realtype SetScale(void)
-{ 
+
+static realtype SetScale(const struct Phase *const p)
+{
    realtype scale;
-   soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
-   
+   soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
+   soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
+   soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
+
+   soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+
    scale = 1./constq/1. ;  // the factor 1. is an estimation for the average charge per lattice site
-	   
+           
    return(scale);
-   }   
- 
+   }
+
 static void SetInitialProfiles(N_Vector cc)
 { 
   N_VConst(0.0, cc);  
