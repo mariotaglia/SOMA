@@ -99,6 +99,8 @@ typedef struct Phase {
     soma_scalar_t *external_field_unified;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of external_fields */
     soma_scalar_t *umbrella_field;      /*!< \brief one pointer that points to the construct of p->n_types * p->n_cells_local of umbrella_field */
     soma_scalar_t *electric_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of electric_field */
+    soma_scalar_t *npos_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of npos_field */
+    soma_scalar_t *nneg_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of nneg_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
 
     soma_scalar_t invblav_zero;    /*!> \brief stores the inverse of the average Bjerrum length */

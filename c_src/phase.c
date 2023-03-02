@@ -355,7 +355,15 @@ int copyin_phase(struct Phase *const p)
         {
 #pragma acc enter data copyin(p->electric_field[0:p->n_cells_local])
         }
-#   
+     if (p->npos_field != NULL)
+        {
+#pragma acc enter data copyin(p->npos_field[0:p->n_cells_local])
+        }
+     if (p->nneg_field != NULL)
+        {
+#pragma acc enter data copyin(p->nneg_field[0:p->n_cells_local])
+        }
+
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
@@ -433,12 +441,19 @@ int copyout_phase(struct Phase *const p)
         {
 #pragma acc exit data copyout(p->umbrella_field[0:p->n_cells_local*p->n_types])
         }
-
     if (p->electric_field != NULL)
         {
 #pragma acc exit data copyout(p->electric_field[0:p->n_cells_local])
         }
-#
+    if (p->npos_field != NULL)
+        {
+#pragma acc exit data copyout(p->npos_field[0:p->n_cells_local])
+        }
+    if (p->nneg_field != NULL)
+        {
+#pragma acc exit data copyout(p->nneg_field[0:p->n_cells_local])
+        }
+
 #pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
 #pragma acc exit data copyout(p->A[0:p->n_types])
 #pragma acc exit data copyout(p->R[0:p->n_types])
@@ -541,6 +556,12 @@ int free_phase(struct Phase *const p)
     if (p->electric_field != NULL)
         free(p->electric_field);
 
+    if (p->npos_field != NULL)
+        free(p->npos_field);
+
+    if (p->nneg_field != NULL)
+        free(p->nneg_field);
+
     free_poly_conversion(p);
     free_mono_conversion(p);
     free_mobility(p);
@@ -600,7 +621,14 @@ int update_self_phase(Phase * const p, int rng_update_flag)
         {
 #pragma acc update self(p->electric_field[0:p->n_cells_local])
         }
-
+    if (p->npos_field != NULL)
+        {
+#pragma acc update self(p->npos_field[0:p->n_cells_local])
+        }
+    if (p->nneg_field != NULL)
+        {
+#pragma acc update self(p->nneg_field[0:p->n_cells_local])
+        }
 
 #pragma acc update self(p->tempfield[0:p->n_cells_local])
 #pragma acc update self(p->A[0:p->n_types])

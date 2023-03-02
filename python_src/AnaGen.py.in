@@ -118,6 +118,18 @@ class AnalysisFile(ConfGen.SomaXML):
             element.attr["lxyz"] = self.lxyz
             self.ana_dict["electric_field"] = copy.deepcopy(element)
 
+            #npos_field
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,1,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element.attr["nxyz"] = self.nxyz
+            element.attr["lxyz"] = self.lxyz
+            self.ana_dict["npos_field"] = copy.deepcopy(element)
+
+            #nneg_field
+            element = AnaElement( soma_type.get_soma_scalar_type(), (0,1,self.nxyz[0],self.nxyz[1],self.nxyz[2]),0)
+            element.attr["nxyz"] = self.nxyz
+            element.attr["lxyz"] = self.lxyz
+            self.ana_dict["nneg_field"] = copy.deepcopy(element)
+
             #acc_ratio
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,1), 0)
             self.ana_dict["acc_ratio"] = copy.deepcopy(element)

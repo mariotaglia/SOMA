@@ -65,6 +65,8 @@ def get_content_dict(arguments):
     content_dict["/density_field"] = False
     content_dict["/umbrella_field"] = False
     content_dict["/electric_field"] = False
+    content_dict["/npos_field"] = False
+    content_dict["/nneg_field"] = False
     if arguments['a']:
         with h5py.File(arguments['a'],"r") as f:
             if "/density_field" in f:
@@ -73,6 +75,11 @@ def get_content_dict(arguments):
                 content_dict["umbrella_field"] = True
             if "/electric_field" in f:
                 content_dict["electric_field"] = True
+            if "/npos_field" in f:
+                content_dict["npos_field"] = True
+            if "/nneg_field" in f:
+                content_dict["nneg_field"] = True
+ 
     return content_dict
 
 def get_topo_geo(nxyz):
@@ -259,6 +266,47 @@ def add_electric_field_conf(nxyz,t,h5file):
     string += "</Attribute>\n"
     return string
 
+def add_npos_field(timestep,timesteps,nxyz,arguments):
+    string =""
+    if arguments['a']:
+        h5file = arguments['a']
+        string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Elec"+"\">\n"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<!-- Result will be 3 dimensions -->"
+        string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += "<!-- The source is 5 dimensions -->\n"
+        string += "<!-- Origin=*,*,0,0,0  Stride=1,1,1,1,1 Count=1,1,*,*,* -->\n"
+        string += "<DataItem Dimensions=\"3 5\" Format=\"XML\">\n"
+        string += str(timestep)+" "+"0"+" 0 0 0\n"
+        string += "1 1 1 1 1\n"
+        string += "1 1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+        string += "</DataItem>\n"
+        string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"2\" Dimensions=\""+str(timesteps)+" "+"1"+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+        string += h5file+":/npos_field\n"
+        string +="</DataItem>\n"
+        string +="</DataItem>\n"
+        string += "</Attribute>\n"
+    return string
+
+def add_nneg_field_conf(nxyz,t,h5file):
+    string =""
+    string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Elec"+str(t)+"\">\n"
+    string += "<!-- Result will be 3 dimensions -->"
+    string += "<DataItem ItemType=\"HyperSlab\" Dimensions=\""+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += "<!-- The source is 4 dimensions -->\n"
+    string += "<!-- Origin=*,0,0,0  Stride=1,1,1,1,1 Count=1,*,*,* -->\n"
+    string += "<DataItem Dimensions=\"3 4\" Format=\"XML\">\n"
+    string += str(t)+" 0 0 0\n"
+    string += "1 1 1 1\n"
+    string += "1 "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\n"
+    string += "</DataItem>\n"
+    string += "<DataItem Format=\"HDF\" NumberType=\"Float\" Precision=\"8\" Endian=\"Little\" Dimensions=\""+"1"+" "+str(nxyz[0])+" "+str(nxyz[1])+" "+str(nxyz[2])+"\">\n"
+    string += h5file+":/nneg_field\n"
+    string +="</DataItem>\n"
+    string +="</DataItem>\n"
+    string += "</Attribute>\n"
+    return string
+
 def get_area51(nxyz,arguments):
     string = ""
     if arguments['c']:
@@ -293,6 +341,24 @@ def get_electric_field(nxyz,arguments):
          f.close()
      return string
 
+def get_npos_field(nxyz,arguments):
+     string = ""
+     if arguments['c']:
+         f = h5py.File(arguments['c'],"r")
+         if '/npos_field' in f:
+             string += add_npos_field_conf(nxyz,t,arguments["c"])
+         f.close()
+     return string
+
+def get_nneg_field(nxyz,arguments):
+     string = ""
+     if arguments['c']:
+         f = h5py.File(arguments['c'],"r")
+         if '/nneg_field' in f:
+             string += add_nneg_field_conf(nxyz,t,arguments["c"])
+         f.close()
+     return string
+
 def main(argv):
     parser = argparse.ArgumentParser(description="Script to create paraview input files.")
     parser.add_argument('-a',metavar='ana_file',type=str,required=False,help="Input ana file.")
@@ -315,6 +381,8 @@ def main(argv):
     string += "<Grid GridType=\"Collection\" CollectionType=\"Temporal\">\n"
     isumbr=False
     iselec=False
+    isnneg=False
+    isnpos=False
 
     if arguments['a']:
         with h5py.File(arguments['a'],"r") as f:
@@ -330,6 +398,20 @@ def main(argv):
                 if Dataset.size>0:
                     iselec=True
 
+    if arguments['a']:
+        with h5py.File(arguments['a'],"r") as f:
+            if '/npos_field' in f:
+                Dataset=f['npos_field']
+                if Dataset.size>0:
+                    isnpos=True
+
+    if arguments['a']:
+        with h5py.File(arguments['a'],"r") as f:
+            if '/nneg_field' in f:
+                Dataset=f['nneg_field']
+                if Dataset.size>0:
+                    isnneg=True
+
     for time in range(timesteps):
         string += open_grid(time)
         for type in range(types):
@@ -343,7 +425,13 @@ def main(argv):
         if iselec==True:
             string += add_electric_field(time,timesteps,nxyz,arguments)
         string += get_electric_field(nxyz,arguments)
-    
+        if isnpos==True:
+            string += add_npos_field(time,timesteps,nxyz,arguments)
+        string += get_npos_field(nxyz,arguments)
+         if isnneg==True:
+            string += add_nneg_field(time,timesteps,nxyz,arguments)
+        string += get_nneg_field(nxyz,arguments)
+
         string += get_area51(nxyz,arguments)
         string += "</Grid>\n"
     string += "</Grid>\n"

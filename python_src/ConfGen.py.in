@@ -1065,6 +1065,8 @@ class SomaXML:
     knownTags += ["external_field"]
     knownTags += ["umbrella_field"]
     knownTags += ["electric_field"]
+    knownTags += ["npos_field"]
+    knownTags += ["nneg_field"]
     knownTags += ["analysis"]
     knownTags += ["cm_a"]
     knownTags += ["k_umbrella"]
@@ -1209,6 +1211,12 @@ class Configuration(SomaXML):
         ##String Field array
         self.electric_field = self.create_electric_field()
 
+        ##String Field array
+        self.npos_field = self.create_npos_field()
+
+        ##String Field array
+        self.nneg_field = self.create_nneg_field()
+
         #Density weights
         self.density_weights = self.create_density_weights()
 
@@ -1311,6 +1319,16 @@ class Configuration(SomaXML):
                 del f["/electric_field"]
             if type(self.electric_field) is numpy.ndarray:
                 f.create_dataset("/electric_field",data=self.electric_field)
+
+            if "/npos_field" in f:
+                del f["/npos_field"]
+            if type(self.npos_field) is numpy.ndarray:
+                f.create_dataset("/npos_field",data=self.npos_field)
+
+            if "/nneg_field" in f:
+                del f["/nneg_field"]
+            if type(self.nneg_field) is numpy.ndarray:
+                f.create_dataset("/nneg_field",data=self.nneg_field)
 
             if "polyconversion" in f:
                 del f["polyconversion"]
@@ -2192,6 +2210,24 @@ class Configuration(SomaXML):
     ## Create the electric field and initialize to zero.
     ## @return string field array
     def create_electric_field(self):
+
+        tmp = False
+        tmp = numpy.zeros((self.n_types[0],self.nxyz[0],self.nxyz[1],self.nxyz[2]),dtype=soma_type.get_soma_scalar_type())
+        return tmp
+
+
+    ## Create the npos field and initialize to zero.
+    ## @return string field array
+    def create_npos_field(self):
+
+        tmp = False
+        tmp = numpy.zeros((self.n_types[0],self.nxyz[0],self.nxyz[1],self.nxyz[2]),dtype=soma_type.get_soma_scalar_type())
+        return tmp
+
+
+    ## Create the nneg field and initialize to zero.
+    ## @return string field array
+    def create_nneg_field(self):
 
         tmp = False
         tmp = numpy.zeros((self.n_types[0],self.nxyz[0],self.nxyz[1],self.nxyz[2]),dtype=soma_type.get_soma_scalar_type())
