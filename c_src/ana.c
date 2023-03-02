@@ -742,8 +742,11 @@ int extent_electric_field(const struct Phase *const p, void *const field_pointer
     const char *const name = field_name;
 
   if (p->efieldsolver != -1) {
+	  
     update_invblav(p); // update invblav (inverse of average Bjerrum length)
     update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
+    update_rhoF(p);  // update polymer charge density
+    update_exp_born(p); // update born energy		
     update_electric_field(p);
   }
 

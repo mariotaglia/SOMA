@@ -11,7 +11,6 @@ int call_EN(const struct Phase *const p);
 int call_EN(const struct Phase *const p)
 {
 unsigned int i, type;
-soma_scalar_t  rhoQ[p->n_cells_local]; // total number of charges
 soma_scalar_t  Qpos, Qneg, Qposnew, Qnegnew; 
 soma_scalar_t iterror = DBL_MAX;
 
@@ -33,16 +32,9 @@ while (iterror > maxiterror) {
  if (p->Nnegions > p->Nposions) {    	
 #pragma omp parallel for    
     for (i = 0 ; i < p->n_cells_local ; i++) {
-        rhoQ[i] = 0.0; 
-        for (type = 0 ; type < p->n_types; type++) {
-                   rhoQ[i] += p->fields_unified[i+p->n_cells_local*type]*p->charges[type];
-        } 
-        rhoQ[i] = rhoQ[i] / vcell ; // units of charge per Re^3
-
-
-	p->electric_field[i] = rhoQ[i];
-	p->electric_field[i] += sqrt(rhoQ[i]*rhoQ[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg) ;
-	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nnegions/Qneg) ;
+	p->electric_field[i] = p->rhoF[i];
+	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]);
+	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nnegions/Qneg*p->exp_born[i]) ;
 	p->electric_field[i] = log(p->electric_field[i]);
      }
  }
@@ -50,29 +42,22 @@ while (iterror > maxiterror) {
  else {
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells_local ; i++) {
-        rhoQ[i] = 0.0; 
-        for (type = 0 ; type < p->n_types; type++) {
-                   rhoQ[i] += p->fields_unified[i+p->n_cells_local*type]*p->charges[type];
-        } 
-        rhoQ[i] = rhoQ[i] / vcell ; // units of charge per Re^3
-
-	p->electric_field[i] = -rhoQ[i];
-	p->electric_field[i] += sqrt(rhoQ[i]*rhoQ[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg) ;
-	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nposions/Qpos) ;
+	p->electric_field[i] = -p->rhoF[i];
+	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]);
+	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nposions/Qpos*p->exp_born[i]) ;
 	p->electric_field[i] = -log(p->electric_field[i]);
      }
  }    
 
 #pragma omp parallel for reduction (+:Qposnew) 
     for (i = 0 ; i < p->n_cells_local ; i++) {
-        Qposnew += exp(-p->electric_field[i]);
+        Qposnew += exp(-p->electric_field[i])*p->exp_born[i];
     }
 
 #pragma omp parallel for reduction (+:Qnegnew)
     for (i = 0 ; i < p->n_cells_local ; i++) {
-        Qnegnew += exp(p->electric_field[i]);
+        Qnegnew += exp(p->electric_field[i])*p->exp_born[i];
     }
-
 
         Qposnew = Qposnew*vcell;
         Qnegnew = Qnegnew*vcell;

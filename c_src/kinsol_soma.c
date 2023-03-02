@@ -366,7 +366,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 
 #include <assert.h>
 
-  int ix, iy, iz, cell;
+  unsigned int ix, iy, iz, cell;
   unsigned int type;	
   int ixp ,ixm, iyp, iym, izp, izm;
   const struct Phase *const p = user_data;
@@ -374,18 +374,20 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 				       be fixed to zero (see notes) */
 
 
-  soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
-  soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
-  soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+  const soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
+  const soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
+  const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+  const soma_scalar_t  vcell = deltax*deltay*deltaz;
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
-  soma_scalar_t  rhoposion[p->nx][p->ny][p->nz]; // number of positive ions in 3D lattice
-  soma_scalar_t  rhonegion[p->nx][p->ny][p->nz]; // number of negative ions in 3D lattice
+  soma_scalar_t  rhoposion[p->n_calls_local]; // number density of positive ions in 3D lattice
+  soma_scalar_t  rhonegion[p->n_cells_local]; // number density of negative ions in 3D lattice
   soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
   soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
+  soma_scalar_t  psic[p->n_cells_local]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
-  soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+!!!  soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
   soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
 
   iter++;	   
@@ -393,109 +395,80 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 // psi from kinsol's input
 
 #pragma omp parallel for  
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+  for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          if (cell < NEQ) psi[ix][iy][iz] = NV_Ith_OMP(cc,cell); 
+                          if (cell < NEQ) {
+				  psi[ix][iy][iz] = NV_Ith_OMP(cc,cell); 
+				  psic[cell] = NV_Ith_OMP(cc,cell); 
+			  }
 		     }
 	 	}
 	  }
 
 psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
-
+psic[p->n_cells_local] = 0.0; // choice of zero of electrostatic potential due to PBC
 
 // Pos ion 
 
 
 if (p->Nposions > 0) {
-      
 #pragma omp parallel for reduction(+:sumposions) 
-     for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhoposion[ix][iy][iz] = exp(-psi[ix][iy][iz]);
-			  sumposions += rhoposion[ix][iy][iz]; 
-	                  }
-           }
+     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+            rhoposion[cell] = exp(-psic[cell])*p->exp_born[cell];
+	    sumposions += rhoposion[cell]; 
       }
 
-// Normalize to match totalnumber
+// Normalize to match totalnumber and divide by cell volume
 
 #pragma omp parallel for  
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhoposion[ix][iy][iz] = rhoposion[ix][iy][iz] * p->Nposions / sumposions; 
-		     }
-	 	}
-	  }
-}
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+            rhoposion[cell] = rhoposion[cell] * p->Nposions / sumposions / vcell; 
+    }
+} // if
+
 else {
 
 #pragma omp parallel for  
-      for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhoposion[ix][iy][iz] = 0.0;
-		     }
-	 	}
-	  }
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+             rhoposion[cell] = 0.0;
+    }
 }
-
-
 
 // Neg ion 
 if (p->Nnegions > 0) {
 
 #pragma omp parallel for reduction(+:sumnegions) 
-     for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhonegion[ix][iy][iz] = exp(psi[ix][iy][iz]);
-			  sumnegions += rhonegion[ix][iy][iz]; 
-		     }
-	 	}
-	  }
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+             rhonegion[cell] = exp(psic[cell])*p->exp_born[cell];
+	     sumnegions += rhonegion[cell]; 
+    }
 
-// Normalize to match totalnumber
+// Normalize to match totalnumber and divide by cell volume
 #pragma omp parallel for  
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhonegion[ix][iy][iz] = rhonegion[ix][iy][iz] * p->Nnegions / sumnegions; 
-		     }
-	 	}
-	  }
-} 
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+           rhonegion[cell] = rhonegion[cell] * p->Nnegions / sumnegions / vcell; 
+    }
+} // if 
 else {
 
 #pragma omp parallel for  
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-			  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhonegion[ix][iy][iz] = 0.0;
-		     }
-	 	}
-	  }
+     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+           rhonegion[cell] = 0.0;
+     }
 }
-
-
-
 
 // rhoQ from unified fields 
 
 #pragma omp parallel for reduction(+:sumrhoQ) 
-    for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          rhoQ[ix][iy][iz] = 0.0 ; 
+    for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+		  for (iz = 0 ; iz < p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-				  for (type = 0 ; type < p->n_types; type++) {
-                                       rhoQ[ix][iy][iz] += p->fields_unified[cell+p->n_cells_local*type]*p->charges[type];
-			   } 
-//                          printf("ix, iy, iz, cell, %d, %d, %d, %d, %f \n", ix, iy, iz, cell, rhoA[ix][iy][iz]);
-                          rhoQ[ix][iy][iz] += rhoposion[ix][iy][iz]-rhonegion[ix][iy][iz]; 
+
+			  rhoQ[ix][iy][iz] = rhoF[cell];
+                          rhoQ[ix][iy][iz] += rhoposion[cell]-rhonegion[cell]; 
 			  sumrhoQ += rhoQ[ix][iy][iz];	  
 		     }
 	 	}
@@ -503,9 +476,9 @@ else {
 
 // recast inverse of average bjerrum length into x,y,z coordinates
 
-    for (ix = 0 ; ix < (int) p->nx ; ix++) {
-	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
-		  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+    for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+		  for (iz = 0 ; iz < p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           invbl[ix][iy][iz] = p->invblav[cell] ;
 //				  printf("func: cell, res %d %f \n", cell, p->invblav[cell]);
@@ -516,17 +489,17 @@ else {
 /// Calculate residual from Poisson's equation
 
 #pragma omp parallel for  
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+  for (ix = 0 ; ix < p->nx ; ix++) {
 
      ixp = mod((ix+1),p->nx);
      ixm = mod((ix-1),p->nx);
  
-     for (iy = 0 ; iy < (int) p->ny ; iy++) {
+     for (iy = 0 ; iy < p->ny ; iy++) {
 
         iyp = mod((iy+1),p->ny);
         iym = mod((iy-1),p->ny);
 
-	for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+	for (iz = 0 ; iz < p->nz ; iz++) {
         
 	izp = mod((iz+1),p->nz);
 	izm = mod((iz-1),p->nz);

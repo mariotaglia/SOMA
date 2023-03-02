@@ -318,6 +318,8 @@ void update_omega_fields(const struct Phase *const p)
     if (p->efieldsolver != -1) {
         update_invblav(p); // update invblav (inverse of average Bjerrum length)
         update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
+	update_rhoF(p);  // update polymer charge density
+        update_exp_born(p); // update born energy, always do this after updating invblav		
         update_electric_field(p);
     }
 
@@ -679,5 +681,38 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
 }
 
 }
+
+void update_exp_born(const struct Phase *const p) 
+
+{
+unsigned int cell;
+
+#pragma omp parallel for    
+for (i = 0 ; i < p->n_cells_local ; i++) {
+   p->exp_born[i] = exp(-1.0/(p->invblav[i]*2.0*p->Born_a)); 
+}
+}
+
+
+void update_rhoF(const struct Phase *const p) 
+
+{
+unsigned int cell, type;
+const soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
+const soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
+const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+const soma_scalar_t  vcell = deltax*deltay*deltaz;
+
+#pragma omp parallel for    
+for (i = 0 ; i < p->n_cells_local ; i++) {
+   p->rhoF[i] = 0.0; 
+   for (type = 0 ; type < p->n_types; type++) {
+             p->rhoF[i] += p->fields_unified[i+p->n_cells_local*type]*p->charges[type];
+   } 
+   p->rhoF[i] = p->rhoF[i] / vcell ; // units of charge per Re^3
+   exp_born[i] = exp(-1.0/(p->invblav[i]*2.0*p->Born_a)); 
+}
+}
+
 
 

@@ -101,9 +101,11 @@ typedef struct Phase {
     soma_scalar_t *electric_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of electric_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
 
-    soma_scalar_t invblav_zero;      /*!> \brief stores the inverse of the average Bjerrum length */
-    soma_scalar_t *invblav;      /*!> \brief stores the inverse of the average Bjerrum length */
-    soma_scalar_t *d_invblav;      /*!> \brief stores the derivative of the average Bjerrum length w/r to the number of segments */
+    soma_scalar_t invblav_zero    /*!> \brief stores the inverse of the average Bjerrum length */
+    soma_scalar_t *invblav;       /*!> \brief stores the inverse of the average Bjerrum length */
+    soma_scalar_t *exp_born;      /*!> \brief stores exp(-u_B), where u_B is the Born energy of a single charge */
+    soma_scalar_t *rhoF;          /*!> \brief stores the charge density of the polymers */
+    soma_scalar_t *d_invblav;     /*!> \brief stores the derivative of the average Bjerrum length w/r to the number of segments */
 
     soma_scalar_t *A;           /*!< \brief stores the diffusion constants for each type */
     soma_scalar_t *charges;     /*!< \brief stores the charges for each type */
