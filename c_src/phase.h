@@ -101,7 +101,7 @@ typedef struct Phase {
     soma_scalar_t *electric_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of electric_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
 
-    soma_scalar_t invblav_zero    /*!> \brief stores the inverse of the average Bjerrum length */
+    soma_scalar_t invblav_zero;    /*!> \brief stores the inverse of the average Bjerrum length */
     soma_scalar_t *invblav;       /*!> \brief stores the inverse of the average Bjerrum length */
     soma_scalar_t *exp_born;      /*!> \brief stores exp(-u_B), where u_B is the Born energy of a single charge */
     soma_scalar_t *rhoF;          /*!> \brief stores the charge density of the polymers */
@@ -111,8 +111,8 @@ typedef struct Phase {
     soma_scalar_t *charges;     /*!< \brief stores the charges for each type */
     soma_scalar_t *bls;         /*!< \brief stores the Bjerrum lengths for each type */
     soma_scalar_t *invbls;       /*!< \brief stores the inverse of the Bjerrum lengths for each type */
-    soma_scalar_t *born_a;      /*!< \brief stores the Born radius for each type */
-    int efieldsolver           /*!< \brief type of efield solver, 0 = PB, 1 = EN */;
+    soma_scalar_t Born_a;      /*!< \brief stores the Born radius for each type */
+    int efieldsolver;           /*!< \brief type of efield solver, 0 = PB, 1 = EN */;
 
     soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
     //!  Mobility of the center of mass for all polymer types.

@@ -55,7 +55,7 @@ static int PrecSolveBD(N_Vector cc, N_Vector cscale,
 
 static Phase *AllocUserData(void);
 static void SetInitialProfiles(N_Vector cc);
-static realtype SetScale(const struct Phase *const p);
+static realtype SetScale(void);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 int iter = 0;
@@ -174,7 +174,7 @@ int call_PB(const struct Phase *const p)
 
 
     /* Set scale vector */
-    if (flagsolved) scale = SetScale(p);
+    if (flagsolved) scale = SetScale();
     N_VConst(scale, sc);
 
     /* Call KINCreate/KINInit to initialize KINSOL:
@@ -367,7 +367,6 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 #include <assert.h>
 
   unsigned int ix, iy, iz, cell;
-  unsigned int type;	
   int ixp ,ixm, iyp, iym, izp, izm;
   const struct Phase *const p = user_data;
   int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
@@ -379,7 +378,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
   const soma_scalar_t  vcell = deltax*deltay*deltaz;
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
-  soma_scalar_t  rhoposion[p->n_calls_local]; // number density of positive ions in 3D lattice
+  soma_scalar_t  rhoposion[p->n_cells_local]; // number density of positive ions in 3D lattice
   soma_scalar_t  rhonegion[p->n_cells_local]; // number density of negative ions in 3D lattice
   soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
   soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
@@ -387,7 +386,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
-!!!  soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+  soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
   soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
 
   iter++;	   
@@ -399,7 +398,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          if (cell < NEQ) {
+                          if ((int) cell < NEQ) {
 				  psi[ix][iy][iz] = NV_Ith_OMP(cc,cell); 
 				  psic[cell] = NV_Ith_OMP(cc,cell); 
 			  }
@@ -467,7 +466,7 @@ else {
 		  for (iz = 0 ; iz < p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-			  rhoQ[ix][iy][iz] = rhoF[cell];
+			  rhoQ[ix][iy][iz] = p->rhoF[cell];
                           rhoQ[ix][iy][iz] += rhoposion[cell]-rhonegion[cell]; 
 			  sumrhoQ += rhoQ[ix][iy][iz];	  
 		     }
@@ -505,7 +504,7 @@ else {
 	izm = mod((iz-1),p->nz);
         cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq/invbl[ix][iy][iz];
+	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
 
         res[ix][iy][iz] += 0.5*((invbl[ixp][iy][iz]+invbl[ix][iy][iz])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(deltax*deltax); 
         res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ixm][iy][iz])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(deltax*deltax); 
@@ -514,15 +513,9 @@ else {
         res[ix][iy][iz] += 0.5*((invbl[ix][iy][izp]+invbl[ix][iy][iz])*(psi[ix][iy][izp]-psi[ix][iy][iz]))/(deltaz*deltaz); 
         res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iy][izm])*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(deltaz*deltaz); 
 
-/* OLD (with constant dielectric) 
- 
-			  res[ix][iy][iz] += (psi[ixp][iy][iz]-2.*psi[ix][iy][iz]+psi[ixm][iy][iz])/(deltax*deltax);	  
-			  res[ix][iy][iz] += (psi[ix][iyp][iz]-2.*psi[ix][iy][iz]+psi[ix][iym][iz])/(deltay*deltay);	  
-			  res[ix][iy][iz] += (psi[ix][iy][izp]-2.*psi[ix][iy][iz]+psi[ix][iy][izm])/(deltaz*deltaz);	  
-*/		  
-			  res[ix][iy][iz] = -res[ix][iy][iz];
+	res[ix][iy][iz] = -res[ix][iy][iz];
                           
-			  if (cell < NEQ) { 
+			  if ((int) cell < NEQ) { 
 				  NV_Ith_OMP(fval,cell) = -res[ix][iy][iz];
 //				  printf("func: cell, res %d %f \n", cell, invbl[ix][iy][iz]);
 			  }     
@@ -561,14 +554,10 @@ soma_scalar_t norma = 0;
  * Set initial conditions in cc
  */
 
-static realtype SetScale(const struct Phase *const p)
+static realtype SetScale(void)
 { 
    realtype scale;
-   soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
-   soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
-   soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
-
-   soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+   soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
    
    scale = 1./constq/1. ;  // the factor 1. is an estimation for the average charge per lattice site
 	   

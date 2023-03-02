@@ -10,7 +10,7 @@ int call_EN(const struct Phase *const p);
 
 int call_EN(const struct Phase *const p)
 {
-unsigned int i, type;
+unsigned int i;
 soma_scalar_t  Qpos, Qneg, Qposnew, Qnegnew; 
 soma_scalar_t iterror = DBL_MAX;
 

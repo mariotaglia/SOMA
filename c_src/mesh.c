@@ -418,12 +418,13 @@ void self_omega_field(const struct Phase *const p)
 
      soma_scalar_t gradpsi2[p->n_cells_local]; 
 
-     soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
-     soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
-     soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+     const soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
+     const soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
+     const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
+     const soma_scalar_t  vcell = deltax*deltay*deltaz;
+     const soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
  
      soma_scalar_t temp ; // auxiliary variables
-     soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
 
 
 #pragma omp parallel for  
@@ -467,13 +468,29 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
  
 //    printf("cell, type, gradpsi2, dl/dN todo  %d %d %f %f %f \n", cell,type,gradpsi2[cell],p->d_invblav[cell + type*p->n_cells_local], gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local]);
 	    
-    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
+    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq/vcell*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
 
     } // cell 	    
 } // type	
 
 } // if efieldsolver
 
+// Born energy contribution
+  if (p->efieldsolver != -1) {
+
+  unsigned int ii; // simplifies notation 
+
+
+    for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
+       for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
+  
+	   ii = cell + type*p->n_cells_local;
+     
+           p->omega_field_unified[ii] +=
+                    fabs(p->charges[type])/2.0/p->Born_a*(1.0-p->fields_unified[ii]/p->invblav[cell]*p->d_invblav[ii]);    
+        } // cell 	    
+     } // type	
+   } // if efieldsolver
 } // end routine
 
 
@@ -551,7 +568,7 @@ void update_omega_fields_scmf1(const struct Phase *const p)
     add_pair_omega_fields_scmf1(p);
 }
 
-
+/*  Helper routines for efield calculation */
 
 void calc_ions(struct Phase *const p)
 {
@@ -595,9 +612,6 @@ void calc_ions(struct Phase *const p)
   assert(fabs(netcharge) < 1.0e-6);
 }
 
-
-
-
 void update_electric_field(const struct Phase *const p)
 {
     // Update electric potential
@@ -629,7 +643,7 @@ unsigned int type;
 }
 
 
-void update_invblav(const struct Phase *const p) 
+void update_invblav(const struct Phase *const p) // Updates invblav = average of inverse Bjerrum length
 
 {
 int tmpsegsum;
@@ -654,7 +668,7 @@ unsigned int cell, type;
 }
 
 
-void update_d_invblav(const struct Phase *const p) 
+void update_d_invblav(const struct Phase *const p) // Updates d_invblav = derivative of average inverse Bjerrum length respect to N_i
 
 {
 unsigned int cell, type;
@@ -682,19 +696,18 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
 
 }
 
-void update_exp_born(const struct Phase *const p) 
+void update_exp_born(const struct Phase *const p) // Updates exp_born = exp(-u_B)
 
 {
 unsigned int cell;
 
 #pragma omp parallel for    
-for (i = 0 ; i < p->n_cells_local ; i++) {
-   p->exp_born[i] = exp(-1.0/(p->invblav[i]*2.0*p->Born_a)); 
+for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+   p->exp_born[cell] = exp(-1.0/(p->invblav[cell]*2.0*p->Born_a)); 
 }
 }
 
-
-void update_rhoF(const struct Phase *const p) 
+void update_rhoF(const struct Phase *const p) // Updates rhoF (charge per Re^3) 
 
 {
 unsigned int cell, type;
@@ -704,13 +717,12 @@ const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
 const soma_scalar_t  vcell = deltax*deltay*deltaz;
 
 #pragma omp parallel for    
-for (i = 0 ; i < p->n_cells_local ; i++) {
-   p->rhoF[i] = 0.0; 
+for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+   p->rhoF[cell] = 0.0; 
    for (type = 0 ; type < p->n_types; type++) {
-             p->rhoF[i] += p->fields_unified[i+p->n_cells_local*type]*p->charges[type];
+             p->rhoF[cell] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])*p->charges[type];
    } 
-   p->rhoF[i] = p->rhoF[i] / vcell ; // units of charge per Re^3
-   exp_born[i] = exp(-1.0/(p->invblav[i]*2.0*p->Born_a)); 
+   p->rhoF[cell] = p->rhoF[cell] / vcell ; // units of charge per Re^3
 }
 }
 
