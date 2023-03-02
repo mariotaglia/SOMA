@@ -407,7 +407,7 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 	  }
 
 psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
-psic[p->n_cells_local] = 0.0; // choice of zero of electrostatic potential due to PBC
+psic[p->n_cells_local-1] = 0.0; // choice of zero of electrostatic potential due to PBC
 
 // Pos ion 
 
