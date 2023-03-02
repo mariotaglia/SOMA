@@ -581,12 +581,6 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
                    p->bls);
     HDF5_ERROR_CHECK2(status, "/parameter/bls");
 
-    //born_a data
-    status =
-        write_hdf5(1, &n_types_size, file_id, "/parameter/born_a", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id,
-                   p->born_a);
-    HDF5_ERROR_CHECK2(status, "/parameter/born_a");
-
     //efieldsolver
     status = write_hdf5(1, &one, file_id, "/parameter/efieldsolver", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->efieldsolver));
     HDF5_ERROR_CHECK2(status, "/parameter/efieldsolver");
@@ -633,10 +627,10 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
     HDF5_ERROR_CHECK2(status, "/parameter/lxyz");
 
 
-    //Bjerrum
+    //Born_a
     status = 
-        write_hdf5(1, &one, file_id, "/parameter/Bjerrum", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Bjerrum));
-    HDF5_ERROR_CHECK2(status, "/parameter/Bjerrum");
+        write_hdf5(1, &one, file_id, "/parameter/Born_a", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_a));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_a");
 
     //p->harmonic_normb_variable_scale
     status =
@@ -1416,18 +1410,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/bls", H5T_SOMA_NATIVE_SCALAR, plist_id, p->bls);
     HDF5_ERROR_CHECK2(status, "/parameter/bls");
 
-    //born_a array for the particles
-    p->born_a = (soma_scalar_t * const)malloc(p->n_types * sizeof(soma_scalar_t));
-    if (p->born_a == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-    // read p->born_a
-    status = read_hdf5(file_id, "/parameter/born_a", H5T_SOMA_NATIVE_SCALAR, plist_id, p->born_a);
-    HDF5_ERROR_CHECK2(status, "/parameter/born_a");
-
     // read p->efieldsolver
     status = read_hdf5(file_id, "/parameter/efieldsolver", H5T_NATIVE_UINT, plist_id, &(p->efieldsolver));
     HDF5_ERROR_CHECK2(status, "/parameter/efieldsolver");
@@ -1485,9 +1467,9 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/Nions", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
 
-    // read Bjerrum
-    status = read_hdf5(file_id, "/parameter/Bjerrum", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Bjerrum));
-    HDF5_ERROR_CHECK2(status, "/parameter/Bjerrum");
+    // read Born_a
+    status = read_hdf5(file_id, "/parameter/Born_a", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_a));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_a");
 
     //Read in the polymer architectures.
     //Number of polymer type

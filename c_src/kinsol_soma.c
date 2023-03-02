@@ -574,7 +574,6 @@ soma_scalar_t norma = 0;
 */
   assert(fabs(sumrhoQ) < 1.0e-5);
 
-//  printf("func: Bjerrum lenght is: %f \n ", p->Bjerrum);
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
 

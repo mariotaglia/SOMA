@@ -741,9 +741,11 @@ int extent_electric_field(const struct Phase *const p, void *const field_pointer
 {
     const char *const name = field_name;
 
+  if (p->efieldsolver != -1) {
     update_invblav(p); // update invblav (inverse of average Bjerrum length)
     update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
     update_electric_field(p);
+  }
 
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;

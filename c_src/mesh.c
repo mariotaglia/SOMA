@@ -315,10 +315,11 @@ void update_omega_fields(const struct Phase *const p)
     else                        //Quick exit, because the property has already been calculated for the time step.
         return;
 
-    update_invblav(p); // update invblav (inverse of average Bjerrum length)
-    update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
-   
-    update_electric_field(p);
+    if (p->efieldsolver != -1) {
+        update_invblav(p); // update invblav (inverse of average Bjerrum length)
+        update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
+        update_electric_field(p);
+    }
 
     switch (p->hamiltonian)
         {
@@ -398,13 +399,15 @@ void self_omega_field(const struct Phase *const p)
                         }
 		    // electric field
 		    
+                          if (p->efieldsolver != -1) {
                             p->omega_field_unified[cell + T_types * p->n_cells_local] +=
                                 p->electric_field[cell] * p->charges[T_types];
-
+                          }
                 } // cells
         }  // types
 
 // Dielectric contribution
+  if (p->efieldsolver != -1) {
 
      unsigned int  ix, iy, iz;
      unsigned int  ixp, ixm, iyp, iym, izp, izm, cell;
@@ -466,6 +469,8 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
 
     } // cell 	    
 } // type	
+
+} // if efieldsolver
 
 } // end routine
 
@@ -599,8 +604,6 @@ void update_electric_field(const struct Phase *const p)
     	call_PB(p);
     else if (p->efieldsolver == 1) 
     	call_EN(p);
-    else if (p->efieldsolver == -1) 
-    	call_NO(p);
 }  
 
 int mod(int a, int b)
