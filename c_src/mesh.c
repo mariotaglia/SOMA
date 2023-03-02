@@ -476,6 +476,8 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
 } // if efieldsolver
 
 // Born energy contribution
+
+  soma_scalar_t tmpborn ;
   if (p->efieldsolver != -1) {
 
   unsigned int ii; // simplifies notation 
@@ -486,8 +488,10 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
   
 	   ii = cell + type*p->n_cells_local;
      
-           p->omega_field_unified[ii] +=
-                    fabs(p->charges[type])/2.0/p->Born_a*(1.0-p->fields_unified[ii]/p->invblav[cell]*p->d_invblav[ii]);    
+           tmpborn = 1.0/(p->invblav[cell]*2.0*p->Born_a);
+
+           p->omega_field_unified[ii] += tmpborn*fabs(p->charges[type])*(1.0-p->fields_unified[ii]/p->invblav[cell]*p->d_invblav[ii]);   
+
         } // cell 	    
      } // type	
    } // if efieldsolver
