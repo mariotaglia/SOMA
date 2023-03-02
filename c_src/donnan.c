@@ -20,7 +20,7 @@ const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
 const soma_scalar_t  vcell = deltax*deltay*deltaz;
 const soma_scalar_t  vall = p->Lx*p->Ly*p->Lz ;
  
-const soma_scalar_t maxiterror = 1e-6*vall ; // maximum iteration error for Qpos and Qneg
+const soma_scalar_t maxiterror = 1e-5 ; // maximum relative iteration error for Qpos and Qneg
 
 Qneg = vall;
 Qpos = vall;
@@ -62,7 +62,7 @@ while (iterror > maxiterror) {
         Qposnew = Qposnew*vcell;
         Qnegnew = Qnegnew*vcell;
 
-        iterror = fabs(Qpos-Qposnew) + fabs(Qneg-Qnegnew);
+        iterror = fabs(Qpos-Qposnew)/Qpos + fabs(Qneg-Qnegnew)/Qneg;
 	Qpos = Qposnew;
 	Qneg = Qnegnew;
 
