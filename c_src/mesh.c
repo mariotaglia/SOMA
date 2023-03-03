@@ -709,7 +709,7 @@ soma_scalar_t borntmp;
 for (cell = 0 ; cell < p->n_cells_local ; cell++) {
 
    borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_a);
-   borntmp += 1.0/(p->invblav_zero*2.0*p->Born_a); // shift to prevent very large numbers...
+   borntmp += -1.0/(p->invblav_zero*2.0*p->Born_a); // shift to prevent very large numbers...
 	
    p->exp_born[cell] = exp(-borntmp); 
 }
