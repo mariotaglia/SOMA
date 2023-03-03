@@ -74,6 +74,14 @@ while (iterror > maxiterror) {
         p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos*p->Nposions ; 
         p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg*p->Nnegions  ; 
      }
+
+/*    for (i = 0 ; i < p->n_cells_local ; i++) {
+    printf("i pos neg born rhoF %d %.3e %.3e %.3e %.3e \n",i, p->npos_field[i], p->nneg_field[i], p->exp_born[i], p->rhoF[i]);
+    }
+*/
+
+
+
   return(0);
 }
 

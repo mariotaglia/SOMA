@@ -130,7 +130,7 @@ int call_PB(const struct Phase *const p)
  if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
  N_VConst(0, constraints); */
 
-  linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
+  linsolver = 0; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* Allocate ccx */
    if (flagsolved) {
@@ -317,7 +317,7 @@ int call_PB(const struct Phase *const p)
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
@@ -524,11 +524,11 @@ else {
 
 /* DEBUG print norm 
 soma_scalar_t norma = 0;
-        for (ix = 0 ; ix < (int) p->nx ; ix++) {
-               for (iy = 0 ; iy < (int) p->ny ; iy++) {
-                  for (iz = 0 ; iz < (int)  p->nz ; iz++) {
+        for (ix = 0 ; ix < p->nx ; ix++) {
+               for (iy = 0 ; iy < p->ny ; iy++) {
+                  for (iz = 0 ; iz <  p->nz ; iz++) {
                   cell = cell_coordinate_to_index(p, ix, iy, iz);
-			  if (cell < NEQ)  
+			  if ((int) cell < NEQ)  
               			  norma += res[ix][iy][iz]; 
                           }
                      }
