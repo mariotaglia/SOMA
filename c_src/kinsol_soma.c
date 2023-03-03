@@ -473,6 +473,7 @@ else {
 
 // recast inverse of average bjerrum length into x,y,z coordinates
 
+#pragma omp parallel for  
     for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 		  for (iz = 0 ; iz < p->nz ; iz++) {
@@ -485,7 +486,7 @@ else {
 
 /// Calculate residual from Poisson's equation
 
-#pragma omp parallel for  
+// DO NOT PARALELIZE #pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
 
      ixp = mod((ix+1),p->nx);
@@ -535,7 +536,7 @@ soma_scalar_t norma = 0;
                 }
 
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); 
-*/
+  */
   assert(fabs(sumrhoQ) < 1.0e-5);
 
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
