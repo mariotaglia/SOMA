@@ -704,10 +704,14 @@ void update_exp_born(const struct Phase *const p) // Updates exp_born = exp(-u_B
 
 {
 unsigned int cell;
-
+soma_scalar_t borntmp;
 #pragma omp parallel for    
 for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-   p->exp_born[cell] = exp(-1.0/(p->invblav[cell]*2.0*p->Born_a)); 
+
+   borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_a);
+   borntmp += 1.0/(p->invblav_zero*2.0*p->Born_a); // shift to prevent very large numbers...
+	
+   p->exp_born[cell] = exp(-borntmp); 
 }
 }
 

@@ -317,7 +317,7 @@ int call_PB(const struct Phase *const p)
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi

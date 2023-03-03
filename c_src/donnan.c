@@ -71,8 +71,8 @@ while (iterror > maxiterror) {
 
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells_local ; i++) {
-        p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos ; 
-        p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg  ; 
+        p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos*p->Nposions ; 
+        p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg*p->Nnegions  ; 
      }
   return(0);
 }
