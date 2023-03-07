@@ -740,7 +740,7 @@ int extent_npos_field(const struct Phase *const p, void *const field_pointer, co
 {
     const char *const name = field_name;
 
-  if (p->efieldsolver != -1) {
+  if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 	  
     update_invblav(p); // update invblav (inverse of average Bjerrum length)
     update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
@@ -871,7 +871,7 @@ int extent_nneg_field(const struct Phase *const p, void *const field_pointer, co
 {
     const char *const name = field_name;
 
-  if (p->efieldsolver != -1) {
+  if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 	  
     update_invblav(p); // update invblav (inverse of average Bjerrum length)
     update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
@@ -1002,7 +1002,7 @@ int extent_electric_field(const struct Phase *const p, void *const field_pointer
 {
     const char *const name = field_name;
 
-  if (p->efieldsolver != -1) {
+  if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 	  
     update_invblav(p); // update invblav (inverse of average Bjerrum length)
     update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)

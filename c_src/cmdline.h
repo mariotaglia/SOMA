@@ -41,6 +41,7 @@ extern "C" {
     };
     enum enum_move_type { move_type__NULL = -1, move_type_arg_TRIAL = 0, move_type_arg_SMART };
     enum enum_iteration_alg { iteration_alg__NULL = -1, iteration_alg_arg_POLYMER = 0, iteration_alg_arg_SET };
+    enum enum_efieldsolver {  efieldsolver_arg_EN = 0, efieldsolver_arg_PB = 1,efieldsolver_arg_PH = 2, efieldsolver_arg_NO = 3};
     enum enum_set_generation_algorithm { set_generation_algorithm__NULL = -1, set_generation_algorithm_arg_SIMPLE =
             0, set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS
     };
@@ -117,6 +118,16 @@ extern "C" {
                                 /**< @brief Specify the iteration algorithm of the beads. This specifies also the level of parallelism that is possible. original value given at command line.  */
         const char *iteration_alg_help;
                                   /**< @brief Specify the iteration algorithm of the beads. This specifies also the level of parallelism that is possible. help description.  */
+
+        enum enum_efieldsolver efieldsolver_arg;
+                                                /**< @brief Specify the efield solver. (default='EN').  */
+
+        char *efieldsolver_orig;                       
+                                /**< @brief Specify the efield solver, original value given at command line.  */
+        const char *efieldsolver_help;
+                                  /**< @brief Specify the efield solver.  help description.  */
+                                  
+
         int skip_tests_flag;
                         /**< @brief Skip tests SOMA is usually preforming before and after the simulation to ensure integrety of the data. (default=off).  */
         const char *skip_tests_help;
@@ -218,6 +229,11 @@ extern "C" {
         unsigned int move_type_given;   /**< @brief Whether move-type was given.  */
         unsigned int iteration_alg_given;
                                         /**< @brief Whether iteration-alg was given.  */
+
+        unsigned int efieldsolver_given;
+                                        /**< @brief Whether efield solver was given.  */
+ 
+
         unsigned int skip_tests_given;  /**< @brief Whether skip-tests was given.  */
         unsigned int load_balance_given;/**< @brief Whether load-balance was given.  */
         unsigned int accepted_load_inbalance_given;
@@ -374,6 +390,10 @@ extern "C" {
                                                        /**< @brief Possible values for move-type. */
     extern const char *cmdline_parser_iteration_alg_values[];
                                                            /**< @brief Possible values for iteration-alg. */
+
+    extern const char *cmdline_parser_efieldsolver_values[];
+                                                           /**< @brief Possible values for efieldsolver. */
+
     extern const char *cmdline_parser_set_generation_algorithm_values[];
                                                                       /**< @brief Possible values for set-generation-algorithm. */
 

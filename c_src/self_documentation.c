@@ -118,17 +118,17 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
         fprintf(ftmp, "\tExternal field present: yes\n");
     if (p->umbrella_field)
         fprintf(ftmp, "\tUmbrella field present: yes\n");
-    if (p->electric_field) {
-           fprintf(ftmp, "\tElectric field present: yes\n");
-        if(p->efieldsolver == 0) 
-           fprintf(ftmp, "\tUsing PB efield solver (EN as initial guess)\n");
-        if(p->efieldsolver == 2)
-           fprintf(ftmp, "\tUsing PB efield solver (homogeneous as initial guess)\n");
-        else if (p->efieldsolver == 1)	
-		fprintf(ftmp, "\tUsing EN efield solver\n");
-        else if (p->efieldsolver == -1)	
-		fprintf(ftmp, "\tNO efield solver, charges will be ignored\n");
-	}	 
+
+
+    if(p->args.efieldsolver_arg == efieldsolver_arg_PB) 
+       fprintf(ftmp, "\tUsing PB efield solver (EN as initial guess)\n");
+    if(p->args.efieldsolver_arg == efieldsolver_arg_PH)
+       fprintf(ftmp, "\tUsing PB efield solver (homogeneous as initial guess)\n");
+    if (p->args.efieldsolver_arg == efieldsolver_arg_EN)	
+	fprintf(ftmp, "\tUsing EN efield solver\n");
+    if (p->args.efieldsolver_arg == efieldsolver_arg_NO)	
+	fprintf(ftmp, "\tNO efield solver, charges will be ignored\n");
+
     if (p->pc.deltaMC)
         fprintf(ftmp, "\tPolytype conversion active %d,\t", p->pc.deltaMC);
     if (p->pc.rate)

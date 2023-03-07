@@ -1051,7 +1051,6 @@ class SomaXML:
     knownTags += ["A"]
     knownTags += ["charges"]
     knownTags += ["bls"]
-    knownTags += ["efieldsolver"]
     knownTags += ["time"]
     knownTags += ["harmonicvariablescale"]
     knownTags += ["poly_arch"]
@@ -1123,10 +1122,6 @@ class Configuration(SomaXML):
         ## bls array of the Configuration
         self.bls = self.create_bls()
         assert type(self.bls) is numpy.ndarray
-
-        ## efieldsolver array of the Configuration
-        self.efieldsolver = self.create_efieldsolver()
-        assert type(self.efieldsolver) is numpy.ndarray
 
         ## umbrella constant for the configuration
         self.k_umbrella = self.create_k_umbrella()
@@ -1257,7 +1252,6 @@ class Configuration(SomaXML):
             create_list += [("/parameter/k_umbrella",self.k_umbrella)]
             create_list += [("/parameter/xn",self.xn)]
             create_list += [("/parameter/time",self.time)]
-            create_list += [("/parameter/efieldsolver",self.efieldsolver)]
             create_list += [("/parameter/n_types",self.n_types)]
             create_list += [("/parameter/n_poly_type",self.n_poly_type)]
             create_list += [("/parameter/n_polymers",self.n_polymers)]
@@ -1606,33 +1600,6 @@ class Configuration(SomaXML):
         time_array = numpy.zeros((1,),dtype=numpy.uint32)
         time_array[0] = time
         return time_array
-
-    ## Create the "efieldsolver" attribute
-    def create_efieldsolver(self):
-        efield_str = ""
-        for efield in self.root.iter('efieldsolver'):
-            efield_str += efield.text
-        efield_str = efield_str.strip()
-        efield_array = numpy.zeros((1,),dtype=numpy.uint32)
-        
-        match efield_str:
-            case "PB":
-                print("Poisson Boltzmann solver for electrostatic (EN as initial guess)")
-                efield_array[0] = 0
-            case "PH":
-                print("Poisson Boltzmann solver for electrostatic (homogeneous as initial guess)")
-                efield_array[0] = 2
-            case "EN":
-                print("Electroneutrality solver for electrostatic")
-                efield_array[0] = 1
-            case "NO":
-                print("No electrostatic solver (charges will be neglected)")
-                efield_array[0] = -1
-            case _:
-                assert False, "No solver entered for electrostatic, options are: PB, PH, EN, NO"
-                
-        return efield_array
-
 
     ## Create the "create_harmonic_normb_variable_scale" attribute
     ## @return create_harmonic_normb_variable_scale array

@@ -67,6 +67,7 @@ const char *som_args_detailed_help[] = {
     "      --n_random_q=N            Option to determine the number of random wave\n                                  vectors used for the calculation of structure\n                                  factor.  (default=`32')",
     "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
     "      --purpose=description     Describe the purpose of the simulation run.\n                                  Enables automatic self documentation. only\n                                  ASCII",
+    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				PH (Poisson Boltzmann, guess from homogeneous) \n				NO (none), (default = NE) \n",
     0
 };
 
@@ -103,11 +104,12 @@ static void init_help_array(void)
     som_args_help[28] = som_args_detailed_help[29];
     som_args_help[29] = som_args_detailed_help[30];
     som_args_help[30] = som_args_detailed_help[31];
-    som_args_help[31] = 0;
+    som_args_help[31] = som_args_detailed_help[32];
+    som_args_help[32] = 0;
 
 }
 
-const char *som_args_help[32];
+const char *som_args_help[33];
 
 typedef enum { ARG_NO, ARG_FLAG, ARG_STRING, ARG_INT, ARG_DOUBLE, ARG_ENUM
 } cmdline_parser_arg_type;
@@ -126,6 +128,7 @@ static int cmdline_parser_required2(struct som_args *args_info, const char *prog
 const char *cmdline_parser_pseudo_random_number_generator_values[] = { "PCG32", "MT", "TT800", 0 };     /*< Possible values for pseudo-random-number-generator. */
 const char *cmdline_parser_move_type_values[] = { "TRIAL", "SMART", 0 };        /*< Possible values for move-type. */
 const char *cmdline_parser_iteration_alg_values[] = { "POLYMER", "SET", 0 };    /*< Possible values for iteration-alg. */
+const char *cmdline_parser_efieldsolver_values[] = { "EN", "PB", "PH", "NO", 0 };    /*< Possible values for efieldsolver. */
 const char *cmdline_parser_set_generation_algorithm_values[] = { "SIMPLE", "FIXED-N-SETS", 0 }; /*< Possible values for set-generation-algorithm. */
 
 static char *gengetopt_strdup(const char *s);
@@ -148,6 +151,7 @@ void clear_given(struct som_args *args_info)
     args_info->nonexact_area51_given = 0;
     args_info->move_type_given = 0;
     args_info->iteration_alg_given = 0;
+    args_info->efieldsolver_given = 0;
     args_info->skip_tests_given = 0;
     args_info->load_balance_given = 0;
     args_info->accepted_load_inbalance_given = 0;
@@ -191,6 +195,8 @@ void clear_args(struct som_args *args_info)
     args_info->move_type_orig = NULL;
     args_info->iteration_alg_arg = iteration_alg_arg_POLYMER;
     args_info->iteration_alg_orig = NULL;
+    args_info->efieldsolver_arg = efieldsolver_arg_EN;
+    args_info->efieldsolver_orig = NULL;
     args_info->skip_tests_flag = 0;
     args_info->load_balance_arg = 500;
     args_info->load_balance_orig = NULL;
@@ -259,6 +265,7 @@ void init_args_info(struct som_args *args_info)
     args_info->n_random_q_help = som_args_detailed_help[29];
     args_info->final_file_help = som_args_detailed_help[30];
     args_info->purpose_help = som_args_detailed_help[31];
+    args_info->efieldsolver_help = som_args_detailed_help[32];
 
 }
 
@@ -380,6 +387,7 @@ static void cmdline_parser_release(struct som_args *args_info)
     free_string_field(&(args_info->final_file_orig));
     free_string_field(&(args_info->purpose_arg));
     free_string_field(&(args_info->purpose_orig));
+    free_string_field(&(args_info->efieldsolver_orig));
 
     clear_given(args_info);
 }
@@ -479,6 +487,8 @@ int cmdline_parser_dump(FILE * outfile, struct som_args *args_info)
         write_into_file(outfile, "move-type", args_info->move_type_orig, cmdline_parser_move_type_values);
     if (args_info->iteration_alg_given)
         write_into_file(outfile, "iteration-alg", args_info->iteration_alg_orig, cmdline_parser_iteration_alg_values);
+    if (args_info->efieldsolver_given)
+        write_into_file(outfile, "efieldsolver", args_info->efieldsolver_orig, cmdline_parser_efieldsolver_values);
     if (args_info->skip_tests_given)
         write_into_file(outfile, "skip-tests", 0, 0);
     if (args_info->load_balance_given)
@@ -835,6 +845,7 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                 {"nonexact-area51", 0, NULL, 0},
                 {"move-type", 1, NULL, 0},
                 {"iteration-alg", 1, NULL, 0},
+                {"efieldsolver", 1, NULL, 'e'},
                 {"skip-tests", 0, NULL, 0},
                 {"load-balance", 1, NULL, 'l'},
                 {"accepted-load-inbalance", 1, NULL, 0},
@@ -854,7 +865,7 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                 {0, 0, 0, 0}
             };
 
-            c = getopt_long(argc, argv, "hVc:t:a:g:o:s:r:p:n:l:d:mf:", long_options, &option_index);
+            c = getopt_long(argc, argv, "hVc:t:a:g:o:s:r:p:n:e:l:d:mf:", long_options, &option_index);
 
             if (c == -1)
                 break;          /* Exit from `while (1)' loop.  */
@@ -947,7 +958,21 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                         goto failure;
 
                     break;
-                case 'n':      /* Number of omp threads used per MPI rank. If you pass n < 1 it will be set to 1..  */
+
+                case 'e':      /* Option to select the efieldsolver..  */
+
+                    if (update_arg((void *)&(args_info->efieldsolver_arg),
+                                   &(args_info->efieldsolver_orig),
+                                   &(args_info->efieldsolver_given),
+                                   &(local_args_info.efieldsolver_given), optarg,
+                                   cmdline_parser_efieldsolver_values, "EN", ARG_ENUM,
+                                   check_ambiguity, override, 0, 0, "efieldsolver", 'e',
+                                   additional_error))
+                        goto failure;
+
+                    break;
+
+		case 'n':      /* Number of omp threads used per MPI rank. If you pass n < 1 it will be set to 1..  */
 
                     if (update_arg((void *)&(args_info->omp_threads_arg),
                                    &(args_info->omp_threads_orig), &(args_info->omp_threads_given),
@@ -1037,6 +1062,20 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                                 goto failure;
 
                         }
+
+                    /* Specify the electric field solver  */
+                    else if (strcmp(long_options[option_index].name, "efieldsolver") == 0)
+                        {
+                        
+                            if (update_arg((void *)&(args_info->efieldsolver_arg),
+                                           &(args_info->efieldsolver_orig), &(args_info->efieldsolver_given),
+                                           &(local_args_info.efieldsolver_given), optarg,
+                                           cmdline_parser_efieldsolver_values, "EN", ARG_ENUM, check_ambiguity,
+                                           override, 0, 0, "efieldsolver", '-', additional_error))
+                                goto failure;
+                                
+                        }
+
                     /* Skip tests SOMA is usually preforming before and after the simulation to ensure integrety of the data..  */
                     else if (strcmp(long_options[option_index].name, "skip-tests") == 0)
                         {

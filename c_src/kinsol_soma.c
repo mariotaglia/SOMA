@@ -147,7 +147,7 @@ int call_PB(const struct Phase *const p)
    fnormtol = 1e-5;   
    scsteptol = 1e-13; 
  
-   if (p->efieldsolver == 2) {   // homogeneous as initial guess, then reuse last solution
+   if (p->args.efieldsolver_arg == efieldsolver_arg_PH) {   // homogeneous as initial guess, then reuse last solution
         if (flagsolved) {
            if (p->info_MPI.sim_rank == 0) 
               fprintf(stdout, "Set initial guess for electrostatics \n");
@@ -160,7 +160,7 @@ int call_PB(const struct Phase *const p)
             }
         }
    }	 
-   else if (p->efieldsolver == 0) { // EN as initial
+   else if (p->args.efieldsolver_arg == efieldsolver_arg_PB) { // EN as initial
 	call_EN(p); 
 
         for (i = 0 ; i < NEQ ; i++) {
@@ -168,7 +168,7 @@ int call_PB(const struct Phase *const p)
 	}
    }
    else {
-       fprintf(stderr, "Invalid value of p->efieldsolver in kinsol_soma.c\n");
+       fprintf(stderr, "Invalid value of efieldsolver in kinsol_soma.c\n");
        assert(0);
    } 
 

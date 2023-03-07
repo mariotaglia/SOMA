@@ -315,7 +315,7 @@ void update_omega_fields(const struct Phase *const p)
     else                        //Quick exit, because the property has already been calculated for the time step.
         return;
 
-    if (p->efieldsolver != -1) {
+    if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
         update_invblav(p); // update invblav (inverse of average Bjerrum length)
         update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
 	update_rhoF(p);  // update polymer charge density
@@ -401,7 +401,7 @@ void self_omega_field(const struct Phase *const p)
                         }
 		    // electric field
 		    
-                          if (p->efieldsolver != -1) {
+                          if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
                             p->omega_field_unified[cell + T_types * p->n_cells_local] +=
                                 p->electric_field[cell] * p->charges[T_types];
                           }
@@ -409,7 +409,7 @@ void self_omega_field(const struct Phase *const p)
         }  // types
 
 // Dielectric contribution
-  if (p->efieldsolver != -1) {
+  if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 
      unsigned int  ix, iy, iz;
      unsigned int  ixp, ixm, iyp, iym, izp, izm, cell;
@@ -478,7 +478,7 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
 // Born energy contribution
 
   soma_scalar_t tmpborn ;
-  if (p->efieldsolver != -1) {
+  if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 
   unsigned int ii; // simplifies notation 
 
@@ -620,9 +620,9 @@ void update_electric_field(const struct Phase *const p)
 {
     // Update electric potential
     //
-    if ((p->efieldsolver == 0)||(p->efieldsolver == 2)) 
+    if ((p->args.efieldsolver_arg == efieldsolver_arg_PB)||(p->args.efieldsolver_arg == efieldsolver_arg_PH)) 
     	call_PB(p);
-    else if (p->efieldsolver == 1) 
+    else if (p->args.efieldsolver_arg == efieldsolver_arg_EN) 
     	call_EN(p);
 }  
 

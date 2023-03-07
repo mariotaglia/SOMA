@@ -616,10 +616,6 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
     status = write_hdf5(1, &one, file_id, "/parameter/Nions", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
 
-    //efieldsolver
-    status = write_hdf5(1, &one, file_id, "/parameter/efieldsolver", H5T_STD_U32LE, H5T_NATIVE_UINT, plist_id, &(p->efieldsolver));
-    HDF5_ERROR_CHECK2(status, "/parameter/efieldsolver");
-
     //Lx Ly Lz
     soma_scalar_t lxyz[3] = { p->Lx, p->Ly, p->Lz };
     status =
@@ -1428,10 +1424,6 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     // read p->bls
     status = read_hdf5(file_id, "/parameter/bls", H5T_SOMA_NATIVE_SCALAR, plist_id, p->bls);
     HDF5_ERROR_CHECK2(status, "/parameter/bls");
-
-    // read p->efieldsolver
-    status = read_hdf5(file_id, "/parameter/efieldsolver", H5T_NATIVE_UINT, plist_id, &(p->efieldsolver));
-    HDF5_ERROR_CHECK2(status, "/parameter/efieldsolver");
 
     // read p->time
     status = read_hdf5(file_id, "/parameter/time", H5T_NATIVE_UINT, plist_id, &(p->time));
