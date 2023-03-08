@@ -399,14 +399,24 @@ void self_omega_field(const struct Phase *const p)
                                  p->field_scaling_type[T_types] * p->fields_unified[cell + T_types * p->n_cells_local]); 
 
                         }
-		    // electric field
-		    
-                          if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
-                            p->omega_field_unified[cell + T_types * p->n_cells_local] +=
-                                p->electric_field[cell] * p->charges[T_types];
-                          }
                 } // cells
         }  // types
+
+
+// electric field
+if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
+    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
+        {
+//#pragma acc parallel loop present(p[:1])
+//#pragma omp parallel for
+
+            for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
+                {
+                            p->omega_field_unified[cell + T_types * p->n_cells_local] +=
+                                p->electric_field[cell] * p->charges[T_types];
+                } // cells
+        }  // types
+}  // if
 
 // Dielectric contribution
   if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {

@@ -25,8 +25,6 @@ const soma_scalar_t maxiterror = 1e-5 ; // maximum relative iteration error for 
 Qneg = vall;
 Qpos = vall;
 
-    printf("Hola \n");
-
 while (iterror > maxiterror) {
     Qnegnew = 0.0;
     Qposnew = 0.0; 
