@@ -151,9 +151,6 @@ int main(int argc, char *argv[])
     MPI_ERROR_CHECK(init_domain_chains_status, "Sending chains for domain decomposition failed.");
 #endif                          //ENABLE_MPI
 
-    calc_ions(p);  // calc ion concetration
-    calc_invbls(p);  // calc inverse of bls
-
     if (!p->args.skip_tests_flag)
         {
             const int test_p = test_particle_types(p);
@@ -179,6 +176,13 @@ int main(int argc, char *argv[])
     for (unsigned int i = 0; i < N_steps; i++)
         {
             analytics(p);
+            if ((i==0)&&(p->args.efieldsolver_arg != efieldsolver_arg_NO))  {
+             calc_ions(p);  // calc ion concetration
+             calc_invbls(p);  // calc inverse of bls
+            }
+
+
+
             const int mc_error = monte_carlo_propagation(p, 1);
             if (mc_error != 0)
                 {
