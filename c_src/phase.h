@@ -114,7 +114,7 @@ typedef struct Phase {
     soma_scalar_t *bls;         /*!< \brief stores the Bjerrum lengths for each type */
     soma_scalar_t *invbls;       /*!< \brief stores the inverse of the Bjerrum lengths for each type */
     soma_scalar_t Born_a;      /*!< \brief stores the Born radius for each type */
-    int efieldsolver;           /*!< \brief type of efield solver, 0 = PB, 1 = EN */;
+    int efieldsolver;           /*!< \brief type of efield solver */
 
     soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
     //!  Mobility of the center of mass for all polymer types.

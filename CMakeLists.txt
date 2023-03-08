@@ -90,9 +90,6 @@ set(soma_link_flags "-lm -ldl -lz")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
-  
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -I/home/mtaglia/opt/kinsol_OMP/include -L/home/mtaglia/opt/kinsol_OMP/lib64 -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/home/mtaglia/opt/kinsol_OMP/lib64")
-
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
@@ -104,6 +101,8 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
   endif(ENABLE_SANITIZE_DEBUG)
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/home/mtaglia/opt/kinsol_cuda/include -L/home/mtaglia/opt/kinsol_cuda/lib64 -lsundials_kinsol -lsundials_nvecserial -lsundials_nvecmanyvector -lm -Wl,-rpath,/home/mtaglia/opt/kinsol_cuda/lib64")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
   #sorry the PGI compiler messages are utterly useless. And I don't know how to shutoff the warnings in the code.

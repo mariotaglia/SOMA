@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #include <kinsol/kinsol.h>               /* access to KINSOL func., consts.      */
-#include <nvector/nvector_openmp.h>    /* access to OpenMP N_Vector            */
+#include <nvector/nvector_serial.h>    /* access to Serial N_Vector            */
 #include <sunlinsol/sunlinsol_spgmr.h>   /* access to SPGMR SUNLinearSolver      */
 #include <sunlinsol/sunlinsol_spbcgs.h>  /* access to SPBCGS SUNLinearSolver     */
 #include <sunlinsol/sunlinsol_sptfqmr.h> /* access to SPTFQMR SUNLinearSolver    */
@@ -19,10 +19,6 @@
 int mod(int a, int b); // modulus
 
 #include "kinsol_soma.h" 
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 /* Problem Constants */
 
@@ -77,7 +73,6 @@ int call_PB(const struct Phase *const p)
   N_Vector cc, sc, constraints;
   static int flagsolved = 1; // turn to 0 after first solution 
   static realtype scale; 
-  int num_threads;
   int flag, maxl, maxlrst;
   void *kmem;
   SUNLinearSolver LS;
@@ -104,14 +99,6 @@ int call_PB(const struct Phase *const p)
 				KIN_FP = fixed point interaction
 				KIN_PICARD = Picard interaction */
 
-  /* Set the number of threads to use */
-  num_threads = 1;     /* default value*/
-#ifdef _OPENMP
-  num_threads = p->args.omp_threads_arg;
-#endif
-//  printf("Number of threads %d \n", num_threads);
-		  
-
   data = AllocUserData(); 
   if (check_flag((void *)data, "AllocUserData", 2)) return(1);
 
@@ -120,10 +107,10 @@ int call_PB(const struct Phase *const p)
 //  InitUserData(data);
 
   /* Create serial vectors of length NEQ */
-  cc = N_VNew_OpenMP(NEQ, num_threads, sunctx);
-  if (check_flag((void *)cc, "N_VNew_OpenMP", 0)) return(1);
-  sc = N_VNew_OpenMP(NEQ, num_threads, sunctx);
-  if (check_flag((void *)sc, "N_VNew_OpenMP", 0)) return(1);
+  cc = N_VNew_Serial(NEQ, sunctx);
+  if (check_flag((void *)cc, "N_VNew_Serial", 0)) return(1);
+  sc = N_VNew_Serial(NEQ, sunctx);
+  if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
 
 /* Template for using constrainst, not in use 
  constraints = N_VNew_Serial(NEQ, sunctx);
@@ -156,7 +143,7 @@ int call_PB(const struct Phase *const p)
         else {
 	    // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
-		   NV_Ith_OMP(cc,i) = ccx[i]; 
+		   NV_Ith_S(cc,i) = ccx[i]; 
             }
         }
    }	 
@@ -164,7 +151,7 @@ int call_PB(const struct Phase *const p)
 	call_EN(p); 
 
         for (i = 0 ; i < NEQ ; i++) {
-           NV_Ith_OMP(cc,i) = p->electric_field[i] - p->electric_field[NEQ]; // sets efield to zero in the last cell
+           NV_Ith_S(cc,i) = p->electric_field[i] - p->electric_field[NEQ]; // sets efield to zero in the last cell
 	}
    }
    else {
@@ -322,7 +309,7 @@ int call_PB(const struct Phase *const p)
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
-        	ccx[i] = NV_Ith_OMP(cc,i);
+        	ccx[i] = NV_Ith_S(cc,i);
                 avpsi += ccx[i]; 
         	p->electric_field[i] = ccx[i];
         }
@@ -397,8 +384,8 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           if ((int) cell < NEQ) {
-				  psi[ix][iy][iz] = NV_Ith_OMP(cc,cell); 
-				  psic[cell] = NV_Ith_OMP(cc,cell); 
+				  psi[ix][iy][iz] = NV_Ith_S(cc,cell); 
+				  psic[cell] = NV_Ith_S(cc,cell); 
 			  }
 		     }
 	 	}
@@ -515,7 +502,7 @@ else {
 	res[ix][iy][iz] = -res[ix][iy][iz];
                           
 			  if ((int) cell < NEQ) { 
-				  NV_Ith_OMP(fval,cell) = -res[ix][iy][iz];
+				  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
 //				  printf("func: cell, res %d %f \n", cell, invbl[ix][iy][iz]);
 			  }     
 		     }

@@ -25,12 +25,14 @@ const soma_scalar_t maxiterror = 1e-5 ; // maximum relative iteration error for 
 Qneg = vall;
 Qpos = vall;
 
+    printf("Hola \n");
+
 while (iterror > maxiterror) {
     Qnegnew = 0.0;
     Qposnew = 0.0; 
 
  if (p->Nnegions > p->Nposions) {    	
-#pragma omp parallel for    
+//#pragma omp parallel for    
     for (i = 0 ; i < p->n_cells_local ; i++) {
 	p->electric_field[i] = p->rhoF[i];
 	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]);
@@ -40,7 +42,7 @@ while (iterror > maxiterror) {
  }
 
  else {
-#pragma omp parallel for  
+//#pragma omp parallel for  
     for (i = 0 ; i < p->n_cells_local ; i++) {
 	p->electric_field[i] = -p->rhoF[i];
 	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]);
@@ -49,12 +51,12 @@ while (iterror > maxiterror) {
      }
  }    
 
-#pragma omp parallel for reduction (+:Qposnew) 
+//#pragma omp parallel for reduction (+:Qposnew) 
     for (i = 0 ; i < p->n_cells_local ; i++) {
         Qposnew += exp(-p->electric_field[i])*p->exp_born[i];
     }
 
-#pragma omp parallel for reduction (+:Qnegnew)
+//#pragma omp parallel for reduction (+:Qnegnew)
     for (i = 0 ; i < p->n_cells_local ; i++) {
         Qnegnew += exp(p->electric_field[i])*p->exp_born[i];
     }
@@ -69,7 +71,7 @@ while (iterror > maxiterror) {
 //        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 }
 
-#pragma omp parallel for  
+//#pragma omp parallel for  
     for (i = 0 ; i < p->n_cells_local ; i++) {
         p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos*p->Nposions ; 
         p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg*p->Nnegions  ; 
