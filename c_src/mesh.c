@@ -316,6 +316,8 @@ void update_omega_fields(const struct Phase *const p)
         return;
 
     if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
+
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
         update_invblav(p); // update invblav (inverse of average Bjerrum length)
         update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
 	update_rhoF(p);  // update polymer charge density
@@ -405,6 +407,8 @@ void self_omega_field(const struct Phase *const p)
 
 // electric field
 if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
+//#pragma acc parallel loop present(p[:1])
+//#pragma omp parallel for
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
         {
 //#pragma acc parallel loop present(p[:1])

@@ -173,14 +173,19 @@ int main(int argc, char *argv[])
         }
     int stop_iteration = false;
 
+
+if (p->args.efieldsolver_arg != efieldsolver_arg_NO)  {
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+             calc_ions(p);  // calc ion concetration
+             calc_invbls(p);  // calc inverse of bls
+}
+
+
+
+
     for (unsigned int i = 0; i < N_steps; i++)
         {
             analytics(p);
-            if ((i==0)&&(p->args.efieldsolver_arg != efieldsolver_arg_NO))  {
-             calc_ions(p);  // calc ion concetration
-             calc_invbls(p);  // calc inverse of bls
-            }
-
 
 
             const int mc_error = monte_carlo_propagation(p, 1);

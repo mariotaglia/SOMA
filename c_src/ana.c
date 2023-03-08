@@ -742,6 +742,8 @@ int extent_npos_field(const struct Phase *const p, void *const field_pointer, co
 
   if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 	  
+#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
+
     update_invblav(p); // update invblav (inverse of average Bjerrum length)
     update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
     update_rhoF(p);  // update polymer charge density
@@ -1414,10 +1416,12 @@ int analytics(struct Phase *const p)
    
     if (p->ana_info.delta_mc_electric_field != 0 && p->time % p->ana_info.delta_mc_electric_field == 0)
         {   
-            if (p->info_MPI.sim_size == 1)
+            if (p->info_MPI.sim_size == 1)   
                 {
-#pragma acc update self(p->fields_unified[0:p->n_cells])
+#pragma acc update self(p->electric_field[0:p->n_cells])
                 }
+
+
             extent_electric_field(p, p->electric_field, "/electric_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;
@@ -1429,7 +1433,7 @@ int analytics(struct Phase *const p)
         {   
             if (p->info_MPI.sim_size == 1)
                 {
-#pragma acc update self(p->fields_unified[0:p->n_cells])
+#pragma acc update self(p->nneg_field[0:p->n_cells])
                 }
             extent_nneg_field(p, p->nneg_field, "/nneg_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
@@ -1442,7 +1446,7 @@ int analytics(struct Phase *const p)
         {   
             if (p->info_MPI.sim_size == 1)
                 {
-#pragma acc update self(p->fields_unified[0:p->n_cells])
+#pragma acc update self(p->npos_field[0:p->n_cells])
                 }
             extent_npos_field(p, p->npos_field, "/npos_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
