@@ -21,13 +21,14 @@ const soma_scalar_t maxiterror = 1e-5 ; // maximum relative iteration error for 
 Qneg = vall;
 Qpos = vall;
 
-#pragma acc data create(Qposnew) create(Qnegnew) create(iterror) copyin(Qneg) copyin(Qpos) copyin(maxiterror) 
 while (iterror > maxiterror) {
 
     Qnegnew = 0.0;
     Qposnew = 0.0; 
 
  if (p->Nnegions > p->Nposions) {    	
+
+#pragma acc data copyin(Qneg) copyin(Qpos)  
 #pragma acc parallel loop present(p[:1]) 
 #pragma omp parallel for    
     for (i = 0 ; i < p->n_cells ; i++) {
@@ -39,6 +40,7 @@ while (iterror > maxiterror) {
  }
 
  else {
+#pragma acc data copyin(Qneg) copyin(Qpos)  
 #pragma acc parallel loop present(p[:1]) 
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
@@ -49,17 +51,23 @@ while (iterror > maxiterror) {
      }
  }    
 
-#pragma acc parallel loop present(p[:1]) reduction (max:Qposnew)  
+#pragma acc data copyout(Qposnew)  
+#pragma acc parallel loop reduction (+:Qposnew)  
 #pragma omp parallel for reduction (+:Qposnew) 
     for (i = 0 ; i < p->n_cells ; i++) {
         Qposnew += exp(-p->electric_field[i])*p->exp_born[i];
     }
 
-#pragma acc parallel loop present(p[:1]) reduction (max:Qposnew)
+#pragma acc data copyout(Qnegnew)  
+#pragma acc parallel loop reduction (+:Qnegnew)
 #pragma omp parallel for reduction (+:Qnegnew) 
     for (i = 0 ; i < p->n_cells ; i++) {
         Qnegnew += exp(p->electric_field[i])*p->exp_born[i];
     }
+
+        printf("Qposnew, Qnegnew %.3e %.3e  \n", Qposnew, Qnegnew);
+        exit(1);
+
 
         Qposnew = Qposnew*p->vcell;
         Qnegnew = Qnegnew*p->vcell;
@@ -70,6 +78,7 @@ while (iterror > maxiterror) {
 
 //        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 }
+        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
