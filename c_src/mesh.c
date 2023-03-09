@@ -628,6 +628,13 @@ void calc_ions(struct Phase *const p)
   }
  
   assert(fabs(netcharge) < 1.0e-6);
+
+// other calc
+
+
+
+
+
 }
 
 void update_electric_field(const struct Phase *const p)

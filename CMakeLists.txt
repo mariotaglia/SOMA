@@ -80,7 +80,7 @@ endif(ENABLE_MPI)
 
 #Check for supported compilers.
 if( NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
-  message("SOMA is intended to be used with either GNU GCC or PGI. Proceed on your own risk.")
+  message("SOMA is intended to be used with either GNU GCC or PGI. Proceed on your own risk, using ${CMAKE_C_COMPILER_ID}")
 endif(NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
 
 
@@ -102,7 +102,20 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   endif(ENABLE_SANITIZE_DEBUG)
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "NVHPC")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/home/mtaglia/opt/kinsol_cuda/include -L/home/mtaglia/opt/kinsol_cuda/lib64 -lsundials_kinsol -lsundials_nvecserial -lsundials_nvecmanyvector -lm -Wl,-rpath,/home/mtaglia/opt/kinsol_cuda/lib64")
+
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress cast_to_qualified_type")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress code_is_unreachable ")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress integer_sign_change ")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress nonobject_pointer_arithmetic")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress branch_past_initialization")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress declared_but_not_referenced")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress mixed_enum_type")
+
+endif("${CMAKE_C_COMPILER_ID}" STREQUAL "NVHCP")
+
+
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
   #sorry the PGI compiler messages are utterly useless. And I don't know how to shutoff the warnings in the code.
