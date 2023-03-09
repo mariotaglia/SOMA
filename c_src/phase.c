@@ -280,6 +280,11 @@ int init_phase(struct Phase *const p)
     p->iLy = 1.0 / p->Ly;
     p->iLz = 1.0 / p->Lz;
 
+    p->deltax = p->Lx/((soma_scalar_t) p->nx);
+    p->deltay = p->Ly/((soma_scalar_t) p->ny);
+    p->deltaz = p->Lz/((soma_scalar_t) p->nz);
+    p->vcell = p->deltax*p->deltay*p->deltaz;
+
     p->sets = NULL;             // Default init of the sets
     p->max_set_members = 0;
     if (p->args.iteration_alg_arg == iteration_alg_arg_SET)
@@ -337,14 +342,15 @@ int copyin_phase(struct Phase *const p)
         }
 
 #ifdef _OPENACC
-
-
+#pragma acc enter data copyin(p[0:1])
 
 #pragma acc enter data copyin(p->invblav[0:p->n_cells])
+#pragma acc enter data copyin(p->rhoF[0:p->n_cells])
+#pragma acc enter data copyin(p->exp_born[0:p->n_cells])
 #pragma acc enter data copyin(p->d_invblav[0:p->n_types*p->n_cells_local])
 #pragma acc enter data copyin(p->invbls[0:p->n_types])
+#pragma acc enter data copyin(p->charges[0:p->n_types])
 
-#pragma acc enter data copyin(p[0:1])
 #pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
 #pragma acc enter data copyin(p->fields_unified[0:(p->n_types*p->n_cells_local)])

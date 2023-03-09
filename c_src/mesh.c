@@ -433,11 +433,7 @@ if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 
      soma_scalar_t gradpsi2[p->n_cells_local]; 
 
-     const soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
-     const soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
-     const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
-     const soma_scalar_t  vcell = deltax*deltay*deltaz;
-     const soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
+    const soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
  
      soma_scalar_t temp ; // auxiliary variables
 
@@ -465,13 +461,13 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 
                cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	       temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/2./deltax; 
+	       temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/2./p->deltax; 
                gradpsi2[cell] = temp*temp;
 
-	       temp = (psi[ix][iyp][iz]-psi[ix][iym][iz])/2./deltay; 
+	       temp = (psi[ix][iyp][iz]-psi[ix][iym][iz])/2./p->deltay; 
                gradpsi2[cell] += temp*temp;
 
-	       temp = (psi[ix][iy][izp]-psi[ix][iy][izm])/2./deltaz; 
+	       temp = (psi[ix][iy][izp]-psi[ix][iy][izm])/2./p->deltaz; 
                gradpsi2[cell] += temp*temp;
 
               } // iz 
@@ -483,7 +479,7 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
  
 //    printf("cell, type, gradpsi2, dl/dN todo  %d %d %f %f %f \n", cell,type,gradpsi2[cell],p->d_invblav[cell + type*p->n_cells_local], gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local]);
 	    
-    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq*vcell*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
+    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq*p->vcell*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
 
     } // cell 	    
 } // type	
@@ -749,6 +745,8 @@ void update_exp_born(const struct Phase *const p) // Updates exp_born = exp(-u_B
 {
 unsigned int cell;
 soma_scalar_t borntmp;
+
+#pragma acc parallel loop present(p[:1])
 #pragma omp parallel for    
 for (cell = 0 ; cell < p->n_cells_local ; cell++) {
 
@@ -763,18 +761,19 @@ void update_rhoF(const struct Phase *const p) // Updates rhoF (charge per Re^3)
 
 {
 unsigned int cell, type;
-const soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
-const soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
-const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
-const soma_scalar_t  vcell = deltax*deltay*deltaz;
 
+#pragma acc parallel loop present(p[:1]) 
+#pragma omp parallel for
+for (cell = 0 ; cell < p->n_cells ; cell++) {
+     p->rhoF[cell] = 0;
+}
+
+for (type = 0 ; type < p->n_types; type++) {
+#pragma acc parallel loop present(p[:1])
 #pragma omp parallel for    
-for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-   p->rhoF[cell] = 0.0; 
-   for (type = 0 ; type < p->n_types; type++) {
-             p->rhoF[cell] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])*p->charges[type];
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+        p->rhoF[cell] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])*p->charges[type]/p->vcell;
    } 
-   p->rhoF[cell] = p->rhoF[cell] / vcell ; // units of charge per Re^3
 }
 }
 

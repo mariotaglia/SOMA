@@ -14,10 +14,6 @@ unsigned int i;
 soma_scalar_t  Qpos, Qneg, Qposnew, Qnegnew; 
 soma_scalar_t iterror = DBL_MAX;
 
-const soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
-const soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
-const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
-const soma_scalar_t  vcell = deltax*deltay*deltaz;
 const soma_scalar_t  vall = p->Lx*p->Ly*p->Lz ;
  
 const soma_scalar_t maxiterror = 1e-5 ; // maximum relative iteration error for Qpos and Qneg
@@ -59,8 +55,8 @@ while (iterror > maxiterror) {
         Qnegnew += exp(p->electric_field[i])*p->exp_born[i];
     }
 
-        Qposnew = Qposnew*vcell;
-        Qnegnew = Qnegnew*vcell;
+        Qposnew = Qposnew*p->vcell;
+        Qnegnew = Qnegnew*p->vcell;
 
         iterror = fabs(Qpos-Qposnew)/Qpos + fabs(Qneg-Qnegnew)/Qneg;
 	Qpos = Qposnew;

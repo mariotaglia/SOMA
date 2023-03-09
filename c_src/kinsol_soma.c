@@ -359,11 +359,6 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
   int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
-
-  const soma_scalar_t  deltax = p->Lx/((soma_scalar_t) p->nx);
-  const soma_scalar_t  deltay = p->Ly/((soma_scalar_t) p->ny);
-  const soma_scalar_t  deltaz = p->Lz/((soma_scalar_t) p->nz);
-  const soma_scalar_t  vcell = deltax*deltay*deltaz;
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
   soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
   soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
@@ -408,7 +403,7 @@ if (p->Nposions > 0) {
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-            p->npos_field[cell] = p->npos_field[cell] * p->Nposions / sumposions / vcell; 
+            p->npos_field[cell] = p->npos_field[cell] * p->Nposions / sumposions / p->vcell; 
     }
 } // if
 
@@ -432,7 +427,7 @@ if (p->Nnegions > 0) {
 // Normalize to match totalnumber and divide by cell volume
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-           p->nneg_field[cell] = p->nneg_field[cell] * p->Nnegions / sumnegions / vcell; 
+           p->nneg_field[cell] = p->nneg_field[cell] * p->Nnegions / sumnegions / p->vcell; 
     }
 } // if 
 else {
@@ -492,12 +487,12 @@ else {
 
 	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
 
-        res[ix][iy][iz] += 0.5*((invbl[ixp][iy][iz]+invbl[ix][iy][iz])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(deltax*deltax); 
-        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ixm][iy][iz])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(deltax*deltax); 
-        res[ix][iy][iz] += 0.5*((invbl[ix][iyp][iz]+invbl[ix][iy][iz])*(psi[ix][iyp][iz]-psi[ix][iy][iz]))/(deltay*deltay); 
-        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iym][iz])*(psi[ix][iy][iz]-psi[ix][iym][iz]))/(deltay*deltay); 
-        res[ix][iy][iz] += 0.5*((invbl[ix][iy][izp]+invbl[ix][iy][iz])*(psi[ix][iy][izp]-psi[ix][iy][iz]))/(deltaz*deltaz); 
-        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iy][izm])*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(deltaz*deltaz); 
+        res[ix][iy][iz] += 0.5*((invbl[ixp][iy][iz]+invbl[ix][iy][iz])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(p->deltax*p->deltax); 
+        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ixm][iy][iz])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(p->deltax*p->deltax); 
+        res[ix][iy][iz] += 0.5*((invbl[ix][iyp][iz]+invbl[ix][iy][iz])*(psi[ix][iyp][iz]-psi[ix][iy][iz]))/(p->deltay*p->deltay); 
+        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iym][iz])*(psi[ix][iy][iz]-psi[ix][iym][iz]))/(p->deltay*p->deltay); 
+        res[ix][iy][iz] += 0.5*((invbl[ix][iy][izp]+invbl[ix][iy][iz])*(psi[ix][iy][izp]-psi[ix][iy][iz]))/(p->deltaz*p->deltaz); 
+        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iy][izm])*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(p->deltaz*p->deltaz); 
 
 	res[ix][iy][iz] = -res[ix][iy][iz];
                           
@@ -544,11 +539,7 @@ soma_scalar_t norma = 0;
 static realtype SetScale(const struct Phase *const p)
 {
    realtype scale;
-   soma_scalar_t deltax = p->Lx/((soma_scalar_t) p->nx);
-   soma_scalar_t deltay = p->Ly/((soma_scalar_t) p->ny);
-   soma_scalar_t deltaz = p->Lz/((soma_scalar_t) p->nz);
-
-   soma_scalar_t constq = 4.0*M_PI/(deltax*deltay*deltaz); // multiplicative constant for Poisson equation
+   soma_scalar_t constq = 4.0*M_PI/p->vcell; // multiplicative constant for Poisson equation
 
    scale = 1./constq/1. ;  // the factor 1. is an estimation for the average charge per lattice site
            

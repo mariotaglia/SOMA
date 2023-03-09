@@ -145,6 +145,11 @@ typedef struct Phase {
     soma_scalar_t iLy;          /*!< \brief inverse y-spatial dimensions in units of \f$ Re_0 \f$ */
     soma_scalar_t iLz;          /*!< \brief inverse z-spatial dimensions in units of \f$ Re_0 \f$ */
 
+    soma_scalar_t  deltax;
+    soma_scalar_t  deltay;
+    soma_scalar_t  deltaz;
+    soma_scalar_t  vcell;
+
     int local_nx_low;           //!< Lowest Nx available on local domain
     int local_nx_high;          //!< Highest Nx available on local domain
     uint64_t n_cells_local;     //!< Number of locally available cells
