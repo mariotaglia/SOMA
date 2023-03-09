@@ -51,23 +51,13 @@ while (iterror > maxiterror) {
      }
  }    
 
-#pragma acc data copyout(Qposnew)  
-#pragma acc parallel loop reduction (+:Qposnew)  
-#pragma omp parallel for reduction (+:Qposnew) 
+#pragma acc data copy(Qposnew) copy(Qnegnew) 
+#pragma acc parallel loop reduction (+:Qposnew) reduction (+:Qnegnew)  
+#pragma omp parallel for reduction (+:Qposnew) reduction (+:Qnegnew)
     for (i = 0 ; i < p->n_cells ; i++) {
         Qposnew += exp(-p->electric_field[i])*p->exp_born[i];
-    }
-
-#pragma acc data copyout(Qnegnew)  
-#pragma acc parallel loop reduction (+:Qnegnew)
-#pragma omp parallel for reduction (+:Qnegnew) 
-    for (i = 0 ; i < p->n_cells ; i++) {
         Qnegnew += exp(p->electric_field[i])*p->exp_born[i];
     }
-
-        printf("Qposnew, Qnegnew %.3e %.3e  \n", Qposnew, Qnegnew);
-        exit(1);
-
 
         Qposnew = Qposnew*p->vcell;
         Qnegnew = Qnegnew*p->vcell;
@@ -78,7 +68,6 @@ while (iterror > maxiterror) {
 
 //        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 }
-        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
