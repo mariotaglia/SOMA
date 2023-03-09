@@ -589,22 +589,22 @@ void update_omega_fields_scmf1(const struct Phase *const p)
 /*  Helper routines for efield calculation */
 
 void calc_ions(struct Phase *const p)
-{
+  {
 
   int ix, iy, iz,cell;
   unsigned int type ;
-  soma_scalar_t sumrhoQ = 0.0;                   // total number of A segments 
+  soma_scalar_t sumrhoQ = 0.0;                   // total number of charges
+  unsigned int polytype ;
 
-  for (ix = 0 ; ix < (int) p->nx ; ix++) {
-          for (iy = 0 ; iy < (int) p->ny ; iy++) {
-                          for (iz = 0 ; iz < (int)  p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-			  for (type = 0; type < p->n_types ; type++) {
-                             sumrhoQ += p->fields_unified[cell + p->n_cells_local*type]*p->charges[type]; 
-			  }
-                }
-          }
-  }	  
+  for (uint64_t i = 0; i < p->n_polymers; i++)   { ; // loope over pol chains
+    polytype = p->polymers[i].type; // polymer type
+    const unsigned N = p->poly_arch[p->poly_type_offset[polytype]];
+    unsigned int iN;   
+    for (iN = 0; iN < N ; iN++) {  // loop over monomers
+         const unsigned int type = get_particle_type(p, polytype, iN); 
+         sumrhoQ += p->charges[type]; 
+    }
+  }
 
   p->Nposions = p->Nnegions = p->Nions;
 
@@ -628,13 +628,6 @@ void calc_ions(struct Phase *const p)
   }
  
   assert(fabs(netcharge) < 1.0e-6);
-
-// other calc
-
-
-
-
-
 }
 
 void update_electric_field(const struct Phase *const p)
