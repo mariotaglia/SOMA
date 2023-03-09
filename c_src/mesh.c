@@ -315,16 +315,6 @@ void update_omega_fields(const struct Phase *const p)
     else                        //Quick exit, because the property has already been calculated for the time step.
         return;
 
-    if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
-
-#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
-        update_invblav(p); // update invblav (inverse of average Bjerrum length)
-        update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
-	update_rhoF(p);  // update polymer charge density
-        update_exp_born(p); // update born energy, always do this after updating invblav		
-        update_electric_field(p);
-    }
-
     switch (p->hamiltonian)
         {
         case SCMF0:
@@ -405,11 +395,19 @@ void self_omega_field(const struct Phase *const p)
         }  // types
 
 
-// electric field
 if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
+        update_invblav(p); // update invblav (inverse of average Bjerrum length)
+        update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
+	update_rhoF(p);  // update polymer charge density
+        update_exp_born(p); // update born energy, always do this after updating invblav		
+        update_electric_field(p);
+
+// electric field
+
 //#pragma acc parallel loop present(p[:1])
 //#pragma omp parallel for
-    for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
+
+    	for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
         {
 //#pragma acc parallel loop present(p[:1])
 //#pragma omp parallel for
@@ -421,6 +419,9 @@ if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
                 } // cells
         }  // types
 }  // if
+
+
+
 
 // Dielectric contribution
   if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
@@ -664,53 +665,82 @@ unsigned int type;
 void update_invblav(const struct Phase *const p) // Updates invblav = average of inverse Bjerrum length
 
 {
-int tmpsegsum;
+unsigned int tmpsegsum[p->n_cells];
 unsigned int cell, type;
 
 
-    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+#pragma data create(tmpsegsumacc[0:p->n_cells])  
+{
 
-                          p->invblav[cell] = 0.0 ; 
-			  tmpsegsum = 0;
-
-		          for (type = 0 ; type < p->n_types; type++) {
-
-                             p->invblav[cell] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])*p->invbls[type];
-                             tmpsegsum +=  p->fields_unified[cell+p->n_cells_local*type];
-			  } 
-                          if(tmpsegsum != 0)    
-                            p->invblav[cell] = p->invblav[cell] / ((soma_scalar_t) tmpsegsum);
-			  else if (tmpsegsum == 0) 
-                            p->invblav[cell] = p->invblav_zero; // prevents divergence if tmpsegsum = 0
-	  }
+#pragma acc parallel loop present(p[:1]) 
+#pragma omp parallel for
+for (cell = 0 ; cell < p->n_cells ; cell++) {
+     p->invblav[cell] = 0.0 ; 
+     tmpsegsum[cell] = 0;
 }
 
+for (type = 0 ; type < p->n_types; type++) {
+
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+
+       p->invblav[cell] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells*type])*p->invbls[type];
+       tmpsegsum[cell] +=  p->fields_unified[cell+p->n_cells*type];
+ } 
+}
+
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+           if(tmpsegsum[cell] != 0)    
+                p->invblav[cell] = p->invblav[cell] / ((soma_scalar_t) tmpsegsum [cell]);
+	   else if (tmpsegsum[cell] == 0) 
+                p->invblav[cell] = p->invblav_zero; // prevents divergence if tmpsegsum = 0
+	  }
+    }
+}
 
 void update_d_invblav(const struct Phase *const p) // Updates d_invblav = derivative of average inverse Bjerrum length respect to N_i
 
 {
 unsigned int cell, type;
-unsigned int Ntot[p->n_cells_local]; 
+unsigned int tmpsegsum[p->n_cells];
 
-#pragma omp parallel for  
- for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-   Ntot[cell] = 0;
-   for (type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
-         Ntot[cell] += p->fields_unified[cell+p->n_cells_local*type]; // total number of segments in cell  
-     } // types
-   if(Ntot[cell] == 0) 
-	   Ntot[cell] = 1;  // prevents divergence of de/dN when N = 0
- } // cell
+#pragma data create(tmpsegsumacc[0:p->n_cells])  
+{
 
-
-for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
-
+#pragma acc parallel loop present(p[:1]) 
 #pragma omp parallel for
- for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-
-  p->d_invblav[cell+p->n_cells_local*type] = (p->invbls[type] - p->invblav[cell])/((soma_scalar_t) Ntot[cell]);
-  }
+for (cell = 0 ; cell < p->n_cells ; cell++) {
+     tmpsegsum[cell] = 0;
 }
+
+for (type = 0 ; type < p->n_types; type++) {
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+       tmpsegsum[cell] +=  p->fields_unified[cell+p->n_cells*type];
+ } 
+}
+
+
+#pragma acc parallel loop present(p[:1]) 
+#pragma omp parallel for
+for (cell = 0 ; cell < p->n_cells ; cell++) {
+	if(tmpsegsum[cell] == 0) 
+	   tmpsegsum[cell] = 1;  // prevents divergence of de/dN when N = 0
+}
+
+
+for (type = 0 ; type < p->n_types; type++) {
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+       p->d_invblav[cell+p->n_cells_local*type] = (p->invbls[type] - p->invblav[cell])/((soma_scalar_t) tmpsegsum[cell]);
+  } 
+ }
+} // pragma create
 
 }
 

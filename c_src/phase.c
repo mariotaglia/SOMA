@@ -288,6 +288,11 @@ int init_phase(struct Phase *const p)
     init_autotuner(&(p->mc_autotuner));
     init_autotuner(&(p->cm_mc_autotuner));
 
+    if (p->args.efieldsolver_arg != efieldsolver_arg_NO)  { // Info for electrostatics, prepare data before copyin
+             calc_ions(p);  // calc ion concetration
+             calc_invbls(p);  // calc inverse of bls
+    }
+
     copyin_phase(p);
     p->num_long_chain = mc_set_init(p);
 
@@ -332,6 +337,13 @@ int copyin_phase(struct Phase *const p)
         }
 
 #ifdef _OPENACC
+
+
+
+#pragma acc enter data copyin(p->invblav[0:p->n_cells])
+#pragma acc enter data copyin(p->d_invblav[0:p->n_types*p->n_cells_local])
+#pragma acc enter data copyin(p->invbls[0:p->n_types])
+
 #pragma acc enter data copyin(p[0:1])
 #pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
