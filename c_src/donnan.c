@@ -21,13 +21,16 @@ const soma_scalar_t maxiterror = 1e-5 ; // maximum relative iteration error for 
 Qneg = vall;
 Qpos = vall;
 
+#pragma acc data create(Qposnew) create(Qnegnew) create(iterror) copyin(Qneg) copyin(Qpos) copyin(maxiterror) 
 while (iterror > maxiterror) {
+
     Qnegnew = 0.0;
     Qposnew = 0.0; 
 
  if (p->Nnegions > p->Nposions) {    	
-//#pragma omp parallel for    
-    for (i = 0 ; i < p->n_cells_local ; i++) {
+#pragma acc parallel loop present(p[:1]) 
+#pragma omp parallel for    
+    for (i = 0 ; i < p->n_cells ; i++) {
 	p->electric_field[i] = p->rhoF[i];
 	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]);
 	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nnegions/Qneg*p->exp_born[i]) ;
@@ -36,8 +39,9 @@ while (iterror > maxiterror) {
  }
 
  else {
-//#pragma omp parallel for  
-    for (i = 0 ; i < p->n_cells_local ; i++) {
+#pragma acc parallel loop present(p[:1]) 
+#pragma omp parallel for  
+    for (i = 0 ; i < p->n_cells ; i++) {
 	p->electric_field[i] = -p->rhoF[i];
 	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]);
 	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nposions/Qpos*p->exp_born[i]) ;
@@ -45,13 +49,15 @@ while (iterror > maxiterror) {
      }
  }    
 
-//#pragma omp parallel for reduction (+:Qposnew) 
-    for (i = 0 ; i < p->n_cells_local ; i++) {
+#pragma acc parallel loop present(p[:1]) reduction (max:Qposnew)  
+#pragma omp parallel for reduction (+:Qposnew) 
+    for (i = 0 ; i < p->n_cells ; i++) {
         Qposnew += exp(-p->electric_field[i])*p->exp_born[i];
     }
 
-//#pragma omp parallel for reduction (+:Qnegnew)
-    for (i = 0 ; i < p->n_cells_local ; i++) {
+#pragma acc parallel loop present(p[:1]) reduction (max:Qposnew)
+#pragma omp parallel for reduction (+:Qnegnew) 
+    for (i = 0 ; i < p->n_cells ; i++) {
         Qnegnew += exp(p->electric_field[i])*p->exp_born[i];
     }
 
@@ -65,13 +71,14 @@ while (iterror > maxiterror) {
 //        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 }
 
-//#pragma omp parallel for  
-    for (i = 0 ; i < p->n_cells_local ; i++) {
+#pragma acc parallel loop present(p[:1])   
+#pragma omp parallel for  
+    for (i = 0 ; i < p->n_cells ; i++) {
         p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos*p->Nposions ; 
         p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg*p->Nnegions  ; 
      }
 
-/*    for (i = 0 ; i < p->n_cells_local ; i++) {
+/*    for (i = 0 ; i < p->n_cells ; i++) {
     printf("i pos neg born rhoF %d %.3e %.3e %.3e %.3e \n",i, p->npos_field[i], p->nneg_field[i], p->exp_born[i], p->rhoF[i]);
     }
 */

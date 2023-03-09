@@ -404,64 +404,53 @@ if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 
 // electric field
 
-//#pragma acc parallel loop present(p[:1])
-//#pragma omp parallel for
-
     	for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
         {
-//#pragma acc parallel loop present(p[:1])
-//#pragma omp parallel for
-
-            for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for
+            for (uint64_t cell = 0; cell < p->n_cells; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
                 {
-                            p->omega_field_unified[cell + T_types * p->n_cells_local] +=
+                            p->omega_field_unified[cell + T_types * p->n_cells] +=
                                 p->electric_field[cell] * p->charges[T_types];
                 } // cells
         }  // types
-}  // if
-
-
-
 
 // Dielectric contribution
-  if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
-
-     unsigned int  ix, iy, iz;
-     unsigned int  ixp, ixm, iyp, iym, izp, izm, cell;
 
      soma_scalar_t psi[p->nx][p->ny][p->nz]; 
-
-     soma_scalar_t gradpsi2[p->n_cells_local]; 
-
-    const soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
+     soma_scalar_t gradpsi2[p->n_cells]; 
  
-     soma_scalar_t temp ; // auxiliary variables
+#pragma acc data create(psi[:p->nx][:p->ny][:p->nz]) create(gradpsi2[:p->n_cells]) 
+{
 
+const soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
 
+#pragma acc parallel loop present(p[:1])
 #pragma omp parallel for  
-for (ix = 0 ; ix < p->nx ; ix++) {
-      for (iy = 0 ; iy < p->ny ; iy++) {
-           for (iz = 0 ; iz < p->nz ; iz++) {
-              cell = cell_coordinate_to_index(p, ix, iy, iz);
+for (unsigned int ix = 0 ; ix < p->nx ; ix++) {
+      for (unsigned int iy = 0 ; iy < p->ny ; iy++) {
+           for (unsigned int iz = 0 ; iz < p->nz ; iz++) {
+              unsigned int cell = cell_coordinate_to_index(p, ix, iy, iz);
 	      psi[ix][iy][iz] = p->electric_field[cell];
 	   }
        }
 }  
 
+#pragma acc parallel loop present(p[:1])
 #pragma omp parallel for  
-for (ix = 0 ; ix < p->nx ; ix++) {
-      ixp = mod((ix+1),p->nx);
-      ixm = mod((ix-1),p->nx);
-      for (iy = 0 ; iy < p->ny ; iy++) {
-         iyp = mod((iy+1),p->ny);
-         iym = mod((iy-1),p->ny);
-            for (iz = 0 ; iz < p->nz ; iz++) {
-               izp = mod((iz+1),p->nz);
-               izm = mod((iz-1),p->nz);
+for (unsigned int ix = 0 ; ix < p->nx ; ix++) {
+      unsigned int ixp = mod((ix+1),p->nx);
+      unsigned int ixm = mod((ix-1),p->nx);
+      for (unsigned int iy = 0 ; iy < p->ny ; iy++) {
+         unsigned int iyp = mod((iy+1),p->ny);
+         unsigned int iym = mod((iy-1),p->ny);
+            for (unsigned int iz = 0 ; iz < p->nz ; iz++) {
+               unsigned int izp = mod((iz+1),p->nz);
+               unsigned int izm = mod((iz-1),p->nz);
 
-               cell = cell_coordinate_to_index(p, ix, iy, iz);
+               unsigned int cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	       temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/2./p->deltax; 
+	       soma_scalar_t temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/2./p->deltax; 
                gradpsi2[cell] = temp*temp;
 
 	       temp = (psi[ix][iyp][iz]-psi[ix][iym][iz])/2./p->deltay; 
@@ -475,36 +464,32 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 } // ix
 
 for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
-    for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for  
+	for (uint64_t cell = 0; cell < p->n_cells; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
  
 //    printf("cell, type, gradpsi2, dl/dN todo  %d %d %f %f %f \n", cell,type,gradpsi2[cell],p->d_invblav[cell + type*p->n_cells_local], gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local]);
 	    
-    p->omega_field_unified[cell + type*p->n_cells_local] += -0.5/constq*p->vcell*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells_local];
+    p->omega_field_unified[cell + type*p->n_cells] += -0.5/constq*p->vcell*gradpsi2[cell]*p->d_invblav[cell + type*p->n_cells];
 
     } // cell 	    
 } // type	
-
-} // if efieldsolver
-
+} // pragma acc block
 // Born energy contribution
-
-  soma_scalar_t tmpborn ;
-  if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
-
-  unsigned int ii; // simplifies notation 
 
 
     for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
-       for (uint64_t cell = 0; cell < p->n_cells_local; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for  
+       for (uint64_t cell = 0; cell < p->n_cells; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
   
-	   ii = cell + type*p->n_cells_local;
-     
-           tmpborn = 1.0/(p->invblav[cell]*2.0*p->Born_a);
+	   unsigned ii = cell + type*p->n_cells;
+           soma_scalar_t tmpborn = 1.0/(p->invblav[cell]*2.0*p->Born_a);
 
            p->omega_field_unified[ii] += tmpborn*fabs(p->charges[type])*(1.0-p->fields_unified[ii]/p->invblav[cell]*p->d_invblav[ii]);   
 
         } // cell 	    
-     } // type	
+     } // type
    } // if efieldsolver
 } // end routine
 
