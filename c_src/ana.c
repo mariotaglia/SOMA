@@ -741,14 +741,13 @@ int extent_npos_field(const struct Phase *const p, void *const field_pointer, co
     const char *const name = field_name;
 
   if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
-	  
-#pragma acc update self(p->fields_unified[0:p->n_cells_local*p->n_types])
-
     update_invblav(p); // update invblav (inverse of average Bjerrum length)
     update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
     update_rhoF(p);  // update polymer charge density
     update_exp_born(p); // update born energy		
     update_electric_field(p);
+    #pragma acc update self(p->npos_field[0:p->n_cells])
+    printf("hola %f %f %f \n", p->electric_field[0], p->rhoF[0], p->exp_born[0]);
   }
 
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
@@ -880,6 +879,7 @@ int extent_nneg_field(const struct Phase *const p, void *const field_pointer, co
     update_rhoF(p);  // update polymer charge density
     update_exp_born(p); // update born energy		
     update_electric_field(p);
+    #pragma acc update self(p->nneg_field[0:p->n_cells])
   }
 
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
@@ -1011,6 +1011,7 @@ int extent_electric_field(const struct Phase *const p, void *const field_pointer
     update_rhoF(p);  // update polymer charge density
     update_exp_born(p); // update born energy		
     update_electric_field(p);
+    #pragma acc update self(p->electric_field[0:p->n_cells])
   }
 
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
