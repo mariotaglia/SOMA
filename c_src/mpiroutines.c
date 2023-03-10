@@ -69,12 +69,21 @@ int init_MPI(struct Phase *p)
         }
     p->info_MPI.world_size = test;
 
+
     if (MPI_Comm_size(p->info_MPI.SOMA_comm_sim, &(test)) != MPI_SUCCESS)
         {
             fprintf(stderr, "MPI_ERROR: %d (2)\n", test);
             return -2;
         }
     p->info_MPI.sim_size = test;
+
+    if ((p->args.efieldsolver_arg != efieldsolver_arg_NO)&&(p->info_MPI.sim_size != 1)) {
+	fprintf(stderr, "Multiple MPI processes are not supported for EN, PB and PH \n");
+
+	return -1;
+
+    }
+
 
     if (MPI_Comm_rank(p->info_MPI.SOMA_comm_sim, &(test)) != MPI_SUCCESS)
         {

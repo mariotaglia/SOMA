@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "MPI Error cannot duplicate MPI_COMM_WORLD %s:%d\n", __FILE__, __LINE__);
             return -1;
         }
+ 
 #endif                          //ENABLE_MPI
 
     const int args_success = cmdline_parser(argc, argv, &(p->args));
