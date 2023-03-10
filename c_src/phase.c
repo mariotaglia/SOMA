@@ -48,7 +48,7 @@ int init_phase(struct Phase *const p)
     p->end_mono = NULL;
     p->tps_elapsed_time = 1;    //Bla default, bigger 0
     p->tps_elapsed_steps = 1;   //Bla default, bigger 0
-
+ 
     uint64_t n_polymer_offset = 0;
 
 #if ( ENABLE_MPI == 1 )
@@ -304,6 +304,8 @@ int init_phase(struct Phase *const p)
     if (p->args.efieldsolver_arg != efieldsolver_arg_NO)  { // Info for electrostatics, prepare data before copyin
              calc_ions(p);  // calc ion concetration
              calc_invbls(p);  // calc inverse of bls
+             aviter = 0;
+             countiter = 0;
     }
 
     copyin_phase(p);

@@ -102,4 +102,6 @@ int write_hdf5(const hsize_t ndims, const hsize_t * const dims, const hid_t file
 int read_hdf5(const hid_t file_id, const char *const name, const hid_t mem_type, const hid_t plist_id,
               void *const data);
 
-#endif                          //SOMA_IO_H
+#endif  
+                        //SOMA_IO_H
+                       

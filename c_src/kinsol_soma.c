@@ -32,19 +32,19 @@ int mod(int a, int b); // modulus
 
 /* Functions Called by the KINSOL Solver */
 
-static int func(N_Vector cc, N_Vector fval, void *user_data);
+static int funcPB(N_Vector cc, N_Vector fval, void *user_data);
 
 
 /* Template for preconditioner, currently not in use */
 
-/*static int PrecSetupBD(N_Vector cc, N_Vector cscale,
+static int PrecSetup(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        void *user_data);
 
-static int PrecSolveBD(N_Vector cc, N_Vector cscale,
+static int PrecSolve(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        N_Vector vv, void *user_data);
-*/
+
 
 
 /* Private Helper Functions */
@@ -73,7 +73,7 @@ int call_PB(const struct Phase *const p)
   N_Vector cc, sc, constraints;
   static int flagsolved = 1; // turn to 0 after first solution 
   static realtype scale; 
-  int flag, maxl, maxlrst;
+  int flag, maxl, maxlrst, mset;
   void *kmem;
   SUNLinearSolver LS;
   Phase *data;
@@ -117,7 +117,7 @@ int call_PB(const struct Phase *const p)
  if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
  N_VConst(0, constraints); */
 
-  linsolver = 0; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
+  linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* Allocate ccx */
    if (flagsolved) {
@@ -170,7 +170,7 @@ int call_PB(const struct Phase *const p)
     if (check_flag((void *)kmem, "KINCreate", 0)) return(1);
 
     /* Vector cc passed as template vector. */
-    flag = KINInit(kmem, func, cc);
+    flag = KINInit(kmem, funcPB, cc);
     if (check_flag(&flag, "KINInit", 1)) return(1);
 
     flag = KINSetUserData(kmem, data);
@@ -198,7 +198,12 @@ int call_PB(const struct Phase *const p)
       /* Create SUNLinSol_SPGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 1000;
-      LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
+
+/*      LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1); */
+
+
+      LS = SUNLinSol_SPGMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1);
 
       /* Attach the linear solver to KINSOL */
@@ -223,8 +228,12 @@ int call_PB(const struct Phase *const p)
       /* Create SUNLinSol_SPBCGS object and the
          maximum Krylov dimension maxl */
       maxl = 1000;
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1);
+
+/*      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); */
+
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -234,7 +243,6 @@ int call_PB(const struct Phase *const p)
       maxlrst = 10;
       flag = SUNLinSol_SPGMRSetMaxRestarts(LS, maxlrst);
       if (check_flag(&flag, "SUNLinSol_SPGMRSetMaxRestarts", 1)) return(1);
-
 
       break;
 
@@ -249,7 +257,12 @@ int call_PB(const struct Phase *const p)
       /* Create SUNLinSol_SPTFQMR object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 1000;
-      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_NONE, maxl, sunctx);
+
+/*      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_NONE, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPTFQMR", 0)) return(1);
+*/
+
+      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPTFQMR", 0)) return(1);
 
       /* Attach the linear solver to KINSOL */
@@ -269,8 +282,12 @@ int call_PB(const struct Phase *const p)
       /* Create SUNLinSol_SPFGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 1000;
-      LS = SUNLinSol_SPFGMR(cc, SUN_PREC_NONE, maxl, sunctx);
+/*      LS = SUNLinSol_SPFGMR(cc, SUN_PREC_NONE, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPFGMR", 0)) return(1); */
+
+      LS = SUNLinSol_SPFGMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPFGMR", 0)) return(1);
+
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -286,9 +303,13 @@ int call_PB(const struct Phase *const p)
     }
 
     /* Set preconditioner functions, not in use*/
-/*    flag = KINSetPreconditioner(kmem, PrecSetupBD, PrecSolveBD);
+    flag = KINSetPreconditioner(kmem, PrecSetup, PrecSolve);
     if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
-*/
+
+    mset = 1; // maximum number of iterations before recalc diagonal preconditioner
+
+    flag = KINSetMaxSetupCalls(kmem, mset);
+    if (check_flag(&flag, "KINSetMaxSetupCalls", 1)) return(1);
     
     /* Call KINSol */
 
@@ -304,7 +325,11 @@ int call_PB(const struct Phase *const p)
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+
+        aviter += iter;
+        countiter++;
+ 
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
@@ -313,6 +338,7 @@ int call_PB(const struct Phase *const p)
                 avpsi += ccx[i]; 
         	p->electric_field[i] = ccx[i];
         }
+
         p->electric_field[p->n_cells-1] = 0.0;
         avpsi = avpsi / ((soma_scalar_t) p->n_cells); 
 
@@ -346,7 +372,7 @@ int call_PB(const struct Phase *const p)
  *--------------------------------------------------------------------
  */
 
-static int func(N_Vector cc, N_Vector fval, void *user_data)
+static int funcPB(N_Vector cc, N_Vector fval, void *user_data)
 {
 
 #include <assert.h>
@@ -516,7 +542,8 @@ soma_scalar_t norma = 0;
                 }
 
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); 
-  */
+*/
+  
   assert(fabs(sumrhoQ) < 1.0e-5);
 
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
@@ -640,15 +667,15 @@ psic[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PB
 if (p->Nposions > 0) {
 #pragma omp parallel for reduction(+:sumposions) 
      for (cell = 0 ; cell < p->n_cells ; cell++) {
-            p->npos_temp[cell] = exp(-psic[cell])*p->exp_born[cell];
-	    sumposions += p->npos_temp[cell]; 
+            npos_temp[cell] = exp(-psic[cell])*p->exp_born[cell];
+	    sumposions += npos_temp[cell]; 
       }
 
 // Normalize to match totalnumber and divide by cell volume
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-            p->npos_temp[cell] = p->npos_temp[cell] * p->Nposions / sumposions / p->vcell; 
+            npos_temp[cell] = npos_temp[cell] * p->Nposions / sumposions / p->vcell; 
     }
 } // if
 
@@ -656,7 +683,7 @@ else {
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-             p->npos_temp[cell] = 0.0;
+             npos_temp[cell] = 0.0;
     }
 }
 
@@ -665,21 +692,21 @@ if (p->Nnegions > 0) {
 
 #pragma omp parallel for reduction(+:sumnegions) 
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-             p->nneg_temp[cell] = exp(psic[cell])*p->exp_born[cell];
-	     sumnegions += p->nneg_temp[cell]; 
+             nneg_temp[cell] = exp(psic[cell])*p->exp_born[cell];
+	     sumnegions += nneg_temp[cell]; 
     }
 
 // Normalize to match totalnumber and divide by cell volume
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-           p->nneg_temp[cell] = p->nneg_temp[cell] * p->Nnegions / sumnegions / p->vcell; 
+           nneg_temp[cell] = nneg_temp[cell] * p->Nnegions / sumnegions / p->vcell; 
     }
 } // if 
 else {
 
 #pragma omp parallel for  
      for (cell = 0 ; cell < p->n_cells ; cell++) {
-           p->nneg_temp[cell] = 0.0;
+           nneg_temp[cell] = 0.0;
      }
 }
 
@@ -715,10 +742,10 @@ else {
         	cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 	        if ((int) cell < NEQ) { 
-		 p->prec_cond_field[cell] = -(npos_temp[cell]+nneg_temp[cell])*constq;
-       		 p->prec_cond_field[cell] += -0.5*(invbl[ixp][iy][iz]+2*invbl[ix][iy][iz]+invbl[ixm][iy][iz])/(p->deltax*p->deltax); 
-        	 p->prec_cond_field[cell] += -0.5*(invbl[ix][iyp][iz]+2*invbl[ix][iy][iz]+invbl[ix][iym][iz])/(p->deltay*p->deltay); 
-        	 p->prec_cond_field[cell] += -0.5*(invbl[ix][iy][izp]+2*invbl[ix][iy][iz]+invbl[ix][iy][izm])/(p->deltaz*p->deltaz); 
+		 p->temp_prec_field[cell] = -(npos_temp[cell]+nneg_temp[cell])*constq;
+       		 p->temp_prec_field[cell] += -0.5*(invbl[ixp][iy][iz]+2*invbl[ix][iy][iz]+invbl[ixm][iy][iz])/(p->deltax*p->deltax); 
+        	 p->temp_prec_field[cell] += -0.5*(invbl[ix][iyp][iz]+2*invbl[ix][iy][iz]+invbl[ix][iym][iz])/(p->deltay*p->deltay); 
+        	 p->temp_prec_field[cell] += -0.5*(invbl[ix][iy][izp]+2*invbl[ix][iy][iz]+invbl[ix][iy][izm])/(p->deltaz*p->deltaz); 
                 }
          }
       }
@@ -761,4 +788,3 @@ static int PrecSolve(N_Vector cc, N_Vector cscale,
   return(0);
 }
 
-/

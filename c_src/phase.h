@@ -117,6 +117,7 @@ typedef struct Phase {
     soma_scalar_t Born_a;      /*!< \brief stores the Born radius for each type */
     int efieldsolver;           /*!< \brief type of efield solver */
 
+
     soma_scalar_t *R;           /*!< \brief stores the derived dR for the diffusion constant */
     //!  Mobility of the center of mass for all polymer types.
     //!  Length is p->n_poly_types. NULL if no mobility wanted.
@@ -351,6 +352,7 @@ int free_phase(struct Phase *const p);
   \return the number of chains that have more than 1/50 of the monomers in the total system.
 */
 int mc_set_init(struct Phase *const p);
-
+int aviter;
+int countiter;
 
 #endif                          //PHASE_H

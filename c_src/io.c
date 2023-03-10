@@ -44,6 +44,7 @@
 #include "mobility.h"
 #include "io_old.h"
 
+
 #if ( ENABLE_MPI == 1 )
 #include <mpi.h>
 #endif                          // ( ENABLE_MPI == 1 )
@@ -1776,6 +1777,15 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps)
                     fprintf(stdout, "Rank %i:Running for %g [s] | TPS %g | steps-to-go: %u | ETA: %s",
                             p->info_MPI.world_rank, second, tps, Nsteps - steps_done, ctime(&end));
                     fflush(stdout);
+                if ((p->args.efieldsolver_arg == efieldsolver_arg_PB)||(p->args.efieldsolver_arg == efieldsolver_arg_PH)) {
+                    soma_scalar_t av = ((soma_scalar_t) aviter)/((soma_scalar_t) countiter);
+                    fprintf(stdout, "Av iters: %f \n", av);
+                    fflush(stdout);
+                    aviter = 0;
+                    countiter = 0;
+                } 
+
+
                 }
             last_print = now.tv_sec;
             last_time = p->time;
