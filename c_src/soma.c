@@ -24,6 +24,7 @@
 //! \file soma.c
 //! \brief Implementation of the main executable SOMA.
 
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -47,6 +48,7 @@
 //! \param argc Argument counter
 //! \param argv Argument vector
 //! \return Errorcode
+
 int main(int argc, char *argv[])
 {
     Phase phase;

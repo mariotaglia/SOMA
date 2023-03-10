@@ -304,8 +304,6 @@ int init_phase(struct Phase *const p)
     if (p->args.efieldsolver_arg != efieldsolver_arg_NO)  { // Info for electrostatics, prepare data before copyin
              calc_ions(p);  // calc ion concetration
              calc_invbls(p);  // calc inverse of bls
-             aviter = 0;
-             countiter = 0;
     }
 
     copyin_phase(p);

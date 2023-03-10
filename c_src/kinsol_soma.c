@@ -24,7 +24,7 @@
 #else
 
 #include <nvector/nvector_serial.h>    /* access to Serial N_Vector            */
-#define  NVITH NV_Ith_S
+#define  NVITH NVITH
 
 #endif
 
@@ -70,7 +70,10 @@ static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 int iter = 0;
 realtype fnorm;
- 
+
+int aviter = 0;
+int countiter = 0;
+
  /*
  *--------------------------------------------------------------------
  * MAIN ROUTINE
@@ -172,7 +175,7 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
         else {
 	    // Recover profile, need to implement in a function   
             for (i = 0 ; i < NEQ ; i++) {
-		   NV_Ith_S(cc,i) = ccx[i]; 
+		   NVITH(cc,i) = ccx[i]; 
             }
         }
    }	 
@@ -180,7 +183,7 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
 	call_EN(p); 
 
         for (i = 0 ; i < NEQ ; i++) {
-           NV_Ith_S(cc,i) = p->electric_field[i] - p->electric_field[NEQ]; // sets efield to zero in the last cell
+           NVITH(cc,i) = p->electric_field[i] - p->electric_field[NEQ]; // sets efield to zero in the last cell
 	}
    }
    else {
@@ -363,7 +366,7 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
-        	ccx[i] = NV_Ith_S(cc,i);
+        	ccx[i] = NVITH(cc,i);
                 avpsi += ccx[i]; 
         	p->electric_field[i] = ccx[i];
         }
@@ -432,8 +435,8 @@ static int funcPB(N_Vector cc, N_Vector fval, void *user_data)
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           if ((int) cell < NEQ) {
-				  psi[ix][iy][iz] = NV_Ith_S(cc,cell); 
-				  psic[cell] = NV_Ith_S(cc,cell); 
+				  psi[ix][iy][iz] = NVITH(cc,cell); 
+				  psic[cell] = NVITH(cc,cell); 
 			  }
 		     }
 	 	}
@@ -550,7 +553,7 @@ else {
 //	res[ix][iy][iz] = -res[ix][iy][iz];
                           
 			  if ((int) cell < NEQ) { 
-				  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
+				  NVITH(fval,cell) = -res[ix][iy][iz];
 //				  printf("func: cell, res %d %f \n", cell, invbl[ix][iy][iz]);
 			  }     
 		     }
@@ -684,7 +687,7 @@ static int PrecSetup(N_Vector cc, N_Vector cscale,
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           if ((int) cell < NEQ) {
-				  psic[cell] = NV_Ith_S(cc,cell); 
+				  psic[cell] = NVITH(cc,cell); 
 			  }
 		     }
 	 	}
@@ -805,13 +808,13 @@ static int PrecSolve(N_Vector cc, N_Vector cscale,
 
 #pragma omp parallel for  
   for (cell = 0 ; cell < NEQ ; cell++) {
-	  vvin[cell] = NV_Ith_S(vv,cell); 
+	  vvin[cell] = NVITH(vv,cell); 
    }
 
   for (cell = 0 ; cell < NEQ ; cell++) {
 
           vvout[cell] = vvin[cell]/p->temp_prec_field[cell]; // Diagonal precond.
-	  NV_Ith_S(vv,cell) = vvout[cell]; 
+	  NVITH(vv,cell) = vvout[cell]; 
    }
 
   return(0);

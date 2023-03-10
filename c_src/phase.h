@@ -352,7 +352,4 @@ int free_phase(struct Phase *const p);
   \return the number of chains that have more than 1/50 of the monomers in the total system.
 */
 int mc_set_init(struct Phase *const p);
-int aviter;
-int countiter;
-
 #endif                          //PHASE_H

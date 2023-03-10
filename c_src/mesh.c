@@ -573,8 +573,6 @@ void update_omega_fields_scmf1(const struct Phase *const p)
 void calc_ions(struct Phase *const p)
   {
 
-  int ix, iy, iz,cell;
-  unsigned int type ;
   soma_scalar_t sumrhoQ = 0.0;                   // total number of charges
   unsigned int polytype ;
 

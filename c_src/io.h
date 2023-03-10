@@ -104,4 +104,6 @@ int read_hdf5(const hid_t file_id, const char *const name, const hid_t mem_type,
 
 #endif  
                         //SOMA_IO_H
-                       
+ 
+extern int aviter;
+extern int countiter;
