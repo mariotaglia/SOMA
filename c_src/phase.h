@@ -102,6 +102,7 @@ typedef struct Phase {
     soma_scalar_t *npos_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of npos_field */
     soma_scalar_t *nneg_field;      /*!< \brief one pointer that points to the construct of p->n_cells_local of nneg_field */
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density */
+    soma_scalar_t *temp_prec_field;   /*!< \brief a temporal storage for intermediate field calculations, used to save the diagonal preconditioner  */
 
     soma_scalar_t invblav_zero;    /*!> \brief stores the inverse of the average Bjerrum length */
     soma_scalar_t *invblav;       /*!> \brief stores the inverse of the average Bjerrum length */

@@ -179,6 +179,14 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
+    p->temp_prec_field = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (p->temp_prec_field == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
     p->invblav = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
     if (p->invblav == NULL)
         {

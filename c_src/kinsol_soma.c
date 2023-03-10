@@ -79,7 +79,7 @@ int call_PB(const struct Phase *const p)
   Phase *data;
 
   int NEQ; //<- Number of equations 
-  NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
+  NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
   iter = 0; // number of iterations
@@ -304,7 +304,7 @@ int call_PB(const struct Phase *const p)
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-//        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
         /* Save solution */
         // Save profile, need to implement in a function   
         soma_scalar_t avpsi = 0; //average psi
@@ -313,10 +313,10 @@ int call_PB(const struct Phase *const p)
                 avpsi += ccx[i]; 
         	p->electric_field[i] = ccx[i];
         }
-        p->electric_field[p->n_cells_local-1] = 0.0;
-        avpsi = avpsi / ((soma_scalar_t) p->n_cells_local); 
+        p->electric_field[p->n_cells-1] = 0.0;
+        avpsi = avpsi / ((soma_scalar_t) p->n_cells); 
 
-        for (i = 0 ; i < (int) p->n_cells_local ; i++) {
+        for (i = 0 ; i < (int) p->n_cells ; i++) {
         	p->electric_field[i] += -avpsi;
         }
         flagsolved = 0;
@@ -348,21 +348,19 @@ int call_PB(const struct Phase *const p)
 
 static int func(N_Vector cc, N_Vector fval, void *user_data)
 {
-//  realtype xx, yy, delx, dely, *cxy, *rxy, *fxy, dcyli, dcyui, dcxli, dcxri;
-//  int jx, jy, is, idyu, idyl, idxr, idxl;
 
 #include <assert.h>
 
   unsigned int ix, iy, iz, cell;
   int ixp ,ixm, iyp, iym, izp, izm;
   const struct Phase *const p = user_data;
-  int NEQ = (int) p->n_cells_local - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
+  int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
   soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
   soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
-  soma_scalar_t  psic[p->n_cells_local]; // electrostatic potential 3D lattice, units of kBT/|e|
+  soma_scalar_t  psic[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
@@ -387,14 +385,14 @@ static int func(N_Vector cc, N_Vector fval, void *user_data)
 	  }
 
 psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
-psic[p->n_cells_local-1] = 0.0; // choice of zero of electrostatic potential due to PBC
+psic[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PBC
 
 // Pos ion 
 
 
 if (p->Nposions > 0) {
 #pragma omp parallel for reduction(+:sumposions) 
-     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+     for (cell = 0 ; cell < p->n_cells ; cell++) {
             p->npos_field[cell] = exp(-psic[cell])*p->exp_born[cell];
 	    sumposions += p->npos_field[cell]; 
       }
@@ -402,7 +400,7 @@ if (p->Nposions > 0) {
 // Normalize to match totalnumber and divide by cell volume
 
 #pragma omp parallel for  
-    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
             p->npos_field[cell] = p->npos_field[cell] * p->Nposions / sumposions / p->vcell; 
     }
 } // if
@@ -410,7 +408,7 @@ if (p->Nposions > 0) {
 else {
 
 #pragma omp parallel for  
-    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
              p->npos_field[cell] = 0.0;
     }
 }
@@ -419,21 +417,21 @@ else {
 if (p->Nnegions > 0) {
 
 #pragma omp parallel for reduction(+:sumnegions) 
-    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
              p->nneg_field[cell] = exp(psic[cell])*p->exp_born[cell];
 	     sumnegions += p->nneg_field[cell]; 
     }
 
 // Normalize to match totalnumber and divide by cell volume
 #pragma omp parallel for  
-    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
            p->nneg_field[cell] = p->nneg_field[cell] * p->Nnegions / sumnegions / p->vcell; 
     }
 } // if 
 else {
 
 #pragma omp parallel for  
-     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+     for (cell = 0 ; cell < p->n_cells ; cell++) {
            p->nneg_field[cell] = 0.0;
      }
 }
@@ -494,7 +492,7 @@ else {
         res[ix][iy][iz] += 0.5*((invbl[ix][iy][izp]+invbl[ix][iy][iz])*(psi[ix][iy][izp]-psi[ix][iy][iz]))/(p->deltaz*p->deltaz); 
         res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iy][izm])*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(p->deltaz*p->deltaz); 
 
-	res[ix][iy][iz] = -res[ix][iy][iz];
+//	res[ix][iy][iz] = -res[ix][iy][iz];
                           
 			  if ((int) cell < NEQ) { 
 				  NV_Ith_S(fval,cell) = -res[ix][iy][iz];
@@ -600,3 +598,167 @@ static Phase *AllocUserData(void)
 
 
 
+/*
+ * Preconditioner setup routine. Generate and preprocess P.
+ */
+
+static int PrecSetup(N_Vector cc, N_Vector cscale,
+                       N_Vector fval, N_Vector fscale,
+                       void *user_data)  {
+
+#include <assert.h>
+
+  unsigned int ix, iy, iz, cell;
+  int ixp ,ixm, iyp, iym, izp, izm;
+  const struct Phase *const p = user_data;
+  int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
+				       be fixed to zero (see notes) */
+
+  soma_scalar_t  psic[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
+  soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
+  soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
+  soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
+  soma_scalar_t npos_temp[p->n_cells], nneg_temp[p->n_cells]; 
+
+// psi from kinsol's input
+
+#pragma omp parallel for  
+  for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+			  for (iz = 0 ; iz <  p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          if ((int) cell < NEQ) {
+				  psic[cell] = NV_Ith_S(cc,cell); 
+			  }
+		     }
+	 	}
+	  }
+
+psic[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PBC
+
+// Pos ion 
+if (p->Nposions > 0) {
+#pragma omp parallel for reduction(+:sumposions) 
+     for (cell = 0 ; cell < p->n_cells ; cell++) {
+            p->npos_temp[cell] = exp(-psic[cell])*p->exp_born[cell];
+	    sumposions += p->npos_temp[cell]; 
+      }
+
+// Normalize to match totalnumber and divide by cell volume
+
+#pragma omp parallel for  
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+            p->npos_temp[cell] = p->npos_temp[cell] * p->Nposions / sumposions / p->vcell; 
+    }
+} // if
+
+else {
+
+#pragma omp parallel for  
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+             p->npos_temp[cell] = 0.0;
+    }
+}
+
+// Neg ion 
+if (p->Nnegions > 0) {
+
+#pragma omp parallel for reduction(+:sumnegions) 
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+             p->nneg_temp[cell] = exp(psic[cell])*p->exp_born[cell];
+	     sumnegions += p->nneg_temp[cell]; 
+    }
+
+// Normalize to match totalnumber and divide by cell volume
+#pragma omp parallel for  
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+           p->nneg_temp[cell] = p->nneg_temp[cell] * p->Nnegions / sumnegions / p->vcell; 
+    }
+} // if 
+else {
+
+#pragma omp parallel for  
+     for (cell = 0 ; cell < p->n_cells ; cell++) {
+           p->nneg_temp[cell] = 0.0;
+     }
+}
+
+// recast inverse of average bjerrum length into x,y,z coordinates
+
+#pragma omp parallel for  
+    for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+		  for (iz = 0 ; iz < p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          invbl[ix][iy][iz] = p->invblav[cell] ;
+//				  printf("func: cell, res %d %f \n", cell, p->invblav[cell]);
+		     }
+	 	}
+	  }
+
+/// Calculate diagonal preconditioner, temp_prec_field
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+
+     ixp = mod((ix+1),p->nx);
+     ixm = mod((ix-1),p->nx);
+ 
+     for (iy = 0 ; iy < p->ny ; iy++) {
+
+        iyp = mod((iy+1),p->ny);
+        iym = mod((iy-1),p->ny);
+
+	for (iz = 0 ; iz < p->nz ; iz++) {
+        
+        	izp = mod((iz+1),p->nz);
+ 		izm = mod((iz-1),p->nz);
+        	cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+	        if ((int) cell < NEQ) { 
+		 p->prec_cond_field[cell] = -(npos_temp[cell]+nneg_temp[cell])*constq;
+       		 p->prec_cond_field[cell] += -0.5*(invbl[ixp][iy][iz]+2*invbl[ix][iy][iz]+invbl[ixm][iy][iz])/(p->deltax*p->deltax); 
+        	 p->prec_cond_field[cell] += -0.5*(invbl[ix][iyp][iz]+2*invbl[ix][iy][iz]+invbl[ix][iym][iz])/(p->deltay*p->deltay); 
+        	 p->prec_cond_field[cell] += -0.5*(invbl[ix][iy][izp]+2*invbl[ix][iy][iz]+invbl[ix][iy][izm])/(p->deltaz*p->deltaz); 
+                }
+         }
+      }
+    }
+
+return(0);
+
+}	
+
+
+
+
+/*
+ * Preconditioner solve routine
+ */
+
+static int PrecSolve(N_Vector cc, N_Vector cscale,
+                       N_Vector fval, N_Vector fscale,
+                       N_Vector vv, void *user_data)
+{
+  unsigned int cell;
+  const struct Phase *const p = user_data;
+  int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
+				       be fixed to zero (see notes) */
+
+  soma_scalar_t vvin[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
+  soma_scalar_t vvout[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
+
+#pragma omp parallel for  
+  for (cell = 0 ; cell < NEQ ; cell++) {
+	  vvin[cell] = NV_Ith_S(vv,cell); 
+   }
+
+  for (cell = 0 ; cell < NEQ ; cell++) {
+
+          vvout[cell] = vvin[cell]/p->temp_prec_field[cell]; // Diagonal precond.
+	  NV_Ith_S(vv,cell) = vvout[cell]; 
+   }
+
+  return(0);
+}
+
+/
