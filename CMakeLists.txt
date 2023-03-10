@@ -113,7 +113,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "NVHPC")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress declared_but_not_referenced")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress mixed_enum_type")
 
-endif("${CMAKE_C_COMPILER_ID}" STREQUAL "NVHCP")
+endif("${CMAKE_C_COMPILER_ID}" STREQUAL "NVHPC")
 
 
 
