@@ -187,6 +187,7 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
    }	 
    else if (p->args.efieldsolver_arg == efieldsolver_arg_PB) { // EN as initial
 	call_EN(p); 
+        #pragma acc update self(p->electric_field[0:p->n_cells])
 
         for (i = 0 ; i < NEQ ; i++) {
            NVITH(cc,i) = p->electric_field[i] - p->electric_field[NEQ]; // sets efield to zero in the last cell
