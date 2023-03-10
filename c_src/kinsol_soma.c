@@ -7,7 +7,6 @@
 #include <assert.h>
 
 #include <kinsol/kinsol.h>               /* access to KINSOL func., consts.      */
-#include <nvector/nvector_serial.h>    /* access to Serial N_Vector            */
 #include <sunlinsol/sunlinsol_spgmr.h>   /* access to SPGMR SUNLinearSolver      */
 #include <sunlinsol/sunlinsol_spbcgs.h>  /* access to SPBCGS SUNLinearSolver     */
 #include <sunlinsol/sunlinsol_sptfqmr.h> /* access to SPTFQMR SUNLinearSolver    */
@@ -15,6 +14,21 @@
 #include <sundials/sundials_dense.h>     /* use generic dense solver in precond. */
 #include <sundials/sundials_types.h>     /* defs. of realtype, sunindextype      */
 #include "mesh.h"
+
+#ifdef _OPENMP
+
+#include <omp.h>
+#include <nvector/nvector_openmp.h>    /* access to OpenMP N_Vector            */
+#define  NVITH NV_Ith_OMP
+
+#else
+
+#include <nvector/nvector_serial.h>    /* access to Serial N_Vector            */
+#define  NVITH NV_Ith_S
+
+#endif
+
+
 
 int mod(int a, int b); // modulus
 
@@ -73,6 +87,7 @@ int call_PB(const struct Phase *const p)
   N_Vector cc, sc, constraints;
   static int flagsolved = 1; // turn to 0 after first solution 
   static realtype scale; 
+  int num_threads;
   int flag, maxl, maxlrst, mset;
   void *kmem;
   SUNLinearSolver LS;
@@ -99,6 +114,12 @@ int call_PB(const struct Phase *const p)
 				KIN_FP = fixed point interaction
 				KIN_PICARD = Picard interaction */
 
+  /* Set the number of threads to use */
+  num_threads = 1;     /* default value*/
+#ifdef _OPENMP
+  num_threads = p->args.omp_threads_arg;
+#endif
+
   data = AllocUserData(); 
   if (check_flag((void *)data, "AllocUserData", 2)) return(1);
 
@@ -107,14 +128,22 @@ int call_PB(const struct Phase *const p)
 //  InitUserData(data);
 
   /* Create serial vectors of length NEQ */
-  cc = N_VNew_Serial(NEQ, sunctx);
-  if (check_flag((void *)cc, "N_VNew_Serial", 0)) return(1);
-  sc = N_VNew_Serial(NEQ, sunctx);
-  if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
+
+#ifdef _OPENMP
+cc = N_VNew_OpenMP(NEQ, num_threads, sunctx);
+if (check_flag((void *)cc, "N_VNew_OpenMP", 0)) return(1);
+sc = N_VNew_OpenMP(NEQ, num_threads, sunctx);
+if (check_flag((void *)sc, "N_VNew_OpenMP", 0)) return(1);
+#else
+cc = N_VNew_Serial(NEQ, sunctx);
+if (check_flag((void *)cc, "N_VNew_Serial", 0)) return(1);
+sc = N_VNew_Serial(NEQ, sunctx);
+if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
+#endif
 
 /* Template for using constrainst, not in use 
- constraints = N_VNew_Serial(NEQ, sunctx);
- if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
+ constraints = N_VNEW(NEQ, sunctx);
+ if (check_flag((void *)constraints, "N_VNEW", 0)) return(1);
  N_VConst(0, constraints); */
 
   linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
