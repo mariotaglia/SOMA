@@ -24,7 +24,7 @@
 #else
 
 #include <nvector/nvector_serial.h>    /* access to Serial N_Vector            */
-#define  NVITH NVITH
+#define  NVITH NV_Ith_S
 
 #endif
 
@@ -95,6 +95,12 @@ int call_PB(const struct Phase *const p)
   void *kmem;
   SUNLinearSolver LS;
   Phase *data;
+
+/* Kinsol runs on CPU only, update fields */
+#pragma acc update self(p->invblav[0:p->n_cells])
+#pragma acc update self(p->rhoF[0:p->n_cells])
+#pragma acc update self(p->exp_born[0:p->n_cells])
+#pragma acc update self(p->d_invblav[0:p->n_types*p->n_cells_local])
 
   int NEQ; //<- Number of equations 
   NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
