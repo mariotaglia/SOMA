@@ -178,13 +178,6 @@ int main(int argc, char *argv[])
         }
     int stop_iteration = false;
 
-
-    if (p->args.efieldsolver_arg != efieldsolver_arg_NO)  { // Info for electrostatics, prepare data before copyin
-             calc_ions(p);  // calc ion concetration
-             calc_invbls(p);  // calc inverse of bls
-    }
-
-
     for (unsigned int i = 0; i < N_steps; i++)
         {
             analytics(p);
