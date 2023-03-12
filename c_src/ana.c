@@ -34,6 +34,7 @@
 #include "phase.h"
 #include "polymer.h"
 #include "mesh.h"
+#include  "helper_electro.h"
 #include "io.h"
 #include "rng.h"
 #include <math.h>

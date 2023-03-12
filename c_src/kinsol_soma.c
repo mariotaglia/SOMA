@@ -13,7 +13,9 @@
 #include <sunlinsol/sunlinsol_spfgmr.h>  /* access to SPFGMR SUNLinearSolver     */
 #include <sundials/sundials_dense.h>     /* use generic dense solver in precond. */
 #include <sundials/sundials_types.h>     /* defs. of realtype, sunindextype      */
+#include  "helper_electro.h"
 #include "mesh.h"
+#include "helper_electro.h"
 
 #ifdef _OPENMP
 

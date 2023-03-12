@@ -220,18 +220,3 @@ void update_omega_fields_scmf1(const struct Phase *const p);
 #endif                          //SOMA_MESH_H
 				//
 
-int call_PB(const struct Phase *const p);
-//! Calls kinsol
-
-int call_EN(const struct Phase *const p);
-//! Calls electroneutrality efield solver
-
-void calc_ions(struct Phase *const p);
-void calc_invbls(struct Phase *const p);
-
-void update_invblav(const struct Phase *const p);
-void update_d_invblav(const struct Phase *const p);
-void update_exp_born(const struct Phase *const p);
-void update_rhoF(const struct Phase *const p);
-
-void update_electric_field(const struct Phase *const p);

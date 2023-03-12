@@ -40,6 +40,7 @@
 #include "generate_positions.h"
 #include "polytype_conversion.h"
 #include "monotype_conversion.h"
+#include "helper_electro.h"
 
 
 //! Main Function of the Executable SOMA
