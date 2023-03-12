@@ -568,3 +568,10 @@ void update_omega_fields_scmf1(const struct Phase *const p)
     add_pair_omega_fields_scmf1(p);
 }
 
+int mod(int a, int b)
+{
+    int r = a % b;
+    return r < 0 ? r + b : r;
+}
+
+

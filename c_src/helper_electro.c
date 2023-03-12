@@ -63,12 +63,6 @@ void update_electric_field(const struct Phase *const p)
     	call_EN(p);
 }  
 
-int mod(int a, int b)
-{
-    int r = a % b;
-    return r < 0 ? r + b : r;
-}
-
 void calc_invbls(struct Phase *const p) 
 {
 unsigned int type;
