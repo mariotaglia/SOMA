@@ -573,7 +573,8 @@ void update_omega_fields_scmf1(const struct Phase *const p)
 void calc_ions(struct Phase *const p)
   {
 
-  soma_scalar_t sumrhoQ = 0.0;                   // total number of charges
+  soma_scalar_t sumrhoQ;                   // total number of charges
+  soma_scalar_t sumrhoQtmp = 0.0;                   // total number of charges
   unsigned int polytype ;
 
   for (uint64_t i = 0; i < p->n_polymers; i++)   { ; // loope over pol chains
@@ -582,9 +583,13 @@ void calc_ions(struct Phase *const p)
     unsigned int iN;   
     for (iN = 0; iN < N ; iN++) {  // loop over monomers
          const unsigned int type = get_particle_type(p, polytype, iN); 
-         sumrhoQ += p->charges[type]; 
+         sumrhoQtmp += p->charges[type]; 
     }
   }
+
+#if ( ENABLE_MPI == 1 )
+    MPI_Allreduce(&sumrhoQtmp, &sumrhoQ, 1,  MPI_SOMA_SCALAR, MPI_SUM, p->info_MPI.SOMA_comm_sim);
+#endif                          //ENABLE_MPI
 
   p->Nposions = p->Nnegions = p->Nions;
 

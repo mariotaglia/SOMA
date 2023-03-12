@@ -156,6 +156,15 @@ int post_process_args(struct som_args *args, const unsigned int world_rank)
                 fprintf(stderr, "WARNING: Non positive number for domain decompostion given. Using 1 domain.\n");
             args->N_domains_arg = 1;
         }
+
+    if ((args->efieldsolver_arg != efieldsolver_arg_NO)&&(args->N_domains_arg > 1)) {
+	fprintf(stderr, "Domain decomposition not supported for EN, PB and PH \n");
+
+	return -1;
+
+    }
+
+
     //Set to no domain decompostion defaults
     if (args->N_domains_arg == 1)
         {

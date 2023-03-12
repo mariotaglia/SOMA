@@ -301,11 +301,6 @@ int init_phase(struct Phase *const p)
     init_autotuner(&(p->mc_autotuner));
     init_autotuner(&(p->cm_mc_autotuner));
 
-    if (p->args.efieldsolver_arg != efieldsolver_arg_NO)  { // Info for electrostatics, prepare data before copyin
-             calc_ions(p);  // calc ion concetration
-             calc_invbls(p);  // calc inverse of bls
-    }
-
     copyin_phase(p);
     p->num_long_chain = mc_set_init(p);
 
