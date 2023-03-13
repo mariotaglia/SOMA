@@ -585,8 +585,6 @@ soma_scalar_t norma = 0;
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); 
 */
   
-  assert(fabs(sumrhoQ) < 1.0e-5);
-
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
 

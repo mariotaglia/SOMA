@@ -35,6 +35,7 @@
 #include "mobility.h"
 #include "self_documentation.h"
 #include "poly_heavy.h"
+#include "helper_electro.h"
 
 int init_phase(struct Phase *const p)
 {
