@@ -85,8 +85,13 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
         for (unsigned int j = i; j < p->n_types; j++)
             fprintf(ftmp, " %dx%d=%f", i, j, p->xn[i * p->n_types + j]);
     fprintf(ftmp, "\n");
+
     if (p->harmonic_normb_variable_scale != 1.)
         fprintf(ftmp, "\tHarmonic variable scale = %f\n", p->harmonic_normb_variable_scale);
+
+    if (p->harmonic_shift != 0.)
+        fprintf(ftmp, "\tHarmonic shift = %f\n", p->harmonic_shift);
+
     fprintf(ftmp, "\tDiffusion constants for types:");
     for (unsigned int i = 0; i < p->n_types; i++)
         fprintf(ftmp, " %f", p->A[i]);

@@ -28,7 +28,8 @@ enum Bondtype {
     HARMONIC = 0,               /*!<\brief Harmonic bond with a single spring const. */
 /*!\deprecated stiff is not implemented, at least for now */
     STIFF = 1,                  /*!<\brief Stiff bonds. */
-    HARMONICVARIABLESCALE = 2   /*!<\brief Harmonic bond with a single spring const. But with an additional scaling factor for influence of Photoswitches. */
+    HARMONICVARIABLESCALE = 2,   /*!<\brief Harmonic bond with a single spring const. But with an additional scaling factor for influence of Photoswitches. */
+    HARMONICSHIFTED = 3   /*!<\brief Harmonic bond with a single spring const,  an additional scaling factor and a shift. */
 };
 
 //! Number of implemented bonds, definition in init.c

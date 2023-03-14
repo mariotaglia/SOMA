@@ -635,6 +635,12 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
                    plist_id, &(p->harmonic_normb_variable_scale));
     HDF5_ERROR_CHECK2(status, "/parameter/harmonic_normb_variable_scale");
 
+    //p->harmonic_shift
+    status =
+        write_hdf5(1, &one, file_id, "/parameter/harmonic_shift", H5T_IEEE_F64LE, H5T_SOMA_NATIVE_SCALAR,
+                   plist_id, &(p->harmonic_shift));
+    HDF5_ERROR_CHECK2(status, "/parameter/harmonic_shift");
+
     //Polymer architecture
     //Number of polymer type
     status = write_hdf5(1, &one, file_id, "/parameter/n_poly_type", H5T_STD_U32LE,
@@ -1535,12 +1541,33 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
         {
             if (p->info_MPI.sim_rank == 0)
                 {
-                    if (get_number_bond_type(p, HARMONICVARIABLESCALE) != 0)
+                    if ((get_number_bond_type(p, HARMONICVARIABLESCALE) != 0)||(get_number_bond_type(p, HARMONICSHIFTED) != 0))
                         fprintf(stderr,
-                                "WARNING: The poly_arch contains HARMONICVARIABLESCALE Bond, but no corresponding value is set. Using 1 instead.\n");
+                                "WARNING: The poly_arch contains HARMONICVARIABLESCALE or HARMONICSHIFTED Bond, but no corresponding value is set. Using scale = 1 instead.\n");
                 }
             p->harmonic_normb_variable_scale = 1.;
         }
+
+
+    // read harmonic_shift
+    if (H5Lexists(file_id, "/parameter/harmonic_shift", H5P_DEFAULT) > 0)
+        {
+            status =
+                read_hdf5(file_id, "/parameter/harmonic_shift", H5T_SOMA_NATIVE_SCALAR, plist_id,
+                          &(p->harmonic_shift));
+            HDF5_ERROR_CHECK2(status, "/parameter/harmonic_shift");
+        }
+    else
+        {
+            if (p->info_MPI.sim_rank == 0)
+                {
+                    if (get_number_bond_type(p, HARMONICSHIFTED) != 0)
+                        fprintf(stderr,
+                                "WARNING: The poly_arch contains HARMONICSHIFTED Bond, but no corresponding value is set. Using leght = 0 instead.\n");
+                }
+            p->harmonic_shift = 0.;
+        }
+
 
     status = read_beads(p, file_id, plist_id);
     HDF5_ERROR_CHECK2(status, "total beads read");

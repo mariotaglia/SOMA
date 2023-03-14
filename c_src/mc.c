@@ -142,6 +142,8 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
 
                     const int neighbour_id = ibead + offset;
                     const unsigned int jbead = neighbour_id;
+                    soma_scalar_t old_rx, new_rx, old_ry, new_ry, old_rz, new_rz;
+                    soma_scalar_t old_r2, new_r2;
                     //printf("    offset=%d jbead=%u  end=%u type=%u\n",neigh->offset,jbead,end,neigh->bond_type);
 
                     soma_scalar_t scale = 1.;
@@ -154,39 +156,40 @@ soma_scalar_t calc_delta_bonded_energy(const Phase * p, const Monomer * monomer,
                             //Empty statement, because a statement after a label
                             //has to come before any declaration
                             ;
-                            const soma_scalar_t old_rx = calc_bond_length(monomer->x, beads[jbead].x, p->Lx,
+                            old_rx = calc_bond_length(monomer->x, beads[jbead].x, p->Lx,
                                                                           p->args.bond_minimum_image_convention_flag);
-                            const soma_scalar_t new_rx = old_rx + dx;
-                            const soma_scalar_t old_ry = calc_bond_length(monomer->y, beads[jbead].y, p->Ly,
+                            new_rx = old_rx + dx;
+                            old_ry = calc_bond_length(monomer->y, beads[jbead].y, p->Ly,
                                                                           p->args.bond_minimum_image_convention_flag);
-                            const soma_scalar_t new_ry = old_ry + dy;
-                            const soma_scalar_t old_rz = calc_bond_length(monomer->z, beads[jbead].z, p->Lz,
+                            new_ry = old_ry + dy;
+                            old_rz = calc_bond_length(monomer->z, beads[jbead].z, p->Lz,
                                                                           p->args.bond_minimum_image_convention_flag);
-                            const soma_scalar_t new_rz = old_rz + dz;
+                            new_rz = old_rz + dz;
 
-                            const soma_scalar_t old_r2 = old_rx * old_rx + old_ry * old_ry + old_rz * old_rz;
-                            const soma_scalar_t new_r2 = new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
+                            old_r2 = old_rx * old_rx + old_ry * old_ry + old_rz * old_rz;
+                            new_r2 = new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
                             delta_energy += p->harmonic_normb * (new_r2 - old_r2) * scale;
                             break;
+
                         case HARMONICSHIFTED:
                             scale = p->harmonic_normb_variable_scale;
-                            const soma_scalar_t old_rx = calc_bond_length(monomer->x, beads[jbead].x, p->Lx,
+                            old_rx = calc_bond_length(monomer->x, beads[jbead].x, p->Lx,
                                                                           p->args.bond_minimum_image_convention_flag);
-                            const soma_scalar_t new_rx = old_rx + dx;
-                            const soma_scalar_t old_ry = calc_bond_length(monomer->y, beads[jbead].y, p->Ly,
+                            new_rx = old_rx + dx;
+                            old_ry = calc_bond_length(monomer->y, beads[jbead].y, p->Ly,
                                                                           p->args.bond_minimum_image_convention_flag);
-                            const soma_scalar_t new_ry = old_ry + dy;
-                            const soma_scalar_t old_rz = calc_bond_length(monomer->z, beads[jbead].z, p->Lz,
+                            new_ry = old_ry + dy;
+                            old_rz = calc_bond_length(monomer->z, beads[jbead].z, p->Lz,
                                                                           p->args.bond_minimum_image_convention_flag);
-                            const soma_scalar_t new_rz = old_rz + dz;
+                            new_rz = old_rz + dz;
 
-                            const soma_scalar_t old_r2 = old_rx * old_rx + old_ry * old_ry + old_rz * old_rz;
-                            const soma_scalar_t new_r2 = new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
+                            old_r2 = old_rx * old_rx + old_ry * old_ry + old_rz * old_rz;
+                            new_r2 = new_rx * new_rx + new_ry * new_ry + new_rz * new_rz;
 
-                            const soma_scalar_t old_r = sqrt(old_r2);
-                            const soma_scalar_t new_r = sqrt(new_r2);
+                            soma_scalar_t old_r = sqrt(old_r2);
+                            soma_scalar_t new_r = sqrt(new_r2);
 
-                            const soma_scalar_t r0 = p->harmonic_shift;
+                            soma_scalar_t r0 = p->harmonic_shift;
                             delta_energy += p->harmonic_normb * (new_r2 - old_r2 - 2.*r0*(new_r-old_r)) * scale;
                             break;
 
@@ -767,6 +770,8 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
 
                     const int neighbour_id = ibead + offset;
                     const unsigned int jbead = neighbour_id;
+                    soma_scalar_t bx_tmp, by_tmp, bz_tmp;
+                    soma_scalar_t old_r2_tmp;
                     soma_scalar_t scale = 1;
                     switch (bond_type)
                         {
@@ -778,34 +783,34 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
                             //has to come before any declaration
                             ;
 
-                            soma_scalar_t bx_tmp = calc_bond_length(beads[jbead].x, x, p->Lx,
+                            bx_tmp = calc_bond_length(beads[jbead].x, x, p->Lx,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t by_tmp = calc_bond_length(beads[jbead].y, y, p->Ly,
+                            by_tmp = calc_bond_length(beads[jbead].y, y, p->Ly,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t bz_tmp = calc_bond_length(beads[jbead].z, z, p->Lz,
+                            bz_tmp = calc_bond_length(beads[jbead].z, z, p->Lz,
                                                                     p->args.bond_minimum_image_convention_flag);
                             fx += bx_tmp * 2.0 * p->harmonic_normb * scale;
                             fy += by_tmp * 2.0 * p->harmonic_normb * scale;
                             fz += bz_tmp * 2.0 * p->harmonic_normb * scale;
-                            soma_scalar_t old_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
+                            old_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
                             old_E_B += p->harmonic_normb * (old_r2_tmp) * scale;
 
 
                         case HARMONICSHIFTED:
                             scale = p->harmonic_normb_variable_scale;
 
-                            soma_scalar_t bx_tmp = calc_bond_length(beads[jbead].x, x, p->Lx,
+                            bx_tmp = calc_bond_length(beads[jbead].x, x, p->Lx,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t by_tmp = calc_bond_length(beads[jbead].y, y, p->Ly,
+                            by_tmp = calc_bond_length(beads[jbead].y, y, p->Ly,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t bz_tmp = calc_bond_length(beads[jbead].z, z, p->Lz,
+                            bz_tmp = calc_bond_length(beads[jbead].z, z, p->Lz,
                                                                     p->args.bond_minimum_image_convention_flag);
 
 
-                            soma_scalar_t old_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
-                            soma_scalar_t old_r_tmp = sqrt(old_r2_tmp)
+                            old_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
+                            soma_scalar_t old_r_tmp = sqrt(old_r2_tmp);
                             const soma_scalar_t r0 = p->harmonic_shift;
-                            soma_scalar_factor_r0 = 1.0 - r0/old_r_tmp;
+                            soma_scalar_t factor_r0 = 1.0 - r0/old_r_tmp;
 
                             fx += bx_tmp * 2.0 * p->harmonic_normb * scale * factor_r0 ;
                             fy += by_tmp * 2.0 * p->harmonic_normb * scale * factor_r0;
@@ -814,7 +819,6 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
                             soma_scalar_t norm2 = (old_r_tmp - r0)*(old_r_tmp - r0);
                             old_E_B += p->harmonic_normb * norm2 * scale;
 
-                            CHECKSIGN fx
                             break;
 
                         case STIFF:
@@ -852,6 +856,8 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
                     const int offset = get_offset(info);
                     const int neighbour_id = ibead + offset;
                     const unsigned int jbead = neighbour_id;
+                    soma_scalar_t bx_tmp, by_tmp, bz_tmp;
+                    soma_scalar_t  new_r2_tmp;
                     soma_scalar_t scale = 1;
                     switch (bond_type)
                         {
@@ -863,34 +869,35 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
                             //has to come before any declaration
                             ;
 
-                            soma_scalar_t bx_tmp = calc_bond_length(beads[jbead].x, x + *dx, p->Lx,
+                            bx_tmp = calc_bond_length(beads[jbead].x, x + *dx, p->Lx,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t by_tmp = calc_bond_length(beads[jbead].y, y + *dy, p->Ly,
+                            by_tmp = calc_bond_length(beads[jbead].y, y + *dy, p->Ly,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t bz_tmp = calc_bond_length(beads[jbead].z, z + *dz, p->Lz,
+                            bz_tmp = calc_bond_length(beads[jbead].z, z + *dz, p->Lz,
                                                                     p->args.bond_minimum_image_convention_flag);
                             nfx += bx_tmp * 2.0 * p->harmonic_normb * scale;
                             nfy += by_tmp * 2.0 * p->harmonic_normb * scale;
                             nfz += bz_tmp * 2.0 * p->harmonic_normb * scale;
-                            soma_scalar_t new_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
+                            new_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
                             new_E_B += p->harmonic_normb * (new_r2_tmp) * scale;
 
                             break;
                         case HARMONICSHIFTED:
                             scale = p->harmonic_normb_variable_scale;
 
-                            soma_scalar_t bx_tmp = calc_bond_length(beads[jbead].x, x + *dx, p->Lx,
+                            bx_tmp = calc_bond_length(beads[jbead].x, x + *dx, p->Lx,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t by_tmp = calc_bond_length(beads[jbead].y, y + *dy, p->Ly,
+                            by_tmp = calc_bond_length(beads[jbead].y, y + *dy, p->Ly,
                                                                     p->args.bond_minimum_image_convention_flag);
-                            soma_scalar_t bz_tmp = calc_bond_length(beads[jbead].z, z + *dz, p->Lz,
+                            bz_tmp = calc_bond_length(beads[jbead].z, z + *dz, p->Lz,
                                                                     p->args.bond_minimum_image_convention_flag);
 
 
 
-                            soma_scalar_t new_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
+                            new_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
                             soma_scalar_t new_r_tmp = sqrt(new_r2_tmp);
-                            soma_scalar_factor_r0 = 1.0 - r0/new_r_tmp;
+                            soma_scalar_t r0 = p->harmonic_shift;
+                            soma_scalar_t factor_r0 = 1.0 - r0/new_r_tmp;
 
                             nfx += bx_tmp * 2.0 * p->harmonic_normb * scale * factor_r0;
                             nfy += by_tmp * 2.0 * p->harmonic_normb * scale * factor_r0;

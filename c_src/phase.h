@@ -64,6 +64,7 @@ typedef struct Phase {
     unsigned int reference_Nbeads;      /*!< \brief number of reference beads for the model polymer */
     soma_scalar_t harmonic_normb;       //!< Harmonic energy scale (function of spring constant) const. at runtime.
     soma_scalar_t harmonic_normb_variable_scale;        //!< different harmonic energy scale (function of spring constant) const. at runtime.
+    soma_scalar_t harmonic_shift;        //!< harmonic shift r0, U ~ (|r|-r0)^2. 
     unsigned int n_types;       /*!<\brief number of monomer types */
 
     /*! \brief \f$\chi N\f$
