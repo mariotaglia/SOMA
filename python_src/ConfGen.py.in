@@ -41,6 +41,7 @@ bondDict = {}
 bondDict["HARMONIC".upper()] = 0
 bondDict["STIFF".upper()] = 1
 bondDict["HARMONICVARIABLESCALE".upper()] = 2
+bondDict["HARMONICSHIFTED".upper()] = 3
 NUMBER_SOMA_BOND_TYPES = 3
 
 ## Matches the enum Hamiltonian of soma_util.h
@@ -1053,6 +1054,7 @@ class SomaXML:
     knownTags += ["bls"]
     knownTags += ["time"]
     knownTags += ["harmonicvariablescale"]
+    knownTags += ["harmonicshift"]
     knownTags += ["poly_arch"]
     knownTags += ["reference_Nbeads"]
     knownTags += ["lxyz"]
@@ -1133,6 +1135,9 @@ class Configuration(SomaXML):
 
         ## harmonic_harmonic_normb_variable_scale of the configuration
         self.harmonic_normb_variable_scale = self.create_harmonic_normb_variable_scale()
+
+        ## harmonic_harmonic_normb_shift of the configuration
+        self.harmonic_shift = self.create_harmonic_shift()
 
         ## List of all MoleculesSets
         self.molecule_set_list = self.create_molecule_set_list()
@@ -1266,6 +1271,9 @@ class Configuration(SomaXML):
                 create_list += [("/parameter/cm_a",self.cm_a)]
             if type(self.harmonic_normb_variable_scale) is numpy.ndarray:
                 create_list += [("/parameter/harmonic_normb_variable_scale",self.harmonic_normb_variable_scale)]
+            if type(self.harmonic_shift) is numpy.ndarray:
+                create_list += [("/parameter/harmonic_shifted",self.harmonic_shifted)]
+
 
 
             for element in create_list:
@@ -1614,6 +1622,22 @@ class Configuration(SomaXML):
 
             harmonic_normb_variable_scale[0] = float(harmonic_normb_variable_scale_str)
             return harmonic_normb_variable_scale
+        else:
+            return False
+
+    ## Create the "create_harmonic_shift" attribute
+    ## @return create_harmonic_shift array
+    def create_harmonic_shift(self):
+        harmonic_shift_str = ""
+        for harmonic_shift in self.root.iter('harmonicshift'):
+            harmonic_shift_str += harmonic_shift.text
+        harmonic_shift_str = harmonic_shift_str.strip()
+
+        if len(harmonic_shift_str) > 0:
+            harmonic_shift = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
+
+            harmonic_shift[0] = float(harmonic_shift_str)
+            return harmonic_shift
         else:
             return False
 

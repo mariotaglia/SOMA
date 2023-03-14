@@ -428,6 +428,14 @@ void calc_bonded_energy(const struct Phase *const p, soma_scalar_t * const bonde
                                                     energy = p->harmonic_normb * r2 * scale;
                                                     break;
 
+                                                case HARMONICSHIFTED:   /* introduced here to not affect the performance
+                                                                           of previous SOMA features */
+                                                    scale = p->harmonic_normb_variable_scale;
+                                                    soma_scalar_t r0 = p->harmonic_shift;
+                                                    soma_scalar_t norm2 = (sqrt(r2) - r0)*(sqrt(r2) - r0);
+                                                    energy = p->harmonic_normb * norm2 * scale;
+                                                    break;
+
                                                 case STIFF:
                                                     fprintf(stderr,
                                                             "ERROR: %s:%d stiff bond not yet implemented.\n",

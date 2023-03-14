@@ -200,10 +200,14 @@ void propose_smc_move(const struct Phase *p, const uint64_t ipoly, unsigned cons
   \note coordinates (x,y,z) are passed as a parameter and not taken from
   the configuration to enable the computation of forces after and before the move with this same function.
 */
+
+/* MT 3.14.23 This routine is not used elsewhere else. Definition of force is also not correct.
+ *
 #pragma acc routine(add_bond_forces) seq
 void add_bond_forces(const struct Phase *p, const uint64_t ipoly, unsigned const int ibead,
                      const soma_scalar_t x, const soma_scalar_t y, const soma_scalar_t z,
                      soma_scalar_t * fx, soma_scalar_t * fy, soma_scalar_t * fz);
+*/
 
 //! Validates, whether a move for a particle from the old position, by
 //! a displacement of dx violates the forbidden area51.
