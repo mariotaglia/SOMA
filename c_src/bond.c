@@ -21,4 +21,4 @@
 
 #include "bond.h"
 
-const unsigned int NUMBER_SOMA_BOND_TYPES = 3;
+const unsigned int NUMBER_SOMA_BOND_TYPES = 4;
