@@ -1272,7 +1272,7 @@ class Configuration(SomaXML):
             if type(self.harmonic_normb_variable_scale) is numpy.ndarray:
                 create_list += [("/parameter/harmonic_normb_variable_scale",self.harmonic_normb_variable_scale)]
             if type(self.harmonic_shift) is numpy.ndarray:
-                create_list += [("/parameter/harmonicshift",self.harmonic_shift)]
+                create_list += [("/parameter/harmonic_shift",self.harmonic_shift)]
 
 
 
