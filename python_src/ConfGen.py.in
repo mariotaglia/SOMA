@@ -42,7 +42,7 @@ bondDict["HARMONIC".upper()] = 0
 bondDict["STIFF".upper()] = 1
 bondDict["HARMONICVARIABLESCALE".upper()] = 2
 bondDict["HARMONICSHIFTED".upper()] = 3
-NUMBER_SOMA_BOND_TYPES = 3
+NUMBER_SOMA_BOND_TYPES = 4
 
 ## Matches the enum Hamiltonian of soma_util.h
 hamiltonDict = {}
