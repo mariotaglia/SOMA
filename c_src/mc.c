@@ -794,7 +794,7 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
                             fz += bz_tmp * 2.0 * p->harmonic_normb * scale;
                             old_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
                             old_E_B += p->harmonic_normb * (old_r2_tmp) * scale;
-
+                            break;
 
                         case HARMONICSHIFTED:
                             scale = p->harmonic_normb_variable_scale;
@@ -880,7 +880,6 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
                             nfz += bz_tmp * 2.0 * p->harmonic_normb * scale;
                             new_r2_tmp = bx_tmp * bx_tmp + by_tmp * by_tmp + bz_tmp * bz_tmp;
                             new_E_B += p->harmonic_normb * (new_r2_tmp) * scale;
-
                             break;
                         case HARMONICSHIFTED:
                             scale = p->harmonic_normb_variable_scale;
