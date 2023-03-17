@@ -812,7 +812,7 @@ void propose_smc_move(const Phase * p, const uint64_t ipoly, unsigned const int 
                             const soma_scalar_t r0 = p->harmonic_shift;
                             soma_scalar_t factor_r0 = 1.0 - r0/old_r_tmp;
 
-                            fx += bx_tmp * 2.0 * p->harmonic_normb * scale * factor_r0 ;
+                            fx += bx_tmp * 2.0 * p->harmonic_normb * scale * factor_r0;
                             fy += by_tmp * 2.0 * p->harmonic_normb * scale * factor_r0;
                             fz += bz_tmp * 2.0 * p->harmonic_normb * scale * factor_r0;
 

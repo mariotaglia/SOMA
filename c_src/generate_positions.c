@@ -92,8 +92,8 @@ int set_neighbour(const unsigned int jbead, const Monomer * const neigh,
                     soma_normal_vector(&(poly->poly_state), p, &(dx.x), &(dx.y), &(dx.z));
                     const soma_scalar_t r0 = p->harmonic_shift;
                     dx.x = dx.x * r0;
-                    dx.x = dx.y * r0;
-                    dx.x = dx.z * r0;
+                    dx.y = dx.y * r0;
+                    dx.z = dx.z * r0;
                     new.x = neigh->x + dx.x;
                     new.y = neigh->y + dx.y;
                     new.z = neigh->z + dx.z;
