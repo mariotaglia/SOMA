@@ -197,5 +197,32 @@ for (type = 0 ; type < p->n_types; type++) {
 }
 }
 
+void update_NB(const struct Phase *const p) // Updates NB (|charge| per Re^3, including counter ions) 
+
+{
+unsigned int cell, type;
+
+#pragma acc parallel loop present(p[:1]) 
+#pragma omp parallel for
+for (cell = 0 ; cell < p->n_cells ; cell++) {
+     p->NB[cell] = 0;
+}
+
+for (type = 0 ; type < p->n_types; type++) {
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for    
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+        p->NB[cell] += ((soma_scalar_t) p->fields_unified[cell+p->n_cells_local*type])*fabs(p->charges[type]);
+   } 
+}
+
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for    
+    for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+        p->NB[cell] += (p->nneg_field[cell] + p->npos_field[cell])*p->vcell; 
+   } 
+}
+
+
 
 

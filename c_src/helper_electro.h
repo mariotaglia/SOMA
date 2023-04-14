@@ -19,6 +19,7 @@ void update_invblav(const struct Phase *const p);
 void update_d_invblav(const struct Phase *const p);
 void update_exp_born(const struct Phase *const p);
 void update_rhoF(const struct Phase *const p);
+void update_NB(const struct Phase *const p);
 
 void update_electric_field(const struct Phase *const p);
 

@@ -401,6 +401,7 @@ if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 	update_rhoF(p);  // update polymer charge density
         update_exp_born(p); // update born energy, always do this after updating invblav		
         update_electric_field(p);
+	update_NB(p);  // auxiliary field for Born energy calculation, always do this after updating efield
 
 // electric field
 
@@ -486,7 +487,8 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
 	   unsigned ii = cell + type*p->n_cells;
            soma_scalar_t tmpborn = 1.0/(p->invblav[cell]*2.0*p->Born_a);
 
-           p->omega_field_unified[ii] += tmpborn*fabs(p->charges[type])*(1.0-p->fields_unified[ii]/p->invblav[cell]*p->d_invblav[ii]);   
+           p->omega_field_unified[ii] += tmpborn*fabs(p->charges[type]);
+           p->omega_field_unified[ii] += -tmpborn*p->NB[ii]/p->invblav[cell]*p->d_invblav[ii];   
 
         } // cell 	    
      } // type
