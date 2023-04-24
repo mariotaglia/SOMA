@@ -233,6 +233,12 @@ const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 soma_scalar_t temp;
 unsigned int cell,ix,iy,iz;
 
+  if (p->info_MPI.sim_rank == 0) {
+    fprintf(stdout, "calc_exp_noneq: c(L)/c(z) ratio: %f \n ", alfa);
+     fflush(stdout);
+  }
+ 
+
   for (ix = 0 ; ix < p->nx ; ix++) {
      for (iy = 0 ; iy < p->ny ; iy++) {
 	for (iz = 0 ; iz < p->nz ; iz++) {
