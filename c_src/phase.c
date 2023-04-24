@@ -202,7 +202,7 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->exp_born = (soma_scalar_t *) malloc(p->n_cells_local * p->n_types * sizeof(soma_scalar_t));
+    p->exp_born = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
     if (p->exp_born == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -216,7 +216,7 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->NB = (soma_scalar_t *) malloc(p->n_cells_local * p->n_types * sizeof(soma_scalar_t));
+    p->NB = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
     if (p->NB == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
