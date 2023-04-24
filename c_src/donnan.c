@@ -33,8 +33,8 @@ while (iterror > maxiterror) {
 #pragma omp parallel for    
     for (i = 0 ; i < p->n_cells ; i++) {
 	p->electric_field[i] = p->rhoF[i];
-	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]*p->exp_noneq[i]);
-	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nnegions/Qneg*p->exp_born[i]) ;
+	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born_pos[i]*p->exp_born_neg[i]*p->exp_noneq[i]);
+	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nnegions/Qneg*p->exp_born_neg[i]) ;
 	p->electric_field[i] = log(p->electric_field[i]);
      }
  }
@@ -45,8 +45,8 @@ while (iterror > maxiterror) {
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
 	p->electric_field[i] = -p->rhoF[i];
-	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born[i]*p->exp_born[i]*p->exp_noneq[i]);
-	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nposions/Qpos*p->exp_born[i]*p->exp_noneq[i]) ;
+	p->electric_field[i] += sqrt(p->rhoF[i]*p->rhoF[i] + 4.*p->Nposions*p->Nnegions/Qpos/Qneg*p->exp_born_pos[i]*p->exp_born_neg[i]*p->exp_noneq[i]);
+	p->electric_field[i] = p->electric_field[i] / (2.0*p->Nposions/Qpos*p->exp_born_pos[i]*p->exp_noneq[i]) ;
 	p->electric_field[i] = -log(p->electric_field[i]);
      }
  }    
@@ -55,8 +55,8 @@ while (iterror > maxiterror) {
 #pragma acc parallel loop reduction (+:Qposnew) reduction (+:Qnegnew)  
 #pragma omp parallel for reduction (+:Qposnew) reduction (+:Qnegnew)
     for (i = 0 ; i < p->n_cells ; i++) {
-        Qposnew += exp(-p->electric_field[i])*p->exp_born[i]*p->exp_noneq[i];
-        Qnegnew += exp(p->electric_field[i])*p->exp_born[i];
+        Qposnew += exp(-p->electric_field[i])*p->exp_born_pos[i]*p->exp_noneq[i];
+        Qnegnew += exp(p->electric_field[i])*p->exp_born_neg[i];
     }
 
         Qposnew = Qposnew*p->vcell;
@@ -72,8 +72,8 @@ while (iterror > maxiterror) {
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
-        p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos*p->Nposions*p->exp_noneq[i] ; 
-        p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg*p->Nnegions  ; 
+        p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born_pos[i]/Qpos*p->Nposions*p->exp_noneq[i] ; 
+        p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born_neg[i]/Qneg*p->Nnegions  ; 
      }
 
 /*    for (i = 0 ; i < p->n_cells ; i++) {

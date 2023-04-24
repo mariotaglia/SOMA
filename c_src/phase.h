@@ -107,7 +107,11 @@ typedef struct Phase {
 
     soma_scalar_t invblav_zero;    /*!> \brief stores the inverse of the average Bjerrum length */
     soma_scalar_t *invblav;       /*!> \brief stores the inverse of the average Bjerrum length */
-    soma_scalar_t *exp_born;      /*!> \brief stores exp(-u_B), where u_B is the Born energy of a single charge */
+
+    soma_scalar_t *exp_born_pol;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */
+    soma_scalar_t *exp_born_pos;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */
+    soma_scalar_t *exp_born_neg;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */
+
     soma_scalar_t *exp_noneq;      /*!> \brief stores exp(-mu(z)_plus), where mu(z) is the position-dependent cation chemical potential in a non-eq simulation */
     soma_scalar_t *rhoF;          /*!> \brief stores the charge density of the polymers */
     soma_scalar_t *NB;          /*!> \brief stores the sum of the absolute values of the charge density (for Born energy calc) */
@@ -117,7 +121,9 @@ typedef struct Phase {
     soma_scalar_t *charges;     /*!< \brief stores the charges for each type */
     soma_scalar_t *bls;         /*!< \brief stores the Bjerrum lengths for each type */
     soma_scalar_t *invbls;       /*!< \brief stores the inverse of the Bjerrum lengths for each type */
-    soma_scalar_t Born_a;      /*!< \brief stores the Born radius for each type */
+    soma_scalar_t Born_pol;      /*!< \brief stores the Born radius for polymer segments */
+    soma_scalar_t Born_pos;      /*!< \brief stores the Born radius for pos ions */
+    soma_scalar_t Born_neg;      /*!< \brief stores the Born radius for neg ions */
     int efieldsolver;           /*!< \brief type of efield solver */
 
 

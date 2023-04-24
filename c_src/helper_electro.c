@@ -171,10 +171,29 @@ soma_scalar_t borntmp;
 #pragma omp parallel for    
 for (cell = 0 ; cell < p->n_cells_local ; cell++) {
 
-   borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_a);
-   borntmp += -1.0/(p->invblav_zero*2.0*p->Born_a); // shift to prevent very large numbers...
-	
-   p->exp_born[cell] = exp(-borntmp); 
+   borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_pol);
+   borntmp += -1.0/(p->invblav_zero*2.0*p->Born_pol); // shift to prevent very large numbers...
+   p->exp_born_pol[cell] = exp(-borntmp); 
+}
+
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for    
+for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+
+   borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_pos);
+   borntmp += -1.0/(p->invblav_zero*2.0*p->Born_pos); // shift to prevent very large numbers...
+   p->exp_born_pos[cell] = exp(-borntmp); 
+}
+}
+
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for    
+for (cell = 0 ; cell < p->n_cells_local ; cell++) {
+
+   borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_neg);
+   borntmp += -1.0/(p->invblav_zero*2.0*p->Born_neg); // shift to prevent very large numbers...
+   p->exp_born_neg[cell] = exp(-borntmp); 
+}
 }
 }
 
@@ -220,7 +239,7 @@ for (type = 0 ; type < p->n_types; type++) {
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for    
     for (cell = 0 ; cell < p->n_cells_local ; cell++) {
-        p->NB[cell] += (p->nneg_field[cell] + p->npos_field[cell])*p->vcell; 
+        p->NB[cell] += p->Born_pol*(p->nneg_field[cell]/p->Born_neg + p->npos_field[cell]/p->Born_pos)*p->vcell; 
    } 
 }
 

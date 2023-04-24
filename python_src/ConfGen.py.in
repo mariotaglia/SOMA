@@ -1058,7 +1058,9 @@ class SomaXML:
     knownTags += ["poly_arch"]
     knownTags += ["reference_Nbeads"]
     knownTags += ["lxyz"]
-    knownTags += ["Born_a"] 
+    knownTags += ["Born_pol"] 
+    knownTags += ["Born_pos"] 
+    knownTags += ["Born_neg"] 
     knownTags += ["nxyz"]
     knownTags += ["Nions"]
     knownTags += ["hamiltonian"]
@@ -1175,7 +1177,13 @@ class Configuration(SomaXML):
         self.lxyz = self.create_lxyz()
 
         ## Bjerrum lenght
-        self.Born_a = self.create_Born_a()
+        self.Born_pol = self.create_Born_pol()
+
+        ## Bjerrum lenght
+        self.Born_pos = self.create_Born_pos()
+
+        ## Bjerrum lenght
+        self.Born_neg = self.create_Born_neg()
 
         ## Grid dimension in grid points
         self.nxyz = self.create_nxyz()
@@ -1250,7 +1258,9 @@ class Configuration(SomaXML):
             create_list += [("/parameter/charges",self.charges)]
             create_list += [("/parameter/bls",self.bls)]
             create_list += [("/parameter/lxyz",self.lxyz)]
-            create_list += [("/parameter/Born_a",self.Born_a)]
+            create_list += [("/parameter/Born_pol",self.Born_pol)]
+            create_list += [("/parameter/Born_pos",self.Born_pos)]
+            create_list += [("/parameter/Born_neg",self.Born_neg)]
             create_list += [("/parameter/nxyz",self.nxyz)]
             create_list += [("/parameter/Nions",self.Nions)]
             create_list += [("/parameter/hamiltonian",self.hamiltonian)]
@@ -1692,10 +1702,39 @@ class Configuration(SomaXML):
         return tmp
 
 ## Bjerrum Lenght
-    ## @return box dimension array
-    def create_Born_a(self):
+    def create_Born_pol(self):
         string = ""
-        for element in self.root.iter('Born_a'):
+        for element in self.root.iter('Born_pol'):
+            string += element.text
+        string = string.strip()
+
+        string = string.split()
+        assert len(string) == 1
+        tmp = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
+        for i in range(1):
+            tmp[i] = float(string[i])
+            assert tmp[i] > 0
+        return tmp
+
+## Bjerrum Lenght
+    def create_Born_pos(self):
+        string = ""
+        for element in self.root.iter('Born_pos'):
+            string += element.text
+        string = string.strip()
+
+        string = string.split()
+        assert len(string) == 1
+        tmp = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
+        for i in range(1):
+            tmp[i] = float(string[i])
+            assert tmp[i] > 0
+        return tmp
+
+## Bjerrum Lenght
+    def create_Born_neg(self):
+        string = ""
+        for element in self.root.iter('Born_neg'):
             string += element.text
         string = string.strip()
 

@@ -623,11 +623,21 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
         write_hdf5(1, &three, file_id, "/parameter/lxyz", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, lxyz);
     HDF5_ERROR_CHECK2(status, "/parameter/lxyz");
 
-
-    //Born_a
+    //Born_pol
     status = 
-        write_hdf5(1, &one, file_id, "/parameter/Born_a", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_a));
-    HDF5_ERROR_CHECK2(status, "/parameter/Born_a");
+        write_hdf5(1, &one, file_id, "/parameter/Born_pol", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_pol));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_pol");
+
+    //Born_pos
+    status = 
+        write_hdf5(1, &one, file_id, "/parameter/Born_pos", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_pos));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_pos");
+
+    //Born_neg
+    status = 
+        write_hdf5(1, &one, file_id, "/parameter/Born_neg", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_neg));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_neg");
+
 
     //p->harmonic_normb_variable_scale
     status =
@@ -1485,9 +1495,17 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     status = read_hdf5(file_id, "/parameter/Nions", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
 
-    // read Born_a
-    status = read_hdf5(file_id, "/parameter/Born_a", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_a));
-    HDF5_ERROR_CHECK2(status, "/parameter/Born_a");
+    // read Born_pol
+    status = read_hdf5(file_id, "/parameter/Born_pol", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_pol));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_pol");
+
+    // read Born_pos
+    status = read_hdf5(file_id, "/parameter/Born_pos", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_pos));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_pos");
+
+    // read Born_neg
+    status = read_hdf5(file_id, "/parameter/Born_neg", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_neg));
+    HDF5_ERROR_CHECK2(status, "/parameter/Born_neg");
 
     //Read in the polymer architectures.
     //Number of polymer type

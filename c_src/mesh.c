@@ -485,7 +485,7 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
        for (uint64_t cell = 0; cell < p->n_cells; cell++) {   /*Loop over all cells, max number of cells is product of nx, ny,nz */
   
 	   unsigned ii = cell + type*p->n_cells;
-           soma_scalar_t tmpborn = 1.0/(p->invblav[cell]*2.0*p->Born_a);
+           soma_scalar_t tmpborn = 1.0/(p->invblav[cell]*2.0*p->Born_pol);
 
            p->omega_field_unified[ii] += tmpborn*fabs(p->charges[type]);
            p->omega_field_unified[ii] += -tmpborn*p->NB[cell]/p->invblav[cell]*p->d_invblav[ii];   
