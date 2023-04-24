@@ -72,7 +72,7 @@ while (iterror > maxiterror) {
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
-        p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos*p->Nposions ; 
+        p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born[i]/Qpos*p->Nposions*p->exp_noneq[i] ; 
         p->nneg_field[i] = exp(p->electric_field[i])*p->exp_born[i]/Qneg*p->Nnegions  ; 
      }
 
