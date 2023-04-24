@@ -139,10 +139,23 @@ extern "C" {
                                  /**< @brief Frequency of the load balancer. For homogenous architectures this can be set to high values, for hetereogenous architectures across the MPI ranks small values help to equilibrate faster. Non-MPI runs are uneffected. Values < 0 deactivate the load-balancer. help description.  */
         double accepted_load_inbalance_arg;
                                         /**< @brief  [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers. (default='8').  */
+
+        double noneq_ratio_arg;
+                                        /**< @brief  [<0] Ratio of salt concentration, c(L)/c(0) for non-equilibrium electrostatic calculations (default='1' = equilibrium calculation).  */
+
+
         char *accepted_load_inbalance_orig;
                                         /**< @brief  [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers. original value given at command line.  */
+
+        char *noneq_ratio_orig;
+                                        /**< @brief  [<0] Ratio of salt concentration, c(L)/c(0) for non-equilibrium electrostatic calculations (default='1' = equilibrium calculation).  */
+
         const char *accepted_load_inbalance_help;
                                             /**< @brief  [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers. help description.  */
+
+        const char *noneq_ratio_help;
+                                        /**< @brief  [<0] Ratio of salt concentration, c(L)/c(0) for non-equilibrium electrostatic calculations (default='1' = equilibrium calculation).  */
+ 
         int autotuner_restart_period_arg;
                                         /**< @brief Period in which the autotuner is restarted. (default='10000').  */
         char *autotuner_restart_period_orig;
@@ -238,6 +251,10 @@ extern "C" {
         unsigned int load_balance_given;/**< @brief Whether load-balance was given.  */
         unsigned int accepted_load_inbalance_given;
                                                 /**< @brief Whether accepted-load-inbalance was given.  */
+
+        unsigned int noneq_ratio_given;
+                                                /**< @brief Whether noneq-ratio was given.  */
+
         unsigned int autotuner_restart_period_given;
                                                 /**< @brief Whether autotuner-restart-period was given.  */
         unsigned int N_domains_given;   /**< @brief Whether N-domains was given.  */

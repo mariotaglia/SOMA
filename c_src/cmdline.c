@@ -68,6 +68,9 @@ const char *som_args_detailed_help[] = {
     "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
     "      --purpose=description     Describe the purpose of the simulation run.\n                                  Enables automatic self documentation. only\n                                  ASCII",
     "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				PH (Poisson Boltzmann, guess from homogeneous) \n				NO (none), (default = NE) \n",
+    "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (only important for electrostatic solvers). Default = 1 (equilibrium)   \n",
+
+
     0
 };
 
@@ -105,11 +108,12 @@ static void init_help_array(void)
     som_args_help[29] = som_args_detailed_help[30];
     som_args_help[30] = som_args_detailed_help[31];
     som_args_help[31] = som_args_detailed_help[32];
-    som_args_help[32] = 0;
+    som_args_help[32] = som_args_detailed_help[33];
+    som_args_help[33] = 0;
 
 }
 
-const char *som_args_help[33];
+const char *som_args_help[34];
 
 typedef enum { ARG_NO, ARG_FLAG, ARG_STRING, ARG_INT, ARG_DOUBLE, ARG_ENUM
 } cmdline_parser_arg_type;
@@ -168,6 +172,7 @@ void clear_given(struct som_args *args_info)
     args_info->n_random_q_given = 0;
     args_info->final_file_given = 0;
     args_info->purpose_given = 0;
+    args_info->noneq_ratio_given = 0;
 }
 
 static
@@ -226,7 +231,9 @@ void clear_args(struct som_args *args_info)
     args_info->final_file_orig = NULL;
     args_info->purpose_arg = NULL;
     args_info->purpose_orig = NULL;
-
+    args_info->noneq_ratio_arg = 1.;
+    args_info->noneq_ratio_orig = NULL;
+ 
 }
 
 static
@@ -266,6 +273,7 @@ void init_args_info(struct som_args *args_info)
     args_info->final_file_help = som_args_detailed_help[30];
     args_info->purpose_help = som_args_detailed_help[31];
     args_info->efieldsolver_help = som_args_detailed_help[32];
+    args_info->noneq_ratio_help = som_args_detailed_help[33];
 
 }
 
@@ -388,6 +396,7 @@ static void cmdline_parser_release(struct som_args *args_info)
     free_string_field(&(args_info->purpose_arg));
     free_string_field(&(args_info->purpose_orig));
     free_string_field(&(args_info->efieldsolver_orig));
+    free_string_field(&(args_info->noneq_ratio_orig));
 
     clear_given(args_info);
 }
@@ -522,7 +531,9 @@ int cmdline_parser_dump(FILE * outfile, struct som_args *args_info)
         write_into_file(outfile, "final-file", args_info->final_file_orig, 0);
     if (args_info->purpose_given)
         write_into_file(outfile, "purpose", args_info->purpose_orig, 0);
-
+    if (args_info->noneq_ratio_given)
+        write_into_file(outfile, "noneq-ratio", args_info->noneq_ratio_orig, 0);
+ 
     i = 1;
     return i;
 }
@@ -862,6 +873,7 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                 {"n_random_q", 1, NULL, 0},
                 {"final-file", 1, NULL, 'f'},
                 {"purpose", 1, NULL, 0},
+                {"noneq-ratio", 1, NULL, 0},
                 {0, 0, 0, 0}
             };
 
@@ -1099,6 +1111,22 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                                 goto failure;
 
                         }
+
+
+                    /*  [> 0] Ratio of c(L)/c(0) for non-equilibrium calculations  */
+                    else if (strcmp(long_options[option_index].name, "noneq-ratio") == 0)
+                        {
+
+                            if (update_arg((void *)&(args_info->noneq_ratio_arg),
+                                           &(args_info->noneq_ratio_orig),
+                                           &(args_info->noneq_ratio_given),
+                                           &(local_args_info.noneq_ratio_given), optarg, 0, "1", ARG_DOUBLE,
+                                           check_ambiguity, override, 0, 0, "noneq-ratio", '-',
+                                           additional_error))
+                                goto failure;
+
+                        }
+
                     /* Period in which the autotuner is restarted..  */
                     else if (strcmp(long_options[option_index].name, "autotuner-restart-period") == 0)
                         {
