@@ -488,7 +488,7 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
            soma_scalar_t tmpborn = 1.0/(p->invblav[cell]*2.0*p->Born_a);
 
            p->omega_field_unified[ii] += tmpborn*fabs(p->charges[type]);
-           p->omega_field_unified[ii] += -tmpborn*p->NB[ii]/p->invblav[cell]*p->d_invblav[ii];   
+           p->omega_field_unified[ii] += -tmpborn*p->NB[cell]/p->invblav[cell]*p->d_invblav[ii];   
 
         } // cell 	    
      } // type
