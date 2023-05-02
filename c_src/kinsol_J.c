@@ -642,7 +642,7 @@ static realtype SetScaleJ(const struct Phase *const p)
 {
    realtype scale;
 
-   scale = 1.0/(p->deltax*p->deltax) ; 
+   scale = (p->deltax*p->deltax) ; 
            
    return(scale);
    }
