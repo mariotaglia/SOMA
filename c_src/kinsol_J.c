@@ -181,7 +181,6 @@ N_VConst(2.0, constraints);  // constrains c > 0
 
 	call_EN(p);
 
-        #pragma omp parallel for  
         for (ix = 0 ; ix < p->nx ; ix++) {
          for (iy = 0 ; iy < p->ny ; iy++) {
      	  for (iz = 1 ; iz < p->nz-1 ; iz++) {
@@ -392,16 +391,11 @@ N_VConst(2.0, constraints);  // constrains c > 0
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
 
-#pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
-
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
-
-
 			  cell = cell_coordinate_to_index(p, ix, iy, iz);
-
 	                  cions[cell] = NVITH(cc,i); 
 			  }
            }
@@ -507,11 +501,9 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
 
-#pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
-
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 	                  c[ix][iy][iz] = NVITH(cc,i);
 	                  lc[ix][iy][iz] = log(NVITH(cc,i));
@@ -738,7 +730,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
 
-#pragma omp parallel for  
+//# DO NOT PARALELIZE 
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
@@ -828,13 +820,11 @@ static int PrecSolveJ(N_Vector cc, N_Vector cscale,
   soma_scalar_t vvin[NEQ]; 
   soma_scalar_t vvout[NEQ]; 
 
-#pragma omp parallel for  
   for (i = 0 ; i < NEQ ; i++) {
 	  vvin[i] = NVITH(vv,i); 
    }
 
   for (i = 0 ; i < NEQ ; i++) {
-
           vvout[i] = vvin[i]/p->temp_prec_field[i]; // Diagonal precond.
 	  NVITH(vv,i) = vvout[i]; 
    }
