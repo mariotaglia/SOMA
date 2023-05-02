@@ -278,18 +278,13 @@ unsigned int cell,ix,iy,iz;
 void calc_born_S(const struct Phase *const p) // calculates uB+ + uB- from exp_born
 
 {
-unsigned int cell, ix,iy,ix;
+unsigned int cell;
 
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for    
-  for (ix = 0 ; ix < p->nx ; ix++) {
-          for (iy = 0 ; iy < p->ny ; iy++) {
-                     for (iz = 0 ; iz <  p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          p->born_S[ix][iy][iz] = -log(p->exp_born_pos[cell]) -log(p->exp_born_neg[cell]);
-                     }
-           }
-   }
+  for (cell = 0 ; cell < p->n_cells ; cell++) {
+          p->born_Sc[cell] = -log(p->exp_born_pos[cell]) -log(p->exp_born_neg[cell]);
+  }
 }
 
 

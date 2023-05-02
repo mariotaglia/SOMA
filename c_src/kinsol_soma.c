@@ -70,19 +70,13 @@ static void SetInitialProfiles(N_Vector cc);
 static realtype SetScale(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
-int iter = 0;
-realtype fnorm;
-
-int aviter = 0;
-int countiter = 0;
-
  /*
  *--------------------------------------------------------------------
  * MAIN ROUTINE
  *--------------------------------------------------------------------
  */
 
-int call_PB(const struct Phase *const p)
+int call_PB(struct Phase *const p)
 {
   static realtype *ccx; // last solution
 
@@ -97,6 +91,7 @@ int call_PB(const struct Phase *const p)
   void *kmem;
   SUNLinearSolver LS;
   Phase *data;
+  realtype fnorm;
 
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->invblav[0:p->n_cells])
@@ -110,7 +105,7 @@ int call_PB(const struct Phase *const p)
   NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
-  iter = 0; // number of iterations
+  p->iter = 0; // number of iterations
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -370,8 +365,8 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
 							       //
 //        printf("Elec. converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
 
-        aviter += iter;
-        countiter++;
+        p->aviter += p->iter;
+        p->countiter++;
  
         /* Save solution */
         // Save profile, need to implement in a function   
@@ -422,7 +417,7 @@ static int funcPB(N_Vector cc, N_Vector fval, void *user_data)
 
   unsigned int ix, iy, iz, cell;
   int ixp ,ixm, iyp, iym, izp, izm;
-  const struct Phase *const p = user_data;
+  struct Phase *const p = user_data;
   int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
@@ -436,7 +431,7 @@ static int funcPB(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
   soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
 
-  iter++;	   
+  p->iter++;	   
 
 // psi from kinsol's input
 

@@ -73,7 +73,6 @@ set(soma_header
   monotype_conversion.h
   mobility.h
   kinsol_soma.h
-  kinsol_J.h
   donnan.h
   helper_electro.h
   )

@@ -1823,11 +1823,11 @@ int screen_output(struct Phase *const p, const unsigned int Nsteps)
                             p->info_MPI.world_rank, second, tps, Nsteps - steps_done, ctime(&end));
                     fflush(stdout);
                 if ((p->args.efieldsolver_arg == efieldsolver_arg_PB)||(p->args.efieldsolver_arg == efieldsolver_arg_PH)) {
-                    soma_scalar_t av = ((soma_scalar_t) aviter)/((soma_scalar_t) countiter);
+                    soma_scalar_t av = ((soma_scalar_t) p->aviter)/((soma_scalar_t) p->countiter);
                     fprintf(stdout, "Av iters: %f \n", av);
                     fflush(stdout);
-                    aviter = 0;
-                    countiter = 0;
+                    p->aviter = 0;
+                    p->countiter = 0;
                 } 
 
 
