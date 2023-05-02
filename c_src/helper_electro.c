@@ -58,9 +58,16 @@ void update_electric_field(const struct Phase *const p)
 {
     // Update electric potential
     //
-    if ((p->args.efieldsolver_arg == efieldsolver_arg_PB)||(p->args.efieldsolver_arg == efieldsolver_arg_PH)) 
+//    if ((p->args.efieldsolver_arg == efieldsolver_arg_PB)||(p->args.efieldsolver_arg == efieldsolver_arg_PH)) 
+//    	call_PB(p);
+
+    if (p->args.efieldsolver_arg == efieldsolver_arg_PB) 
     	call_PB(p);
-    else if (p->args.efieldsolver_arg == efieldsolver_arg_EN) 
+
+    if (p->args.efieldsolver_arg == efieldsolver_arg_PH)
+    	call_J(p);
+
+    if (p->args.efieldsolver_arg == efieldsolver_arg_EN) 
     	call_EN(p);
 }  
 
@@ -266,6 +273,23 @@ unsigned int cell,ix,iy,iz;
         }
      }
    }        
+}
+
+void calc_born_S(const struct Phase *const p) // calculates uB+ + uB- from exp_born
+
+{
+unsigned int cell, ix,iy,ix;
+
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for    
+  for (ix = 0 ; ix < p->nx ; ix++) {
+          for (iy = 0 ; iy < p->ny ; iy++) {
+                     for (iz = 0 ; iz <  p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          p->born_S[ix][iy][iz] = -log(p->exp_born_pos[cell]) -log(p->exp_born_neg[cell]);
+                     }
+           }
+   }
 }
 
 

@@ -111,6 +111,7 @@ typedef struct Phase {
     soma_scalar_t *exp_born_pol;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */
     soma_scalar_t *exp_born_pos;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */
     soma_scalar_t *exp_born_neg;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */
+    soma_scalar_t *born_S;            /*!> \brief stores u_B+  +  u_B-, where u_B is the Born energy  */
 
     soma_scalar_t *exp_noneq;      /*!> \brief stores exp(-mu(z)_plus), where mu(z) is the position-dependent cation chemical potential in a non-eq simulation */
     soma_scalar_t *rhoF;          /*!> \brief stores the charge density of the polymers */

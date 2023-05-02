@@ -223,6 +223,13 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
+    p-born_S = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
+    if (p->born_S == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
     p->exp_noneq = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
     if (p->exp_noneq == NULL)
         {
@@ -393,6 +400,7 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->exp_born_pol[0:p->n_cells])
 #pragma acc enter data copyin(p->exp_born_pos[0:p->n_cells])
 #pragma acc enter data copyin(p->exp_born_neg[0:p->n_cells])
+#pragma acc enter data copyin(p->born_S[0:p->n_cells])
 #pragma acc enter data copyin(p->d_invblav[0:p->n_types*p->n_cells_local])
 #pragma acc enter data copyin(p->invbls[0:p->n_types])
 #pragma acc enter data copyin(p->charges[0:p->n_types])
