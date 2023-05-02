@@ -178,7 +178,6 @@ N_VConst(2.0, constraints);  // constrains c > 0
         if (flagsolved) {
            if (p->info_MPI.sim_rank == 0) 
               fprintf(stdout, "Set initial guess for transport \n");
-//	   SetInitialProfilesJ(cc);
 
 	call_EN(p);
 
@@ -270,11 +269,11 @@ N_VConst(2.0, constraints);  // constrains c > 0
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-/*      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); */
-
       LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+
+/*      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); */
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -716,6 +715,7 @@ static int PrecSetupJ(N_Vector cc, N_Vector cscale,
   int ixp ,ixm, iyp, iym, izp, izm, cell;
   struct Phase *const p = user_data;
   soma_scalar_t c[p->nx][p->ny][p->nz]; // concentration
+  soma_scalar_t lc[p->nx][p->ny][p->nz]; // concentration
   int NEQ;
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
@@ -745,6 +745,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 	                  c[ix][iy][iz] = NVITH(cc,i); 
+	                  lc[ix][iy][iz] = log(NVITH(cc,i)); 
 			  }
            }
    }
@@ -755,6 +756,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 	       c[ix][iy][iz] = alfa; 
+	       lc[ix][iy][iz] = log(alfa); 
            }
    }
 
@@ -763,6 +765,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 	       c[ix][iy][iz] = 1.0; 
+	       lc[ix][iy][iz] = 0.0; 
            }
    }
 
@@ -794,10 +797,13 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
                  p->temp_prec_field[i] += -4.0/(p->deltay*p->deltay);
                  p->temp_prec_field[i] += -4.0/(p->deltaz*p->deltaz);
 
+                 p->temp_prec_field[i] += 2.0*(lc[ixp][iy][iz] -2.0*lc[ix][iy][iz] + lc[ixm][iy][iz])/(p->deltax*p->deltax);
+                 p->temp_prec_field[i] += 2.0*(lc[ix][iyp][iz] -2.0*lc[ix][iy][iz] + lc[ix][iym][iz])/(p->deltay*p->deltay);
+                 p->temp_prec_field[i] += 2.0*(lc[ix][iy][izp] -2.0*lc[ix][iy][iz] + lc[ix][iy][izm])/(p->deltaz*p->deltaz);
+
                  p->temp_prec_field[i] += (born_S[ixp][iy][iz] -2.0*born_S[ix][iy][iz] + born_S[ixm][iy][iz])/(p->deltax*p->deltax);
                  p->temp_prec_field[i] += (born_S[ix][iyp][iz] -2.0*born_S[ix][iy][iz] + born_S[ix][iym][iz])/(p->deltay*p->deltay);
                  p->temp_prec_field[i] += (born_S[ix][iy][izp] -2.0*born_S[ix][iy][iz] + born_S[ix][iy][izm])/(p->deltaz*p->deltaz);
-//                 p->temp_prec_field[i] = 1.0;
 	}
       }
     }
