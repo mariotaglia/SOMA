@@ -70,6 +70,8 @@ static void SetInitialProfilesJ(N_Vector cc);
 static realtype SetScaleJ(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
+int iters;
+
  /*
  *--------------------------------------------------------------------
  * MAIN ROUTINE
@@ -107,7 +109,7 @@ int call_J(struct Phase *const p)
   int NEQ; //<- Number of equations 
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
 
-  p->iter = 0; // number of iterations
+  iters = 0; // number of iterations
 
   /* Create the SUNDIALS context object for this simulation. */
   SUNContext sunctx = NULL;
@@ -176,7 +178,20 @@ N_VConst(2.0, constraints);  // constrains c > 0
         if (flagsolved) {
            if (p->info_MPI.sim_rank == 0) 
               fprintf(stdout, "Set initial guess for transport \n");
-	   SetInitialProfilesJ(cc);
+//	   SetInitialProfilesJ(cc);
+
+	call_EN(p);
+
+        #pragma omp parallel for  
+        for (ix = 0 ; ix < p->nx ; ix++) {
+         for (iy = 0 ; iy < p->ny ; iy++) {
+     	  for (iz = 1 ; iz < p->nz-1 ; iz++) {
+              i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
+              cell = cell_coordinate_to_index(p, ix, iy, iz);
+              NVITH(cc,i) = p->npos_field[cell]/p->npos_field[0]*alfa; 
+	  }
+          }
+          }
         } 
         else {
 	    // Recover profile 
@@ -344,15 +359,17 @@ N_VConst(2.0, constraints);  // constrains c > 0
 		  sc,             /* scaling vector, for the variable cc */
 		  sc);            /* scaling vector for function values fval */
 
+
+
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
         KINGetFuncNorm(kmem, &fnorm);
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-//        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iter, fnorm, fnormtol);
+        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iters, fnorm, fnormtol);
 
-        p->aviter += p->iter;
+        p->aviter += iters;
         p->countiter++;
  
 /* Save solution */
@@ -397,7 +414,7 @@ N_VConst(2.0, constraints);  // constrains c > 0
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
                cell = cell_coordinate_to_index(p, ix, iy, iz);
-	       cions[cell] = alfa;   // alfa = c(0)/c(L), see notes
+	       cions[cell] = alfa;   
            }
    }
 
@@ -470,7 +487,7 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
  
 
-  p->iter++;	   
+  iters++;	   
 
 // born_S
 soma_scalar_t  born_S[p->nx][p->ny][p->nz];
@@ -496,6 +513,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 	                  c[ix][iy][iz] = NVITH(cc,i);
+//                          printf("i %d %d %d %f %f \n", ix, iy, iz, c[ix][iy][iz], born_S[ix][iy][iz]);
 			  }
            }
    }
@@ -505,7 +523,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 #pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
-	       c[ix][iy][iz] = alfa;   // alfa = c(0)/c(L), see notes
+	       c[ix][iy][iz] = alfa;  
            }
    }
 
@@ -595,7 +613,7 @@ soma_scalar_t norma = 0;
                      }
                 }
          }
-  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", p->iter, norma, res[0][0][0]); 
+  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
 
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
@@ -617,7 +635,7 @@ static realtype SetScaleJ(const struct Phase *const p)
 {
    realtype scale;
 
-   scale = 1./p->deltax/p->deltax ; 
+   scale = 1.0/(p->deltax*p->deltax) ; 
            
    return(scale);
    }
@@ -688,7 +706,7 @@ static int PrecSetupJ(N_Vector cc, N_Vector cscale,
 
   unsigned int ix, iy, iz, i;
   int ixp ,ixm, iyp, iym, izp, izm, cell;
-  const struct Phase *const p = user_data;
+  struct Phase *const p = user_data;
   soma_scalar_t c[p->nx][p->ny][p->nz]; // concentration
   int NEQ;
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
@@ -728,7 +746,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 #pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
-	       c[ix][iy][iz] = alfa;   // alfa = c(0)/c(L), see notes
+	       c[ix][iy][iz] = alfa; 
            }
    }
 
@@ -763,13 +781,16 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 
 		 i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 
-                 p->temp_prec_field[i] = -4.0;
+                 p->temp_prec_field[i] = 0.0;
+                 p->temp_prec_field[i] += -4.0/(p->deltax*p->deltax);
+                 p->temp_prec_field[i] += -4.0/(p->deltay*p->deltay);
+                 p->temp_prec_field[i] += -4.0/(p->deltaz*p->deltaz);
 
                  p->temp_prec_field[i] += (born_S[ixp][iy][iz] -2.0*born_S[ix][iy][iz] + born_S[ixm][iy][iz])/(p->deltax*p->deltax);
                  p->temp_prec_field[i] += (born_S[ix][iyp][iz] -2.0*born_S[ix][iy][iz] + born_S[ix][iym][iz])/(p->deltay*p->deltay);
                  p->temp_prec_field[i] += (born_S[ix][iy][izp] -2.0*born_S[ix][iy][iz] + born_S[ix][iy][izm])/(p->deltaz*p->deltaz);
-
-         }
+//                 p->temp_prec_field[i] = 1.0;
+	}
       }
     }
 
@@ -786,7 +807,7 @@ static int PrecSolveJ(N_Vector cc, N_Vector cscale,
                        N_Vector vv, void *user_data)
 {
   unsigned int i;
-  const struct Phase *const p = user_data;
+  struct Phase *const p = user_data;
   int NEQ;
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
 
