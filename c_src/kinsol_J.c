@@ -159,7 +159,7 @@ if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
 
 N_VConst(2.0, constraints);  // constrains c > 0
 
-  linsolver = 1; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
+  linsolver = 1  ; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* Allocate ccx */
    if (flagsolved) {
@@ -238,13 +238,12 @@ N_VConst(2.0, constraints);  // constrains c > 0
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-/*      LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1); */
-
-
+      LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1); 
+/*
       LS = SUNLinSol_SPGMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1);
-
+*/
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
       if (check_flag(&flag, "KINSetLinearSolver", 1)) return 1;
