@@ -193,7 +193,8 @@ N_VConst(2.0, constraints);  // constrains c > 0
           }
           }
         } 
-        else {
+
+	else {
 	    // Recover profile 
             for (i = 0 ; i < NEQ ; i++) {
 		   NVITH(cc,i) = ccx[i]; 
@@ -272,7 +273,7 @@ N_VConst(2.0, constraints);  // constrains c > 0
 /*      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); */
 
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
@@ -485,6 +486,7 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
 
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
   soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
+  soma_scalar_t  lc[p->nx][p->ny][p->nz]; // ion concetration
  
 
   iters++;	   
@@ -513,6 +515,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 	                  c[ix][iy][iz] = NVITH(cc,i);
+	                  lc[ix][iy][iz] = log(NVITH(cc,i));
 //                          printf("i %d %d %d %f %f \n", ix, iy, iz, c[ix][iy][iz], born_S[ix][iy][iz]);
 			  }
            }
@@ -524,6 +527,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 	       c[ix][iy][iz] = alfa;  
+	       lc[ix][iy][iz] = log(alfa);  
            }
    }
 
@@ -532,6 +536,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 	       c[ix][iy][iz] = 1.0; 
+	       lc[ix][iy][iz] = 0.0; 
            }
    }
 
@@ -567,11 +572,15 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 
         res[ix][iy][iz] = 0.0;
 
-	res[ix][iy][iz] += 2.0*(c[ixp][iy][iz] -2.0*c[ix][iy][iz] + c[ixm][iy][iz])/(p->deltax*p->deltax) ;
-        res[ix][iy][iz] += 2.0*(c[ix][iyp][iz] -2.0*c[ix][iy][iz] + c[ix][iym][iz])/(p->deltay*p->deltay) ;
-        res[ix][iy][iz] += 2.0*(c[ix][iy][izp] -2.0*c[ix][iy][iz] + c[ix][iy][izm])/(p->deltaz*p->deltaz) ;
+	res[ix][iy][iz] += 2.*c[ix][iy][iz]*(lc[ixp][iy][iz] -2.0*lc[ix][iy][iz] + lc[ixm][iy][iz])/(p->deltax*p->deltax) ;
+        res[ix][iy][iz] += 2.*c[ix][iy][iz]*(lc[ix][iyp][iz] -2.0*lc[ix][iy][iz] + lc[ix][iym][iz])/(p->deltay*p->deltay) ;
+        res[ix][iy][iz] += 2.*c[ix][iy][iz]*(lc[ix][iy][izp] -2.0*lc[ix][iy][iz] + lc[ix][iy][izm])/(p->deltaz*p->deltaz) ;
 
-       	res[ix][iy][iz] += c[ix][iy][iz]*(born_S[ixp][iy][iz] -2.0*born_S[ix][iy][iz] + born_S[ixm][iy][iz])/(p->deltax*p->deltax) ;
+	res[ix][iy][iz] += 0.5*(c[ixp][iy][iz]-c[ixm][iy][iz])*(lc[ixp][iy][iz]-lc[ixm][iy][iz])/(p->deltax*p->deltax);
+	res[ix][iy][iz] += 0.5*(c[ix][iyp][iz]-c[ix][iym][iz])*(lc[ix][iyp][iz]-lc[ix][iym][iz])/(p->deltay*p->deltay);
+	res[ix][iy][iz] += 0.5*(c[ix][iy][izp]-c[ix][iy][izm])*(lc[ix][iy][izp]-lc[ix][iy][izm])/(p->deltaz*p->deltaz);
+
+	res[ix][iy][iz] += c[ix][iy][iz]*(born_S[ixp][iy][iz] -2.0*born_S[ix][iy][iz] + born_S[ixm][iy][iz])/(p->deltax*p->deltax) ;
         res[ix][iy][iz] += c[ix][iy][iz]*(born_S[ix][iyp][iz] -2.0*born_S[ix][iy][iz] + born_S[ix][iym][iz])/(p->deltay*p->deltay) ;
         res[ix][iy][iz] += c[ix][iy][iz]*(born_S[ix][iy][izp] -2.0*born_S[ix][iy][iz] + born_S[ix][iy][izm])/(p->deltaz*p->deltaz) ;
 
@@ -601,8 +610,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 	  }
 
  
-//exit(1);
-
+/*
 // DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
@@ -614,7 +622,7 @@ soma_scalar_t norma = 0;
                 }
          }
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
-
+*/
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
