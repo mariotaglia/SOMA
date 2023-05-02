@@ -543,7 +543,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 
 /// Calculate residual
 
-  #pragma omp parallel for  
+// DO NOT PARALELIZE HERE  
   for (ix = 0 ; ix < p->nx ; ix++) {
 
      ixp = mod((ix+1),p->nx);
@@ -554,6 +554,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
         iyp = mod((iy+1),p->ny);
         iym = mod((iy-1),p->ny);
 
+#pragma omp parallel for  
 	for (iz = 1 ; iz < p->nz-1 ; iz++) {
       
 	izp = iz+1;       	
