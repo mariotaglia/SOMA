@@ -285,6 +285,17 @@ int update_density_fields(const struct Phase *const p)
     /*Share the densityfields -> needed because Hamiltonian may not only quadratic order */
     communicate_density_fields(p);
 
+
+
+    /* UPDATE IONS */
+
+        update_invblav(p); // update invblav (inverse of average Bjerrum length)
+        update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
+	update_rhoF(p);  // update polymer charge density
+        update_exp_born(p); // update born energy, always do this after updating invblav		
+        update_electric_field(p);
+	update_NB(p);  // auxiliary field for Born energy calculation, always do this after updating efield
+
     /* Calculate the added up densities */
 
     /*Use first type to initialize the fields-> saves set zero routine */
@@ -371,7 +382,7 @@ void self_omega_field(const struct Phase *const p)
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
                 {
                     p->omega_field_unified[cell + T_types * p->n_cells_local] =
-                        inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (p->tempfield[cell] - 1.0));
+                        inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (p->tempfield[cell] + p->tempfield_ions[cell] - 1.0));
                     /* the external field is defined such that the energy of a
                        chain of refbeads in this field is x k_B T, thus the
                        normalization per bead */
@@ -394,14 +405,6 @@ void self_omega_field(const struct Phase *const p)
                 } // cells
         }  // types
 
-
-if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
-        update_invblav(p); // update invblav (inverse of average Bjerrum length)
-        update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
-	update_rhoF(p);  // update polymer charge density
-        update_exp_born(p); // update born energy, always do this after updating invblav		
-        update_electric_field(p);
-	update_NB(p);  // auxiliary field for Born energy calculation, always do this after updating efield
 
 // electric field
 
@@ -492,7 +495,6 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
 
         } // cell 	    
      } // type
-   } // if efieldsolver
 } // end routine
 
 

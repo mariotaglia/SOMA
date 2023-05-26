@@ -49,7 +49,8 @@ int init_phase(struct Phase *const p)
     p->end_mono = NULL;
     p->tps_elapsed_time = 1;    //Bla default, bigger 0
     p->tps_elapsed_steps = 1;   //Bla default, bigger 0
- 
+
+    p->alfaion = 0.2; // ratio of ion to segment volume 
     uint64_t n_polymer_offset = 0;
 
 #if ( ENABLE_MPI == 1 )
@@ -180,6 +181,14 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
+    p->tempfield_ions = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
+    if (p->tempfield_ions == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
     p->temp_prec_field = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
     if (p->temp_prec_field == NULL)
         {
@@ -307,7 +316,7 @@ int init_phase(struct Phase *const p)
     // Note the *= the field is initialized with the density weights in read_hdf5_config.
     // default value = 1.
     for (unsigned int i = 0; i < p->n_types; i++)
-        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads));
+        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads + alfaions*(p->Nposions+p->Nnegions)));
 
     // Info for Ulrich: programm does take excluded volume into account now!
     p->n_accepts = 0;
@@ -437,6 +446,7 @@ int copyin_phase(struct Phase *const p)
         }
 
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
+#pragma acc enter data copyin(p->tempfield_ions[0:p->n_cells_local])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
 #pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
@@ -527,6 +537,7 @@ int copyout_phase(struct Phase *const p)
         }
 
 #pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
+#pragma acc exit data copyout(p->tempfield_ions[0:p->n_cells_local])
 #pragma acc exit data copyout(p->A[0:p->n_types])
 #pragma acc exit data copyout(p->R[0:p->n_types])
 #pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
@@ -588,6 +599,7 @@ int free_phase(struct Phase *const p)
     free(p->right_tmp_buffer);
     free(p->omega_field_unified);
     free(p->tempfield);
+    free(p->tempfield_ions);
     free(p->fields_unified);
     free(p->old_fields_unified);
     free(p->fields_32);
@@ -703,6 +715,7 @@ int update_self_phase(Phase * const p, int rng_update_flag)
         }
 
 #pragma acc update self(p->tempfield[0:p->n_cells_local])
+#pragma acc update self(p->tempfield_ions[0:p->n_cells_local])
 #pragma acc update self(p->A[0:p->n_types])
 #pragma acc update self(p->R[0:p->n_types])
 #pragma acc update self(p->field_scaling_type[0:p->n_types])
