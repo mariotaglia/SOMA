@@ -106,7 +106,7 @@ typedef struct Phase {
     soma_scalar_t *tempfield;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density, only polymer */
     soma_scalar_t *tempfield_ions;   /*!< \brief a temporal storage for intermediate field calculations, used to save the complete density, polymer and ions */
 
-    soma_scalar_t *alfaions /*!< ratio of ion to segment size */
+    soma_scalar_t alfaions ; /*!< ratio of ion to segment size */
 
     soma_scalar_t *temp_prec_field;   /*!< \brief a temporal storage for intermediate field calculations, used to save the diagonal preconditioner  */
 

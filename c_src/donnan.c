@@ -43,23 +43,21 @@ while (iterror > maxiterror) {
         p->tempfield_ions[i] = p->alfaions*p->field_scaling_type[0]*(tmp_npos_field[i]+tmp_nneg_field[i])*p->vcell;
     }
 
-    Qnew = 0;
+    Qneg = 0;
     Qpos = 0;
 
 #pragma acc data copy(Qpos) copy(Qneg) 
 #pragma acc parallel loop reduction (+:Qpos) reduction (+:Qneg)  
 #pragma omp parallel for reduction (+:Qpos) reduction (+:Qneg)
     for (i = 0 ; i < p->n_cells ; i++) {
-        Qpos += exp(-p->electric_field[i])*p->exp_born_pos[i]*p->exp_noneq[i]
-&		*exp(-p->alfaions*(p->tempfield_ions[i]+p->tempfield[i]-1.))*vcell;
-        Qneg += exp(p->electric_field[i])*p->exp_born_neg[i]
-&                *exp(-p->alfaions*(p->tempfield_ions[i]+p->tempfield[i]-1.))*vcell;		;
+        Qpos += exp(-p->electric_field[i])*p->exp_born_pos[i]*p->exp_noneq[i]*exp(-p->alfaions*(p->tempfield_ions[i]+p->tempfield[i]-1.))*p->vcell;
+        Qneg += exp(p->electric_field[i])*p->exp_born_neg[i]*exp(-p->alfaions*(p->tempfield_ions[i]+p->tempfield[i]-1.))*p->vcell;		;
     }
 
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
-        p->npos_field[i] = p->Nposions/Qpos*exp(-p->electric_field[i])*p->exp_born_pos[i]*p->exp_noneq[i]
+        p->npos_field[i] = p->Nposions/Qpos*exp(-p->electric_field[i])*p->exp_born_pos[i]*p->exp_noneq[i];
 	p->npos_field[i] *= exp(-p->alfaions*(p->tempfield_ions[i]+p->tempfield[i]-1.)) ; 
         p->nneg_field[i] = p->Nnegions/Qneg*exp( p->electric_field[i])*p->exp_born_neg[i]  ; 
 	p->nneg_field[i] *= exp(-p->alfaions*(p->tempfield_ions[i]+p->tempfield[i]-1.)) ; 
@@ -67,12 +65,21 @@ while (iterror > maxiterror) {
 
 
     iterror = 0;
+#pragma acc data copy(iterror)  
+#pragma acc parallel loop reduction (+:iterror)   
+#pragma omp parallel for reduction (+:iterror) 
     for (i = 0 ; i < p->n_cells ; i++) {
         iterror += fabs(p->npos_field[i]-tmp_npos_field[i]);
         iterror += fabs(p->nneg_field[i]-tmp_nneg_field[i]);
     }
+#pragma acc parallel loop present(p[:1])   
+#pragma omp parallel for  
+    for (i = 0 ; i < p->n_cells ; i++) {
+        tmp_npos_field[i] = p->npos_field[i];
+        tmp_nneg_field[i] = p->nneg_field[i];
+    }
 
-        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
+//        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror);
 }
 
   return(0);

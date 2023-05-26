@@ -49,8 +49,8 @@ int init_phase(struct Phase *const p)
     p->end_mono = NULL;
     p->tps_elapsed_time = 1;    //Bla default, bigger 0
     p->tps_elapsed_steps = 1;   //Bla default, bigger 0
+    p->alfaions = 0.2; // ratio of ion to segment volume 
 
-    p->alfaion = 0.2; // ratio of ion to segment volume 
     uint64_t n_polymer_offset = 0;
 
 #if ( ENABLE_MPI == 1 )
@@ -316,7 +316,7 @@ int init_phase(struct Phase *const p)
     // Note the *= the field is initialized with the density weights in read_hdf5_config.
     // default value = 1.
     for (unsigned int i = 0; i < p->n_types; i++)
-        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads + alfaions*(p->Nposions+p->Nnegions)));
+        p->field_scaling_type[i] *= (ncells / ((soma_scalar_t) p->num_all_beads + p->alfaions*(p->Nposions+p->Nnegions)));
 
     // Info for Ulrich: programm does take excluded volume into account now!
     p->n_accepts = 0;
