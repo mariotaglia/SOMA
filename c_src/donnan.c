@@ -15,7 +15,7 @@ unsigned int i, ix, iy, iz, cell;
 soma_scalar_t  Qpos, Qneg, Qposnew, Qnegnew; 
 soma_scalar_t iterror = DBL_MAX;
 
-const soma_scalar_t falfa = p->args.noneq_ratio_arg*2.0*p->deltaz*((soma_scalar_t) p->nx)*((soma_scalar_t) p->ny) ;
+const soma_scalar_t falfa = p->args.noneq_ratio_arg*p->deltaz*((soma_scalar_t) p->nx)*((soma_scalar_t) p->ny) ;
 
 const soma_scalar_t  vall = p->Lx*p->Ly*p->Lz ;
 const soma_scalar_t maxiterror = 1e-5 ; // maximum relative iteration error for Qpos and Qneg
@@ -51,7 +51,7 @@ mupos[0] = 0.0;
 mupos[1] = falfa/cpos_av[0];
 
 for (iz = 2 ; iz < p->nz ; iz++) {
-   mupos[iz] = mupos[iz-2] + falfa/cpos_av[iz-1]; 
+   mupos[iz] = mupos[iz-1] + falfa/cpos_av[iz]; 
 }
 
 //#pragma acc data copyin(mupos)
