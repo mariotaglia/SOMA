@@ -50,8 +50,10 @@ cpos_av[iz] = 0.0;
 mupos[0] = 0.0;
 mupos[1] = falfa/cpos_av[0];
 
+/* Integration based on trapezoid rule */
+
 for (iz = 2 ; iz < p->nz ; iz++) {
-   mupos[iz] = mupos[iz-1] + falfa/cpos_av[iz]; 
+   mupos[iz] = mupos[iz-1] + 0.5*falfa*(1.0/cpos_av[iz]+1.0/cpos_av[iz-1]) ; 
 }
 
 //#pragma acc data copyin(mupos)
