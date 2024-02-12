@@ -67,8 +67,8 @@ const char *som_args_detailed_help[] = {
     "      --n_random_q=N            Option to determine the number of random wave\n                                  vectors used for the calculation of structure\n                                  factor.  (default=`32')",
     "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
     "      --purpose=description     Describe the purpose of the simulation run.\n                                  Enables automatic self documentation. only\n                                  ASCII",
-    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				PH (Poisson Boltzmann, guess from homogeneous) \n				NO (none), (default = NE) \n",
-    "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (only important for electrostatic solvers). Default = 1 (equilibrium)   \n",
+    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality, non-eq, 2D average aprox.) \n				PB (Poisson Boltzmann, guess from NE, only equilibrium) \n				PH (electroneutrality, non-eq, exact) \n				NO (none), (default = NE) \n",
+    "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (for PH solver) or \n                                total ion flux (for EN solver) \n                                not important for NO and PB solvers). Default = 1  \n",
 
 
     0
