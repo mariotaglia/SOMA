@@ -68,7 +68,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
    }
 }
 
-printf("cpos, expmupos, %.3e %.3e \n", cpos_av[p->nz-1], exp(mupos[p->nz-1]));
+//printf("cpos, expmupos, %.3e %.3e \n", cpos_av[p->nz-1], exp(mupos[p->nz-1]));
 
 while (iterror > maxiterror) {
 

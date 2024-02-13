@@ -167,7 +167,7 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
 
     /* (Re-)Initialize user data */
 
-   fnormtol = 1e-5;   
+   fnormtol = 1e-8;   
    scsteptol = 1e-13; 
  
    if (p->args.efieldsolver_arg == efieldsolver_arg_PH) {   // homogeneous as initial guess, then reuse last solution
@@ -195,6 +195,7 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
        fprintf(stderr, "Invalid value of efieldsolver in kinsol_soma.c\n");
        assert(0);
    } 
+
 
 
     /* Set scale vector */
@@ -420,9 +421,9 @@ static int funcPB(N_Vector cc, N_Vector fval, void *user_data)
   int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
+  soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
   soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
-  soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  psic[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
@@ -566,8 +567,9 @@ else {
 	  }
 
 
-/* DEBUG print norm 
-soma_scalar_t norma = 0;
+/* DEBUG print norm */
+
+  soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
                   for (iz = 0 ; iz <  p->nz ; iz++) {
@@ -578,8 +580,7 @@ soma_scalar_t norma = 0;
                      }
                 }
 
-  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); 
-*/
+  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", p->iter, norma, res[p->nx-1][p->ny-1][p->nz-1]); 
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
