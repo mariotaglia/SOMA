@@ -1143,6 +1143,7 @@ int extent_density_field(const struct Phase *const p, void *const field_pointer,
 {
     const char *const name = field_name;
     update_density_fields(p);
+    update_omega_fields(p);
 
     const unsigned int buffer_size = (p->nx / p->args.N_domains_arg) * p->ny * p->nz;
     const unsigned int ghost_buffer_size = p->args.domain_buffer_arg * p->ny * p->nz;
@@ -1416,7 +1417,7 @@ int analytics(struct Phase *const p)
                 {
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
                 }
-            extent_density_field(p, p->umbrella_field, "/umbrella_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
+            extent_density_field(p, p->omega_field_unified, "/umbrella_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;
         }
