@@ -157,9 +157,9 @@ constraints = N_VNew_Serial(NEQ, sunctx);
 if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
 #endif
 
-N_VConst(2.0, constraints);  // constrains c > 0
+N_VConst(1.0, constraints);  // constrains c >= 0
 
-  linsolver = 1  ; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
+  linsolver = 0  ; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
     /* Allocate ccx */
    if (flagsolved) {
@@ -173,31 +173,41 @@ N_VConst(2.0, constraints);  // constrains c > 0
 
    fnormtol = 1e-5;   
    scsteptol = 1e-13; 
- 
-   // homogeneous as initial guess, then reuse last solution
-        if (flagsolved) {
-           if (p->info_MPI.sim_rank == 0) 
-              fprintf(stdout, "Set initial guess for transport \n");
 
-	call_EN(p);
 
+   // Calc ions in equilibrium
+  
+   call_EN(p);
+
+   if (flagsolved)  {   
+   // initial guess
         for (ix = 0 ; ix < p->nx ; ix++) {
          for (iy = 0 ; iy < p->ny ; iy++) {
      	  for (iz = 1 ; iz < p->nz-1 ; iz++) {
               i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
               cell = cell_coordinate_to_index(p, ix, iy, iz);
-              NVITH(cc,i) = p->npos_field[cell]/p->npos_field[0]*alfa; 
+              NVITH(cc,i) = 1.0 ;
 	  }
           }
+        } 
+   }
+   else {
+       for (ix = 0 ; ix < p->nx ; ix++) {
+         for (iy = 0 ; iy < p->ny ; iy++) {
+     	  for (iz = 1 ; iz < p->nz-1 ; iz++) {
+              i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
+              cell = cell_coordinate_to_index(p, ix, iy, iz);
+              NVITH(cc,i) = ccx[i] ;
+	  }
           }
         } 
 
-	else {
-	    // Recover profile 
-            for (i = 0 ; i < NEQ ; i++) {
-		   NVITH(cc,i) = ccx[i]; 
-            }
-        }
+
+
+
+   }
+
+
 
     /* Set scale vector */
     if (flagsolved) scale = SetScaleJ(p);
@@ -341,8 +351,8 @@ N_VConst(2.0, constraints);  // constrains c > 0
     }
 
     /* Set preconditioner functions*/
-    flag = KINSetPreconditioner(kmem, PrecSetupJ, PrecSolveJ);
-    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
+//    flag = KINSetPreconditioner(kmem, PrecSetupJ, PrecSolveJ);
+//    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 
     mset = 1; // maximum number of iterations before recalc diagonal preconditioner
 
@@ -390,13 +400,15 @@ N_VConst(2.0, constraints);  // constrains c > 0
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
 
+
+
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 			  cell = cell_coordinate_to_index(p, ix, iy, iz);
-	                  cions[cell] = NVITH(cc,i); 
-			  }
+	                  cions[cell] = NVITH(cc,i)*p->npos_field[cell]/p->npos_field[0]; 
+		   }
            }
    }
 
@@ -478,7 +490,7 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
 
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
   soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
-  soma_scalar_t  lc[p->nx][p->ny][p->nz]; // ion concetration
+  soma_scalar_t  eps[p->nx][p->ny][p->nz]; // auxiliary field
  
 
   iters++;	   
@@ -495,7 +507,21 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
           }
    }
 
-// c from kinsol's input
+
+
+// c from npos_ions
+
+for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+			  for (iz = 0 ; iz <  p->nz ; iz++) {
+                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                          c[ix][iy][iz] = p->npos_field[cell]/p->npos_field[0];
+			  }
+		     }
+	 	}
+
+
+// epsilon from kinsol's input
 
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
@@ -504,10 +530,8 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
-	                  c[ix][iy][iz] = NVITH(cc,i);
-	                  lc[ix][iy][iz] = log(NVITH(cc,i));
-//                          printf("i %d %d %d %f %f \n", ix, iy, iz, c[ix][iy][iz], born_S[ix][iy][iz]);
-			  }
+	                  eps[ix][iy][iz] = NVITH(cc,i);
+	           }
            }
    }
 
@@ -516,8 +540,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 #pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
-	       c[ix][iy][iz] = alfa;  
-	       lc[ix][iy][iz] = log(alfa);  
+	       eps[ix][iy][iz] = alfa;  
            }
    }
 
@@ -525,8 +548,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 #pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
-	       c[ix][iy][iz] = 1.0; 
-	       lc[ix][iy][iz] = 0.0; 
+	       eps[ix][iy][iz] = 1.0; 
            }
    }
 
@@ -540,7 +562,7 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
   }
 */
 
-/// Calculate residual
+//soma_scalar_t slope = (1-alfa)/p->Lz;
 
 // DO NOT PARALELIZE HERE  
   for (ix = 0 ; ix < p->nx ; ix++) {
@@ -563,21 +585,17 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 
         res[ix][iy][iz] = 0.0;
 
-	res[ix][iy][iz] += 2.*c[ix][iy][iz]*(lc[ixp][iy][iz] -2.0*lc[ix][iy][iz] + lc[ixm][iy][iz])/(p->deltax*p->deltax) ;
-        res[ix][iy][iz] += 2.*c[ix][iy][iz]*(lc[ix][iyp][iz] -2.0*lc[ix][iy][iz] + lc[ix][iym][iz])/(p->deltay*p->deltay) ;
-        res[ix][iy][iz] += 2.*c[ix][iy][iz]*(lc[ix][iy][izp] -2.0*lc[ix][iy][iz] + lc[ix][iy][izm])/(p->deltaz*p->deltaz) ;
+//        res[ix][iy][iz] += slope*0.5*(c[ix][iy][izp]-c[ix][iy][izm])/(p->deltaz);
 
-	res[ix][iy][iz] += 0.5*(c[ixp][iy][iz]-c[ixm][iy][iz])*(lc[ixp][iy][iz]-lc[ixm][iy][iz])/(p->deltax*p->deltax);
-	res[ix][iy][iz] += 0.5*(c[ix][iyp][iz]-c[ix][iym][iz])*(lc[ix][iyp][iz]-lc[ix][iym][iz])/(p->deltay*p->deltay);
-	res[ix][iy][iz] += 0.5*(c[ix][iy][izp]-c[ix][iy][izm])*(lc[ix][iy][izp]-lc[ix][iy][izm])/(p->deltaz*p->deltaz);
 
-	res[ix][iy][iz] += c[ix][iy][iz]*(born_S[ixp][iy][iz] -2.0*born_S[ix][iy][iz] + born_S[ixm][iy][iz])/(p->deltax*p->deltax) ;
-        res[ix][iy][iz] += c[ix][iy][iz]*(born_S[ix][iyp][iz] -2.0*born_S[ix][iy][iz] + born_S[ix][iym][iz])/(p->deltay*p->deltay) ;
-        res[ix][iy][iz] += c[ix][iy][iz]*(born_S[ix][iy][izp] -2.0*born_S[ix][iy][iz] + born_S[ix][iy][izm])/(p->deltaz*p->deltaz) ;
+	
+        res[ix][iy][iz] += (c[ixp][iy][iz]*(eps[ixp][iy][iz]-eps[ix][iy][iz]) - c[ixm][iy][iz]*(eps[ix][iy][iz]-eps[ixm][iy][iz]))*0.5/(p->deltax*p->deltax);
 
-	res[ix][iy][iz] += 0.25*(c[ixp][iy][iz]-c[ixm][iy][iz])*(born_S[ixp][iy][iz]-born_S[ixm][iy][iz])/(p->deltax*p->deltax);
-	res[ix][iy][iz] += 0.25*(c[ix][iyp][iz]-c[ix][iym][iz])*(born_S[ix][iyp][iz]-born_S[ix][iym][iz])/(p->deltay*p->deltay);
-	res[ix][iy][iz] += 0.25*(c[ix][iy][izp]-c[ix][iy][izm])*(born_S[ix][iy][izp]-born_S[ix][iy][izm])/(p->deltaz*p->deltaz);
+        res[ix][iy][iz] += (c[ix][iyp][iz]*(eps[ix][iyp][iz]-eps[ix][iy][iz]) - c[ix][iym][iz]*(eps[ix][iy][iz]-eps[ix][iym][iz]))*0.5/(p->deltay*p->deltay);
+
+
+        res[ix][iy][iz] += (c[ix][iy][izp]*(eps[ix][iy][izp]-eps[ix][iy][iz]) - c[ix][iy][izm]*(eps[ix][iy][iz]-eps[ix][iy][izm]))*0.5/(p->deltaz*p->deltaz);
+
 
         }
     }
@@ -601,19 +619,19 @@ soma_scalar_t  born_S[p->nx][p->ny][p->nz];
 	  }
 
  
-/*
+
 // DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
                   for (iz = 1 ; iz <  p->nz-1 ; iz++) {
                   cell = cell_coordinate_to_index(p, ix, iy, iz);
-              			  norma += res[ix][iy][iz]; 
+              			  norma += fabs(res[ix][iy][iz]); 
                      }
                 }
          }
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
-*/
+
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
@@ -634,7 +652,7 @@ static realtype SetScaleJ(const struct Phase *const p)
 {
    realtype scale;
 
-   scale = (p->deltax*p->deltax) ; 
+   scale = 1.0 ;
            
    return(scale);
    }
