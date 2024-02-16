@@ -172,7 +172,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
     /* (Re-)Initialize user data */
 
    fnormtol = 1e-5;   
-   scsteptol = 1e-13; 
+   scsteptol = 1e-10; 
 
 
    // Calc ions in equilibrium
@@ -275,7 +275,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 
       /* Create SUNLinSol_SPBCGS object and the
          maximum Krylov dimension maxl */
-      maxl = 1000;
+      maxl = 100;
 
 //      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
 //      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
