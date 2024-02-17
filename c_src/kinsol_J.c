@@ -99,12 +99,7 @@ int call_J(struct Phase *const p)
   realtype fnorm;
   soma_scalar_t current0, currentL ;
 
-
-  // BORRAR
-  int ixp ,ixm, iyp, iym, izp, izm;
-  soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
-  soma_scalar_t  eps[p->nx][p->ny][p->nz]; // residual Poisson Eq.
-  soma_scalar_t  c[p->nx][p->ny][p->nz]; // residual Poisson Eq.
+  soma_scalar_t  eps[p->n_cells]; // c/ceq
 
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
@@ -453,19 +448,11 @@ sumions = 0.0;
     for (cell = 0 ; cell < p->n_cells ; cell++) {
            cions[cell] = cions[cell] * p->Nposions / sumions / p->vcell;
     }
-// BORRAR //
 
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-	      for (iz = 0 ; iz < p->nz ; iz++) {
-	      cell = cell_coordinate_to_index(p, ix, iy, iz);
-
-              c[ix][iy][iz] = p->npos_field[cell]/p->npos_field[0];
-	      eps[ix][iy][iz] = cions[cell]/c[ix][iy][iz];
-
-	      }
-	   }
-  }
+#pragma omp parallel for  
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+	      eps[cell] = cions[cell]/p->npos_field[cell];
+    }
 
 
 // Calculation of ion currents at electrode
@@ -480,63 +467,26 @@ currentL = 0.0;
 	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
             iz = 1; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
-            iz = 2; 	  
-	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
 
-	    current0 += 2.0*(c[ix][iy][1])*(eps[ix][iy][1]-eps[ix][iy][0]);
-	    current0 += 2.0*(c[ix][iy][0])*(eps[ix][iy][1]-eps[ix][iy][0]);
+	    current0 -= (p->npos_field[cell])*(eps[cell]-eps[cellm]);
+	    current0 -= (p->npos_field[cellm])*(eps[cell]-eps[cellm]);
 			    
 
-	    iz = p->nz-3; 	  
-	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
 	    iz = p->nz-2; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
             iz = p->nz-1; 	  
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
-	    currentL += 2.0*(c[ix][iy][99])*(eps[ix][iy][99]-eps[ix][iy][98]);
-	    currentL += 2.0*(c[ix][iy][98])*(eps[ix][iy][99]-eps[ix][iy][98]);
+	    currentL -= (p->npos_field[cellp])*(eps[cellp]-eps[cell]);
+	    currentL -= (p->npos_field[cell])*(eps[cellp]-eps[cell]);
        
  
           }
    }
 
-
-
-  for (ix = 0 ; ix < p->nx ; ix++) {
-
-     ixp = mod((ix+1),p->nx);
-     ixm = mod((ix-1),p->nx);
- 
-     for (iy = 0 ; iy < p->ny ; iy++) {
-
-        iyp = mod((iy+1),p->ny);
-        iym = mod((iy-1),p->ny);
-
-	for (iz = 1 ; iz < p->nz-1 ; iz++) {
-      
-	izp = iz+1;       	
-	izm = iz-1;       	
- 
-
-res[ix][iy][iz] = 0.0;
-res[ix][iy][iz] += (c[ixp][iy][iz]-c[ix][iy][iz])*(eps[ixp][iy][iz]-eps[ix][iy][iz])-(c[ix][iy][iz]-c[ixm][iy][iz])*(eps[ix][iy][iz]-eps[ixm][iy][iz]);
-res[ix][iy][iz] += (c[ix][iyp][iz]-c[ix][iy][iz])*(eps[ix][iyp][iz]-eps[ix][iy][iz])-(c[ix][iy][iz]-c[ix][iym][iz])*(eps[ix][iy][iz]-eps[ix][iym][iz]);
-res[ix][iy][iz] += (c[ix][iy][izp]-c[ix][iy][iz])*(eps[ix][iy][izp]-eps[ix][iy][iz])-(c[ix][iy][iz]-c[ix][iy][izm])*(eps[ix][iy][iz]-eps[ix][iy][izm]);
- 
-//	res[ix][iy][iz] += ((c[ixp][iy][iz]-c[ixm][iy][iz])*(eps[ixp][iy][iz]-eps[ixm][iy][iz])+(eps[ixp][iy][iz]-2.0*eps[ix][iy][iz]+eps[ixm][iy][iz]))*0.25/(p->deltax*p->deltax);
-//	res[ix][iy][iz] += ((c[ix][iyp][iz]-c[ix][iym][iz])*(eps[ix][iyp][iz]-eps[ix][iym][iz])+(eps[ix][iyp][iz]-2.0*eps[ix][iy][iz]+eps[ix][iym][iz]))*0.25/(p->deltay*p->deltay);
-//	res[ix][iy][iz] += ((c[ix][iy][izp]-c[ix][iy][izm])*(eps[ix][iy][izp]-eps[ix][iy][izm])+(eps[ix][iy][izp]-2.0*eps[ix][iy][iz]+eps[ix][iy][izm]))*0.25/(p->deltaz*p->deltaz);
-
-
-//        printf("%d %d %d %.3e \n", ix,iy,iz, res[ix][iy][iz]);
-
-
-	      }
-	  }
-  }
-
+  current0 = current0 * p->deltax*p->deltay/p->deltaz;
+  currentL = currentL * p->deltax*p->deltay/p->deltaz;
 
 
 // Save non-eq ion densities
