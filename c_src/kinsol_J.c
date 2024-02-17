@@ -82,7 +82,7 @@ int call_J(struct Phase *const p)
 {
   static realtype *ccx; // last solution
 
-  unsigned int ix,iy,iz,i,cell; 
+  unsigned int ix,iy,iz,i,cell, cellp, cellm; 
   int globalstrategy, linsolver;
   realtype fnormtol, scsteptol; // tolerances
   N_Vector cc, sc, constraints;
@@ -97,6 +97,14 @@ int call_J(struct Phase *const p)
   soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
   realtype fnorm;
+  soma_scalar_t current0, currentL ;
+
+
+  // BORRAR
+  int ixp ,ixm, iyp, iym, izp, izm;
+  soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
+  soma_scalar_t  eps[p->nx][p->ny][p->nz]; // residual Poisson Eq.
+  soma_scalar_t  c[p->nx][p->ny][p->nz]; // residual Poisson Eq.
 
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
@@ -375,7 +383,6 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e \n", flag, iters, fnorm, fnormtol);
 
         p->aviter += iters;
         p->countiter++;
@@ -407,7 +414,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 			  cell = cell_coordinate_to_index(p, ix, iy, iz);
-	                  cions[cell] = NVITH(cc,i)*p->npos_field[cell]/p->npos_field[0]; 
+	                  cions[cell] = NVITH(cc,i)*p->npos_field[cell]/p->npos_field[0]; // cions not normalized 
 		   }
            }
    }
@@ -419,7 +426,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
                cell = cell_coordinate_to_index(p, ix, iy, iz);
-	       cions[cell] = alfa;   
+	       cions[cell] = alfa*p->npos_field[cell]/p->npos_field[0];
            }
    }
 
@@ -428,7 +435,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
                cell = cell_coordinate_to_index(p, ix, iy, iz);
-	       cions[cell] = 1.0; 
+	       cions[cell] = p->npos_field[cell]/p->npos_field[0]; 
            }
    }
 
@@ -442,12 +449,117 @@ sumions = 0.0;
     }
 
 // Normalize to match totalnumber and divide by cell volume
-
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-           p->nneg_field[cell] = cions[cell] * p->Nnegions / sumions / p->vcell;
-           p->npos_field[cell] = cions[cell] * p->Nposions / sumions / p->vcell;
+           cions[cell] = cions[cell] * p->Nposions / sumions / p->vcell;
     }
+// BORRAR //
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+	      for (iz = 0 ; iz < p->nz ; iz++) {
+	      cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+              c[ix][iy][iz] = p->npos_field[cell]/p->npos_field[0];
+	      eps[ix][iy][iz] = cions[cell]/c[ix][iy][iz];
+
+	      }
+	   }
+  }
+
+
+// Calculation of ion currents at electrode
+
+current0 = 0.0;
+currentL = 0.0;
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+
+            iz = 0; 	  
+	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
+            iz = 1; 	  
+	    cell = cell_coordinate_to_index(p, ix, iy, iz);
+            iz = 2; 	  
+	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
+
+
+//	    current0 += 2.0*0.25*(p->npos_field[cellm]+p->npos_field[cellp])*(cions[cellp]/p->npos_field[cellp]-cions[cellm]/p->npos_field[cellm])/p->deltaz;
+//	    current0 += 2.0*p->npos_ifield[cell]*(cions[cellp]/p->npos_field[cellp]-cions[cell]/p->npos_field[cell])/p->deltaz;
+//	    current0 += 2.0*(c[ix][iy][1]+c[ix][iy][0])*(eps[ix][iy][1]-eps[ix][iy][0]);
+	    current0 += 2.0*(c[ix][iy][0])*(eps[ix][iy][1]-eps[ix][iy][0]);
+			    
+
+	    iz = p->nz-3; 	  
+	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
+	    iz = p->nz-2; 	  
+	    cell = cell_coordinate_to_index(p, ix, iy, iz);
+            iz = p->nz-1; 	  
+	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
+
+//	    currentL += 2.0*0.25*(p->npos_field[cellm]+p->npos_field[cellp])*(cions[cellp]/p->npos_field[cellp]-cions[cellm]/p->npos_field[cellm])/p->deltaz;
+       
+            iz=1;
+	    izp=2;
+	    izm=0;
+
+
+	    current0 = (c[ix][iy][izp]*(eps[ix][iy][izp]-eps[ix][iy][iz]));
+
+
+            iz=3;
+	    izp=4;
+            izm=2; 
+
+	    currentL = (c[ix][iy][izm]*(eps[ix][iy][iz]-eps[ix][iy][izm]));
+
+		   
+		   
+//		    += 2.0*(c[ix][iy][p->nz-2])*(eps[ix][iy][p->nz-1]-eps[ix][iy][p->nz-2]);
+ 
+          }
+   }
+
+
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+
+     ixp = mod((ix+1),p->nx);
+     ixm = mod((ix-1),p->nx);
+ 
+     for (iy = 0 ; iy < p->ny ; iy++) {
+
+        iyp = mod((iy+1),p->ny);
+        iym = mod((iy-1),p->ny);
+
+	for (iz = 1 ; iz < p->nz-1 ; iz++) {
+      
+	izp = iz+1;       	
+	izm = iz-1;       	
+ 
+
+	res[ix][iy][iz] = 0.0;
+        res[ix][iy][iz] += (c[ixp][iy][iz]*(eps[ixp][iy][iz]-eps[ix][iy][iz]) - c[ixm][iy][iz]*(eps[ix][iy][iz]-eps[ixm][iy][iz]))*0.5/(p->deltax*p->deltax);
+        res[ix][iy][iz] += (c[ix][iyp][iz]*(eps[ix][iyp][iz]-eps[ix][iy][iz]) - c[ix][iym][iz]*(eps[ix][iy][iz]-eps[ix][iym][iz]))*0.5/(p->deltay*p->deltay);
+        res[ix][iy][iz] += (c[ix][iy][izp]*(eps[ix][iy][izp]-eps[ix][iy][iz]) - c[ix][iy][izm]*(eps[ix][iy][iz]-eps[ix][iy][izm]))*0.5/(p->deltaz*p->deltaz);
+
+
+//        printf("%d %d %d %.3e \n", ix,iy,iz, res[ix][iy][iz]);
+
+
+	      }
+	  }
+  }
+
+
+
+// Save non-eq ion densities
+#pragma omp parallel for  
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+           p->nneg_field[cell] = cions[cell];
+           p->npos_field[cell] = cions[cell];
+    }
+
 
 /* Now calculate electric field */
 #pragma omp parallel for  
@@ -455,7 +567,12 @@ sumions = 0.0;
            p->electric_field[cell] = log(p->nneg_field[cell])-log(p->exp_born_neg[cell]); 
     }
 
-    /* Free memory */
+
+// print    
+        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e, I(L) %.3e \n", flag, iters, fnorm, fnormtol, current0, currentL);
+
+    
+	/* Free memory */
 
     KINFree(&kmem);
     SUNLinSolFree(LS);
@@ -618,7 +735,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	  }
 
  
-
+/*
 // DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
@@ -630,7 +747,7 @@ soma_scalar_t norma = 0;
                 }
          }
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
-
+*/
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
