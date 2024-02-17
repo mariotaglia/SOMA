@@ -567,7 +567,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          c[ix][iy][iz] = p->npos_field[cell]/p->npos_field[0];
+                          c[ix][iy][iz] = p->npos_field[cell];
 			  }
 		     }
 	 	}
@@ -665,7 +665,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	  }
 
  
-
+/*
 // DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
@@ -677,7 +677,7 @@ soma_scalar_t norma = 0;
                 }
          }
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
-
+*/
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
