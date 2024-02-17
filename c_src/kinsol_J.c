@@ -267,7 +267,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
       if (check_flag(&flag, "KINSetLinearSolver", 1)) return 1;
 
       /* Set the maximum number of restarts */
-      maxlrst = 100;
+      maxlrst = 1000;
       flag = SUNLinSol_SPGMRSetMaxRestarts(LS, maxlrst);
       if (check_flag(&flag, "SUNLinSol_SPGMRSetMaxRestarts", 1)) return(1);
 
@@ -283,7 +283,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 
       /* Create SUNLinSol_SPBCGS object and the
          maximum Krylov dimension maxl */
-      maxl = 100;
+      maxl = 1000;
 
 //      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
 //      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
@@ -484,9 +484,7 @@ currentL = 0.0;
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
 
-//	    current0 += 2.0*0.25*(p->npos_field[cellm]+p->npos_field[cellp])*(cions[cellp]/p->npos_field[cellp]-cions[cellm]/p->npos_field[cellm])/p->deltaz;
-//	    current0 += 2.0*p->npos_ifield[cell]*(cions[cellp]/p->npos_field[cellp]-cions[cell]/p->npos_field[cell])/p->deltaz;
-//	    current0 += 2.0*(c[ix][iy][1]+c[ix][iy][0])*(eps[ix][iy][1]-eps[ix][iy][0]);
+	    current0 += 2.0*(c[ix][iy][1])*(eps[ix][iy][1]-eps[ix][iy][0]);
 	    current0 += 2.0*(c[ix][iy][0])*(eps[ix][iy][1]-eps[ix][iy][0]);
 			    
 
@@ -497,25 +495,9 @@ currentL = 0.0;
             iz = p->nz-1; 	  
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
-//	    currentL += 2.0*0.25*(p->npos_field[cellm]+p->npos_field[cellp])*(cions[cellp]/p->npos_field[cellp]-cions[cellm]/p->npos_field[cellm])/p->deltaz;
+	    currentL += 2.0*(c[ix][iy][99])*(eps[ix][iy][99]-eps[ix][iy][98]);
+	    currentL += 2.0*(c[ix][iy][98])*(eps[ix][iy][99]-eps[ix][iy][98]);
        
-            iz=1;
-	    izp=2;
-	    izm=0;
-
-
-	    current0 = (c[ix][iy][izp]*(eps[ix][iy][izp]-eps[ix][iy][iz]));
-
-
-            iz=3;
-	    izp=4;
-            izm=2; 
-
-	    currentL = (c[ix][iy][izm]*(eps[ix][iy][iz]-eps[ix][iy][izm]));
-
-		   
-		   
-//		    += 2.0*(c[ix][iy][p->nz-2])*(eps[ix][iy][p->nz-1]-eps[ix][iy][p->nz-2]);
  
           }
    }
@@ -538,10 +520,14 @@ currentL = 0.0;
 	izm = iz-1;       	
  
 
-	res[ix][iy][iz] = 0.0;
-        res[ix][iy][iz] += (c[ixp][iy][iz]*(eps[ixp][iy][iz]-eps[ix][iy][iz]) - c[ixm][iy][iz]*(eps[ix][iy][iz]-eps[ixm][iy][iz]))*0.5/(p->deltax*p->deltax);
-        res[ix][iy][iz] += (c[ix][iyp][iz]*(eps[ix][iyp][iz]-eps[ix][iy][iz]) - c[ix][iym][iz]*(eps[ix][iy][iz]-eps[ix][iym][iz]))*0.5/(p->deltay*p->deltay);
-        res[ix][iy][iz] += (c[ix][iy][izp]*(eps[ix][iy][izp]-eps[ix][iy][iz]) - c[ix][iy][izm]*(eps[ix][iy][iz]-eps[ix][iy][izm]))*0.5/(p->deltaz*p->deltaz);
+res[ix][iy][iz] = 0.0;
+res[ix][iy][iz] += (c[ixp][iy][iz]-c[ix][iy][iz])*(eps[ixp][iy][iz]-eps[ix][iy][iz])-(c[ix][iy][iz]-c[ixm][iy][iz])*(eps[ix][iy][iz]-eps[ixm][iy][iz]);
+res[ix][iy][iz] += (c[ix][iyp][iz]-c[ix][iy][iz])*(eps[ix][iyp][iz]-eps[ix][iy][iz])-(c[ix][iy][iz]-c[ix][iym][iz])*(eps[ix][iy][iz]-eps[ix][iym][iz]);
+res[ix][iy][iz] += (c[ix][iy][izp]-c[ix][iy][iz])*(eps[ix][iy][izp]-eps[ix][iy][iz])-(c[ix][iy][iz]-c[ix][iy][izm])*(eps[ix][iy][iz]-eps[ix][iy][izm]);
+ 
+//	res[ix][iy][iz] += ((c[ixp][iy][iz]-c[ixm][iy][iz])*(eps[ixp][iy][iz]-eps[ixm][iy][iz])+(eps[ixp][iy][iz]-2.0*eps[ix][iy][iz]+eps[ixm][iy][iz]))*0.25/(p->deltax*p->deltax);
+//	res[ix][iy][iz] += ((c[ix][iyp][iz]-c[ix][iym][iz])*(eps[ix][iyp][iz]-eps[ix][iym][iz])+(eps[ix][iyp][iz]-2.0*eps[ix][iy][iz]+eps[ix][iym][iz]))*0.25/(p->deltay*p->deltay);
+//	res[ix][iy][iz] += ((c[ix][iy][izp]-c[ix][iy][izm])*(eps[ix][iy][izp]-eps[ix][iy][izm])+(eps[ix][iy][izp]-2.0*eps[ix][iy][iz]+eps[ix][iy][izm]))*0.25/(p->deltaz*p->deltaz);
 
 
 //        printf("%d %d %d %.3e \n", ix,iy,iz, res[ix][iy][iz]);
@@ -700,19 +686,13 @@ for (ix = 0 ; ix < p->nx ; ix++) {
         cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
 
         res[ix][iy][iz] = 0.0;
-
-//        res[ix][iy][iz] += slope*0.5*(c[ix][iy][izp]-c[ix][iy][izm])/(p->deltaz);
-
-
+        res[ix][iy][iz] += 0.5*((c[ixp][iy][iz]+c[ix][iy][iz])*(eps[ixp][iy][iz]-eps[ix][iy][iz]))/(p->deltax*p->deltax);
+        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]+c[ixm][iy][iz])*(eps[ix][iy][iz]-eps[ixm][iy][iz]))/(p->deltax*p->deltax);
+        res[ix][iy][iz] += 0.5*((c[ix][iyp][iz]+c[ix][iy][iz])*(eps[ix][iyp][iz]-eps[ix][iy][iz]))/(p->deltay*p->deltay);
+        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]+c[ix][iym][iz])*(eps[ix][iy][iz]-eps[ix][iym][iz]))/(p->deltay*p->deltay);
+        res[ix][iy][iz] += 0.5*((c[ix][iy][izp]+c[ix][iy][iz])*(eps[ix][iy][izp]-eps[ix][iy][iz]))/(p->deltaz*p->deltaz);
+        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]+c[ix][iy][izm])*(eps[ix][iy][iz]-eps[ix][iy][izm]))/(p->deltaz*p->deltaz);
 	
-        res[ix][iy][iz] += (c[ixp][iy][iz]*(eps[ixp][iy][iz]-eps[ix][iy][iz]) - c[ixm][iy][iz]*(eps[ix][iy][iz]-eps[ixm][iy][iz]))*0.5/(p->deltax*p->deltax);
-
-        res[ix][iy][iz] += (c[ix][iyp][iz]*(eps[ix][iyp][iz]-eps[ix][iy][iz]) - c[ix][iym][iz]*(eps[ix][iy][iz]-eps[ix][iym][iz]))*0.5/(p->deltay*p->deltay);
-
-
-        res[ix][iy][iz] += (c[ix][iy][izp]*(eps[ix][iy][izp]-eps[ix][iy][iz]) - c[ix][iy][izm]*(eps[ix][iy][iz]-eps[ix][iy][izm]))*0.5/(p->deltaz*p->deltaz);
-
-
         }
     }
   }
@@ -735,7 +715,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	  }
 
  
-/*
+
 // DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
@@ -747,7 +727,7 @@ soma_scalar_t norma = 0;
                 }
          }
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
-*/
+
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
@@ -940,9 +920,10 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 		 i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 
                  p->temp_prec_field[i] = 0.0;
-                 p->temp_prec_field[i] += (c[ixp][iy][iz]*(-1.0) - c[ixm][iy][iz]*(1.0))*0.5/(p->deltax*p->deltax);
-                 p->temp_prec_field[i] += (c[ix][iyp][iz]*(-1.0) - c[ix][iym][iz]*(1.0))*0.5/(p->deltay*p->deltay);
-                 p->temp_prec_field[i] += (c[ix][iy][izp]*(-1.0) - c[ix][iy][izm]*(1.0))*0.5/(p->deltay*p->deltay);
+       		 p->temp_prec_field[i] += -0.5*(c[ixp][iy][iz]+2*c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
+        	 p->temp_prec_field[i] += -0.5*(c[ix][iyp][iz]+2*c[ix][iy][iz]+c[ix][iym][iz])/(p->deltay*p->deltay); 
+        	 p->temp_prec_field[i] += -0.5*(c[ix][iy][izp]+2*c[ix][iy][iz]+c[ix][iy][izm])/(p->deltaz*p->deltaz); 
+ 
 	}
       }
     }
