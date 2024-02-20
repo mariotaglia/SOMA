@@ -113,7 +113,6 @@ typedef struct Phase {
     soma_scalar_t *exp_born_neg;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */
     soma_scalar_t *born_Sc;            /*!> \brief stores u_B+  +  u_B-, where u_B is the Born energy  */
 
-    soma_scalar_t *exp_noneq;      /*!> \brief stores exp(-mu(z)_plus), where mu(z) is the position-dependent cation chemical potential in a non-eq simulation */
     soma_scalar_t *rhoF;          /*!> \brief stores the charge density of the polymers */
     soma_scalar_t *NB;          /*!> \brief stores the sum of the absolute values of the charge density (for Born energy calc) */
     soma_scalar_t *d_invblav;     /*!> \brief stores the derivative of the average Bjerrum length w/r to the number of segments */

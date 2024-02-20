@@ -382,6 +382,7 @@ void self_omega_field(const struct Phase *const p)
                                                                              T_types * p->n_cells_local] *
                                 external_field_time;
                         }
+/*
                     //umbrella part
                     if (p->umbrella_field != NULL)
                         {
@@ -391,6 +392,7 @@ void self_omega_field(const struct Phase *const p)
                                  p->field_scaling_type[T_types] * p->fields_unified[cell + T_types * p->n_cells_local]); 
 
                         }
+*/			
                 } // cells
         }  // types
 

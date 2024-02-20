@@ -250,31 +250,6 @@ for (type = 0 ; type < p->n_types; type++) {
 
 
 
-void calc_exp_noneq(const struct Phase *const p) // Updates exp_noneq = exp(-mu_plus(z))
-
-{
-const soma_scalar_t alfa = p->args.noneq_ratio_arg;
-soma_scalar_t temp;
-unsigned int cell,ix,iy,iz;
-
-  if (p->info_MPI.sim_rank == 0) {
-    fprintf(stdout, "calc_exp_noneq: c(L)/c(z) ratio: %f \n ", alfa);
-     fflush(stdout);
-  }
- 
-
-  for (ix = 0 ; ix < p->nx ; ix++) {
-     for (iy = 0 ; iy < p->ny ; iy++) {
-	for (iz = 0 ; iz < p->nz ; iz++) {
-        cell = cell_coordinate_to_index(p, ix, iy, iz);
-
-        temp = 1.0 + ((soma_scalar_t) iz)/(((soma_scalar_t) p->nz)-1.)*(1.0-alfa)/alfa; 
-        p->exp_noneq[cell] = temp*temp; 
-        }
-     }
-   }        
-}
-
 void calc_born_S(const struct Phase *const p) // calculates uB+ + uB- from exp_born
 
 {

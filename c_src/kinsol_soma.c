@@ -98,7 +98,6 @@ int call_PB(struct Phase *const p)
 #pragma acc update self(p->rhoF[0:p->n_cells])
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
 #pragma acc update self(p->exp_born_neg[0:p->n_cells])
-#pragma acc update self(p->exp_noneq[0:p->n_cells])
 #pragma acc update self(p->d_invblav[0:p->n_types*p->n_cells_local])
 
   int NEQ; //<- Number of equations 
@@ -457,7 +456,7 @@ psic[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PB
 if (p->Nposions > 0) {
 #pragma omp parallel for reduction(+:sumposions) 
      for (cell = 0 ; cell < p->n_cells ; cell++) {
-            p->npos_field[cell] = exp(-psic[cell])*p->exp_born_pos[cell]*p->exp_noneq[cell];
+            p->npos_field[cell] = exp(-psic[cell])*p->exp_born_pos[cell];
 	    sumposions += p->npos_field[cell]; 
       }
 
@@ -703,7 +702,7 @@ psic[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PB
 if (p->Nposions > 0) {
 #pragma omp parallel for reduction(+:sumposions) 
      for (cell = 0 ; cell < p->n_cells ; cell++) {
-            npos_temp[cell] = exp(-psic[cell])*p->exp_born_pos[cell]*p->exp_noneq[cell];
+            npos_temp[cell] = exp(-psic[cell])*p->exp_born_pos[cell];
 	    sumposions += npos_temp[cell]; 
       }
 
