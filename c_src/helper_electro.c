@@ -315,16 +315,34 @@ void calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put
 	 cellm = cell_coordinate_to_index(p, ixm, iy, iz);
 	 cellp = cell_coordinate_to_index(p, ixp, iy, iz);
 	 cell = cell_coordinate_to_index(p, ix, iy, iz);
-         Jx[cell] =  -(p->npos_field[cell])*(eps[cellp]-eps[cellm])/p->deltaz;
+         Jx[cell] =  -(p->npos_field[cell])*(eps[cellp]-eps[cellm])/p->deltax;
 // Jy
 	 cellm = cell_coordinate_to_index(p, ix, iym, iz);
 	 cellp = cell_coordinate_to_index(p, ix, iyp, iz);
 	 cell = cell_coordinate_to_index(p, ix, iy, iz);
-         Jy[cell] =  -(p->npos_field[cell])*(eps[cellp]-eps[cellm])/p->deltaz;
+         Jy[cell] =  -(p->npos_field[cell])*(eps[cellp]-eps[cellm])/p->deltay;
 			    
           }
      }
   }
+
+
+    for (ix = 0 ; ix < p->nx ; ix++) {
+     for (iy = 0 ; iy < p->ny ; iy++) {
+	 iz = 0;       	
+	 cell = cell_coordinate_to_index(p, ix, iy, iz);
+         Jz[cell] = 0.0;
+         Jx[cell] = 0.0;
+         Jy[cell] = 0.0;
+
+	 iz = p->nz;       	
+	 cell = cell_coordinate_to_index(p, ix, iy, iz);
+         Jz[cell] = 0.0;
+         Jx[cell] = 0.0;
+         Jy[cell] = 0.0;
+     }
+  }
+
 
 // save to umbrella field and restore non-eq solution
 
