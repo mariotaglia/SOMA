@@ -262,4 +262,79 @@ unsigned int cell;
   }
 }
 
+void calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put it into umbrella field for export
+
+{
+  soma_scalar_t  eps[p->n_cells]; // c/ceq
+  soma_scalar_t  cions[p->n_cells]; // c/ceq
+  soma_scalar_t  Jx[p->n_cells]; // c/ceq
+  soma_scalar_t  Jy[p->n_cells]; // c/ceq
+  soma_scalar_t  Jz[p->n_cells]; // c/ceq
+  unsigned int ix,iy,iz,i,cell; 
+  unsigned int ixm,iym,izm,ixp,iyp,izp, cellm, cellp;
+ 
+  int mod(int a, int b); // modulus
+
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+	      cions[cell] = p->npos_field[cell]; // save solution in non-eq
+    }
+
+
+   // Calc ions in equilibrium
+   call_EN(p);
+
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+	      eps[cell] = cions[cell]/p->npos_field[cell]; // ratio non-eq/eq
+    }
+
+
+// Calculation of ion fluxes
+
+  
+    for (ix = 0 ; ix < p->nx ; ix++) {
+
+     ixp = mod((ix+1),p->nx);
+     ixm = mod((ix-1),p->nx);
+ 
+     for (iy = 0 ; iy < p->ny ; iy++) {
+
+        iyp = mod((iy+1),p->ny);
+        iym = mod((iy-1),p->ny);
+
+	for (iz = 1 ; iz < p->nz-1 ; iz++) {
+      
+	izp = iz+1;       	
+	izm = iz-1;       	
+ 
+// Jz
+	 cellm = cell_coordinate_to_index(p, ix, iy, izm);
+	 cellp = cell_coordinate_to_index(p, ix, iy, izp);
+	 cell = cell_coordinate_to_index(p, ix, iy, iz);
+         Jz[cell] =  -(p->npos_field[cell])*(eps[cellp]-eps[cellm])/p->deltaz;
+// Jx
+	 cellm = cell_coordinate_to_index(p, ixm, iy, iz);
+	 cellp = cell_coordinate_to_index(p, ixp, iy, iz);
+	 cell = cell_coordinate_to_index(p, ix, iy, iz);
+         Jx[cell] =  -(p->npos_field[cell])*(eps[cellp]-eps[cellm])/p->deltaz;
+// Jy
+	 cellm = cell_coordinate_to_index(p, ix, iym, iz);
+	 cellp = cell_coordinate_to_index(p, ix, iyp, iz);
+	 cell = cell_coordinate_to_index(p, ix, iy, iz);
+         Jy[cell] =  -(p->npos_field[cell])*(eps[cellp]-eps[cellm])/p->deltaz;
+			    
+          }
+     }
+  }
+
+// save to umbrella field and restore non-eq solution
+
+  for (cell = 0 ; cell < p->n_cells ; cell++) {
+
+      p->umbrella_field[cell] = Jz[cell];
+      p->umbrella_field[cell+p->n_cells] = sqrt(Jz[cell]*Jz[cell]+Jx[cell]*Jx[cell]+Jy[cell]*Jy[cell]);
+      p->npos_field[cell] = cions[cell];
+  }
+
+}
+
 

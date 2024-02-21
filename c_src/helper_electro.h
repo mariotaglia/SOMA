@@ -23,6 +23,7 @@ void update_rhoF(const struct Phase *const p);
 void update_NB(const struct Phase *const p);
 
 void update_electric_field(const struct Phase *const p);
+void calc_J_umbrella(const struct Phase *const p);
 
 
 #endif
