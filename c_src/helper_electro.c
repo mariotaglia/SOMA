@@ -335,7 +335,7 @@ void calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put
          Jx[cell] = 0.0;
          Jy[cell] = 0.0;
 
-	 iz = p->nz;       	
+	 iz = p->nz-1;       	
 	 cell = cell_coordinate_to_index(p, ix, iy, iz);
          Jz[cell] = 0.0;
          Jx[cell] = 0.0;
