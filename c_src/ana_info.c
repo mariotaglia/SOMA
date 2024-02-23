@@ -55,6 +55,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     p->ana_info.delta_mc_dynamical_structure = 0;
     p->ana_info.delta_mc_static_structure = 0;
     p->ana_info.delta_mc_mono_type_fraction = 0;
+    p->ana_info.delta_mc_total_current = 0;
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     p->ana_info.filename = NULL;
     p->ana_info.coord_filename = NULL;
@@ -110,7 +111,7 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
 #endif                          //SOMA_NUM_OBS
 //! Number of known observables to SOMA.
 //! \private
-#define SOMA_NUM_OBS 17
+#define SOMA_NUM_OBS 18
     const char *names[SOMA_NUM_OBS];
     unsigned int *delta_mc[SOMA_NUM_OBS];
     names[0] = "/Re";
@@ -147,7 +148,9 @@ int init_ana(struct Phase *const p, const char *const filename, const char *cons
     delta_mc[15] = &(p->ana_info.delta_mc_npos_field);
     names[16] = "/nneg_field";
     delta_mc[16] = &(p->ana_info.delta_mc_nneg_field);
-
+    names[17] = "/total_current";
+    delta_mc[17] = &(p->ana_info.delta_mc_total_current);
+ 
     //******** END EDIT FOR NEW OBSERVABLES HERE************
     for (unsigned int i = 0; i < SOMA_NUM_OBS; i++)
         {

@@ -67,8 +67,8 @@ const char *som_args_detailed_help[] = {
     "      --n_random_q=N            Option to determine the number of random wave\n                                  vectors used for the calculation of structure\n                                  factor.  (default=`32')",
     "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
     "      --purpose=description     Describe the purpose of the simulation run.\n                                  Enables automatic self documentation. only\n                                  ASCII",
-    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				PH (Poisson Boltzmann, guess from homogeneous) \n				NO (none), (default = NE) \n",
-    "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (only important for electrostatic solvers). Default = 1 (equilibrium)   \n",
+    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				NP (Generalized Nernst-Plack approach to solve for ion currents) \n				NO (none), (default = NE) \n",
+    "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (only important for NP solver). Default = 1 (equilibrium)   \n",
 
 
     0
@@ -132,7 +132,7 @@ static int cmdline_parser_required2(struct som_args *args_info, const char *prog
 const char *cmdline_parser_pseudo_random_number_generator_values[] = { "PCG32", "MT", "TT800", 0 };     /*< Possible values for pseudo-random-number-generator. */
 const char *cmdline_parser_move_type_values[] = { "TRIAL", "SMART", 0 };        /*< Possible values for move-type. */
 const char *cmdline_parser_iteration_alg_values[] = { "POLYMER", "SET", 0 };    /*< Possible values for iteration-alg. */
-const char *cmdline_parser_efieldsolver_values[] = { "EN", "PB", "PH", "NO", 0 };    /*< Possible values for efieldsolver. */
+const char *cmdline_parser_efieldsolver_values[] = { "EN", "PB", "NP", "NO", 0 };    /*< Possible values for efieldsolver. */
 const char *cmdline_parser_set_generation_algorithm_values[] = { "SIMPLE", "FIXED-N-SETS", 0 }; /*< Possible values for set-generation-algorithm. */
 
 static char *gengetopt_strdup(const char *s);

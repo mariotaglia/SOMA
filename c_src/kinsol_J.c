@@ -488,6 +488,7 @@ currentL = 0.0;
   current0 = current0 * p->deltax*p->deltay/p->deltaz;
   currentL = currentL * p->deltax*p->deltay/p->deltaz;
 
+  p->current=current0; // store to save in ana file
 
 // Save non-eq ion densities
 #pragma omp parallel for  

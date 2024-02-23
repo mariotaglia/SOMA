@@ -170,7 +170,7 @@ if (check_flag((void *)sc, "N_VNew_Serial", 0)) return(1);
    fnormtol = 1e-5;   
    scsteptol = 1e-13; 
  
-   if (p->args.efieldsolver_arg == efieldsolver_arg_PH) {   // homogeneous as initial guess, then reuse last solution
+   if (p->args.efieldsolver_arg == efieldsolver_arg_NP) {   // homogeneous as initial guess, then reuse last solution
         if (flagsolved) {
            if (p->info_MPI.sim_rank == 0) 
               fprintf(stdout, "Set initial guess for electrostatics \n");

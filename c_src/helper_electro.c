@@ -58,13 +58,13 @@ void update_electric_field(const struct Phase *const p)
 {
     // Update electric potential
     //
-//    if ((p->args.efieldsolver_arg == efieldsolver_arg_PB)||(p->args.efieldsolver_arg == efieldsolver_arg_PH)) 
+//    if ((p->args.efieldsolver_arg == efieldsolver_arg_PB)||(p->args.efieldsolver_arg == efieldsolver_arg_NP)) 
 //    	call_PB(p);
 
     if (p->args.efieldsolver_arg == efieldsolver_arg_PB) 
     	call_PB(p);
 
-    if (p->args.efieldsolver_arg == efieldsolver_arg_PH)
+    if (p->args.efieldsolver_arg == efieldsolver_arg_NP)
     	call_J(p);
 
     if (p->args.efieldsolver_arg == efieldsolver_arg_EN) 

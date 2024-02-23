@@ -158,10 +158,13 @@ int post_process_args(struct som_args *args, const unsigned int world_rank)
         }
 
     if ((args->efieldsolver_arg != efieldsolver_arg_NO)&&(args->N_domains_arg > 1)) {
-	fprintf(stderr, "Domain decomposition not supported for EN, PB and PH \n");
-
+	fprintf(stderr, "Domain decomposition not supported for EN, PB and NP \n"); 
 	return -1;
+    }
 
+    	if ((args->efieldsolver_arg != efieldsolver_arg_NP)&&(args->noneq_ratio_arg != 1)) {
+	fprintf(stderr, "Non-equilibrium c(0)/c(L) only valid for NP solver \n");
+	return -1;
     }
 
 
