@@ -665,8 +665,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	 	}
 	  }
 
- 
-/*
+/* 
 // DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
@@ -678,8 +677,7 @@ soma_scalar_t norma = 0;
                 }
          }
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
-*/
-  
+*/  
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
 

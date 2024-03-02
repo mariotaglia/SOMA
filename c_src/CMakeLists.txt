@@ -1,3 +1,54 @@
+
+# ------------------------------------------------------------------------------
+
+# find OpenMP
+find_package(OpenMP REQUIRED)
+
+# Update C compiler and linker flags
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_C_FLAGS}")
+
+# ------------------------------------------------------------------------------
+
+#
+# ------------------------------------------------------------------------------
+
+# Specify the path to SUNDIALS header files
+set(SUNDIALS_INCLUDE_DIR
+  /home/mario/software/KINSOL/include
+  CACHE PATH "Location of SUNDIALS header files")
+
+# Specify the path to SUNDIALS libraries
+set(SUNDIALS_LIBRARY_DIR
+  /home/mario/software/KINSOL/lib
+  CACHE PATH "Location of SUNDIALS libraries")
+
+# Find the SUNDIALS libraries
+find_library(SUNDIALS_SOLVER_LIB
+  sundials_kinsol ${SUNDIALS_LIBRARY_DIR}
+  DOC "KINSOL library")
+
+find_library(SUNDIALS_NVEC_LIB
+  sundials_nvecopenmp ${SUNDIALS_LIBRARY_DIR}
+  DOC "NVECTOR_OPENMP library")
+
+# Set additional libraries
+set(SUNDIALS_EXTRA_LIBS  -lm CACHE STRING "Additional libraries")
+
+# For SUNDIALS module examples the solver library is not needed
+if(NOT SUNDIALS_SOLVER_LIB)
+  set(SUNDIALS_SOLVER_LIB "")
+endif()
+
+# List of SUNDIALS libraries
+set(SUNDIALS_LIBRARIES
+  -L${SUNDIALS_LIBRARY_DIR}
+  ${SUNDIALS_SOLVER_LIB}
+  ${SUNDIALS_NVEC_LIB}
+  ${SUNDIALS_EXTRA_LIBS})
+
+
+
 if(ENABLE_MPI_CUDA AND MPI_CUDA)
   add_definitions(-DENABLE_MPI_CUDA)
 endif()
@@ -77,43 +128,6 @@ set(soma_header
   donnan.h
   helper_electro.h
   )
-
-# ------------------------------------------------------------------------------
-
-# Specify the path to SUNDIALS header files
-set(SUNDIALS_INCLUDE_DIR
-  /home/mario/software/KINSOL/include
-  CACHE PATH "Location of SUNDIALS header files")
-
-# Specify the path to SUNDIALS libraries
-set(SUNDIALS_LIBRARY_DIR
-  /home/mario/software/KINSOL/lib
-  CACHE PATH "Location of SUNDIALS libraries")
-
-# Find the SUNDIALS libraries
-find_library(SUNDIALS_SOLVER_LIB
-  sundials_kinsol ${SUNDIALS_LIBRARY_DIR}
-  DOC "KINSOL library")
-
-find_library(SUNDIALS_NVEC_LIB
-  sundials_nvecopenmp ${SUNDIALS_LIBRARY_DIR}
-  DOC "NVECTOR_OPENMP library")
-
-# Set additional libraries
-set(SUNDIALS_EXTRA_LIBS  -lm CACHE STRING "Additional libraries")
-
-# For SUNDIALS module examples the solver library is not needed
-if(NOT SUNDIALS_SOLVER_LIB)
-  set(SUNDIALS_SOLVER_LIB "")
-endif()
-
-# List of SUNDIALS libraries
-set(SUNDIALS_LIBRARIES
-  -L${SUNDIALS_LIBRARY_DIR}
-  ${SUNDIALS_SOLVER_LIB}
-  ${SUNDIALS_NVEC_LIB}
-  ${SUNDIALS_EXTRA_LIBS})
-
 
 add_library(soma_lib ${soma_source})
 
