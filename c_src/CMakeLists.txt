@@ -43,6 +43,7 @@ set(soma_source
 configure_file(soma_config.h.in soma_config.h)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/soma_config.h DESTINATION include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${SUNDIALS_INCLUDE_DIR})
 
 set(soma_header
   ana.h
@@ -77,6 +78,43 @@ set(soma_header
   helper_electro.h
   )
 
+# ------------------------------------------------------------------------------
+
+# Specify the path to SUNDIALS header files
+set(SUNDIALS_INCLUDE_DIR
+  /home/mario/software/KINSOL/include
+  CACHE PATH "Location of SUNDIALS header files")
+
+# Specify the path to SUNDIALS libraries
+set(SUNDIALS_LIBRARY_DIR
+  /home/mario/software/KINSOL/lib
+  CACHE PATH "Location of SUNDIALS libraries")
+
+# Find the SUNDIALS libraries
+find_library(SUNDIALS_SOLVER_LIB
+  sundials_kinsol ${SUNDIALS_LIBRARY_DIR}
+  DOC "KINSOL library")
+
+find_library(SUNDIALS_NVEC_LIB
+  sundials_nvecopenmp ${SUNDIALS_LIBRARY_DIR}
+  DOC "NVECTOR_OPENMP library")
+
+# Set additional libraries
+set(SUNDIALS_EXTRA_LIBS  -lm CACHE STRING "Additional libraries")
+
+# For SUNDIALS module examples the solver library is not needed
+if(NOT SUNDIALS_SOLVER_LIB)
+  set(SUNDIALS_SOLVER_LIB "")
+endif()
+
+# List of SUNDIALS libraries
+set(SUNDIALS_LIBRARIES
+  -L${SUNDIALS_LIBRARY_DIR}
+  ${SUNDIALS_SOLVER_LIB}
+  ${SUNDIALS_NVEC_LIB}
+  ${SUNDIALS_EXTRA_LIBS})
+
+
 add_library(soma_lib ${soma_source})
 
 add_executable(SOMA soma.c)
@@ -90,6 +128,12 @@ foreach(EXE SOMA CONVERT)
   target_link_libraries(${EXE} ${HDF5_LIBRARIES})
   target_link_libraries(${EXE} ${HDF5_C_LIBRARIES})
   target_link_libraries(${EXE} ${soma_link_flags})
+  target_link_libraries(${EXE} ${SUNDIALS_LIBRARIES})
+
+
+
+
+
 
   if(BUILD_STATIC)
     if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
