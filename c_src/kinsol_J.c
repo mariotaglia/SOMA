@@ -111,7 +111,7 @@ int call_J(struct Phase *const p)
   calc_born_S(p);   
 
   int NEQ; //<- Number of equations 
-  NEQ = (int) p->nx*p->ny*p->nz*2; /* the eps */
+  NEQ = (int) 2*p->n_cells-2; 
 
   iters = 0; // number of iterations
 
@@ -181,7 +181,7 @@ for (i = NEQ/2; i < NEQ ; i++) {
 
     /* (Re-)Initialize user data */
 
-   fnormtol = 1e-5;   
+   fnormtol = 1e-10;   
    scsteptol = 1e-10; 
 
 
@@ -195,16 +195,19 @@ for (i = NEQ/2; i < NEQ ; i++) {
          for (iy = 0 ; iy < p->ny ; iy++) {
      	  for (iz = 0 ; iz < p->nz ; iz++) {
               cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+              if (cell != p->n_cells-1) {
               NVITH(cc,cell) = 1.0 ; // c
               NVITH(cc,cell+NEQ/2) = 0.0 ; //  psi
+              }
+ 
 	   }
          }
       } 
    }
    else {
         for (i = 0 ; i < NEQ ; i++) {
-        tmp = NVITH(ccx,i) ;
-        NVITH(cc,i) = tmp ; }
+        NVITH(cc,i) = ccx[i] ; }
    }      
 
 
@@ -224,8 +227,8 @@ for (i = NEQ/2; i < NEQ ; i++) {
     flag = KINSetUserData(kmem, data);
     if (check_flag(&flag, "KINSetUserData", 1)) return(1);
 
-    flag = KINSetConstraints(kmem, constraints);  // CONSTRAINTS NO NEEDED
-    if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
+//    flag = KINSetConstraints(kmem, constraints);  // CONSTRAINTS NO NEEDED
+//    if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
 
     flag = KINSetFuncNormTol(kmem, fnormtol);
     if (check_flag(&flag, "KINSetFuncNormTol", 1)) return(1);
@@ -276,11 +279,11 @@ for (i = NEQ/2; i < NEQ ; i++) {
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
-
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+
+//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -368,6 +371,10 @@ for (i = NEQ/2; i < NEQ ; i++) {
 
 
 
+fprintf(stdout, "Kinsol out \n");
+exit(0);
+
+
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
         KINGetFuncNorm(kmem, &fnorm);
@@ -382,8 +389,21 @@ for (i = NEQ/2; i < NEQ ; i++) {
         // Save profile  
         soma_scalar_t avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
-        tmp = NVITH(cc,i) ;
-        NVITH(ccx,i) = tmp ; }
+        ccx[i] = NVITH(cc,i) ; 
+
+        for (iz = 0; iz < p->nz; iz++) {
+        printf("%d, %.3e, %.3e \n", iz, ccx[iz], ccx[iz+NEQ/2]);
+
+}
+
+
+
+
+
+
+
+
+}
     } else {  // did not converged
         if (p->info_MPI.sim_rank == 0) 
              fprintf(stdout, "Kinsol failed to converge last step \n");
@@ -517,7 +537,7 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
   int NEQ; //<- Number of equations 
-  NEQ = (int) p->nx*p->ny*p->nz*2; /* the concentration is fixed near electrodes */
+  NEQ = (int) 2*p->n_cells-2; /* the concentration is fixed near electrodes */
 
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual 
   soma_scalar_t  resp[p->nx][p->ny][p->nz]; // residual .
@@ -525,8 +545,9 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
   soma_scalar_t  ceps[p->nx][p->ny][p->nz]; // ion concetration equil * eps
   soma_scalar_t  eps[p->nx][p->ny][p->nz]; // auxiliary field
   soma_scalar_t  psip[p->nx][p->ny][p->nz]; // auxiliary field
+  soma_scalar_t  psip_p[p->nx][p->ny]; // auxiliary field
+  soma_scalar_t  psip_m[p->nx][p->ny]; // auxiliary field
  
-
   iters++;	   
 
 // born_S
@@ -561,18 +582,33 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
                 for (iz = 0 ; iz < p->nz ; iz++) {
                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+                         if (cell != p->n_cells-1) {
 	                 eps[ix][iy][iz] = NVITH(cc,cell);
 	                 ceps[ix][iy][iz] = eps[ix][iy][iz]*c[ix][iy][iz];
-	                 psip[ix][iy][iz] = NVITH(cc,cell+NEQ/2);
+	                 psip[ix][iy][iz] = NVITH(cc,cell+NEQ/2);}
+         
+ // printf("psip %d, %d, %d, %.3e \n", ix, iy, iz, psip[ix][iy][iz]);
 	           }
            }
    }
 
-// pin values at 0,0,0
 
-eps[0][0][0] = 1.0;
-ceps[0][0][0] = c[0][0][0];
-psip[0][0][0] = -p->electric_field[0];
+
+// pin values
+
+eps[p->nx-1][p->ny-1][p->nz-1] = 1.0;
+ceps[p->nx-1][p->ny-1][p->nz-1] = c[p->nx-1][p->ny-1][p->nz-1];
+psip[p->nx-1][p->ny-1][p->nz-1] = 0.0;
+
+//psip values at z+1:
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+	                 psip_p[ix][iy] = psip[ix][iy][0] + alfa;
+	                 psip_m[ix][iy] = psip[ix][iy][p->nz-1] - alfa;
+           }
+   }
+
 
 // DO NOT PARALELIZE HERE  
   for (ix = 0 ; ix < p->nx ; ix++) {
@@ -600,19 +636,82 @@ psip[0][0][0] = -p->electric_field[0];
         res[ix][iy][iz] += 0.5*((c[ix][iy][izp]+c[ix][iy][iz])*(eps[ix][iy][izp]-eps[ix][iy][iz]))/(p->deltaz*p->deltaz);
         res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]+c[ix][iy][izm])*(eps[ix][iy][iz]-eps[ix][iy][izm]))/(p->deltaz*p->deltaz);
 	
-
-
-        res[ix][iy][iz] = 0.0;
-        res[ix][iy][iz] += 0.5*((ceps[ixp][iy][iz]+ceps[ix][iy][iz])*(psip[ixp][iy][iz]-psip[ix][iy][iz]))/(p->deltax*p->deltax);
-        res[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ixm][iy][iz])*(psip[ix][iy][iz]-psip[ixm][iy][iz]))/(p->deltax*p->deltax);
-        res[ix][iy][iz] += 0.5*((ceps[ix][iyp][iz]+ceps[ix][iy][iz])*(eps[ix][iyp][iz]-psip[ix][iy][iz]))/(p->deltay*p->deltay);
-        res[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iym][iz])*(eps[ix][iy][iz]-psip[ix][iym][iz]))/(p->deltay*p->deltay);
-        res[ix][iy][iz] += 0.5*((ceps[ix][iy][izp]+ceps[ix][iy][iz])*(eps[ix][iy][izp]-psip[ix][iy][iz]))/(p->deltaz*p->deltaz);
-        res[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iy][izm])*(eps[ix][iy][iz]-psip[ix][iy][izm]))/(p->deltaz*p->deltaz);
-	
         }
     }
  }
+
+
+// DO NOT PARALELIZE HERE  
+  for (ix = 0 ; ix < p->nx ; ix++) {
+
+     ixp = mod((ix+1),p->nx);
+     ixm = mod((ix-1),p->nx);
+ 
+     for (iy = 0 ; iy < p->ny ; iy++) {
+
+        iyp = mod((iy+1),p->ny);
+        iym = mod((iy-1),p->ny);
+
+
+
+//////
+        for (iz = 1 ; iz < p->nz-1 ; iz++) {
+
+           izp = mod((iz+1),p->nz);
+           izm = mod((iz-1),p->nz);
+
+        cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
+
+        resp[ix][iy][iz] = 0.0;
+        resp[ix][iy][iz] += 0.5*((ceps[ixp][iy][iz]+ceps[ix][iy][iz])*(psip[ixp][iy][iz]-psip[ix][iy][iz]))/(p->deltax*p->deltax);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ixm][iy][iz])*(psip[ix][iy][iz]-psip[ixm][iy][iz]))/(p->deltax*p->deltax);
+        resp[ix][iy][iz] += 0.5*((ceps[ix][iyp][iz]+ceps[ix][iy][iz])*(psip[ix][iyp][iz]-psip[ix][iy][iz]))/(p->deltay*p->deltay);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iym][iz])*(psip[ix][iy][iz]-psip[ix][iym][iz]))/(p->deltay*p->deltay);
+        resp[ix][iy][iz] += 0.5*((ceps[ix][iy][izp]+ceps[ix][iy][iz])*(psip[ix][iy][izp]-psip[ix][iy][iz]))/(p->deltaz*p->deltaz);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iy][izm])*(psip[ix][iy][iz]-psip[ix][iy][izm]))/(p->deltaz*p->deltaz);
+        }
+
+
+           iz = 0;
+           izp = mod((iz+1),p->nz);
+           izm = mod((iz-1),p->nz);
+
+        cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
+
+        resp[ix][iy][iz] = 0.0;
+        resp[ix][iy][iz] += 0.5*((ceps[ixp][iy][iz]+ceps[ix][iy][iz])*(psip[ixp][iy][iz]-psip[ix][iy][iz]))/(p->deltax*p->deltax);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ixm][iy][iz])*(psip[ix][iy][iz]-psip[ixm][iy][iz]))/(p->deltax*p->deltax);
+        resp[ix][iy][iz] += 0.5*((ceps[ix][iyp][iz]+ceps[ix][iy][iz])*(psip[ix][iyp][iz]-psip[ix][iy][iz]))/(p->deltay*p->deltay);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iym][iz])*(psip[ix][iy][iz]-psip[ix][iym][iz]))/(p->deltay*p->deltay);
+        resp[ix][iy][iz] += 0.5*((ceps[ix][iy][izp]+ceps[ix][iy][iz])*(psip[ix][iy][izp]-psip[ix][iy][iz]))/(p->deltaz*p->deltaz);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iy][izm])*(psip[ix][iy][iz]-psip_m[ix][iy]))/(p->deltaz*p->deltaz);
+ 
+
+
+           iz = p->nz;
+           izp = mod((iz+1),p->nz);
+           izm = mod((iz-1),p->nz);
+
+        cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
+
+        resp[ix][iy][iz] = 0.0;
+        resp[ix][iy][iz] += 0.5*((ceps[ixp][iy][iz]+ceps[ix][iy][iz])*(psip[ixp][iy][iz]-psip[ix][iy][iz]))/(p->deltax*p->deltax);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ixm][iy][iz])*(psip[ix][iy][iz]-psip[ixm][iy][iz]))/(p->deltax*p->deltax);
+        resp[ix][iy][iz] += 0.5*((ceps[ix][iyp][iz]+ceps[ix][iy][iz])*(psip[ix][iyp][iz]-psip[ix][iy][iz]))/(p->deltay*p->deltay);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iym][iz])*(psip[ix][iy][iz]-psip[ix][iym][iz]))/(p->deltay*p->deltay);
+        resp[ix][iy][iz] += 0.5*((ceps[ix][iy][izp]+ceps[ix][iy][iz])*(psip_p[ix][iy]-psip[ix][iy][iz]))/(p->deltaz*p->deltaz);
+        resp[ix][iy][iz] += 0.5*(-(ceps[ix][iy][iz]+ceps[ix][iy][izm])*(psip[ix][iy][iz]-psip[ix][iy][izm]))/(p->deltaz*p->deltaz);
+ 
+    }
+ }
+
+
+
+for (iz = 0; iz < p->nz; iz++) {
+        printf("%d, %.3e, %.3e, %.3e, %.3e \n", iz, psip[0][0][iz], psip[0][1][iz], resp[0][0][iz], resp[0][1][iz]);
+}
+
+
 
 // DO NOT PARALELIZE #pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
@@ -620,30 +719,40 @@ psip[0][0][0] = -p->electric_field[0];
 	for (iz = 0 ; iz < p->nz ; iz++) {
 
         cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
+        if (cell != p->n_cells-1) {
         NVITH(fval,cell) = res[ix][iy][iz];
-        NVITH(fval,cell+NEQ/2) = resp[ix][iy][iz];
+        NVITH(fval,cell+NEQ/2) = resp[ix][iy][iz];}
 
 
-
-
-//         printf("func: cell, res %d %d %f %f \n", p->iter, i, res[ix][iy][iz], c[ix][iy][iz]);
+//       printf("func: cell, res %d %d %f %f \n", p->iter, i, psip[ix][iy][iz], resp[ix][iy][iz]);
 		     }
 	 	}
 	  }
 
-/* 
+//   for (i = 0 ; i < NEQ ; i++) {
+//       printf("fval %d %f \n", i, NVITH(fval,i));}
+       
+
+
+/*for (iz = 0; iz < p->nz; iz++) {
+        printf("1 %d, %.3e, %.3e \n", iz, res[0][0][iz], res[0][1][iz]);
+        printf("2 %d, %.3e, %.3e \n", iz, resp[0][0][iz], resp[0][1][iz]);
+}*/
+
 // DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
-                  for (iz = 1 ; iz <  p->nz-1 ; iz++) {
+                  for (iz = 0 ; iz <  p->nz-1 ; iz++) {
                   cell = cell_coordinate_to_index(p, ix, iy, iz);
               			  norma += fabs(res[ix][iy][iz]); 
+              			  norma += fabs(resp[ix][iy][iz]); 
                      }
                 }
          }
-  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, res[0][0][0]); 
-*/  
+  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, resp[0][0][0]); 
+
+  
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
 
