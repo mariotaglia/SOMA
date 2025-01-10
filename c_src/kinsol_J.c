@@ -101,6 +101,7 @@ int call_J(struct Phase *const p)
   soma_scalar_t current0, currentL ;
   soma_scalar_t tmp;
   soma_scalar_t  eps[p->n_cells]; // c/ceq
+  soma_scalar_t  psip[p->n_cells]; // psi-psieq
 
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
@@ -407,7 +408,7 @@ for (i = NEQ/2; i < NEQ ; i++) {
            }
    }
 
-   cions[p->n_cells] = p->npos_field[p->n_cells]/p->npos_field[0]; // eps pinned to 1.0 in the corner
+   cions[p->n_cells-1] = p->npos_field[p->n_cells-1]/p->npos_field[0]; // eps pinned to 1.0 in the corner
 
 /* Normalize c and save ion densities */
 
@@ -432,9 +433,11 @@ sumions = 0.0;
 /* Calculate electric field p->electric_field has eq solution */
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells-1 ; cell++) {
-          efield[cell] = p->electric_field[cell] + NVITH(cc,cell+NEQ/2); 
+          psip[cell] =  NVITH(cc,cell+NEQ/2);
+          efield[cell] = p->electric_field[cell] + psip[cell]; 
     }
-          efield[p->n_cells] = 0.0 + p->electric_field[p->n_cells]; // psip pinned to 0.0 in the corner
+          psip[p->n_cells-1] = 0.0;
+          efield[p->n_cells-1] = p->electric_field[p->n_cells-1]; // psip pinned to 0.0 in the corner
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
@@ -455,17 +458,16 @@ currentL = 0.0;
             iz = 1; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	    current0 -= (p->npos_field[cell])*(eps[cell]-eps[cellm]);
-	    current0 -= (p->npos_field[cellm])*(eps[cell]-eps[cellm]);
+	    current0 -= (p->npos_field[cell]*eps[cell])*(psip[cell]-psip[cellm]);
+	    current0 -= (p->npos_field[cellm]*eps[cellm])*(psip[cell]-psip[cellm]);
 			    
-
 	    iz = p->nz-2; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
             iz = p->nz-1; 	  
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
-	    currentL -= (p->npos_field[cellp])*(eps[cellp]-eps[cell]);
-	    currentL -= (p->npos_field[cell])*(eps[cellp]-eps[cell]);
+	    currentL -= (p->npos_field[cellp]*eps[cellp])*(psip[cellp]-psip[cell]);
+	    currentL -= (p->npos_field[cell]*eps[cell])*(psip[cellp]-psip[cell]);
  
           }
    }
@@ -481,7 +483,6 @@ currentL = 0.0;
            p->nneg_field[cell] = cions[cell];
            p->npos_field[cell] = cions[cell];
     }
-
 
 
 // print    
@@ -734,7 +735,7 @@ soma_scalar_t norma = 0;
                      }
                 }
          }
-  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, resp[0][0][0]); 
+//  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", iters, norma, resp[0][0][0]); 
 
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
