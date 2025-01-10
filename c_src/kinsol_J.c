@@ -181,7 +181,7 @@ for (i = NEQ/2; i < NEQ ; i++) {
 
     /* (Re-)Initialize user data */
 
-   fnormtol = 1e-10;   
+   fnormtol = 1e-5;   
    scsteptol = 1e-10; 
 
 
@@ -370,18 +370,12 @@ for (i = NEQ/2; i < NEQ ; i++) {
 		  sc);            /* scaling vector for function values fval */
 
 
-
-fprintf(stdout, "Kinsol out \n");
-exit(0);
-
-
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
         KINGetFuncNorm(kmem, &fnorm);
 //        printf("flag %d \n", flag);
     if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
 							       //
-
         p->aviter += iters;
         p->countiter++;
  
@@ -389,21 +383,8 @@ exit(0);
         // Save profile  
         soma_scalar_t avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
-        ccx[i] = NVITH(cc,i) ; 
+        ccx[i] = NVITH(cc,i) ; }
 
-        for (iz = 0; iz < p->nz; iz++) {
-        printf("%d, %.3e, %.3e \n", iz, ccx[iz], ccx[iz+NEQ/2]);
-
-}
-
-
-
-
-
-
-
-
-}
     } else {  // did not converged
         if (p->info_MPI.sim_rank == 0) 
              fprintf(stdout, "Kinsol failed to converge last step \n");
@@ -419,11 +400,13 @@ exit(0);
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 0 ; iz < p->nz ; iz++) {
 			  cell = cell_coordinate_to_index(p, ix, iy, iz);
-	                  cions[cell] = NVITH(cc,cell)*p->npos_field[cell]/p->npos_field[0]; // cions not normalized 
+                          if (cell != p->n_cells) {
+	                  cions[cell] = NVITH(cc,cell)*p->npos_field[cell]/p->npos_field[0]; } // cions not normalized 
 		   }                                                                         // npos_field has equilibrium solution
            }
    }
 
+   cions[p->n_cells] = p->npos_field[p->n_cells]/p->npos_field[0]; // eps pinned to 1.0 in the corner
 
 /* Normalize c and save ion densities */
 
@@ -447,15 +430,15 @@ sumions = 0.0;
 
 /* Calculate electric field p->electric_field has eq solution */
 #pragma omp parallel for  
-    for (cell = 0 ; cell < p->n_cells ; cell++) {
+    for (cell = 0 ; cell < p->n_cells-1 ; cell++) {
           efield[cell] = p->electric_field[cell] + NVITH(cc,cell+NEQ/2); 
     }
+          efield[p->n_cells] = 0.0 + p->electric_field[p->n_cells]; // psip pinned to 0.0 in the corner
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
           p->electric_field[cell] = efield[cell];
     }
-
 
 
 // Calculation of ion currents at electrode
@@ -688,7 +671,7 @@ psip[p->nx-1][p->ny-1][p->nz-1] = 0.0;
  
 
 
-           iz = p->nz;
+           iz = p->nz-1;
            izp = mod((iz+1),p->nz);
            izm = mod((iz-1),p->nz);
 
@@ -707,11 +690,13 @@ psip[p->nx-1][p->ny-1][p->nz-1] = 0.0;
 
 
 
-for (iz = 0; iz < p->nz; iz++) {
-        printf("%d, %.3e, %.3e, %.3e, %.3e \n", iz, psip[0][0][iz], psip[0][1][iz], resp[0][0][iz], resp[0][1][iz]);
+/*for (iz = 0; iz < p->nz; iz++) {
+//        printf("%d, %.3e, %.3e, %.3e, %.3e \n", iz, psip[0][0][iz], psip[0][1][iz], resp[0][0][iz], resp[0][1][iz]);
+        printf("%d, %.3e, %.3e \n", iz, psip[0][0][iz], resp[0][0][iz]);
 }
 
-
+        printf("%d, %.3e, %.3e \n", iz, psip_p[0][0], psip_m[0][0]);
+*/
 
 // DO NOT PARALELIZE #pragma omp parallel for  
   for (ix = 0 ; ix < p->nx ; ix++) {
