@@ -382,6 +382,7 @@ for (i = NEQ/2; i < NEQ ; i++) {
 /* Save solution */
         // Save profile  
         soma_scalar_t avpsi = 0; //average psi
+        flagsolved = 0;
         for (i = 0 ; i < NEQ ; i++) {
         ccx[i] = NVITH(cc,i) ; }
 
@@ -454,7 +455,6 @@ currentL = 0.0;
             iz = 1; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-
 	    current0 -= (p->npos_field[cell])*(eps[cell]-eps[cellm]);
 	    current0 -= (p->npos_field[cellm])*(eps[cell]-eps[cellm]);
 			    
@@ -466,7 +466,6 @@ currentL = 0.0;
 
 	    currentL -= (p->npos_field[cellp])*(eps[cellp]-eps[cell]);
 	    currentL -= (p->npos_field[cell])*(eps[cellp]-eps[cell]);
-       
  
           }
    }
