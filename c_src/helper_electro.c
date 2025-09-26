@@ -21,7 +21,8 @@ void calc_ions(struct Phase *const p)
     const unsigned N = p->poly_arch[p->poly_type_offset[polytype]];
     unsigned int iN;   
     for (iN = 0; iN < N ; iN++) {  // loop over monomers
-         const unsigned int type = get_particle_type(p, polytype, iN); 
+         const unsigned int type = get_particle_type(p, i, iN);
+//	fprintf(stdout, "Hola %d %d type:%d \n ", i, iN, type); 
          sumrhoQtmp += p->charges[type]; 
     }
   }
