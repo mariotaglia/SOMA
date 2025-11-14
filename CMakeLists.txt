@@ -93,6 +93,7 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+  #  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -fopenmp -I/usr/local/include -L/usr/local/lib -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/usr/local/lib")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -fopenmp -I/usr/local/include -L/usr/local/lib -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/usr/local/lib")
 
   set(CMAKE_C_FLAGS_DEBUG "-g -fstack-protector-all -Wstack-protector -fstack-protector-strong")
@@ -255,8 +256,8 @@ if(ENABLE_OPENMP)
   set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} OpenMP")
 endif(ENABLE_OPENMP)
 
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -fopenmp -I/usr/local/include -L/usr/local/lib -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/usr/local/lib")
-
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -fopenmp -I/home/mtaglia/opt/kinsol_OMP/include -L/home/mtaglia/opt/kinsol_OMP/lib64 -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/home/mtaglia/opt/kinsol_OMP/lib64")
+	
 add_subdirectory(c_src)
 add_subdirectory(setups)
 
