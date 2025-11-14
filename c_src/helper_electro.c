@@ -251,7 +251,7 @@ for (type = 0 ; type < p->n_types; type++) {
 
 
 
-void calc_born_S(const struct Phase *const p) // calculates uB+ + uB- from exp_born
+void calc_born_S(struct Phase *const p) // calculates uB+ + uB- from exp_born
 
 {
 unsigned int cell;
