@@ -173,8 +173,22 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->electric_field = (soma_scalar_t *) malloc(p->n_cells_local * p->n_types * sizeof(soma_scalar_t));
+    p->electric_field = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
     if (p->electric_field == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    p->npos_field = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
+    if (p->npos_field == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    p->nneg_field = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
+    if (p->nneg_field == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
             return -1;
@@ -238,7 +252,7 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
-    p->rhoF = (soma_scalar_t *) malloc(p->n_cells_local * p->n_types * sizeof(soma_scalar_t));
+    p->rhoF = (soma_scalar_t *) malloc(p->n_cells_local  * sizeof(soma_scalar_t));
     if (p->rhoF == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
@@ -391,7 +405,6 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p[0:1])
 
 #pragma acc enter data copyin(p->invblav[0:p->n_cells])
-#pragma acc enter data copyin(p->exp_noneq[0:p->n_cells])
 #pragma acc enter data copyin(p->electric_field[0:p->n_cells])
 #pragma acc enter data copyin(p->nneg_field[0:p->n_cells])
 #pragma acc enter data copyin(p->npos_field[0:p->n_cells])
