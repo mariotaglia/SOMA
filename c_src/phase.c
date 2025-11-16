@@ -173,6 +173,15 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
+    p->omega_rep_pol = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
+    if (p->omega_rep_pol == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
+
     p->electric_field = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
     if (p->electric_field == NULL)
         {
@@ -417,6 +426,7 @@ int copyin_phase(struct Phase *const p)
 #pragma acc enter data copyin(p->d_invblav[0:p->n_types*p->n_cells_local])
 #pragma acc enter data copyin(p->invbls[0:p->n_types])
 #pragma acc enter data copyin(p->charges[0:p->n_types])
+#pragma acc enter data copyin(p->omega_rep_pol[0:p->n_cells_local])
 
 #pragma acc enter data copyin(p->xn[0:p->n_types*p->n_types])
 #pragma acc enter data copyin(p->polymers[0:p->n_polymers_storage])
@@ -518,6 +528,7 @@ int copyout_phase(struct Phase *const p)
 #pragma acc exit data copyout(p->area51[0:p->n_cells_local])
         }
 #pragma acc exit data copyout(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc exit data copyout(p->omega_rep_pol[0:p->n_cells_local])
     if (p->external_field_unified != NULL)
         {
 #pragma acc exit data copyout(p->external_field_unified[0:p->n_cells_local*p->n_types])
@@ -600,6 +611,7 @@ int free_phase(struct Phase *const p)
     free(p->left_tmp_buffer);
     free(p->right_tmp_buffer);
     free(p->omega_field_unified);
+    free(p->omega_rep_pol);
     free(p->tempfield);
     free(p->fields_unified);
     free(p->old_fields_unified);
@@ -693,6 +705,7 @@ int update_self_phase(Phase * const p, int rng_update_flag)
 #pragma acc update self(p->area51[0:p->n_cells_local])
         }
 #pragma acc update self(p->omega_field_unified[0:p->n_cells_local*p->n_types])
+#pragma acc update self(p->omega_rep_pol[0:p->n_cells_local])
     if (p->external_field_unified != NULL)
         {
 #pragma acc update self(p->external_field_unified[0:p->n_cells_local*p->n_types])

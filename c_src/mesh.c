@@ -363,6 +363,18 @@ void self_omega_field(const struct Phase *const p)
                         p->sin_serie[serie_index] * sin(2 * M_PI * serie_index / p->period * p->time);
                 }
         }
+
+// omega_rep_pol, sum of all polymer-polymer repulsions    
+#pragma acc parallel loop present(p[:1])
+#pragma omp parallel for
+            for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
+                {
+                    p->omega_rep_pol[cell] +=   // sum all polymer-polymer repulsions
+                        inverse_refbeads * (p->xn[0] * (p->tempfield[cell] - 1.0)); // use AA kappa value for ions
+                } // cells
+
+
+
     // Compressibility part + external fields
     for (unsigned int T_types = 0; T_types < p->n_types; T_types++)     /*Loop over all fields according to monotype */
         {
@@ -370,8 +382,10 @@ void self_omega_field(const struct Phase *const p)
 #pragma omp parallel for
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    /*Loop over all cells, max number of cells is product of nx, ny,nz */
                 {
+
                     p->omega_field_unified[cell + T_types * p->n_cells_local] =
                         inverse_refbeads * (p->xn[T_types * p->n_types + T_types] * (p->tempfield[cell] - 1.0));
+
                     /* the external field is defined such that the energy of a
                        chain of refbeads in this field is x k_B T, thus the
                        normalization per bead */
