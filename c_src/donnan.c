@@ -30,20 +30,25 @@ soma_scalar_t exprep_ion_pos[p->n_cells], exprep_ion_neg[p->n_cells]; // contrib
 								      //
 soma_scalar_t exprep_ion_pos_old[p->n_cells], exprep_ion_neg_old[p->n_cells]; // auxiliary fields for iteration
 
-soma_scalar_t exprep_pos[p->n_cells], exprep_neg[p->n_cells]; // total repulsions
+printf("Hola \n"); 
+soma_scalar_t exprep_pos[p->n_cells];
+soma_scalar_t exprep_neg[p->n_cells]; // total repulsions
+printf("Chau \n"); 
+
 soma_scalar_t tmpsumdens[p->n_cells]; // auxiliary field
 	
 Qneg = vall;
 Qpos = vall;
 
 
+
 // auxiliary fields for steric interactions
-#pragma acc data copyin(omega_rep_pol)  
+//#pragma acc data copyin(omega_rep_pol)  
 #pragma acc parallel loop present(p[:1]) 
 #pragma omp parallel for    
     for (i = 0 ; i < p->n_cells ; i++) {
-    exprep_pol_pos[i] = exp(-p->omega_rep_pol[i]*rho0*v_pos);  
-    exprep_pol_neg[i] = exp(-p->omega_rep_pol[i]*rho0*v_neg);  
+    exprep_pol_pos[i] = 1; // exp(-p->omega_rep_pol[i]*rho0*v_pos);  
+    exprep_pol_neg[i] = 1 ; // exp(-p->omega_rep_pol[i]*rho0*v_neg);  
     exprep_ion_pos[i] = 1; // initialize to one, then iterate
     exprep_ion_neg[i] = 1; // initialize to one, then iterate
      }
@@ -111,7 +116,8 @@ while (iterror_o > maxiterror_o) { // outer
 	Qpos = Qposnew;
 	Qneg = Qnegnew;
 
-        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror_i);
+        printf("   error inner, %.3e \n", iterror_i);
+//        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror_i);
 } // inner iteration loop, Q is converged
 
 iterror_i = DBL_MAX;
@@ -125,7 +131,7 @@ iterror_i = DBL_MAX;
      }
 
 /*    for (i = 0 ; i < p->n_cells ; i++) {
-    printf("i pos neg born rhoF %d %.3e %.3e %.3e %.3e \n",i, p->npos_field[i], p->nneg_field[i], p->exp_born[i], p->rhoF[i]);
+//    printf("i pos neg born rhoF %d %.3e %.3e %.3e %.3e \n",i, p->npos_field[i], p->nneg_field[i], p->exp_born[i], p->rhoF[i]);
     }
 */
 
@@ -150,7 +156,7 @@ iterror_i = DBL_MAX;
         printf("error outer, %.3e \n", iterror_o);
 } // outer loop iteration, exprep_ion is converged
 
-  exit(0); // still need to implement ion-pol repulsions in omega_field
+//  exit(0); // still need to implement ion-pol repulsions in omega_field
            // copyout in last loop?
   return(0);
 }

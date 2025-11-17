@@ -68,7 +68,7 @@ void update_electric_field(const struct Phase *const p)
     if (p->args.efieldsolver_arg == efieldsolver_arg_NP)
     	call_J(p);
 
-    if (p->args.efieldsolver_arg == efieldsolver_arg_EN) 
+    if (p->args.efieldsolver_arg == efieldsolver_arg_EN)
     	call_EN(p);
 }  
 
