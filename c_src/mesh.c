@@ -307,7 +307,7 @@ int update_density_fields(const struct Phase *const p)
     return 0;
 }
 
-void update_omega_fields(const struct Phase *const p)
+void update_omega_fields(struct Phase *const p)
 {
     static unsigned int last_time_call = 0;
     if (last_time_call == 0 || p->time > last_time_call)
@@ -333,7 +333,7 @@ void update_omega_fields(const struct Phase *const p)
 //! potential.
 //! \private Helper function
 //! \param p Phase of the system to init the omega fields
-void self_omega_field(const struct Phase *const p)
+int self_omega_field(struct Phase *const p)
 {
 
 
@@ -420,9 +420,20 @@ if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
 
 // Dielectric contribution
 
-     soma_scalar_t psi[p->nx][p->ny][p->nz]; 
-     soma_scalar_t gradpsi2[p->n_cells]; 
- 
+soma_scalar_t *psi = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (psi == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+soma_scalar_t *gradpsi2 = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (gradpsi2 == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
 #pragma acc data create(psi[:p->nx][:p->ny][:p->nz]) create(gradpsi2[:p->n_cells]) 
 {
 
@@ -430,13 +441,8 @@ const soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson eq
 
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for  
-for (unsigned int ix = 0 ; ix < p->nx ; ix++) {
-      for (unsigned int iy = 0 ; iy < p->ny ; iy++) {
-           for (unsigned int iz = 0 ; iz < p->nz ; iz++) {
-              unsigned int cell = cell_coordinate_to_index(p, ix, iy, iz);
-	      psi[ix][iy][iz] = p->electric_field[cell];
-	   }
-       }
+for (unsigned int cell = 0 ; cell < p->n_cells ; cell++) {
+	      psi[cell] = p->electric_field[cell];
 }  
 
 #pragma acc parallel loop present(p[:1])
@@ -450,16 +456,21 @@ for (unsigned int ix = 0 ; ix < p->nx ; ix++) {
             for (unsigned int iz = 0 ; iz < p->nz ; iz++) {
                unsigned int izp = mod((iz+1),p->nz);
                unsigned int izm = mod((iz-1),p->nz);
-
                unsigned int cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	       soma_scalar_t temp = (psi[ixp][iy][iz]-psi[ixm][iy][iz])/2./p->deltax; 
+               unsigned int cellpx = cell_coordinate_to_index(p, ixp, iy, iz);
+               unsigned int cellmx = cell_coordinate_to_index(p, ixm, iy, iz);
+	       soma_scalar_t temp = (psi[cellpx]-psi[cellmx])/2./p->deltax; 
                gradpsi2[cell] = temp*temp;
 
-	       temp = (psi[ix][iyp][iz]-psi[ix][iym][iz])/2./p->deltay; 
+               unsigned int cellpy = cell_coordinate_to_index(p, ix, iyp, iz);
+               unsigned int cellmy = cell_coordinate_to_index(p, ix, iym, iz);
+	       temp = (psi[cellpy]-psi[cellmy])/2./p->deltay; 
                gradpsi2[cell] += temp*temp;
 
-	       temp = (psi[ix][iy][izp]-psi[ix][iy][izm])/2./p->deltaz; 
+               unsigned int cellpz = cell_coordinate_to_index(p, ix, iy, izp);
+               unsigned int cellmz = cell_coordinate_to_index(p, ix, iy, izm);
+	       temp = (psi[cellpz]-psi[cellmz])/2./p->deltaz; 
                gradpsi2[cell] += temp*temp;
 
               } // iz 
@@ -495,6 +506,8 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
         } // cell 	    
      } // type
    } // if efieldsolver
+return 0;
+
 } // end routine
 
 
@@ -560,13 +573,13 @@ void add_pair_omega_fields_scmf1(const struct Phase *const p)
         }
 }
 
-void update_omega_fields_scmf0(const struct Phase *const p)
+void update_omega_fields_scmf0(struct Phase *const p)
 {
     self_omega_field(p);
     add_pair_omega_fields_scmf0(p);
 }
 
-void update_omega_fields_scmf1(const struct Phase *const p)
+void update_omega_fields_scmf1(struct Phase *const p)
 {
     self_omega_field(p);
     add_pair_omega_fields_scmf1(p);

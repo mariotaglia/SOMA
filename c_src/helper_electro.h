@@ -14,8 +14,8 @@ int call_EN(const struct Phase *const p);
 //! Calls electroneutrality efield solver
 
 extern void calc_ions(struct Phase *const p);
-extern void calc_born_S(struct Phase *const p);
-int calc_invbls(struct Phase *const p);
+extern void calc_born_S(const struct Phase *const p);
+void calc_invbls(struct Phase *const p);
 
 int update_invblav(const struct Phase *const p);
 int update_d_invblav(const struct Phase *const p);

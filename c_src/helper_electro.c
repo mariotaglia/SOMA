@@ -72,16 +72,9 @@ void update_electric_field(struct Phase *const p)
     	call_EN(p);
 }  
 
-int calc_invbls(struct Phase *const p) 
+void calc_invbls(struct Phase *const p) 
 {
 unsigned int type;
-
-  p->invbls = (soma_scalar_t *) malloc((p->n_types) * sizeof(soma_scalar_t));
-    if (p->invbls == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
 
   p->invblav_zero = 0.0; 
 
@@ -90,7 +83,6 @@ unsigned int type;
 	p->invblav_zero += 1./p->bls[type];
   }
         p->invblav_zero = p->invblav_zero/((soma_scalar_t) p->n_types);
-return 0;
 }
 
 
@@ -276,7 +268,7 @@ for (type = 0 ; type < p->n_types; type++) {
 
 
 
-void calc_born_S(struct Phase *const p) // calculates uB+ + uB- from exp_born
+void calc_born_S(const struct Phase *const p) // calculates uB+ + uB- from exp_born
 
 {
 unsigned int cell;
