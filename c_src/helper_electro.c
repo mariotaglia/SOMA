@@ -201,8 +201,8 @@ for (cell = 0 ; cell < p->n_cells_local ; cell++) {
    p->exp_born_pol[cell] = exp(-borntmp); 
 }
 
-#pragma acc parallel loop present(p[:1])
-#pragma omp parallel for    
+
+// DO NOT PARALELIZE
 for (cell = 0 ; cell < p->n_cells_local ; cell++) {
 
    borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_pos);
@@ -210,8 +210,7 @@ for (cell = 0 ; cell < p->n_cells_local ; cell++) {
    p->exp_born_pos[cell] = exp(-borntmp); 
 }
 
-#pragma acc parallel loop present(p[:1])
-#pragma omp parallel for    
+// DO NOT PARALELIZE
 for (cell = 0 ; cell < p->n_cells_local ; cell++) {
 
    borntmp = 1.0/(p->invblav[cell]*2.0*p->Born_neg);
