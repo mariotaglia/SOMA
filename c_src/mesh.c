@@ -363,17 +363,16 @@ void self_omega_field(const struct Phase *const p)
                         p->sin_serie[serie_index] * sin(2 * M_PI * serie_index / p->period * p->time);
                 }
         }
+
+    
 // omega_rep_pol, sum of all polymer-polymer repulsions    
-/*
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for
             for (uint64_t cell = 0; cell < p->n_cells_local; cell++)    
                 {
-                    p->omega_rep_pol[cell] +=   // sum all polymer-polymer repulsions
+                    p->omega_rep_pol[cell] =   // sum all polymer-polymer repulsions
                         inverse_refbeads * (p->xn[0] * (p->tempfield[cell] - 1.0)); // use AA kappa value for ions
-                } // cells
-
-*/	    
+		} // cells
 	    
 // tmpsumdens for ion-pol repulsions
 const soma_scalar_t v_pos = 4.0/3.0*M_PI*p->Born_pos*p->Born_pos*p->Born_pos; // volume of cations, units Re^3
@@ -381,7 +380,7 @@ const soma_scalar_t v_neg = 4.0/3.0*M_PI*p->Born_neg*p->Born_neg*p->Born_neg; //
 soma_scalar_t tmpsumdens[p->n_cells]; // auxiliary field
 #pragma acc parallel loop present(p[:1]) 
 #pragma omp parallel for    
-    for (uint64_t cell = 0 ; cell < p->n_cells ; cell++) {
+    for (uint64_t cell = 0 ; cell < p->n_cells_local ; cell++) {
     tmpsumdens[cell] =  p->npos_field[cell]*v_pos+p->nneg_field[cell]*v_neg;
     }
 

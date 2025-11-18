@@ -25,17 +25,62 @@ const soma_scalar_t v_neg = 4.0/3.0*M_PI*p->Born_neg*p->Born_neg*p->Born_neg; //
 const soma_scalar_t rho0 = p->num_all_beads/vall; // density, beads/Re^3
 const soma_scalar_t kappa0 = p->xn[0]/p->reference_Nbeads; // kappa for ions, use the A-A value
 
-soma_scalar_t exprep_pol_pos[p->n_cells], exprep_pol_neg[p->n_cells]; // contribution from ion-polymer repulsions
-soma_scalar_t exprep_ion_pos[p->n_cells], exprep_ion_neg[p->n_cells]; // contribution from ion-ion repulsions
-								      //
-soma_scalar_t exprep_ion_pos_old[p->n_cells], exprep_ion_neg_old[p->n_cells]; // auxiliary fields for iteration
+soma_scalar_t *exprep_pol_pos = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_pol_pos == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *exprep_pol_neg = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_pol_neg == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *exprep_ion_pos = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_ion_pos == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *exprep_ion_neg = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_ion_neg == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *exprep_ion_pos_old = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_ion_pos_old == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *exprep_ion_neg_old = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_ion_neg_old == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *exprep_pos = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_pos == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *exprep_neg = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (exprep_neg == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
-printf("Hola \n"); 
-soma_scalar_t exprep_pos[p->n_cells];
-soma_scalar_t exprep_neg[p->n_cells]; // total repulsions
-printf("Chau \n"); 
+soma_scalar_t *tmpsumdens = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (tmpsumdens == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
-soma_scalar_t tmpsumdens[p->n_cells]; // auxiliary field
 	
 Qneg = vall;
 Qpos = vall;
@@ -44,11 +89,11 @@ Qpos = vall;
 
 // auxiliary fields for steric interactions
 //#pragma acc data copyin(omega_rep_pol)  
-#pragma acc parallel loop present(p[:1]) 
-#pragma omp parallel for    
+//#pragma acc parallel loop present(p[:1]) 
+//#pragma omp parallel for    
     for (i = 0 ; i < p->n_cells ; i++) {
-    exprep_pol_pos[i] = 1; // exp(-p->omega_rep_pol[i]*rho0*v_pos);  
-    exprep_pol_neg[i] = 1 ; // exp(-p->omega_rep_pol[i]*rho0*v_neg);  
+    exprep_pol_pos[i] = exp(-p->omega_rep_pol[i]*rho0*v_pos);  
+    exprep_pol_neg[i] = exp(-p->omega_rep_pol[i]*rho0*v_neg);  
     exprep_ion_pos[i] = 1; // initialize to one, then iterate
     exprep_ion_neg[i] = 1; // initialize to one, then iterate
      }
@@ -116,7 +161,7 @@ while (iterror_o > maxiterror_o) { // outer
 	Qpos = Qposnew;
 	Qneg = Qnegnew;
 
-        printf("   error inner, %.3e \n", iterror_i);
+//        printf("   error inner, %.3e \n", iterror_i);
 //        printf("Qpos, Qneg, error, %.3e %.3e %.3e \n", Qpos, Qneg, iterror_i);
 } // inner iteration loop, Q is converged
 
@@ -146,18 +191,19 @@ iterror_i = DBL_MAX;
     exprep_ion_neg[i] = exp(-kappa0*rho0*v_neg*tmpsumdens[i]); 
     }
 
-        iterror_o = 0;
+        iterror_o = 0.0;
 // Outer loop iteration
     for (i = 0 ; i < p->n_cells ; i++) {
         iterror_o += fabs((exprep_ion_pos[i]-exprep_ion_pos_old[i])/exprep_ion_pos[i]);
         iterror_o += fabs((exprep_ion_neg[i]-exprep_ion_neg_old[i])/exprep_ion_neg[i]);
     }
 
-        printf("error outer, %.3e \n", iterror_o);
+//        printf("error outer, %.3e \n", iterror_o);
 } // outer loop iteration, exprep_ion is converged
 
 //  exit(0); // still need to implement ion-pol repulsions in omega_field
            // copyout in last loop?
+//        printf("Converged \n");
   return(0);
 }
 
