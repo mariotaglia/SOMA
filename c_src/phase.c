@@ -278,6 +278,14 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
+    p->invbls = (soma_scalar_t *) malloc((p->n_types) * sizeof(soma_scalar_t));
+    if (p->invbls == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
 
 
     // Set all values to zero
