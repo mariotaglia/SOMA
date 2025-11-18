@@ -377,11 +377,14 @@ void self_omega_field(const struct Phase *const p)
 // tmpsumdens for ion-pol repulsions
 const soma_scalar_t v_pos = 4.0/3.0*M_PI*p->Born_pos*p->Born_pos*p->Born_pos; // volume of cations, units Re^3
 const soma_scalar_t v_neg = 4.0/3.0*M_PI*p->Born_neg*p->Born_neg*p->Born_neg; // volume of anions, units Re^3
+
+const soma_scalar_t v_salt = (v_pos+v_neg)/2.0;
+
 soma_scalar_t tmpsumdens[p->n_cells]; // auxiliary field
 #pragma acc parallel loop present(p[:1]) 
 #pragma omp parallel for    
     for (uint64_t cell = 0 ; cell < p->n_cells_local ; cell++) {
-    tmpsumdens[cell] =  p->npos_field[cell]*v_pos+p->nneg_field[cell]*v_neg;
+    tmpsumdens[cell] =  (p->npos_field[cell]+p->nneg_field[cell])*v_salt;
     }
 
 
