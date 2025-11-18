@@ -55,7 +55,7 @@ void calc_ions(struct Phase *const p)
   assert(fabs(netcharge) < 1.0e-6);
 }
 
-void update_electric_field(const struct Phase *const p)
+void update_electric_field(struct Phase *const p)
 {
     // Update electric potential
     //
@@ -72,11 +72,17 @@ void update_electric_field(const struct Phase *const p)
     	call_EN(p);
 }  
 
-void calc_invbls(struct Phase *const p) 
+int calc_invbls(struct Phase *const p) 
 {
 unsigned int type;
 
   p->invbls = (soma_scalar_t *) malloc((p->n_types) * sizeof(soma_scalar_t));
+    if (p->invbls == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
   p->invblav_zero = 0.0; 
 
   for (type = 0; type < p->n_types ; type++) {
@@ -84,14 +90,22 @@ unsigned int type;
 	p->invblav_zero += 1./p->bls[type];
   }
         p->invblav_zero = p->invblav_zero/((soma_scalar_t) p->n_types);
+return 0;
 }
 
 
-void update_invblav(const struct Phase *const p) // Updates invblav = average of inverse Bjerrum length
+
+int update_invblav(const struct Phase *const p) // Updates invblav = average of inverse Bjerrum length
 
 {
-unsigned int tmpsegsum[p->n_cells];
+
 unsigned int cell, type;
+soma_scalar_t *tmpsegsum = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (tmpsegsum == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
 
 #pragma data create(tmpsegsumacc[0:p->n_cells])  
@@ -124,13 +138,22 @@ for (type = 0 ; type < p->n_types; type++) {
                 p->invblav[cell] = p->invblav_zero; // prevents divergence if tmpsegsum = 0
 	  }
     }
+
+return 0;
+
 }
 
-void update_d_invblav(const struct Phase *const p) // Updates d_invblav = derivative of average inverse Bjerrum length respect to N_i
+int update_d_invblav(const struct Phase *const p) // Updates d_invblav = derivative of average inverse Bjerrum length respect to N_i
 
 {
 unsigned int cell, type;
-unsigned int tmpsegsum[p->n_cells];
+
+soma_scalar_t *tmpsegsum = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (tmpsegsum == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
 #pragma data create(tmpsegsumacc[0:p->n_cells])  
 {
@@ -166,6 +189,8 @@ for (type = 0 ; type < p->n_types; type++) {
   } 
  }
 } // pragma create
+
+return 0;
 
 }
 
@@ -263,15 +288,46 @@ unsigned int cell;
   }
 }
 
-void calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put it into umbrella field for export
+int calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put it into umbrella field for export
 
 {
-  soma_scalar_t  eps[p->n_cells]; // c/ceq
-  soma_scalar_t  cions[p->n_cells]; // c/ceq
-  soma_scalar_t  Jx[p->n_cells]; // c/ceq
-  soma_scalar_t  Jy[p->n_cells]; // c/ceq
-  soma_scalar_t  Jz[p->n_cells]; // c/ceq
-  unsigned int ix,iy,iz,i,cell; 
+
+soma_scalar_t *eps = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (eps == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+soma_scalar_t *cions = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (cions == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+soma_scalar_t *Jx = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (Jx == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+soma_scalar_t *Jy = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (Jy == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+soma_scalar_t *Jz = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (Jz == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
+  unsigned int ix,iy,iz,cell; 
   unsigned int ixm,iym,izm,ixp,iyp,izp, cellm, cellp;
  
   int mod(int a, int b); // modulus
@@ -354,6 +410,8 @@ void calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put
       p->npos_field[cell] = cions[cell];
   }
 
+
+  return 0;
 }
 
 
