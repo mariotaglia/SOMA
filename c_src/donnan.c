@@ -12,9 +12,9 @@ int call_EN(const struct Phase *const p)
 {
 unsigned int i;
 soma_scalar_t  Qpos, Qneg, Qpos_new, Qneg_new; 
-soma_scalar_t  Q_i; // partition function of the part that requires ion density iteration
 soma_scalar_t iterror_1 = DBL_MAX;
 soma_scalar_t iterror_2 = DBL_MAX;
+const soma_scalar_t alfa = 0.25; // mixing factor in iteration
 
 const soma_scalar_t  vall = p->Lx*p->Ly*p->Lz ; //total volume of simulation box
  
@@ -65,7 +65,7 @@ Qneg = vall;
 Qpos = vall;
 
 
-// exprep_pol does no change during iteration
+// exprep_pol does not change during iteration
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
@@ -81,7 +81,7 @@ Qpos = vall;
     }
 
 
-while ((iterror_1 > maxiterror_1) || (iterror_1 > maxiterror_1)) {
+while ((iterror_1 > maxiterror_1) || (iterror_2 > maxiterror_2)) {
 
     Qneg_new = 0.0;
     Qpos_new = 0.0; 
@@ -140,8 +140,8 @@ while ((iterror_1 > maxiterror_1) || (iterror_1 > maxiterror_1)) {
 
 // Q    
 iterror_1 = fabs(Qpos-Qpos_new)/Qpos + fabs(Qneg-Qneg_new)/Qneg;
-Qpos = Qpos_new;
-Qneg = Qneg_new;
+Qpos = Qpos_new*alfa + Qpos*(1.-alfa);
+Qneg = Qneg_new*alfa + Qneg*(1.-alfa);
 
 // ion-ion repulsion Boltzmann factor
 iterror_2 = 0.0;
@@ -154,16 +154,16 @@ iterror_2 = 0.0;
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
-        exprep_ion[i] = exprep_ion_new[i];
+        exprep_ion[i] = exprep_ion_new[i]*alfa + exprep_ion[i]*(1.-alfa);
     }
 
 
-        printf("Error 1, Error 2 : %.3e  %.3e \n", iterror_1, iterror_2);
+//        printf("Error 1, Error 2 : %.3e  %.3e \n", iterror_1, iterror_2);
 
 } // iteration loop
 
 
-        printf("Converged \n");
+//        printf("Converged \n");
   return(0);
 }
 
