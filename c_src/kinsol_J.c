@@ -82,7 +82,8 @@ int call_J(struct Phase *const p)
 {
   static realtype *ccx; // last solution
 
-  unsigned int ix,iy,iz,i,cell, cellp, cellm; 
+  unsigned int ix,iy,iz,cell, cellp, cellm; 
+  int i;
   int globalstrategy, linsolver;
   realtype fnormtol, scsteptol; // tolerances
   N_Vector cc, sc, constraints;
@@ -384,7 +385,6 @@ N_VConst(1.0, constraints);  // constrains c >= 0
  
 /* Save solution */
         // Save profile  
-        soma_scalar_t avpsi = 0; //average psi
         for (i = 0 ; i < NEQ ; i++) {
         	ccx[i] = NVITH(cc,i);
                 flagsolved = 0;
@@ -539,29 +539,12 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
-  int NEQ; //<- Number of equations 
-  NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
-
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
   soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
   soma_scalar_t  eps[p->nx][p->ny][p->nz]; // auxiliary field
  
 
   iters++;	   
-
-// born_S
-soma_scalar_t  born_S[p->nx][p->ny][p->nz];
-#pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-	        for (iz = 0 ; iz < p->nz ; iz++) {
-	        cell = cell_coordinate_to_index(p, ix, iy, iz);
-	        born_S[ix][iy][iz] = p->born_Sc[cell]; 
-	        }
-          }
-   }
-
-
 
 // c from npos_ions
 for (ix = 0 ; ix < p->nx ; ix++) {
@@ -772,25 +755,7 @@ static int PrecSetupJ(N_Vector cc, N_Vector cscale,
   int ixp ,ixm, iyp, iym, izp, izm, cell;
   struct Phase *const p = user_data;
   soma_scalar_t c[p->nx][p->ny][p->nz]; // concentration
-  soma_scalar_t lc[p->nx][p->ny][p->nz]; // concentration
-  int NEQ;
-  NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
-  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
-  soma_scalar_t  eps[p->nx][p->ny][p->nz]; // auxiliary field
-
-// born_S
-soma_scalar_t  born_S[p->nx][p->ny][p->nz];
-#pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-	        for (iz = 0 ; iz < p->nz ; iz++) {
-	        cell = cell_coordinate_to_index(p, ix, iy, iz);
-	        born_S[ix][iy][iz] = p->born_Sc[cell]; 
-	        }
-          }
-   }
-
-
+//  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
 // c from npos_ions
 for (ix = 0 ; ix < p->nx ; ix++) {
@@ -802,7 +767,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 		     }
 	 	}
 
-
+/*
 // epsilon from kinsol's input
 
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
@@ -833,7 +798,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	       eps[ix][iy][iz] = 1.0; 
            }
    }
-
+*/
 /*
   for (ix = 0 ; ix < p->nx ; ix++) {
   for (iy = 0 ; iy < p->ny ; iy++) {
@@ -891,7 +856,7 @@ static int PrecSolveJ(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
-  unsigned int i;
+  int i;
   struct Phase *const p = user_data;
   int NEQ;
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */

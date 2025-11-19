@@ -420,17 +420,34 @@ static int funcPB(N_Vector cc, N_Vector fval, void *user_data)
   int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
-  soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
-  soma_scalar_t  rhoQ[p->nx][p->ny][p->nz]; // total charge density
-  soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic potential 3D lattice, units of kBT/|e|
-  soma_scalar_t  psic[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t  sumrhoQ = 0 ; // sum of rhoQ, for debug only
   
   soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
-  soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
 
   p->iter++;	   
+
+soma_scalar_t *rhoQ = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (rhoQ == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    soma_scalar_t *res = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (res == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+    soma_scalar_t *psi = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (psi == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
 
 // psi from kinsol's input
 
@@ -440,23 +457,20 @@ static int funcPB(N_Vector cc, N_Vector fval, void *user_data)
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           if ((int) cell < NEQ) {
-				  psi[ix][iy][iz] = NVITH(cc,cell); 
-				  psic[cell] = NVITH(cc,cell); 
+				  psi[cell] = NVITH(cc,cell); 
 			  }
 		     }
 	 	}
 	  }
 
-psi[p->nx-1][p->ny-1][p->nz-1] = 0.0; // choice of zero of electrostatic potential due to PBC
-psic[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PBC
+psi[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PBC
 
 // Pos ion 
-
 
 if (p->Nposions > 0) {
 #pragma omp parallel for reduction(+:sumposions) 
      for (cell = 0 ; cell < p->n_cells ; cell++) {
-            p->npos_field[cell] = exp(-psic[cell])*p->exp_born_pos[cell];
+            p->npos_field[cell] = exp(-psi[cell])*p->exp_born_pos[cell];
 	    sumposions += p->npos_field[cell]; 
       }
 
@@ -481,7 +495,7 @@ if (p->Nnegions > 0) {
 
 #pragma omp parallel for reduction(+:sumnegions) 
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-             p->nneg_field[cell] = exp(psic[cell])*p->exp_born_neg[cell];
+             p->nneg_field[cell] = exp(psi[cell])*p->exp_born_neg[cell];
 	     sumnegions += p->nneg_field[cell]; 
     }
 
@@ -502,30 +516,13 @@ else {
 // rhoQ from unified fields 
 
 #pragma omp parallel for reduction(+:sumrhoQ) 
-    for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-		  for (iz = 0 ; iz < p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
 
-			  rhoQ[ix][iy][iz] = p->rhoF[cell];
-                          rhoQ[ix][iy][iz] += p->npos_field[cell]-p->nneg_field[cell]; 
-			  sumrhoQ += rhoQ[ix][iy][iz];	  
+			  rhoQ[cell] = p->rhoF[cell];
+                          rhoQ[cell] += p->npos_field[cell]-p->nneg_field[cell]; 
+			  sumrhoQ += rhoQ[cell];	  
 		     }
-	 	}
-	  }
-
-// recast inverse of average bjerrum length into x,y,z coordinates
-
-#pragma omp parallel for  
-    for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-		  for (iz = 0 ; iz < p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          invbl[ix][iy][iz] = p->invblav[cell] ;
-//				  printf("func: cell, res %d %f \n", cell, p->invblav[cell]);
-		     }
-	 	}
-	  }
+	  
 
 /// Calculate residual from Poisson's equation
 
@@ -546,20 +543,27 @@ else {
 	izm = mod((iz-1),p->nz);
         cell = cell_coordinate_to_index(p, ix, iy, iz);
 
-	res[ix][iy][iz] = rhoQ[ix][iy][iz]*constq;
+	res[cell] = rhoQ[cell]*constq;
 
-        res[ix][iy][iz] += 0.5*((invbl[ixp][iy][iz]+invbl[ix][iy][iz])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(p->deltax*p->deltax); 
-        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ixm][iy][iz])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(p->deltax*p->deltax); 
-        res[ix][iy][iz] += 0.5*((invbl[ix][iyp][iz]+invbl[ix][iy][iz])*(psi[ix][iyp][iz]-psi[ix][iy][iz]))/(p->deltay*p->deltay); 
-        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iym][iz])*(psi[ix][iy][iz]-psi[ix][iym][iz]))/(p->deltay*p->deltay); 
-        res[ix][iy][iz] += 0.5*((invbl[ix][iy][izp]+invbl[ix][iy][iz])*(psi[ix][iy][izp]-psi[ix][iy][iz]))/(p->deltaz*p->deltaz); 
-        res[ix][iy][iz] += 0.5*(-(invbl[ix][iy][iz]+invbl[ix][iy][izm])*(psi[ix][iy][iz]-psi[ix][iy][izm]))/(p->deltaz*p->deltaz); 
+        int cellxp = cell_coordinate_to_index(p, ixp, iy, iz);
+        int cellxm = cell_coordinate_to_index(p, ixm, iy, iz);
+        int cellyp = cell_coordinate_to_index(p, ix, iyp, iz);
+        int cellym = cell_coordinate_to_index(p, ix, iym, iz);
+        int cellzp = cell_coordinate_to_index(p, ix, iy, izp);
+        int cellzm = cell_coordinate_to_index(p, ix, iy, izm);
+
+        res[cell] += 0.5*((p->invblav[cellxp]+p->invblav[cell  ])*(psi[cellxp]-psi[cell]))/(p->deltax*p->deltax); 
+        res[cell] += 0.5*(-(p->invblav[cell ]+p->invblav[cellxm])*(psi[cell]-psi[cellxm]))/(p->deltax*p->deltax); 
+        res[cell] += 0.5*((p->invblav[cellyp]+p->invblav[cell  ])*(psi[cellyp]-psi[cell]))/(p->deltay*p->deltay); 
+        res[cell] += 0.5*(-(p->invblav[cell ]+p->invblav[cellym])*(psi[cell]-psi[cellym]))/(p->deltay*p->deltay); 
+        res[cell] += 0.5*((p->invblav[cellzp]+p->invblav[cell  ])*(psi[cellzp]-psi[cell]))/(p->deltaz*p->deltaz); 
+        res[cell] += 0.5*(-(p->invblav[cell ]+p->invblav[cellzm])*(psi[cell]-psi[cellzm]))/(p->deltaz*p->deltaz); 
 
 //	res[ix][iy][iz] = -res[ix][iy][iz];
                           
 			  if ((int) cell < NEQ) { 
-				  NVITH(fval,cell) = -res[ix][iy][iz];
-//				  printf("func: cell, res %d %f \n", cell, invbl[ix][iy][iz]);
+				  NVITH(fval,cell) = -res[cell];
+//				  printf("func: cell, res %d \n", cell);
 			  }     
 		     }
 	 	}
@@ -587,6 +591,11 @@ soma_scalar_t norma = 0;
 //  printf("func: iter, norm %d %.3e \n", iter, norma);
 
 //  exit(1);
+//
+//
+  free(psi);
+  free(res);
+  free(rhoQ);
   return(0);
 }
   
@@ -676,11 +685,32 @@ static int PrecSetup(N_Vector cc, N_Vector cscale,
   int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
 
-  soma_scalar_t  psic[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
   soma_scalar_t  sumposions = 0 , sumnegions = 0 ;
   soma_scalar_t constq = 4.0*M_PI; // multiplicative constant for Poisson equation
-  soma_scalar_t invbl[p->nx][p->ny][p->nz]; // inverse of local Bjerrum length
-  soma_scalar_t npos_temp[p->n_cells], nneg_temp[p->n_cells]; 
+
+
+  soma_scalar_t *psi = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (psi == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+  soma_scalar_t *npos_temp = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (npos_temp == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+  soma_scalar_t *nneg_temp = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (nneg_temp == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
 
 // psi from kinsol's input
 
@@ -690,19 +720,19 @@ static int PrecSetup(N_Vector cc, N_Vector cscale,
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           if ((int) cell < NEQ) {
-				  psic[cell] = NVITH(cc,cell); 
+				  psi[cell] = NVITH(cc,cell); 
 			  }
 		     }
 	 	}
 	  }
 
-psic[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PBC
+psi[p->n_cells-1] = 0.0; // choice of zero of electrostatic potential due to PBC
 
 // Pos ion 
 if (p->Nposions > 0) {
 #pragma omp parallel for reduction(+:sumposions) 
      for (cell = 0 ; cell < p->n_cells ; cell++) {
-            npos_temp[cell] = exp(-psic[cell])*p->exp_born_pos[cell];
+            npos_temp[cell] = exp(-psi[cell])*p->exp_born_pos[cell];
 	    sumposions += npos_temp[cell]; 
       }
 
@@ -727,7 +757,7 @@ if (p->Nnegions > 0) {
 
 #pragma omp parallel for reduction(+:sumnegions) 
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-             nneg_temp[cell] = exp(psic[cell])*p->exp_born_neg[cell];
+             nneg_temp[cell] = exp(psi[cell])*p->exp_born_neg[cell];
 	     sumnegions += nneg_temp[cell]; 
     }
 
@@ -744,19 +774,6 @@ else {
            nneg_temp[cell] = 0.0;
      }
 }
-
-// recast inverse of average bjerrum length into x,y,z coordinates
-
-#pragma omp parallel for  
-    for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-		  for (iz = 0 ; iz < p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          invbl[ix][iy][iz] = p->invblav[cell] ;
-//				  printf("func: cell, res %d %f \n", cell, p->invblav[cell]);
-		     }
-	 	}
-	  }
 
 /// Calculate diagonal preconditioner, temp_prec_field
 
@@ -776,16 +793,25 @@ else {
  		izm = mod((iz-1),p->nz);
         	cell = cell_coordinate_to_index(p, ix, iy, iz);
 
+                int cellxp = cell_coordinate_to_index(p, ixp, iy, iz);
+                int cellxm = cell_coordinate_to_index(p, ixm, iy, iz);
+                int cellyp = cell_coordinate_to_index(p, ix, iyp, iz);
+                int cellym = cell_coordinate_to_index(p, ix, iym, iz);
+                int cellzp = cell_coordinate_to_index(p, ix, iy, izp);
+                int cellzm = cell_coordinate_to_index(p, ix, iy, izm);
+
 	        if ((int) cell < NEQ) { 
 		 p->temp_prec_field[cell] = -(npos_temp[cell]+nneg_temp[cell])*constq;
-       		 p->temp_prec_field[cell] += -0.5*(invbl[ixp][iy][iz]+2*invbl[ix][iy][iz]+invbl[ixm][iy][iz])/(p->deltax*p->deltax); 
-        	 p->temp_prec_field[cell] += -0.5*(invbl[ix][iyp][iz]+2*invbl[ix][iy][iz]+invbl[ix][iym][iz])/(p->deltay*p->deltay); 
-        	 p->temp_prec_field[cell] += -0.5*(invbl[ix][iy][izp]+2*invbl[ix][iy][iz]+invbl[ix][iy][izm])/(p->deltaz*p->deltaz); 
+       		 p->temp_prec_field[cell] += -0.5*(p->invblav[cellxp]+2*p->invblav[cell]+p->invblav[cellxm])/(p->deltax*p->deltax); 
+        	 p->temp_prec_field[cell] += -0.5*(p->invblav[cellyp]+2*p->invblav[cell]+p->invblav[cellym])/(p->deltay*p->deltay); 
+        	 p->temp_prec_field[cell] += -0.5*(p->invblav[cellzp]+2*p->invblav[cell]+p->invblav[cellzm])/(p->deltaz*p->deltaz); 
                 }
          }
       }
     }
-
+free(psi);
+free(npos_temp);
+free(nneg_temp);
 return(0);
 
 }	
@@ -801,13 +827,24 @@ static int PrecSolve(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
-  unsigned int cell;
+  int cell;
   const struct Phase *const p = user_data;
   int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */
+  soma_scalar_t *vvin = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t)); 
+    if (vvin == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
-  soma_scalar_t vvin[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
-  soma_scalar_t vvout[p->n_cells]; // electrostatic potential 3D lattice, units of kBT/|e|
+
+  soma_scalar_t *vvout = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (vvout == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
 #pragma omp parallel for  
   for (cell = 0 ; cell < NEQ ; cell++) {
@@ -819,7 +856,8 @@ static int PrecSolve(N_Vector cc, N_Vector cscale,
           vvout[cell] = vvin[cell]/p->temp_prec_field[cell]; // Diagonal precond.
 	  NVITH(vv,cell) = vvout[cell]; 
    }
-
+  free(vvin);
+  free(vvout);
   return(0);
 }
 
