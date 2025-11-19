@@ -59,7 +59,6 @@ soma_scalar_t *tmpsumdens = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_sc
             return -1;
         }
 
-
 // initial guess for Q     
 Qneg = vall;
 Qpos = vall;
@@ -164,6 +163,11 @@ iterror_2 = 0.0;
 
 
 //        printf("Converged \n");
-  return(0);
+    free(exprep_pol);
+    free(exprep_ion);
+    free(exprep_ion_new);
+    free(tmpsumdens);
+
+return(0);
 }
 

@@ -432,6 +432,7 @@ soma_scalar_t *tmpsumdens = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_sc
                 } // cells
         }  // types
 
+free(tmpsumdens);
 
 if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
         update_invblav(p); // update invblav (inverse of average Bjerrum length)
