@@ -513,6 +513,8 @@ for (unsigned int ix = 0 ; ix < p->nx ; ix++) {
        } // iy
 } // ix
 
+free(psi);
+
 for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fields according to monotype */
 #pragma acc parallel loop present(p[:1])
 #pragma omp parallel for  
@@ -525,6 +527,10 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
     } // cell 	    
 } // type	
 } // pragma acc block
+
+free(gradpsi2);
+
+
 // Born energy contribution
 
 
@@ -542,6 +548,7 @@ for (unsigned int type = 0; type < p->n_types; type++) {    /*Loop over all fiel
         } // cell 	    
      } // type
    } // if efieldsolver
+
 return 0;
 
 } // end routine
