@@ -94,13 +94,24 @@ int call_J(struct Phase *const p)
   void *kmem;
   SUNLinearSolver LS;
   Phase *data;
-  soma_scalar_t cions[p->n_cells]; // concentration
   soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
   realtype fnorm;
   soma_scalar_t current0, currentL ;
 
-  soma_scalar_t  eps[p->n_cells]; // c/ceq
+
+  soma_scalar_t *cions = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t)); 
+    if (cions == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+  soma_scalar_t *eps = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t)); 
+    if (eps == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
 
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
@@ -520,6 +531,10 @@ currentL = 0.0;
 /*  FreeUserData(data); */
 
   SUNContext_Free(&sunctx);
+
+  free(cions);
+  free(eps);
+
   return(0);
 }
 
@@ -861,8 +876,20 @@ static int PrecSolveJ(N_Vector cc, N_Vector cscale,
   int NEQ;
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
 
-  soma_scalar_t vvin[NEQ]; 
-  soma_scalar_t vvout[NEQ]; 
+  soma_scalar_t *vvin = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
+    if (vvin == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+  soma_scalar_t *vvout = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
+    if (vvout == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
 
   for (i = 0 ; i < NEQ ; i++) {
 	  vvin[i] = NVITH(vv,i); 
@@ -872,6 +899,9 @@ static int PrecSolveJ(N_Vector cc, N_Vector cscale,
           vvout[i] = vvin[i]/p->temp_prec_field[i]; // Diagonal precond.
 	  NVITH(vv,i) = vvout[i]; 
    }
+
+  free(vvin);
+  free(vvout);
 
   return(0);
 }
