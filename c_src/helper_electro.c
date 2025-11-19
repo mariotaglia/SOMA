@@ -131,6 +131,7 @@ for (type = 0 ; type < p->n_types; type++) {
 	  }
     }
 
+free(tmpsegsum);
 return 0;
 
 }
@@ -182,6 +183,7 @@ for (type = 0 ; type < p->n_types; type++) {
  }
 } // pragma create
 
+free(tmpsegsum);
 return 0;
 
 }
@@ -317,7 +319,6 @@ soma_scalar_t *Jz = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t))
             return -1;
         }
 
-
   unsigned int ix,iy,iz,cell; 
   unsigned int ixm,iym,izm,ixp,iyp,izp, cellm, cellp;
  
@@ -401,6 +402,11 @@ soma_scalar_t *Jz = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t))
       p->npos_field[cell] = cions[cell];
   }
 
+  free(eps);
+  free(cions);
+  free(Jx);
+  free(Jy);
+  free(Jz);
 
   return 0;
 }
