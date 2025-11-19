@@ -9,11 +9,11 @@
 
 /*  Helper routines for efield calculation */
 
-void calc_ions(struct Phase *const p)
+int calc_ions(struct Phase *const p)
   {
 
   soma_scalar_t sumrhoQ;                   // total number of charges
-  soma_scalar_t sumrhoQtmp = 0.0;                   // total number of charges
+  soma_scalar_t sumrhoQabs = 0.0;                   // total number of charges
   unsigned int polytype ;
 
   for (uint64_t i = 0; i < p->n_polymers; i++)   { ; // loope over pol chains
@@ -23,13 +23,10 @@ void calc_ions(struct Phase *const p)
     for (iN = 0; iN < N ; iN++) {  // loop over monomers
          const unsigned int type = get_particle_type(p, i, iN);
 //	fprintf(stdout, "Hola %d %d type:%d \n ", i, iN, type); 
-         sumrhoQtmp += p->charges[type]; 
+         sumrhoQ += p->charges[type]; 
+         sumrhoQ += fabs(p->charges[type]); 
     }
   }
-
-#if ( ENABLE_MPI == 1 )
-    MPI_Allreduce(&sumrhoQtmp, &sumrhoQ, 1,  MPI_SOMA_SCALAR, MPI_SUM, p->info_MPI.SOMA_comm_sim);
-#endif                          //ENABLE_MPI
 
   p->Nposions = p->Nnegions = p->Nions;
 
@@ -53,7 +50,14 @@ void calc_ions(struct Phase *const p)
   }
  
   assert(fabs(netcharge) < 1.0e-6);
-}
+
+       if ((sumrhoQabs > 0) && (p->args.efieldsolver_arg == efieldsolver_arg_NP)){
+        fprintf(stderr, "This version does not support nonzero polymer charge for NP solver \n");
+        return -1;
+    }   
+  
+   return 0;
+  }
 
 void update_electric_field(struct Phase *const p)
 {
