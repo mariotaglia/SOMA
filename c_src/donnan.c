@@ -21,12 +21,6 @@ const soma_scalar_t  vall = p->Lx*p->Ly*p->Lz ; //total volume of simulation box
 const soma_scalar_t maxiterror_1 = 1.e-5 ; // maximum relative iteration error for Qpos and Qneg
 const soma_scalar_t maxiterror_2 = 1.e-5 ; // maximum relative iteration error for ion densities
 
-const soma_scalar_t v_pos = 4.0/3.0*M_PI*p->Born_pos*p->Born_pos*p->Born_pos; // volume of cations, units Re^3
-const soma_scalar_t v_neg = 4.0/3.0*M_PI*p->Born_neg*p->Born_neg*p->Born_neg; // volume of anions, units Re^3
-
-const soma_scalar_t v_salt = (v_pos+v_neg)/2.0;
-
-
 const soma_scalar_t rho0 = p->num_all_beads/vall; // density, beads/Re^3
 const soma_scalar_t kappa0 = p->xn[0]/p->reference_Nbeads; // kappa for ions, use the A-A value
 
@@ -68,7 +62,7 @@ Qpos = vall;
 #pragma acc parallel loop present(p[:1])   
 #pragma omp parallel for  
     for (i = 0 ; i < p->n_cells ; i++) {
-        exprep_pol[i] = exp(-p->omega_rep_pol[i]*rho0*v_salt);  
+        exprep_pol[i] = exp(-p->omega_rep_pol[i]*rho0*p->Vion);  
     }
 
  
@@ -116,7 +110,7 @@ while ((iterror_1 > maxiterror_1) || (iterror_2 > maxiterror_2)) {
 #pragma acc parallel loop reduction (+:Qpos_new) reduction (+:Qneg_new)  
 #pragma omp parallel for reduction (+:Qpos_new) reduction (+:Qneg_new)
     for (i = 0 ; i < p->n_cells ; i++) {
-        exprep_pol[i] = exp(-p->omega_rep_pol[i]*rho0*v_salt);  
+        exprep_pol[i] = exp(-p->omega_rep_pol[i]*rho0*p->Vion);  
 
         Qpos_new += exp(-p->electric_field[i])*p->exp_born_pos[i]*exprep_pol[i]*exprep_ion[i];
         Qneg_new += exp( p->electric_field[i])*p->exp_born_neg[i]*exprep_pol[i]*exprep_ion[i];
@@ -131,8 +125,8 @@ while ((iterror_1 > maxiterror_1) || (iterror_2 > maxiterror_2)) {
     for (i = 0 ; i < p->n_cells ; i++) {
         p->npos_field[i] = exp(-p->electric_field[i])*p->exp_born_pos[i]*exprep_pol[i]*exprep_ion[i]/Qpos_new*p->Nposions; 
         p->nneg_field[i] = exp( p->electric_field[i])*p->exp_born_neg[i]*exprep_pol[i]*exprep_ion[i]/Qneg_new*p->Nnegions; 
-        tmpsumdens[i] =  (p->npos_field[i]+p->nneg_field[i])*v_salt;
-        exprep_ion_new[i] = exp(-kappa0*rho0*v_salt*tmpsumdens[i]);
+        tmpsumdens[i] =  (p->npos_field[i]+p->nneg_field[i])*p->Vion;
+        exprep_ion_new[i] = exp(-kappa0*rho0*p->Vion*tmpsumdens[i]);
     }
 
 // Calculate error norms

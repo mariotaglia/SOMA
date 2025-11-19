@@ -617,6 +617,10 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
     status = write_hdf5(1, &one, file_id, "/parameter/Nions", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
 
+    //Vion
+    status = write_hdf5(1, &one, file_id, "/parameter/Vion", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Vion));
+    HDF5_ERROR_CHECK2(status, "/parameter/Vion");
+
     //Lx Ly Lz
     soma_scalar_t lxyz[3] = { p->Lx, p->Ly, p->Lz };
     status =
@@ -1494,6 +1498,10 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     // read Nions
     status = read_hdf5(file_id, "/parameter/Nions", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
+
+    // read Vion
+    status = read_hdf5(file_id, "/parameter/Vion", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Vion));
+    HDF5_ERROR_CHECK2(status, "/parameter/Vion");
 
     // read Born_pol
     status = read_hdf5(file_id, "/parameter/Born_pol", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_pol));

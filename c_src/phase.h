@@ -320,6 +320,7 @@ typedef struct Phase {
     soma_scalar_t Nposions; //!< number of positive ions in simulation box
     soma_scalar_t Nnegions; //!< number of negative ions in simulation box
     soma_scalar_t Nions; //!< number of added salt ions in simulation box
+    soma_scalar_t Vion; //!< volume of a salt ion in Re**3 
     soma_scalar_t Bjerrum;   //!< Bjerrum lenght in units of Re 
     soma_scalar_t Acharge;   //!< Charge of A segment 
 

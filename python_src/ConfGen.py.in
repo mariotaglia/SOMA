@@ -1063,6 +1063,7 @@ class SomaXML:
     knownTags += ["Born_neg"] 
     knownTags += ["nxyz"]
     knownTags += ["Nions"]
+    knownTags += ["Vion"]
     knownTags += ["hamiltonian"]
     knownTags += ["area51"]
     knownTags += ["external_field"]
@@ -1191,6 +1192,9 @@ class Configuration(SomaXML):
         ## Number of positive and negative ions in the grid
         self.Nions = self.create_Nions()
 
+        ## Volume of salt ions in Re**3 
+        self.Vion = self.create_Vion()
+
         ## Hamiltonian of system
         self.hamiltonian = self.create_hamiltonian()
 
@@ -1263,6 +1267,7 @@ class Configuration(SomaXML):
             create_list += [("/parameter/Born_neg",self.Born_neg)]
             create_list += [("/parameter/nxyz",self.nxyz)]
             create_list += [("/parameter/Nions",self.Nions)]
+            create_list += [("/parameter/Vion",self.Vion)]
             create_list += [("/parameter/hamiltonian",self.hamiltonian)]
             create_list += [("/parameter/k_umbrella",self.k_umbrella)]
             create_list += [("/parameter/xn",self.xn)]
@@ -1776,6 +1781,22 @@ class Configuration(SomaXML):
             tmp[i] = float(string[i])
             assert tmp[i] >= 0.0
         return tmp
+
+## Ion volume
+    def create_Vion(self):
+        string = ""
+        for element in self.root.iter('Vion'):
+            string += element.text
+        string = string.strip()
+
+        string = string.split()
+        assert len(string) == 1
+        tmp = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
+        for i in range(1):
+            tmp[i] = float(string[i])
+            assert tmp[i] >= 0.0
+        return tmp
+
 
     ## Create the area51 (forbidden area)
     ## @return area51 array
