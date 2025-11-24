@@ -51,13 +51,13 @@ int calc_ions(struct Phase *const p)
  
   assert(fabs(netcharge) < 1.0e-6);
 
-
+/*
     if ((sumrhoQabs > 0) && (p->args.efieldsolver_arg == efieldsolver_arg_NP)){
         fprintf(stdout, "This version does not support nonzero polymer charge for NP solver \n");
 //        return -1;
 	exit(-1);
     }   
-  
+*/  
    return 0;
   }
 
