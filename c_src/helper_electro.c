@@ -51,6 +51,16 @@ int calc_ions(struct Phase *const p)
  
   assert(fabs(netcharge) < 1.0e-6);
 
+        if ((p->args.efieldsolver_arg != efieldsolver_arg_CJ)&&(p->nx != 1)) {
+        fprintf(stderr, "CJ solver requires nx=1 (1D calc) \n");
+        return -1; }
+
+
+        if ((p->args.efieldsolver_arg != efieldsolver_arg_CJ)&&(p->ny != 1)) {
+        fprintf(stderr, "CJ solver requires ny=1 (1D calc) \n");
+        return -1; }
+
+
 /*
     if ((sumrhoQabs > 0) && (p->args.efieldsolver_arg == efieldsolver_arg_NP)){
         fprintf(stdout, "This version does not support nonzero polymer charge for NP solver \n");
@@ -73,6 +83,9 @@ void update_electric_field(struct Phase *const p)
 
     if (p->args.efieldsolver_arg == efieldsolver_arg_NP)
     	call_J(p);
+
+    if (p->args.efieldsolver_arg == efieldsolver_arg_CJ)
+//    	call_CJ(p); // constant J calc
 
     if (p->args.efieldsolver_arg == efieldsolver_arg_EN) 
     	call_EN(p);

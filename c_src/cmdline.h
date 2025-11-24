@@ -41,7 +41,7 @@ extern "C" {
     };
     enum enum_move_type { move_type__NULL = -1, move_type_arg_TRIAL = 0, move_type_arg_SMART };
     enum enum_iteration_alg { iteration_alg__NULL = -1, iteration_alg_arg_POLYMER = 0, iteration_alg_arg_SET };
-    enum enum_efieldsolver {  efieldsolver_arg_EN = 0, efieldsolver_arg_PB = 1,efieldsolver_arg_NP = 2, efieldsolver_arg_NO = 3};
+    enum enum_efieldsolver {  efieldsolver_arg_EN = 0, efieldsolver_arg_PB = 1,efieldsolver_arg_NP = 2, efieldsolver_arg_NO = 3, efieldsolver_arg_CJ = 4};
     enum enum_set_generation_algorithm { set_generation_algorithm__NULL = -1, set_generation_algorithm_arg_SIMPLE =
             0, set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS
     };
@@ -143,6 +143,8 @@ extern "C" {
         double noneq_ratio_arg;
                                         /**< @brief  [<0] Ratio of salt concentration, c(L)/c(0) for non-equilibrium electrostatic calculations (default='1' = equilibrium calculation).  */
 
+        double noneq_curr_arg;
+                                        /**< @brief  [<0] Current for constant current calculation, CF solver (default='0' = equilibrium calculation).  */
 
         char *accepted_load_inbalance_orig;
                                         /**< @brief  [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers. original value given at command line.  */
@@ -150,12 +152,16 @@ extern "C" {
         char *noneq_ratio_orig;
                                         /**< @brief  [<0] Ratio of salt concentration, c(L)/c(0) for non-equilibrium electrostatic calculations (default='1' = equilibrium calculation).  */
 
-        const char *accepted_load_inbalance_help;
+        char *noneq_curr_orig;
+
+	const char *accepted_load_inbalance_help;
                                             /**< @brief  [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers. help description.  */
 
         const char *noneq_ratio_help;
                                         /**< @brief  [<0] Ratio of salt concentration, c(L)/c(0) for non-equilibrium electrostatic calculations (default='1' = equilibrium calculation).  */
  
+        const char *noneq_curr_help;
+
         int autotuner_restart_period_arg;
                                         /**< @brief Period in which the autotuner is restarted. (default='10000').  */
         char *autotuner_restart_period_orig;
@@ -254,6 +260,8 @@ extern "C" {
 
         unsigned int noneq_ratio_given;
                                                 /**< @brief Whether noneq-ratio was given.  */
+        unsigned int noneq_curr_given;
+                                                /**< @brief Whether noneq-curr was given.  */
 
         unsigned int autotuner_restart_period_given;
                                                 /**< @brief Whether autotuner-restart-period was given.  */

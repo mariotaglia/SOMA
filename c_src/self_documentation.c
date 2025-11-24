@@ -129,6 +129,8 @@ int generate_current_documentation_string(FILE * ftmp, struct Phase *p)
        fprintf(ftmp, "\tUsing PB efield solver (EN as initial guess)\n");
     if(p->args.efieldsolver_arg == efieldsolver_arg_NP)
        fprintf(ftmp, "\tUsing PB efield solver (homogeneous as initial guess)\n");
+    if(p->args.efieldsolver_arg == efieldsolver_arg_CJ)
+       fprintf(ftmp, "\tUsing CJ efield solver \n");
     if (p->args.efieldsolver_arg == efieldsolver_arg_EN)	
 	fprintf(ftmp, "\tUsing EN efield solver\n");
     if (p->args.efieldsolver_arg == efieldsolver_arg_NO)	

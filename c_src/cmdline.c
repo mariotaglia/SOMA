@@ -67,12 +67,8 @@ const char *som_args_detailed_help[] = {
     "      --n_random_q=N            Option to determine the number of random wave\n                                  vectors used for the calculation of structure\n                                  factor.  (default=`32')",
     "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
     "      --purpose=description     Describe the purpose of the simulation run.\n                                  Enables automatic self documentation. only\n                                  ASCII",
-    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				NP (Generalized Nernst-Plack approach to solve for ion currents) \n				NO (none), (default = NE) \n",
-    "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (only important for NP solver). Default = 1 (equilibrium)   \n",
-
-
-    0
-};
+    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				NP (Generalized Nernst-Plack approach to solve for ion currents) \n				CJ (Constant J current calculation, use only for 1D) \n		 		NO (none), (default = NE) \n",
+    "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (only important for NP solver). Default = 1 (equilibrium)   \n","  --noneq-curr=curr             current (only important for CJ solver). Default = 0 (equilibrium)" };
 
 static void init_help_array(void)
 {
@@ -109,11 +105,12 @@ static void init_help_array(void)
     som_args_help[30] = som_args_detailed_help[31];
     som_args_help[31] = som_args_detailed_help[32];
     som_args_help[32] = som_args_detailed_help[33];
-    som_args_help[33] = 0;
+    som_args_help[33] = som_args_detailed_help[34];
+    som_args_help[34] = 0;
 
 }
 
-const char *som_args_help[34];
+const char *som_args_help[35];
 
 typedef enum { ARG_NO, ARG_FLAG, ARG_STRING, ARG_INT, ARG_DOUBLE, ARG_ENUM
 } cmdline_parser_arg_type;
@@ -132,7 +129,7 @@ static int cmdline_parser_required2(struct som_args *args_info, const char *prog
 const char *cmdline_parser_pseudo_random_number_generator_values[] = { "PCG32", "MT", "TT800", 0 };     /*< Possible values for pseudo-random-number-generator. */
 const char *cmdline_parser_move_type_values[] = { "TRIAL", "SMART", 0 };        /*< Possible values for move-type. */
 const char *cmdline_parser_iteration_alg_values[] = { "POLYMER", "SET", 0 };    /*< Possible values for iteration-alg. */
-const char *cmdline_parser_efieldsolver_values[] = { "EN", "PB", "NP", "NO", 0 };    /*< Possible values for efieldsolver. */
+const char *cmdline_parser_efieldsolver_values[] = { "EN", "PB", "NP", "CJ", "NO", 0 };    /*< Possible values for efieldsolver. */
 const char *cmdline_parser_set_generation_algorithm_values[] = { "SIMPLE", "FIXED-N-SETS", 0 }; /*< Possible values for set-generation-algorithm. */
 
 static char *gengetopt_strdup(const char *s);
@@ -173,6 +170,7 @@ void clear_given(struct som_args *args_info)
     args_info->final_file_given = 0;
     args_info->purpose_given = 0;
     args_info->noneq_ratio_given = 0;
+    args_info->noneq_curr_given = 0;
 }
 
 static
@@ -232,7 +230,8 @@ void clear_args(struct som_args *args_info)
     args_info->purpose_arg = NULL;
     args_info->purpose_orig = NULL;
     args_info->noneq_ratio_arg = 1.;
-    args_info->noneq_ratio_orig = NULL;
+    args_info->noneq_curr_arg = 0.;
+    args_info->noneq_curr_orig = NULL;
  
 }
 
@@ -274,6 +273,7 @@ void init_args_info(struct som_args *args_info)
     args_info->purpose_help = som_args_detailed_help[31];
     args_info->efieldsolver_help = som_args_detailed_help[32];
     args_info->noneq_ratio_help = som_args_detailed_help[33];
+    args_info->noneq_curr_help = som_args_detailed_help[34];
 
 }
 
@@ -397,6 +397,7 @@ static void cmdline_parser_release(struct som_args *args_info)
     free_string_field(&(args_info->purpose_orig));
     free_string_field(&(args_info->efieldsolver_orig));
     free_string_field(&(args_info->noneq_ratio_orig));
+    free_string_field(&(args_info->noneq_curr_orig));
 
     clear_given(args_info);
 }
@@ -533,6 +534,8 @@ int cmdline_parser_dump(FILE * outfile, struct som_args *args_info)
         write_into_file(outfile, "purpose", args_info->purpose_orig, 0);
     if (args_info->noneq_ratio_given)
         write_into_file(outfile, "noneq-ratio", args_info->noneq_ratio_orig, 0);
+     if (args_info->noneq_curr_given)
+        write_into_file(outfile, "noneq-curr", args_info->noneq_curr_orig, 0);
  
     i = 1;
     return i;
@@ -1122,6 +1125,20 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                                            &(args_info->noneq_ratio_given),
                                            &(local_args_info.noneq_ratio_given), optarg, 0, "1", ARG_DOUBLE,
                                            check_ambiguity, override, 0, 0, "noneq-ratio", '-',
+                                           additional_error))
+                                goto failure;
+
+                        }
+
+                    /*  Constant current for non-equilibrium calculations CJ  */
+                    else if (strcmp(long_options[option_index].name, "noneq-curr") == 0)
+                        {
+
+                            if (update_arg((void *)&(args_info->noneq_curr_arg),
+                                           &(args_info->noneq_curr_orig),
+                                           &(args_info->noneq_curr_given),
+                                           &(local_args_info.noneq_curr_given), optarg, 0, "0", ARG_DOUBLE,
+                                           check_ambiguity, override, 0, 0, "noneq-curr", '-',
                                            additional_error))
                                 goto failure;
 
