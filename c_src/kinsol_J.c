@@ -465,6 +465,20 @@ sumions = 0.0;
 	      eps[cell] = cions[cell]/p->npos_field[cell];
     }
 
+// Save non-eq ion densities
+#pragma omp parallel for  
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+           p->nneg_field[cell] = cions[cell];
+           p->npos_field[cell] = cions[cell];
+    }
+
+
+/* Now calculate electric field */
+#pragma omp parallel for  
+    for (cell = 0 ; cell < p->n_cells ; cell++) {
+           p->electric_field[cell] = log(p->nneg_field[cell])-log(p->exp_born_neg[cell]); 
+    }
+
 
 // Calculation of ion currents at electrode
 
@@ -480,8 +494,8 @@ currentL = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 
-	    current0 -= (p->npos_field[cell])*(eps[cell]-eps[cellm]);
-	    current0 -= (p->npos_field[cellm])*(eps[cell]-eps[cellm]);
+	    current0 -= (cions[cell]/eps[cell])*(eps[cell]-eps[cellm]);
+	    current0 -= (cions[cellm]/eps[cellm])*(eps[cell]-eps[cellm]);
 			    
 
 	    iz = p->nz-2; 	  
@@ -489,10 +503,9 @@ currentL = 0.0;
             iz = p->nz-1; 	  
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
-	    currentL -= (p->npos_field[cellp])*(eps[cellp]-eps[cell]);
-	    currentL -= (p->npos_field[cell])*(eps[cellp]-eps[cell]);
+	    currentL -= (cions[cellp]/eps[cellp])*(eps[cellp]-eps[cell]);
+	    currentL -= (cions[cell]/eps[cell])*(eps[cellp]-eps[cell]);
        
- 
           }
    }
 
@@ -500,20 +513,6 @@ currentL = 0.0;
   currentL = currentL * p->deltax*p->deltay/p->deltaz;
 
   p->current=current0; // store to save in ana file
-
-// Save non-eq ion densities
-#pragma omp parallel for  
-    for (cell = 0 ; cell < p->n_cells ; cell++) {
-           p->nneg_field[cell] = cions[cell];
-           p->npos_field[cell] = cions[cell];
-    }
-
-
-/* Now calculate electric field */
-#pragma omp parallel for  
-    for (cell = 0 ; cell < p->n_cells ; cell++) {
-           p->electric_field[cell] = log(p->nneg_field[cell])-log(p->exp_born_neg[cell]); 
-    }
 
 
 // print    
