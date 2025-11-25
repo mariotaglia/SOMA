@@ -470,7 +470,7 @@ sumions = 0.0;
 
 
 // Calculation of ion currents at electrode
-
+/*
 current0 = 0.0;
 currentL = 0.0;
 
@@ -507,6 +507,7 @@ currentL = 0.0;
   currentL = currentL * sca_ions*p->deltax*p->deltay/p->deltaz/2.0;
 
   p->current=current0; // store to save in ana file
+*/
 
 // Save non-eq ion densities
 #pragma omp parallel for  
@@ -521,8 +522,40 @@ currentL = 0.0;
            p->electric_field[cell] = log(p->nneg_field[cell])-log(p->exp_born_neg[cell]); 
     }
 
+// Calculation of ion currents at electrode
 
-// print    
+current0 = 0.0;
+currentL = 0.0;
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+          for (iy = 0 ; iy < p->ny ; iy++) {
+
+            iz = 0;
+            cellm = cell_coordinate_to_index(p, ix, iy, iz);
+            iz = 1;
+            cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+
+            current0 -= (cions[cell]/eps[cell])*(eps[cell]-eps[cellm]);
+            current0 -= (cions[cellm]/eps[cellm])*(eps[cell]-eps[cellm]);
+
+
+            iz = p->nz-2;
+            cell = cell_coordinate_to_index(p, ix, iy, iz);
+            iz = p->nz-1;
+            cellp = cell_coordinate_to_index(p, ix, iy, iz);
+
+            currentL -= (cions[cellp]/eps[cellp])*(eps[cellp]-eps[cell]);
+            currentL -= (cions[cell]/eps[cell])*(eps[cellp]-eps[cell]);
+
+          }
+   }
+
+  current0 = current0 * p->deltax*p->deltay/p->deltaz;
+  currentL = currentL * p->deltax*p->deltay/p->deltaz;
+
+  p->current=current0; // store to save in ana file
+
 //printf("Check normalization: %f %f \n", sumions, p->Nposions);
         printf("Converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e, I(L) %.3e, sumions %f \n", flag, iters, fnorm, fnormtol, current0, currentL, sumions);
     
