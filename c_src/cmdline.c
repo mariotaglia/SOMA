@@ -70,6 +70,7 @@ const char *som_args_detailed_help[] = {
     "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				NP (Generalized Nernst-Plack approach to solve for ion currents) \n				CJ (Constant J current calculation, use only for 1D) \n		 		NO (none), (default = NE) \n",
     "  --noneq-ratio=ratio           Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0) (only important for NP solver). Default = 1 (equilibrium)   \n","  --noneq-curr=curr             current (only important for CJ solver). Default = 0 (equilibrium)" };
 
+
 static void init_help_array(void)
 {
     som_args_help[0] = som_args_detailed_help[0];
@@ -107,7 +108,6 @@ static void init_help_array(void)
     som_args_help[32] = som_args_detailed_help[33];
     som_args_help[33] = som_args_detailed_help[34];
     som_args_help[34] = 0;
-
 }
 
 const char *som_args_help[35];
@@ -230,6 +230,7 @@ void clear_args(struct som_args *args_info)
     args_info->purpose_arg = NULL;
     args_info->purpose_orig = NULL;
     args_info->noneq_ratio_arg = 1.;
+    args_info->noneq_ratio_orig = NULL;
     args_info->noneq_curr_arg = 0.;
     args_info->noneq_curr_orig = NULL;
  
@@ -877,6 +878,7 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                 {"final-file", 1, NULL, 'f'},
                 {"purpose", 1, NULL, 0},
                 {"noneq-ratio", 1, NULL, 0},
+                {"noneq-curr", 1, NULL, 0},
                 {0, 0, 0, 0}
             };
 
@@ -1120,6 +1122,7 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                     else if (strcmp(long_options[option_index].name, "noneq-ratio") == 0)
                         {
 
+                            printf("HOLA ratio \n");
                             if (update_arg((void *)&(args_info->noneq_ratio_arg),
                                            &(args_info->noneq_ratio_orig),
                                            &(args_info->noneq_ratio_given),
@@ -1133,11 +1136,10 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                     /*  Constant current for non-equilibrium calculations CJ  */
                     else if (strcmp(long_options[option_index].name, "noneq-curr") == 0)
                         {
-
                             if (update_arg((void *)&(args_info->noneq_curr_arg),
                                            &(args_info->noneq_curr_orig),
                                            &(args_info->noneq_curr_given),
-                                           &(local_args_info.noneq_curr_given), optarg, 0, "0", ARG_DOUBLE,
+                                           &(local_args_info.noneq_curr_given), optarg, 0, "1", ARG_DOUBLE,
                                            check_ambiguity, override, 0, 0, "noneq-curr", '-',
                                            additional_error))
                                 goto failure;

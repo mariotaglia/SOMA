@@ -81,6 +81,12 @@ while (iterror > maxiterror) {
     }
 */
 
+/*
+    for (unsigned int i = 0 ; i < p->n_cells ; i++) {
+    printf("i + - e %d %.3e %.3e %.3e \n ", i, p->npos_field[i], p->nneg_field[i],  p->electric_field[i]); 
+    }
+    exit(0);
+*/
 
 
   return(0);

@@ -8,6 +8,7 @@ struct Phase;
 
 int call_PB(struct Phase *const p);
 int call_J(struct Phase *const p);
+int call_CJ(struct Phase *const p);
 //! Calls kinsol
 
 int call_EN(const struct Phase *const p);

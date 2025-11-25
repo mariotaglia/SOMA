@@ -41,7 +41,7 @@ extern "C" {
     };
     enum enum_move_type { move_type__NULL = -1, move_type_arg_TRIAL = 0, move_type_arg_SMART };
     enum enum_iteration_alg { iteration_alg__NULL = -1, iteration_alg_arg_POLYMER = 0, iteration_alg_arg_SET };
-    enum enum_efieldsolver {  efieldsolver_arg_EN = 0, efieldsolver_arg_PB = 1,efieldsolver_arg_NP = 2, efieldsolver_arg_NO = 3, efieldsolver_arg_CJ = 4};
+    enum enum_efieldsolver {  efieldsolver_arg_EN = 0, efieldsolver_arg_PB = 1,efieldsolver_arg_NP = 2, efieldsolver_arg_NO = 4, efieldsolver_arg_CJ = 3};
     enum enum_set_generation_algorithm { set_generation_algorithm__NULL = -1, set_generation_algorithm_arg_SIMPLE =
             0, set_generation_algorithm_arg_FIXEDMINUS_NMINUS_SETS
     };

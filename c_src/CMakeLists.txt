@@ -38,6 +38,7 @@ set(soma_source
   kinsol_J.c
   donnan.c
   helper_electro.c
+  constantJ.c
   )
 
 configure_file(soma_config.h.in soma_config.h)
@@ -76,6 +77,7 @@ set(soma_header
   kinsol_soma.h
   donnan.h
   helper_electro.h
+  constantJ.h
   )
 
 # ------------------------------------------------------------------------------
