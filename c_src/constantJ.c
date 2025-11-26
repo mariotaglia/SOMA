@@ -43,7 +43,7 @@ unsigned int i;
 
 // Calc gradient of Born_S 
     for (unsigned int i = 0 ; i < p->n_cells-1 ; i++) {
-      diffBs[i] = p->born_Sc[i+1] - p->born_Sc[i];
+      diffBs[i] = (p->born_Sc[i+1] - p->born_Sc[i])/p->deltaz;
      }
  
 // initial guess
@@ -63,7 +63,7 @@ while (iterror > maxiterror) {
 
 	    Aeq = 1.0;
 	    Beq = p->rhoF[i+1];
-	    Ceq = -exp(invdz*Jpos/cion[i] - diffBs[i])*(cion[i]*(cion[i]+p->rhoF[i]));
+	    Ceq = -exp(p->deltaz*Jpos/cion[i] - p->deltaz*diffBs[i])*(cion[i]*(cion[i]+p->rhoF[i]));
 
 	    /*
 	    printf("invdz gradBs %.3e %.3e \n", invdz, gradBs[i]);
@@ -86,6 +86,7 @@ while (iterror > maxiterror) {
     iterror = fabs(p->Nposions-sumions)/p->Nposions;
     cion[0] = cion[0]*p->Nposions/sumions; // decrease or increase cion to achieve sumions = p->Nposions
 
+ 
 //    printf("cion, sumions, iterror  %.3e %.3e %.3e \n", cion[0], sumions, iterror);
    
 }	
@@ -94,6 +95,14 @@ while (iterror > maxiterror) {
 // need to check if solution is equal to equilibrium for J = 0
 
 //exit(0);
+
+/* Check current */
+    int cellp = 1;
+    int cell = 0;
+
+    soma_scalar_t curr0 = (log(cion[cellp]*(cion[cellp]+p->rhoF[cellp])/cion[cell]/(cion[cell]+p->rhoF[cell]))+p->deltaz*diffBs[cell])*cion[cell]/p->deltaz*p->deltay*p->deltax;
+    printf("current %.3e \n", curr0);
+
 
 #pragma acc data copyin(cions)
 #pragma acc parallel loop present(p[:1])
