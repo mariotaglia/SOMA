@@ -119,6 +119,13 @@ int call_J(struct Phase *const p)
             return -1;
         }
 
+  soma_scalar_t *diffBs = (soma_scalar_t *) malloc(p->nz * sizeof(soma_scalar_t)); // gradient bornS
+    if (diffBs == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
 
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
@@ -481,6 +488,57 @@ sumions = 0.0;
            p->electric_field[cell] = log(p->nneg_field[cell])-log(p->exp_born_neg[cell]); 
     }
 
+
+
+// Calculation of ion currents at electrode
+
+// Calc gradient of Born_S 
+    for (unsigned int i = 0 ; i < p->n_cells-1 ; i++) {
+      diffBs[i] = (p->born_Sc[i+1] - p->born_Sc[i])/p->deltaz;
+     }
+ 
+current0 = 0.0;
+currentL = 0.0;
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+	  for (iy = 0 ; iy < p->ny ; iy++) {
+
+            iz = 0; 	  
+	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
+            iz = 1; 	  
+	    cell = cell_coordinate_to_index(p, ix, iy, iz);
+
+
+            current0 -= (log(cions[cell]*(cions[cell]+p->rhoF[cell])/cions[cellm]/(cions[cellm]+p->rhoF[cellm]))+p->deltaz*diffBs[cellm])*cions[cellm]/p->deltaz*p->deltay*p->deltax;
+/*	    current0 -= (cions[cell]/eps[cell])*(eps[cell]-eps[cellm]);
+	    current0 -= (cions[cellm]/eps[cellm])*(eps[cell]-eps[cellm]);
+			    
+	    current0 -= (cions[cell]/beta[cell])*(beta[cell]-beta[cellm]);
+	    current0 -= (cions[cellm]/beta[cellm])*(beta[cell]-beta[cellm]);
+*/
+
+	    iz = p->nz-2; 	  
+	    cell = cell_coordinate_to_index(p, ix, iy, iz);
+            iz = p->nz-1; 	  
+	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
+
+	    currentL -= (cions[cellp]/eps[cellp])*(eps[cellp]-eps[cell]);
+	    currentL -= (cions[cell]/eps[cell])*(eps[cellp]-eps[cell]);
+       
+	    currentL -= (cions[cellp]/beta[cellp])*(beta[cellp]-beta[cell]);
+	    currentL -= (cions[cell])/beta[cell]*(beta[cellp]-beta[cell]);
+ 
+          }
+   }
+
+//  current0 = current0*p->deltax*p->deltay/p->deltaz/2.0;
+  currentL = currentL*p->deltax*p->deltay/p->deltaz/2.0;
+
+  p->current=current0; // store to save in ana file
+
+
+
+/*
 // Calculation of ion currents at electrode
 
 current0 = 0.0;
@@ -519,7 +577,7 @@ currentL = 0.0;
   currentL = currentL*p->deltax*p->deltay/p->deltaz/2.0;
 
   p->current=current0; // store to save in ana file
-
+*/
 //printf("Check normalization: %f %f \n", sumions, p->Nposions);
         printf("Converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e, I(L) %.3e, sumions %f \n", flag, iters, fnorm, fnormtol, current0, currentL, sumions);
     
@@ -536,6 +594,7 @@ currentL = 0.0;
 
   SUNContext_Free(&sunctx);
 
+  free(diffBs);
   free(cions);
   free(eps);
   free(beta);

@@ -35,7 +35,7 @@ unsigned int i;
 
     const soma_scalar_t invdz = 1.0/p->deltaz ;
     const soma_scalar_t  vall = p->Lx*p->Ly*p->Lz ;
-    const soma_scalar_t Jpos = p->args.noneq_curr_arg/p->deltax/p->deltay; // J pos is the flux of cations, units Re^-4. 
+    const soma_scalar_t Jpos = -p->args.noneq_curr_arg/p->deltax/p->deltay; // J pos is the flux of cations, units Re^-4. 
 						       // The input is the total current of cations, units Re^-2 
 
 // Calc Born_S -> puts it into p->born_Sc
