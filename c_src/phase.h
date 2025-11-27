@@ -106,7 +106,7 @@ typedef struct Phase {
     soma_scalar_t *temp_prec_field;   /*!< \brief a temporal storage for intermediate field calculations, used to save the diagonal preconditioner  */
 
     soma_scalar_t invblav_zero;    /*!> \brief stores the inverse of the average Bjerrum length */
-    soma_scalar_t current;    /*!> \brief stores total current */
+    soma_scalar_t noneq;    /*!> \brief stores total current or c ratio */
     soma_scalar_t *invblav;       /*!> \brief stores the inverse of the average Bjerrum length */
 
     soma_scalar_t *exp_born_pol;      /*!> \brief stores exp(-u_B), where u_B is the Born energy  */

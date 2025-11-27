@@ -32,7 +32,7 @@ typedef struct Ana_Info {
     unsigned int delta_mc_b_anisotropy; //!< \#mc_sweeps between the ana of b_aniostropy
     unsigned int delta_mc_density_field;        //!< \#mc_sweeps between the ana of density fields
     unsigned int delta_mc_acc_ratio;    //!< \#mc_sweeps between the ana of acc ratios
-    unsigned int delta_mc_total_current;    //!< \#mc_sweeps between the ana of total current
+    unsigned int delta_mc_noneq;    //!< \#mc_sweeps between the ana of total current or ratio
     unsigned int delta_mc_MSD;  //!< \#mc_sweeps between the ana of MSD
     unsigned int delta_mc_dump; //!< \#mc_sweeps between full dumps of the coords.
     unsigned int delta_mc_density_var;  //!< \#mc_sweeps between the ana of density variance

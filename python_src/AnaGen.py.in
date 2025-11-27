@@ -153,9 +153,9 @@ class AnalysisFile(ConfGen.SomaXML):
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,ConfGen.NUMBER_SOMA_BOND_TYPES), 0)
             self.ana_dict["bonded_energy"] = copy.deepcopy(element)
 
-            #total_current
+            #noneq
             element = AnaElement( soma_type.get_soma_scalar_type(), (0,1), 0)
-            self.ana_dict["total_current"] = copy.deepcopy(element)
+            self.ana_dict["noneq"] = copy.deepcopy(element)
 
 
             #chem_potential

@@ -99,8 +99,8 @@ int call_J(struct Phase *const p)
   soma_scalar_t current0, currentL ;
 
 
-  soma_scalar_t *cions = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t)); 
-    if (cions == NULL)
+  soma_scalar_t *cion = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t)); 
+    if (cion == NULL)
         {
             fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
             return -1;
@@ -431,7 +431,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 			  cell = cell_coordinate_to_index(p, ix, iy, iz);
-	                  cions[cell] = NVITH(cc,i)*p->npos_field[cell]*NVITH(cc,NEQ-1); // cions normalized 
+	                  cion[cell] = NVITH(cc,i)*p->npos_field[cell]*NVITH(cc,NEQ-1); // cion normalized 
 		   }
            }
    }
@@ -443,7 +443,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
                cell = cell_coordinate_to_index(p, ix, iy, iz);
-	       cions[cell] = alfa*p->npos_field[cell]*NVITH(cc,NEQ-1);
+	       cion[cell] = alfa*p->npos_field[cell]*NVITH(cc,NEQ-1);
            }
    }
 
@@ -452,7 +452,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
   for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
                cell = cell_coordinate_to_index(p, ix, iy, iz);
-	       cions[cell] = p->npos_field[cell]*NVITH(cc,NEQ-1); 
+	       cion[cell] = p->npos_field[cell]*NVITH(cc,NEQ-1); 
            }
    }
 
@@ -463,7 +463,7 @@ soma_scalar_t sca_ions = NVITH(cc,NEQ-1);
 sumions = 0.0;
 #pragma omp parallel for reduction(+:sumions) 
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-         sumions += cions[cell]*p->vcell; 
+         sumions += cion[cell]*p->vcell; 
     }
 
 //printf("Check normalization: %f %f \n", sumions, p->Nposions);
@@ -471,15 +471,15 @@ sumions = 0.0;
 
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-              eps[cell] = cions[cell]/p->npos_field[cell];
-              beta[cell] = (cions[cell]+p->rhoF[cell])/(p->npos_field[cell] + p->rhoF[cell]);
+              eps[cell] = cion[cell]/p->npos_field[cell];
+              beta[cell] = eps[cell]*(cion[cell]+p->rhoF[cell])/(p->npos_field[cell] + p->rhoF[cell]);
     }
 
 // Save non-eq ion densities
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
-           p->nneg_field[cell] = cions[cell]+p->rhoF[cell];
-           p->npos_field[cell] = cions[cell];
+           p->nneg_field[cell] = cion[cell]+p->rhoF[cell];
+           p->npos_field[cell] = cion[cell];
     }
 
 /* Now calculate electric field */
@@ -509,37 +509,22 @@ currentL = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 
-            current0 -= (log(cions[cell]*(cions[cell]+p->rhoF[cell])/cions[cellm]/(cions[cellm]+p->rhoF[cellm]))+p->deltaz*diffBs[cellm])*cions[cellm]/p->deltaz*p->deltay*p->deltax;
-/*	    current0 -= (cions[cell]/eps[cell])*(eps[cell]-eps[cellm]);
-	    current0 -= (cions[cellm]/eps[cellm])*(eps[cell]-eps[cellm]);
-			    
-	    current0 -= (cions[cell]/beta[cell])*(beta[cell]-beta[cellm]);
-	    current0 -= (cions[cellm]/beta[cellm])*(beta[cell]-beta[cellm]);
-*/
+            current0 -= (log(cion[cell]*(cion[cell]+p->rhoF[cell])/cion[cellm]/(cion[cellm]+p->rhoF[cellm]))+p->deltaz*diffBs[cellm])*cion[cellm]/p->deltaz*p->deltay*p->deltax;
 
 	    iz = p->nz-2; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
             iz = p->nz-1; 	  
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
-	    currentL -= (cions[cellp]/eps[cellp])*(eps[cellp]-eps[cell]);
-	    currentL -= (cions[cell]/eps[cell])*(eps[cellp]-eps[cell]);
-       
-	    currentL -= (cions[cellp]/beta[cellp])*(beta[cellp]-beta[cell]);
-	    currentL -= (cions[cell])/beta[cell]*(beta[cellp]-beta[cell]);
+            currentL -= (log(cion[cellp]*(cion[cellp]+p->rhoF[cellp])/cion[cell]/(cion[cell]+p->rhoF[cell]))+p->deltaz*diffBs[cell])*cion[cell]/p->deltaz*p->deltay*p->deltax;
  
           }
    }
 
-//  current0 = current0*p->deltax*p->deltay/p->deltaz/2.0;
-  currentL = currentL*p->deltax*p->deltay/p->deltaz/2.0;
-
-  p->current=current0; // store to save in ana file
-
-
+  p->noneq=current0; // store to save in ana file
 
 /*
-// Calculation of ion currents at electrode
+// OLD Calculation of ion currents at electrode -- used with previous discretization
 
 current0 = 0.0;
 currentL = 0.0;
@@ -553,22 +538,22 @@ currentL = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 
-	    current0 -= (cions[cell]/eps[cell])*(eps[cell]-eps[cellm]);
-	    current0 -= (cions[cellm]/eps[cellm])*(eps[cell]-eps[cellm]);
+	    current0 -= (cion[cell]/eps[cell])*(eps[cell]-eps[cellm]);
+	    current0 -= (cion[cellm]/eps[cellm])*(eps[cell]-eps[cellm]);
 			    
-	    current0 -= (cions[cell]/beta[cell])*(beta[cell]-beta[cellm]);
-	    current0 -= (cions[cellm]/beta[cellm])*(beta[cell]-beta[cellm]);
+	    current0 -= (cion[cell]/beta[cell])*(beta[cell]-beta[cellm]);
+	    current0 -= (cion[cellm]/beta[cellm])*(beta[cell]-beta[cellm]);
 
 	    iz = p->nz-2; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
             iz = p->nz-1; 	  
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
-	    currentL -= (cions[cellp]/eps[cellp])*(eps[cellp]-eps[cell]);
-	    currentL -= (cions[cell]/eps[cell])*(eps[cellp]-eps[cell]);
+	    currentL -= (cion[cellp]/eps[cellp])*(eps[cellp]-eps[cell]);
+	    currentL -= (cion[cell]/eps[cell])*(eps[cellp]-eps[cell]);
        
-	    currentL -= (cions[cellp]/beta[cellp])*(beta[cellp]-beta[cell]);
-	    currentL -= (cions[cell])/beta[cell]*(beta[cellp]-beta[cell]);
+	    currentL -= (cion[cellp]/beta[cellp])*(beta[cellp]-beta[cell]);
+	    currentL -= (cion[cell])/beta[cell]*(beta[cellp]-beta[cell]);
  
           }
    }
@@ -579,8 +564,13 @@ currentL = 0.0;
   p->current=current0; // store to save in ana file
 */
 //printf("Check normalization: %f %f \n", sumions, p->Nposions);
-        printf("Converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e, I(L) %.3e, sumions %f \n", flag, iters, fnorm, fnormtol, current0, currentL, sumions);
-    
+
+
+          if(p->time%100 == 0) {
+          printf("Time %d, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e, I(L) %.3e, sumions %f \n", p->time, flag, iters, fnorm, fnormtol, current0, currentL, sumions);
+
+    }
+
 //  exit(0); // CHECK CALCULATION OF CURRENTS
 	/* Free memory */
 
@@ -595,7 +585,7 @@ currentL = 0.0;
   SUNContext_Free(&sunctx);
 
   free(diffBs);
-  free(cions);
+  free(cion);
   free(eps);
   free(beta);
 
@@ -681,7 +671,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	for (iz = 0 ; iz < p->nz ; iz++) {
               cell = cell_coordinate_to_index(p, ix, iy, iz);
  
-              beta[ix][iy][iz] = (eps[ix][iy][iz]*sca_ions + p->rhoF[cell]/c[ix][iy][iz])/(1 + p->rhoF[cell]/c[ix][iy][iz]);
+              beta[ix][iy][iz] = eps[ix][iy][iz]*sca_ions*(eps[ix][iy][iz]*sca_ions + p->rhoF[cell]/c[ix][iy][iz])/(1 + p->rhoF[cell]/c[ix][iy][iz]);
                
 	           }
            }
@@ -719,28 +709,17 @@ for (ix = 0 ; ix < p->nx ; ix++) {
      
         cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
 
+
         res[ix][iy][iz] = 0.0;
-        res[ix][iy][iz] += 0.5*((c[ixp][iy][iz]+c[ix][iy][iz])*(eps[ixp][iy][iz]-eps[ix][iy][iz]))/(p->deltax*p->deltax);
-        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]+c[ixm][iy][iz])*(eps[ix][iy][iz]-eps[ixm][iy][iz]))/(p->deltax*p->deltax);
-        res[ix][iy][iz] += 0.5*((c[ix][iyp][iz]+c[ix][iy][iz])*(eps[ix][iyp][iz]-eps[ix][iy][iz]))/(p->deltay*p->deltay);
-        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]+c[ix][iym][iz])*(eps[ix][iy][iz]-eps[ix][iym][iz]))/(p->deltay*p->deltay);
-        res[ix][iy][iz] += 0.5*((c[ix][iy][izp]+c[ix][iy][iz])*(eps[ix][iy][izp]-eps[ix][iy][iz]))/(p->deltaz*p->deltaz);
-        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]+c[ix][iy][izm])*(eps[ix][iy][iz]-eps[ix][iy][izm]))/(p->deltaz*p->deltaz);
+        res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ixp][iy][iz]/beta[ix][iy][iz]))/(p->deltax*p->deltax);
+        res[ix][iy][iz] += (-eps[ixm][iy][iz]*c[ixm][iy][iz]*log(beta[ix][iy][iz]/beta[ixm][iy][iz]))/(p->deltax*p->deltax);
 
-        res[ix][iy][iz] += 0.5*((c[ixp][iy][iz]*eps[ixp][iy][iz]/beta[ixp][iy][iz]+c[ix][iy][iz]*eps[ix][iy][iz]/beta[ix][iy][iz])
-			*(beta[ixp][iy][iz]-beta[ix][iy][iz]))/(p->deltax*p->deltax);
-        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]*eps[ix][iy][iz]/beta[ix][iy][iz]+c[ixm][iy][iz]*eps[ixm][iy][iz]/beta[ixm][iy][iz])
-			*(beta[ix][iy][iz]-beta[ixm][iy][iz]))/(p->deltax*p->deltax);
+        res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iyp][iz]/beta[ix][iy][iz]))/(p->deltay*p->deltay);
+        res[ix][iy][iz] += (-eps[ix][iym][iz]*c[ix][iym][iz]*log(beta[ix][iy][iz]/beta[ix][iym][iz]))/(p->deltay*p->deltay);
 
-        res[ix][iy][iz] += 0.5*((c[ix][iyp][iz]*eps[ix][iyp][iz]/beta[ix][iyp][iz]+c[ix][iy][iz]*eps[ix][iy][iz]/beta[ix][iy][iz])
-			*(beta[ix][iyp][iz]-beta[ix][iy][iz]))/(p->deltay*p->deltay);
-        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]*eps[ix][iy][iz]/beta[ix][iy][iz]+c[ix][iym][iz]*eps[ix][iym][iz]/beta[ix][iym][iz])
-			*(beta[ix][iy][iz]-beta[ix][iym][iz]))/(p->deltay*p->deltay);
+        res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iy][izp]/beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
+        res[ix][iy][iz] += (-eps[ix][iy][izm]*c[ix][iy][izm]*log(beta[ix][iy][iz]/beta[ix][iy][izm]))/(p->deltaz*p->deltaz);
 
-        res[ix][iy][iz] += 0.5*((c[ix][iy][izp]*eps[ix][iy][izp]/beta[ix][iy][izp]+c[ix][iy][iz]*eps[ix][iy][iz]/beta[ix][iy][iz])
-			*(beta[ix][iy][izp]-beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
-        res[ix][iy][iz] += 0.5*(-(c[ix][iy][iz]*eps[ix][iy][iz]/beta[ix][iy][iz]+c[ix][iy][izm]*eps[ix][iy][izm]/beta[ix][iy][izm])
-			*(beta[ix][iy][iz]-beta[ix][iy][izm]))/(p->deltaz*p->deltaz);
         }
     }
   }

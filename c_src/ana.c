@@ -1342,11 +1342,11 @@ int analytics(struct Phase *const p)
         }
 
     // Total current
-    if (p->ana_info.delta_mc_total_current != 0 && p->time % p->ana_info.delta_mc_total_current == 0)
+    if (p->ana_info.delta_mc_noneq != 0 && p->time % p->ana_info.delta_mc_noneq == 0)
         {
-            soma_scalar_t total_current = p->current;
+            soma_scalar_t noneq = p->noneq;
             if (p->info_MPI.sim_rank == 0)
-                extent_ana_by_field(&total_current, 1, "/total_current", p->ana_info.file_id);
+                extent_ana_by_field(&noneq, 1, "/noneq", p->ana_info.file_id);
             written = true;
         }
 
