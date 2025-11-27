@@ -51,13 +51,13 @@ int calc_ions(struct Phase *const p)
  
   assert(fabs(netcharge) < 1.0e-6);
 
-        if ((p->args.efieldsolver_arg != efieldsolver_arg_CJ)&&(p->nx != 1)) {
+        if ((p->args.efieldsolver_arg == efieldsolver_arg_CJ)&&(p->nx != 1)) {
         fprintf(stderr, "CJ solver requires nx=1 (1D calc) \n");
 	exit(-1);
         return -1; }
 
 
-        if ((p->args.efieldsolver_arg != efieldsolver_arg_CJ)&&(p->ny != 1)) {
+        if ((p->args.efieldsolver_arg == efieldsolver_arg_CJ)&&(p->ny != 1)) {
         fprintf(stderr, "CJ solver requires ny=1 (1D calc) \n");
 	exit(-1);
         return -1; }
