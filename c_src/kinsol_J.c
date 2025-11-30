@@ -623,9 +623,11 @@ for (ix = 0 ; ix < p->nx ; ix++) {
            }
    }
 
-  i = NEQ-1;
-  sca_ions=NVITH(cc,i); // scaling constant for ion density
+  soma_scalar_t sca_sca = 1.0;
 
+  i = NEQ-1;
+  sca_ions=NVITH(cc,i)*sca_sca ; // scaling constant for ion density
+//  printf("func: %f \n ", sca_ions); 
 // fill borders
   iz = 0;   
 #pragma omp parallel for  
@@ -734,10 +736,9 @@ soma_scalar_t sumions = 0.0;
    sumions = sumions * p->vcell;
 
    i = NEQ-1;
-   NVITH(fval,i) = (sumions-p->Nposions)/p->Nposions; // normalize total ion number
+   NVITH(fval,i) = -(sumions-p->Nposions)/p->Nposions; // normalize total ion number
 
 
-// DEBUG print norm 
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
@@ -748,7 +749,7 @@ soma_scalar_t norma = 0;
                 }
          }
 
-//printf("func: iter, norma: %d %f \n ", iters, norma); 
+printf("func: iter, norma: %d %f %f %f \n ", iters, norma, -(sumions-p->Nposions)/p->Nposions, sca_ions); 
 /*      
 
   for (cell = 0 ; cell < p->n_cells ; cell++) {
