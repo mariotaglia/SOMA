@@ -756,7 +756,7 @@ soma_scalar_t norma = 0;
                 }
          }
 
-printf("func: iter, norma: %d %f %f %f \n ", iters, norma, -(sumions-p->Nposions)/p->Nposions, sca_ions); 
+//printf("func: iter, norma: %d %f %f %f \n ", iters, norma, -(sumions-p->Nposions)/p->Nposions, sca_ions); 
 /*      
 
   for (cell = 0 ; cell < p->n_cells ; cell++) {
