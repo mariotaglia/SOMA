@@ -689,14 +689,23 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 
 
         res[ix][iy][iz] = 0.0;
-        res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ixp][iy][iz]/beta[ix][iy][iz]))/(p->deltax*p->deltax);
-        res[ix][iy][iz] += (-eps[ixm][iy][iz]*c[ixm][iy][iz]*log(beta[ix][iy][iz]/beta[ixm][iy][iz]))/(p->deltax*p->deltax);
+        res[ix][iy][iz] += ( eps[ixp][iy][iz]*c[ixp][iy][iz]*log(beta[ixp][iy][iz]/beta[ix][iy][iz]))/(p->deltax*p->deltax*2.0);
+        res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ixp][iy][iz]/beta[ix][iy][iz]))/(p->deltax*p->deltax*2.0);
 
-        res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iyp][iz]/beta[ix][iy][iz]))/(p->deltay*p->deltay);
-        res[ix][iy][iz] += (-eps[ix][iym][iz]*c[ix][iym][iz]*log(beta[ix][iy][iz]/beta[ix][iym][iz]))/(p->deltay*p->deltay);
+	res[ix][iy][iz] += (-eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iy][iz]/beta[ixm][iy][iz]))/(p->deltax*p->deltax*2.0);
+        res[ix][iy][iz] += (-eps[ixm][iy][iz]*c[ixm][iy][iz]*log(beta[ix][iy][iz]/beta[ixm][iy][iz]))/(p->deltax*p->deltax*2.0);
 
-        res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iy][izp]/beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
-        res[ix][iy][iz] += (-eps[ix][iy][izm]*c[ix][iy][izm]*log(beta[ix][iy][iz]/beta[ix][iy][izm]))/(p->deltaz*p->deltaz);
+	res[ix][iy][iz] += ( eps[ix][iyp][iz]*c[ix][iyp][iz]*log(beta[ix][iyp][iz]/beta[ix][iy][iz]))/(p->deltay*p->deltay*2.0);
+	res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iyp][iz]/beta[ix][iy][iz]))/(p->deltay*p->deltay*2.0);
+
+	res[ix][iy][iz] += (-eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iy][iz]/beta[ix][iym][iz]))/(p->deltay*p->deltay*2.0);
+	res[ix][iy][iz] += (-eps[ix][iym][iz]*c[ix][iym][iz]*log(beta[ix][iy][iz]/beta[ix][iym][iz]))/(p->deltay*p->deltay*2.0);
+
+	res[ix][iy][iz] += ( eps[ix][iy][izp]*c[ix][iy][izp]*log(beta[ix][iy][izp]/beta[ix][iy][iz]))/(p->deltaz*p->deltaz*2.0);
+	res[ix][iy][iz] += ( eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iy][izp]/beta[ix][iy][iz]))/(p->deltaz*p->deltaz*2.0);
+
+	res[ix][iy][iz] += (-eps[ix][iy][iz]*c[ix][iy][iz]*log(beta[ix][iy][iz]/beta[ix][iy][izm]))/(p->deltaz*p->deltaz*2.0);
+	res[ix][iy][iz] += (-eps[ix][iy][izm]*c[ix][iy][izm]*log(beta[ix][iy][iz]/beta[ix][iy][izm]))/(p->deltaz*p->deltaz*2.0);
 
         }
     }
@@ -959,17 +968,33 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 
                  p->temp_prec_field[i] = 0.0;
                  
-		 p->temp_prec_field[i]  += (c[ix][iy][iz]*log(beta[ixp][iy][iz]/beta[ix][iy][iz]))/(p->deltax*p->deltax);
-		 p->temp_prec_field[i]  += (eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax);
-		 p->temp_prec_field[i] += (-eps[ixm][iy][iz]*c[ixm][iy][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax);
+	
+//x //
+        p->temp_prec_field[i] += ( eps[ixp][iy][iz]*c[ixp][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax*2.0);
+        p->temp_prec_field[i] += ( c[ix][iy][iz]*log(beta[ixp][iy][iz]/beta[ix][iy][iz]))/(p->deltax*p->deltax*2.0);
+        p->temp_prec_field[i] += ( eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax*2.0);
 
-		 p->temp_prec_field[i]  += (c[ix][iy][iz]*log(beta[ix][iyp][iz]/beta[ix][iy][iz]))/(p->deltay*p->deltay);
-		 p->temp_prec_field[i]  += (eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay);
-		 p->temp_prec_field[i] += (-eps[ix][iym][iz]*c[ix][iym][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay);
+	p->temp_prec_field[i] += (-c[ix][iy][iz]*log(beta[ix][iy][iz]/beta[ixm][iy][iz]))/(p->deltax*p->deltax*2.0);
+	p->temp_prec_field[i] += (-eps[ix][iy][iz]*c[ix][iy][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax*2.0);
+	p->temp_prec_field[i] += (-eps[ixm][iy][iz]*c[ixm][iy][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax*2.0);
 
-		 p->temp_prec_field[i]  += (c[ix][iy][iz]*log(beta[ix][iy][izp]/beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
-		 p->temp_prec_field[i]  += (eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
-		 p->temp_prec_field[i] += (-eps[ix][iy][izm]*c[ix][iy][izm]*dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
+//y //
+        p->temp_prec_field[i] += ( eps[ix][iyp][iz]*c[ix][iyp][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay*2.0);
+        p->temp_prec_field[i] += ( c[ix][iy][iz]*log(beta[ix][iyp][iz]/beta[ix][iy][iz]))/(p->deltay*p->deltay*2.0);
+        p->temp_prec_field[i] += ( eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay*2.0);
+
+	p->temp_prec_field[i] += (-c[ix][iy][iz]*log(beta[ix][iy][iz]/beta[ix][iym][iz]))/(p->deltay*p->deltay*2.0);
+	p->temp_prec_field[i] += (-eps[ix][iy][iz]*c[ix][iy][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay*2.0);
+	p->temp_prec_field[i] += (-eps[ix][iym][iz]*c[ix][iym][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay*2.0);
+
+//z //
+        p->temp_prec_field[i] += ( eps[ix][iy][izp]*c[ix][iy][izp]*-dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz*2.0);
+        p->temp_prec_field[i] += ( c[ix][iy][iz]*log(beta[ix][iy][izp]/beta[ix][iy][iz]))/(p->deltaz*p->deltaz*2.0);
+        p->temp_prec_field[i] += ( eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz*2.0);
+
+	p->temp_prec_field[i] += (-c[ix][iy][iz]*log(beta[ix][iy][iz]/beta[ix][iy][izm]))/(p->deltaz*p->deltaz*2.0);
+	p->temp_prec_field[i] += (-eps[ix][iy][iz]*c[ix][iy][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz*2.0);
+	p->temp_prec_field[i] += (-eps[ix][iy][izm]*c[ix][iy][izm]*dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz*2.0);
 
 	}
       }
