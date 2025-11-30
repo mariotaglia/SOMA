@@ -112,21 +112,6 @@ int call_J(struct Phase *const p)
             return -1;
         }
 
-  soma_scalar_t *beta = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t)); 
-    if (beta == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-  soma_scalar_t *diffBs = (soma_scalar_t *) malloc(p->nz * sizeof(soma_scalar_t)); // gradient bornS
-    if (diffBs == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
 #pragma acc update self(p->exp_born_neg[0:p->n_cells])
@@ -472,7 +457,6 @@ sumions = 0.0;
 #pragma omp parallel for  
     for (cell = 0 ; cell < p->n_cells ; cell++) {
               eps[cell] = cion[cell]/p->npos_field[cell];
-              beta[cell] = eps[cell]*(cion[cell]+p->rhoF[cell])/(p->npos_field[cell] + p->rhoF[cell]);
     }
 
 // Save non-eq ion densities
@@ -492,11 +476,6 @@ sumions = 0.0;
 
 // Calculation of ion currents at electrode
 
-// Calc gradient of Born_S 
-    for (unsigned int i = 0 ; i < p->n_cells-1 ; i++) {
-      diffBs[i] = (p->born_Sc[i+1] - p->born_Sc[i])/p->deltaz;
-     }
- 
 current0 = 0.0;
 currentL = 0.0;
 
@@ -509,14 +488,15 @@ currentL = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 
 
-            current0 -= (log(cion[cell]*(cion[cell]+p->rhoF[cell])/cion[cellm]/(cion[cellm]+p->rhoF[cellm]))+p->deltaz*diffBs[cellm])*cion[cellm]/p->deltaz*p->deltay*p->deltax;
+current0 -= (log(cion[cell]*(cion[cell]+p->rhoF[cell])/cion[cellm]/(cion[cellm]+p->rhoF[cellm]))+(p->born_Sc[cell]-p->born_Sc[cellm]))*cion[cellm]/p->deltaz*p->deltay*p->deltax;
+
 
 	    iz = p->nz-2; 	  
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
             iz = p->nz-1; 	  
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
 
-            currentL -= (log(cion[cellp]*(cion[cellp]+p->rhoF[cellp])/cion[cell]/(cion[cell]+p->rhoF[cell]))+p->deltaz*diffBs[cell])*cion[cell]/p->deltaz*p->deltay*p->deltax;
+currentL -= (log(cion[cellp]*(cion[cellp]+p->rhoF[cellp])/cion[cell]/(cion[cell]+p->rhoF[cell]))+(p->born_Sc[cellp]-p->born_Sc[cell]))*cion[cell]/p->deltaz*p->deltay*p->deltax;
  
           }
    }
@@ -584,10 +564,8 @@ currentL = 0.0;
 
   SUNContext_Free(&sunctx);
 
-  free(diffBs);
   free(cion);
   free(eps);
-  free(beta);
 
   return(0);
 }
