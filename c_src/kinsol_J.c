@@ -289,11 +289,11 @@ N_VConst(1.0, constraints);  // constrains c >= 0
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
-
-//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
 //      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -362,11 +362,9 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 
     }
 
-/*
     // Set preconditioner functions
     flag = KINSetPreconditioner(kmem, PrecSetupJ, PrecSolveJ);
     if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
-*/
 
     mset = 1; // maximum number of iterations before recalc diagonal preconditioner
 
@@ -863,19 +861,27 @@ static int PrecSetupJ(N_Vector cc, N_Vector cscale,
   int ixp ,ixm, iyp, iym, izp, izm, cell;
   struct Phase *const p = user_data;
   soma_scalar_t c[p->nx][p->ny][p->nz]; // concentration
-//  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
+  soma_scalar_t beta[p->nx][p->ny][p->nz]; // another auxiliary field
+  soma_scalar_t eps[p->nx][p->ny][p->nz]; // auxiliary field
+  soma_scalar_t dbetadx;
+  soma_scalar_t sca_ions; 
+
+  int NEQ; //<- Number of equations 
+  NEQ = (int) p->nx*p->ny*(p->nz-2) + 1; /* the concentration is fixed near electrodes */
+
+  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
 // c from npos_ions
 for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          c[ix][iy][iz] = p->npos_field[cell]/p->npos_field[0];
+                          c[ix][iy][iz] = p->npos_field[cell]; // c is cations, no equal to anions if there is fixed charge
 			  }
 		     }
 	 	}
 
-/*
+
 // epsilon from kinsol's input
 
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
@@ -890,6 +896,12 @@ for (ix = 0 ; ix < p->nx ; ix++) {
            }
    }
 
+  soma_scalar_t sca_sca = 1.0;
+
+  i = NEQ-1;
+  sca_ions=NVITH(cc,i)*sca_sca ; // scaling constant for ion density
+
+  
 // fill borders
   iz = 0;   
 #pragma omp parallel for  
@@ -906,19 +918,18 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	       eps[ix][iy][iz] = 1.0; 
            }
    }
-*/
-/*
+
+// calculate beta, see notes
   for (ix = 0 ; ix < p->nx ; ix++) {
-  for (iy = 0 ; iy < p->ny ; iy++) {
-  for (iz = 0 ; iz < p->nz ; iz++) {
-        printf("i %d %d %d %f %f \n", ix, iy, iz, c[ix][iy][iz], born_S[ix][iy][iz]);
-  }
-  }
-  }
-*/
-
-//soma_scalar_t slope = (1-alfa)/p->Lz;
-
+     for (iy = 0 ; iy < p->ny ; iy++) {
+	for (iz = 0 ; iz < p->nz ; iz++) {
+              cell = cell_coordinate_to_index(p, ix, iy, iz);
+ 
+              beta[ix][iy][iz] = eps[ix][iy][iz]*sca_ions*(eps[ix][iy][iz]*sca_ions + p->rhoF[cell]/c[ix][iy][iz])/(1 + p->rhoF[cell]/c[ix][iy][iz]);
+               
+	           }
+           }
+   }
 
 /// Calculate diagonal preconditioner, temp_prec_field
 
@@ -943,14 +954,41 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 
 		 i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 
+                 dbetadx = sca_ions*(eps[ix][iy][iz]*sca_ions + p->rhoF[cell]/c[ix][iy][iz])/(1 + p->rhoF[cell]/c[ix][iy][iz]);
+                 dbetadx += eps[ix][iy][iz]*sca_ions*sca_ions/(1 + p->rhoF[cell]/c[ix][iy][iz]);
+
                  p->temp_prec_field[i] = 0.0;
-       		 p->temp_prec_field[i] += -0.5*(c[ixp][iy][iz]+2*c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
-        	 p->temp_prec_field[i] += -0.5*(c[ix][iyp][iz]+2*c[ix][iy][iz]+c[ix][iym][iz])/(p->deltay*p->deltay); 
-        	 p->temp_prec_field[i] += -0.5*(c[ix][iy][izp]+2*c[ix][iy][iz]+c[ix][iy][izm])/(p->deltaz*p->deltaz); 
- 
+                 
+		 p->temp_prec_field[i]  += (c[ix][iy][iz]*log(beta[ixp][iy][iz]/beta[ix][iy][iz]))/(p->deltax*p->deltax);
+		 p->temp_prec_field[i]  += (eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax);
+		 p->temp_prec_field[i] += (-eps[ixm][iy][iz]*c[ixm][iy][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltax*p->deltax);
+
+		 p->temp_prec_field[i]  += (c[ix][iy][iz]*log(beta[ix][iyp][iz]/beta[ix][iy][iz]))/(p->deltay*p->deltay);
+		 p->temp_prec_field[i]  += (eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay);
+		 p->temp_prec_field[i] += (-eps[ix][iym][iz]*c[ix][iym][iz]*dbetadx/(beta[ix][iy][iz]))/(p->deltay*p->deltay);
+
+		 p->temp_prec_field[i]  += (c[ix][iy][iz]*log(beta[ix][iy][izp]/beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
+		 p->temp_prec_field[i]  += (eps[ix][iy][iz]*c[ix][iy][iz]*-dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
+		 p->temp_prec_field[i] += (-eps[ix][iy][izm]*c[ix][iy][izm]*dbetadx/(beta[ix][iy][iz]))/(p->deltaz*p->deltaz);
+
 	}
       }
     }
+
+// ion normalization in sca_ions
+
+soma_scalar_t sumions = 0.0;
+  for (ix = 0 ; ix < p->nx ; ix++) {
+     for (iy = 0 ; iy < p->ny ; iy++) {
+	for (iz = 0 ; iz < p->nz ; iz++) {
+        sumions += c[ix][iy][iz]*eps[ix][iy][iz];
+		     }
+	 	}
+	  }
+   sumions = sumions * p->vcell;
+
+   i = NEQ-1;
+   p->temp_prec_field[i] = -sumions/p->Nposions; // normalize total ion number
 
 return(0);
 
