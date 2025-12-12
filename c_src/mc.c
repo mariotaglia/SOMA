@@ -104,6 +104,14 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
     // New non-bonded interaction
     const soma_scalar_t energy_new = p->omega_field_unified[cellindex_new];
     const soma_scalar_t energy = energy_new - energy_old;
+
+    // New non-conservative drag force due to ion fluxes
+   
+    const soma_scalar_t drag_energy = -2.0*p->n_posfield[cellindex_new] -2.0*p->n_posfield[cellindex_old];
+    drag_energy += (p->n_posfield[cellindex_new]+p->n_posfield[cellindex_old])/2.0*
+	    (-p->born_Sc[cellindex_new]+p->born_Sc[cellindex_old])
+        
+
     return energy;
 }
 

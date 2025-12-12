@@ -131,7 +131,7 @@ def add_phi(timestep,type,timesteps,types,nxyz,arguments):
         h5file = arguments['a']
         string += "<Attribute Type=\"Scalar\" Center=\"Node\" Name=\"Phi"+str(type)+"\">\n"
         string += "<!-- Result will be 3 dimensions -->"
-        string += "<DataItem ItemType=\"Function\" Function = \"$" + str(type) + " / ("
+        string += "<DataItem ItemType=\"Function\" Function = \"$" + str(type) + " / ( 1.0e-15 + "
         for type_func in range(types):
                 string += "$" + str(type_func)
                 if type_func != types-1: string+= " + "
