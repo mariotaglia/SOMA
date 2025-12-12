@@ -105,15 +105,19 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
     const soma_scalar_t energy_new = p->omega_field_unified[cellindex_new];
 
     // New non-conservative drag force due to ion fluxes
+    const uint64_t type = 0;
+
+    const uint64_t cell_old = coord_to_index_unified(p, xold, yold, zold, type);
+    const uint64_t cell_new = coord_to_index_unified(p, xold + dx, yold + dy, zold + dz, type);
   
     const soma_scalar_t vall = p->Lx*p->Ly*p->Lz ; //total volume of simulation box
     const soma_scalar_t rho0 = p->num_all_beads/vall; // density, beads/Re^3
 
     soma_scalar_t drag_energy; 
 	    
-    drag_energy = -2.0*p->npos_field[cellindex_new] +2.0*p->npos_field[cellindex_old];
-    drag_energy += (p->npos_field[cellindex_new]+p->npos_field[cellindex_old])/2.0*
-	    (-p->born_Sc[cellindex_new]+p->born_Sc[cellindex_old]);
+    drag_energy = -2.0*p->npos_field[cell_new] +2.0*p->npos_field[cell_old];
+    drag_energy += (p->npos_field[cell_new]+p->npos_field[cell_old])/2.0*
+	    (-p->born_Sc[cell_new]+p->born_Sc[cell_old]);
     drag_energy = drag_energy/rho0;    
     
     const soma_scalar_t energy = energy_new - energy_old + drag_energy;
