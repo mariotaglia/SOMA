@@ -116,9 +116,9 @@ soma_scalar_t calc_delta_nonbonded_energy(const Phase * p, const Monomer * monom
 
     soma_scalar_t drag_energy = 0;
 
-    drag_energy = -2.0*p->npos_field[cell_new] +2.0*p->npos_field[cell_old];
+    drag_energy = 2.0*p->npos_field[cell_new] - 2.0*p->npos_field[cell_old];
     drag_energy += (p->npos_field[cell_new]+p->npos_field[cell_old])/2.0*
-            (-p->born_Sc[cell_new]+p->born_Sc[cell_old]);
+            (p->born_Sc[cell_new]-p->born_Sc[cell_old]);
     drag_energy = drag_energy/rho0;
 
     const soma_scalar_t energy = energy_new - energy_old + drag_energy;
