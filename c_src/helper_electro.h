@@ -7,6 +7,7 @@
 struct Phase;
 
 int call_PB(struct Phase *const p);
+int call_JD(struct Phase *const p);
 int call_J(struct Phase *const p);
 //! Calls kinsol
 

@@ -36,6 +36,7 @@ set(soma_source
   mobility.c
   kinsol_soma.c
   kinsol_J.c
+  kinsol_JD.c
   donnan.c
   helper_electro.c
   )
