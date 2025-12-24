@@ -99,7 +99,7 @@ int call_JD(struct Phase *const p)
   soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg; // in this case, electrostatic potential difference in kBT/e
   realtype fnorm;
-  soma_scalar_t current0, currentL ;
+  soma_scalar_t current;
 
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
@@ -399,52 +399,36 @@ N_VConst(1.0, constraints);  // constrains c >= 0
    }
 
 
-// Calculation of ion currents at electrode
-current0 = 0.0;
-currentL = 0.0;
+// Calculation of ion currents
 
-/*
+
+for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
+
+// iz = 0; // no debug
+current = 0.0;
   for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
+     for (iy = 0 ; iy < p->ny ; iy++) {
 
-            iz = 0; 	  
 	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
-            iz = 1; 	  
-	    cell = cell_coordinate_to_index(p, ix, iy, iz);
+	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
 
-	    current0 -= (p->npos_field[cell])*(eps[cell]-eps[cellm]);
-	    current0 -= (p->npos_field[cellm])*(eps[cell]-eps[cellm]);
+	    current -= (p->npos_field[cell]+p->npos_field[cellm])*(p->electric_field[cell]-p->electric_field[cellm]);
 			    
+          } // ix
+   } //iy
 
-	    iz = p->nz-2; 	  
-	    cell = cell_coordinate_to_index(p, ix, iy, iz);
-            iz = p->nz-1; 	  
-	    cellp = cell_coordinate_to_index(p, ix, iy, iz);
+  current = current * p->deltax*p->deltay/p->deltaz/2.0;
+  printf("check: iz, current: %d  %.3e \n", iz, current); // DEBUG
 
-	    currentL -= (p->npos_field[cellp])*(eps[cellp]-eps[cell]);
-	    currentL -= (p->npos_field[cell])*(eps[cellp]-eps[cell]);
-       
- 
-          }
-   }
+} // iz -- DEBUG
 
-  current0 = current0 * p->deltax*p->deltay/p->deltaz;
-  currentL = currentL * p->deltax*p->deltay/p->deltaz;
 
-  p->current=current0; // store to save in ana file
+  p->current=current; // store to save in ana file
 
-// Save non-eq ion densities
-#pragma omp parallel for  
-    for (cell = 0 ; cell < p->n_cells ; cell++) {
-           p->nneg_field[cell] = cions[cell];
-           p->npos_field[cell] = cions[cell];
-    }
-
-*/
 
 // print    
-        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e, I(L) %.3e \n", flag, itersJD, fnorm, fnormtol, current0, currentL);
+        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e \n", flag, itersJD, fnorm, fnormtol, current);
 
     
 	/* Free memory */
