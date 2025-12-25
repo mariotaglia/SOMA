@@ -273,7 +273,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
       /* Create SUNLinSol_SPBCGS object and the
          maximum Krylov dimension maxl */
-      maxl = 1000;
+      maxl = 10;
 
       LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
