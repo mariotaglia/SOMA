@@ -328,8 +328,8 @@ N_VConst(0.0, constraints);  // no constrains c
       /* Create SUNLinSol_SPFGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
       maxl = 1000;
-/*      LS = SUNLinSol_SPFGMR(cc, SUN_PREC_NONE, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPFGMR", 0)) return(1); */
+//      LS = SUNLinSol_SPFGMR(cc, SUN_PREC_NONE, maxl, sunctx);
+//      if(check_flag((void *)LS, "SUNLinSol_SPFGMR", 0)) return(1); 
 
       LS = SUNLinSol_SPFGMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPFGMR", 0)) return(1);
@@ -444,6 +444,7 @@ current = 0.0;
     
 	/* Free memory */
 
+    free(psiC);
 
  printf("OK1 \n"); 
     KINFree(&kmem);
