@@ -275,11 +275,11 @@ N_VConst(0.0, constraints);  // no constrains c
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
-
-//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
 //      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -353,12 +353,12 @@ N_VConst(0.0, constraints);  // no constrains c
    * Set Jacobian vector product function
    * ------------------------------------ */
 
-//    flag = KINSetJacTimesVecFn(kmem, jactimes);
-//    if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
+    flag = KINSetJacTimesVecFn(kmem, jactimes);
+    if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
 
     /* Set preconditioner functions*/
-//    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
-//    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
+    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
+    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 
     mset = 1; // maximum number of iterations before recalc diagonal preconditioner
 
@@ -430,7 +430,7 @@ current = 0.0;
    } //iy
 
   current = current * p->deltax*p->deltay/p->deltaz/2.0;
-  printf("check: iz, current: %d  %.3e %.3e %.3e \n", iz, current, p->electric_field[iz], p->npos_field[iz]); // DEBUG
+  printf("check: iz, current: %d  %.3e \n", iz, current); // DEBUG
 
 } // iz -- DEBUG
 
@@ -667,7 +667,6 @@ static int PrecSetupJD(N_Vector cc, N_Vector cscale,
 
   soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
 	  
-
 // c from npos_ions
 for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
@@ -697,7 +696,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
         izm = mod((iz-1),p->nz);
 
 
-		 i = iz + p->nz*iy + p->nz*p->ny*ix - 1 ;
+		 i = iz + p->nz*iy + p->nz*p->ny*ix ;
 
                  p->temp_prec_field[i] = 0.0;
        		 p->temp_prec_field[i] += -(c[ixp][iy][iz]+2*c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
@@ -786,7 +785,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	izp = mod((iz+1),p->nz);
         izm = mod((iz-1),p->nz);
 
-        i = iz + p->nz*iy + p->nz*p->ny*ix - 1 ;
+        i = iz + p->nz*iy + p->nz*p->ny*ix ;
 
         // fij for j = i
          tmp  = 0.0;
@@ -796,40 +795,40 @@ for (ix = 0 ; ix < p->nx ; ix++) {
          j = i; 
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) = tmp; 
-	
+
         // fij for j = x+1,y,z 
          tmp  = (c[ixp][iy][iz]+c[ix][iy][iz])/(p->deltax*p->deltax); 
-         j = iz + p->nz*iy + p->nz*p->ny*ixp - 1 ;
+         j = iz + p->nz*iy + p->nz*p->ny*ixp ;
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) += tmp; 
 
         // fij for j = x-1,y,z 
          tmp  = (c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
-         j = iz + p->nz*iy + p->nz*p->ny*ixm - 1 ;
+         j = iz + p->nz*iy + p->nz*p->ny*ixm ;
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) += tmp; 
 
         // fij for j = x,y+1,z 
          tmp  = (c[ix][iyp][iz]+c[ix][iy][iz])/(p->deltay*p->deltay); 
-         j = iz + p->nz*iyp + p->nz*p->ny*ix - 1 ;
+         j = iz + p->nz*iyp + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) += tmp; 
 
         // fij for j = x,y-1,z 
          tmp  = (c[ix][iym][iz]+c[ix][iy][iz])/(p->deltay*p->deltay); 
-         j = iz + p->nz*iym + p->nz*p->ny*ix - 1 ;
+         j = iz + p->nz*iym + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) += tmp; 
 
         // fij for j = x,y,z+1 
          tmp  = (c[ix][iy][izp]+c[ix][iy][iz])/(p->deltaz*p->deltaz); 
-         j = izp + p->nz*iy + p->nz*p->ny*ix - 1 ;
+         j = izp + p->nz*iy + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) += tmp; 
 
 	// fij for j = x,y,z-1 
          tmp  = (c[ix][iy][izm]+c[ix][iy][iz])/(p->deltaz*p->deltaz); 
-         j = izm + p->nz*iy + p->nz*p->ny*ix - 1 ;
+         j = izm + p->nz*iy + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) += tmp; 
 
