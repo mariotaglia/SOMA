@@ -73,6 +73,7 @@ void update_electric_field(const struct Phase *const p)
 
     if (p->args.efieldsolver_arg == efieldsolver_arg_JD) 
     	call_JD(p);
+  printf("OK1 \n"); 
 
 }  
 

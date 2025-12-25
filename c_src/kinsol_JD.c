@@ -275,11 +275,11 @@ N_VConst(0.0, constraints);  // no constrains c
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
-
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+
+//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -353,12 +353,12 @@ N_VConst(0.0, constraints);  // no constrains c
    * Set Jacobian vector product function
    * ------------------------------------ */
 
-    flag = KINSetJacTimesVecFn(kmem, jactimes);
-    if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
+//    flag = KINSetJacTimesVecFn(kmem, jactimes);
+//    if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
 
     /* Set preconditioner functions*/
-    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
-    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
+//    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
+//    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 
     mset = 1; // maximum number of iterations before recalc diagonal preconditioner
 
@@ -439,7 +439,7 @@ current = 0.0;
 
 
 // print    
-        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e \n", flag, itersJD, fnorm, fnormtol, current);
+//        printf("Transport converged, flag %d, iters %d, norm %.3e, normtol %.3e, I(0) %.3e \n", flag, itersJD, fnorm, fnormtol, current);
 
     
 	/* Free memory */
@@ -450,11 +450,13 @@ current = 0.0;
   N_VDestroy(constraints);
   N_VDestroy(cc);
   N_VDestroy(sc);
+
+
+  printf("OK0 \n"); 
 /*  FreeUserData(data); */
 
   SUNContext_Free(&sunctx);
 
-  printf("OK!");
 
   return(0);
 }
@@ -470,7 +472,7 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
 
 #include <assert.h>
 
-  unsigned int ix, iy, iz, cell, i;
+  int ix, iy, iz, cell, i;
   int ixp ,ixm, iyp, iym, izp, izm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
@@ -523,9 +525,11 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	izp = mod((iz+1),p->nz);
         izm = mod((iz-1),p->nz);
 
-	psizp = psi[ix][iy][izp] + ((int) ((iz+1)/p->nz))*alfa; 
-	psizm = psi[ix][iy][izm] + ((int) ((iz-1)/p->nz))*alfa; 
+	psizp = psi[ix][iy][izp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa; 
+	psizm = psi[ix][iy][izm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa; 
      
+	//printf("iz: %d %f %f \n ", iz, psizp, psizm); 
+
      
         cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
 
@@ -545,7 +549,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
   }
 
 // DO NOT PARALELIZE #pragma omp parallel for  
-  for (cell = 0 ; cell < p->n_cells ; cell++) {
+  for (cell = 0 ; cell < NEQ ; cell++) {
 
   ix = (int) (cell/(p->nz*p->ny));
   iy = (int) ((cell-ix*p->nz*p->ny)/p->nz);
@@ -556,7 +560,6 @@ for (ix = 0 ; ix < p->nx ; ix++) {
   }
 
 // DEBUG print norm 
-/*
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
@@ -575,9 +578,6 @@ soma_scalar_t norma = 0;
 //  printf("func: iter, norm %d %.3e \n", iter, norma);
 
 //  exit(1);
-//
-//
-*/
   return(0);
 }
   
