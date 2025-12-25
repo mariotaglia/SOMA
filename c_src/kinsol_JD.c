@@ -273,7 +273,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
       /* Create SUNLinSol_SPBCGS object and the
          maximum Krylov dimension maxl */
-      maxl = 10;
+      maxl = 1000;
 
       LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
@@ -485,14 +485,23 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
 
   int ix, iy, iz, cell, i;
   int ixp ,ixm, iyp, iym, izp, izm;
+  unsigned int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
   int NEQ; //<- Number of equations 
   NEQ = (int) p->nx*p->ny*p->nz-1; /* the concentration is fixed near electrodes */
 
-  soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
-  soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
+
+  soma_scalar_t *vvin = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
+    if (vvin == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
+  soma_scalar_t  res; // residual Poisson Eq.
   soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic field 
   soma_scalar_t  psiC[p->n_cells]; // auxiliary, electrostatic field
   soma_scalar_t  psizm, psizp; // auxiliary for PBC
@@ -512,13 +521,13 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	  for (iy = 0 ; iy < p->ny ; iy++) {
 			  for (iz = 0 ; iz <  p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          c[ix][iy][iz] = p->npos_field[cell];
 			  psi[ix][iy][iz] = psiC[cell];
 			  }
 		     }
 	 	}
 
 
+soma_scalar_t norma = 0;
 // DO NOT PARALELIZE HERE  
   for (ix = 0 ; ix < p->nx ; ix++) {
 
@@ -536,52 +545,46 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	izp = mod((iz+1),p->nz);
         izm = mod((iz-1),p->nz);
 
+                 i = iz + p->nz*iy + p->nz*p->ny*ix ;
+		 iixp = iz + p->nz*iy + p->nz*p->ny*ixp ;
+		 iixm = iz + p->nz*iy + p->nz*p->ny*ixm ;
+		 iiyp = iz + p->nz*iyp + p->nz*p->ny*ix ;
+		 iiym = iz + p->nz*iym + p->nz*p->ny*ix ;
+		 iizp = izp + p->nz*iy + p->nz*p->ny*ix ;
+		 iizm = izm + p->nz*iy + p->nz*p->ny*ix ;
+
 	psizp = psi[ix][iy][izp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa; 
 	psizm = psi[ix][iy][izm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa; 
      
 	//printf("iz: %d %f %f \n ", c[ix][iy][iz], psi[ix][iy][iz]); 
 
-     
-        cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
+        res = 0.0;
 
-        res[ix][iy][iz] = 0.0;
+        res += ((p->npos_field[iixp]+p->npos_field[i])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(p->deltax*p->deltax);
+	res += (-(p->npos_field[i]+p->npos_field[iixm])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(p->deltax*p->deltax);
 
-        res[ix][iy][iz] += ((c[ixp][iy][iz]+c[ix][iy][iz])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(p->deltax*p->deltax);
-	res[ix][iy][iz] += (-(c[ix][iy][iz]+c[ixm][iy][iz])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(p->deltax*p->deltax);
+        res += ((p->npos_field[iiyp]+p->npos_field[i])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(p->deltay*p->deltay);
+	res += (-(p->npos_field[i]+p->npos_field[iiym])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(p->deltay*p->deltay);
 
-        res[ix][iy][iz] += ((c[ix][iyp][iz]+c[ix][iy][iz])*(psi[ix][iyp][iz]-psi[ix][iy][iz]))/(p->deltay*p->deltay);
-        res[ix][iy][iz] += (-(c[ix][iy][iz]+c[ix][iym][iz])*(psi[ix][iy][iz]-psi[ix][iym][iz]))/(p->deltay*p->deltay);
+        res += ((p->npos_field[iizp]+p->npos_field[i])*(psizp-psi[ix][iy][iz]))/(p->deltaz*p->deltaz);
+	res += (-(p->npos_field[i]+p->npos_field[iizm])*(psi[ix][iy][iz]-psizm))/(p->deltaz*p->deltaz);
 
-	res[ix][iy][iz] += ((c[ix][iy][izp]+c[ix][iy][iz])*(psizp-psi[ix][iy][iz]))/(p->deltaz*p->deltaz);
-        res[ix][iy][iz] += (-(c[ix][iy][iz]+c[ix][iy][izm])*(psi[ix][iy][iz]-psizm))/(p->deltaz*p->deltaz);
-	
+        if (i < NEQ) {NVITH(fval,i) = res;} 
+        norma += fabs(res); 
         }
     }
   }
 
-// DO NOT PARALELIZE #pragma omp parallel for  
-  for (cell = 0 ; cell < NEQ ; cell++) {
-
-  ix = (int) (cell/(p->nz*p->ny));
-  iy = (int) ((cell-ix*p->nz*p->ny)/p->nz);
-  iz = cell-ix*p->nz*p->ny-iy*p->nz;
-
-  NVITH(fval,cell) = res[ix][iy][iz];
-
-  }
-
 // DEBUG print norm 
-soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
                   for (iz = 0 ; iz <  p->nz ; iz++) {
                   cell = cell_coordinate_to_index(p, ix, iy, iz);
-              			  norma += fabs(res[ix][iy][iz]); 
 //  printf("check: iz, %.3e %.3e \n", iz,  c[ix][iy][iz], psi[ix][iy][iz]); // DEBUG
                      }
                 }
          }
-  printf("func: iter, norma, res(nx,ny,nz): %d %f %f %f %f \n ", itersJD, norma, res[0][0][0], psi[0][0][0], c[0][0][0]); 
+  printf("func: iter, norma: %d %f %f %f %f \n ", itersJD, norma, psi[0][0][0]); 
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
