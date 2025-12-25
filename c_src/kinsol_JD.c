@@ -99,7 +99,7 @@ int call_JD(struct Phase *const p)
   soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg; // in this case, electrostatic potential difference in kBT/e
   realtype fnorm;
-  soma_scalar_t current;
+  soma_scalar_t current0, currentL;
 
 
   soma_scalar_t *psiC = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
@@ -413,10 +413,9 @@ N_VConst(0.0, constraints);  // no constrains c
 // Calculation of ion currents
 
 
-for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
-
+//for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
 // iz = 0; // no debug
-current = 0.0;
+current0 = 0.0;
   for (ix = 0 ; ix < p->nx ; ix++) {
      for (iy = 0 ; iy < p->ny ; iy++) {
 
@@ -424,18 +423,28 @@ current = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
 
-	    current -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
+	    current0 -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
 			    
           } // ix
    } //iy
+  current0 = current0 * p->deltax*p->deltay/p->deltaz/2.0;
+//} // iz -- DEBUG
 
-  current = current * p->deltax*p->deltay/p->deltaz/2.0;
-  printf("check: iz, current: %d  %.3e %.3e %.3e\n", iz, current, psiC[iz], p->electric_field[iz]); // DEBUG
+currentL = 0.0;
+  for (ix = 0 ; ix < p->nx ; ix++) {
+     for (iy = 0 ; iy < p->ny ; iy++) {
 
-} // iz -- DEBUG
+	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
+	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
+	    currentL -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
+			    
+          } // ix
+   } //iy
+  currentL = currentL * p->deltax*p->deltay/p->deltaz/2.0;
 
-  p->current=current; // store to save in ana file
+  printf("check: iz, current: %d  %.3e %.3e \n", iz, current0, currentL); // DEBUG
+  p->current=current0; // store to save in ana file
 
 
 // print    
@@ -661,8 +670,8 @@ static int PrecSetupJD(N_Vector cc, N_Vector cscale,
                        void *user_data)  {
 
   unsigned int ix, iy, iz, cell, i;
-  int ixp ,ixm, iyp, iym, izp, izm;
-  int iixp ,iixm, iiyp, iiym, iizp, iizm;
+  unsigned int ixp ,ixm, iyp, iym, izp, izm;
+  unsigned int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
@@ -773,7 +782,7 @@ static int jactimes(N_Vector v, N_Vector Jv, N_Vector cc, booleantype *new_u,
 {
 
   unsigned int ix, iy, iz, cell, i, j;
-  int ixp ,ixm, iyp, iym, izp, izm;
+  unsigned int ixp ,ixm, iyp, iym, izp, izm;
   int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
