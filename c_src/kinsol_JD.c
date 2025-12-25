@@ -99,7 +99,7 @@ int call_JD(struct Phase *const p)
   soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg; // in this case, electrostatic potential difference in kBT/e
   realtype fnorm;
-  soma_scalar_t current0, currentL;
+  soma_scalar_t current;
 
 
   soma_scalar_t *psiC = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
@@ -275,11 +275,11 @@ N_VConst(0.0, constraints);  // no constrains c
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
-
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+
+//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -304,12 +304,12 @@ N_VConst(0.0, constraints);  // no constrains c
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-/*      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_NONE, maxl, sunctx);
+      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPTFQMR", 0)) return(1);
-*/
 
-      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPTFQMR", 0)) return(1);
+
+//      LS = SUNLinSol_SPTFQMR(cc, SUN_PREC_RIGHT, maxl, sunctx);
+//      if(check_flag((void *)LS, "SUNLinSol_SPTFQMR", 0)) return(1);
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -357,8 +357,8 @@ N_VConst(0.0, constraints);  // no constrains c
     if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
 
     /* Set preconditioner functions*/
-    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
-    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
+//    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
+//    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 
     mset = 1; // maximum number of iterations before recalc diagonal preconditioner
 
@@ -413,38 +413,29 @@ N_VConst(0.0, constraints);  // no constrains c
 // Calculation of ion currents
 
 
-//for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
-iz = 0; // no debug
-current0 = 0.0;
+for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
+
+// iz = 0; // no debug
+current = 0.0;
   for (ix = 0 ; ix < p->nx ; ix++) {
      for (iy = 0 ; iy < p->ny ; iy++) {
 
 	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
 	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
-	    current0 -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
+
+	    current -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
 			    
           } // ix
    } //iy
 
-  current0 = current0 * p->deltax*p->deltay/p->deltaz/2.0;
-//  printf("check: iz, current: %d  %.3e !!!\n", iz, current0); // DEBUG
-//} // iz -- DEBUG
+  current = current * p->deltax*p->deltay/p->deltaz/2.0;
+  printf("check: iz, current: %d  %.3e %.3e %.3e\n", iz, current, psiC[iz], p->electric_field[iz]); // DEBUG
+
+} // iz -- DEBUG
 
 
-iz = p->nz-2; 
-currentL = 0.0;
-  for (ix = 0 ; ix < p->nx ; ix++) {
-     for (iy = 0 ; iy < p->ny ; iy++) {
-	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
-	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
-	    currentL -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
-          } // ix
-   } //iy
-  currentL = currentL * p->deltax*p->deltay/p->deltaz/2.0;
-
-  printf("check: iz, current: %d  %.3e %.3e \n", iz, current0, currentL); // DEBUG
-  p->current=current0; // store to save in ana file
+  p->current=current; // store to save in ana file
 
 
 // print    
@@ -458,9 +449,11 @@ currentL = 0.0;
     KINFree(&kmem);
     SUNLinSolFree(LS);
 
+    
   N_VDestroy(constraints);
   N_VDestroy(cc);
   N_VDestroy(sc);
+
 
 /*  FreeUserData(data); */
 
@@ -502,7 +495,7 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
 for (i = 0 ; i < NEQ ; i++) {
         psiC[i] = NVITH(cc,i); 
 }
-psiC[p->n_cells] = 0.0;
+psiC[p->n_cells-1] = 0.0;
 
 
 // c from npos_ions
@@ -579,7 +572,7 @@ soma_scalar_t norma = 0;
                      }
                 }
          }
-  printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", itersJD, norma, res[0][0][0]); 
+  printf("func: iter, norma, res(nx,ny,nz): %d %f %f %f %f \n ", itersJD, norma, res[0][0][0], psi[0][0][0], c[0][0][0]); 
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
@@ -669,23 +662,25 @@ static int PrecSetupJD(N_Vector cc, N_Vector cscale,
 
   unsigned int ix, iy, iz, cell, i;
   int ixp ,ixm, iyp, iym, izp, izm;
+  int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
   int NEQ; //<- Number of equations 
   NEQ = (int) p->nx*p->ny*p->nz-1; /* the concentration is fixed near electrodes */
 
-  soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
-	  
+  soma_scalar_t *c = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (c == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
 // c from npos_ions
-for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-			  for (iz = 0 ; iz <  p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          c[ix][iy][iz] = p->npos_field[cell];
-			  }
-		     }
-	 	}
+for (i = 0 ; i < p->n_cells ; i++) {
+      c[i] =  p->npos_field[i];
+}
 
 
 /// Calculate diagonal preconditioner, temp_prec_field
@@ -705,18 +700,24 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	izp = mod((iz+1),p->nz);
         izm = mod((iz-1),p->nz);
 
-
 		 i = iz + p->nz*iy + p->nz*p->ny*ix ;
+		 iixp = iz + p->nz*iy + p->nz*p->ny*ixp ;
+		 iixm = iz + p->nz*iy + p->nz*p->ny*ixm ;
+		 iiyp = iz + p->nz*iyp + p->nz*p->ny*ix ;
+		 iiym = iz + p->nz*iym + p->nz*p->ny*ix ;
+		 iizp = izp + p->nz*iy + p->nz*p->ny*ix ;
+		 iizm = izm + p->nz*iy + p->nz*p->ny*ix ;
 
                  p->temp_prec_field[i] = 0.0;
-       		 p->temp_prec_field[i] += -(c[ixp][iy][iz]+2*c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
-        	 p->temp_prec_field[i] += -(c[ix][iyp][iz]+2*c[ix][iy][iz]+c[ix][iym][iz])/(p->deltay*p->deltay); 
-        	 p->temp_prec_field[i] += -(c[ix][iy][izp]+2*c[ix][iy][iz]+c[ix][iy][izm])/(p->deltaz*p->deltaz); 
+       		 p->temp_prec_field[i] += -(c[iixp]+2*c[i]+c[iixm])/(p->deltax*p->deltax); 
+        	 p->temp_prec_field[i] += -(c[iiyp]+2*c[i]+c[iiym])/(p->deltay*p->deltay); 
+        	 p->temp_prec_field[i] += -(c[iizp]+2*c[i]+c[iizm])/(p->deltaz*p->deltaz); 
  
 	}
       }
     }
 
+free(c);
 return(0);
 
 }	
@@ -734,8 +735,19 @@ static int PrecSolveJD(N_Vector cc, N_Vector cscale,
   int NEQ;
   NEQ = (int) p->nx*p->ny*p->nz-1; 
 
-  soma_scalar_t vvin[NEQ]; 
-  soma_scalar_t vvout[NEQ]; 
+  soma_scalar_t *vvin = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
+    if (vvin == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+  soma_scalar_t *vvout = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
+    if (vvout == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
 
   for (i = 0 ; i < NEQ ; i++) {
 	  vvin[i] = NVITH(vv,i); 
@@ -746,6 +758,8 @@ static int PrecSolveJD(N_Vector cc, N_Vector cscale,
 	  NVITH(vv,i) = vvout[i]; 
    }
 
+  free(vvin);
+  free(vvout);
   return(0);
 }
 
@@ -760,33 +774,14 @@ static int jactimes(N_Vector v, N_Vector Jv, N_Vector cc, booleantype *new_u,
 
   unsigned int ix, iy, iz, cell, i, j;
   int ixp ,ixm, iyp, iym, izp, izm;
+  int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
   int NEQ; //<- Number of equations 
   NEQ = (int) p->nx*p->ny*p->nz-1; /* the concentration is fixed near electrodes */
 
-  soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
-  soma_scalar_t  vv[p->n_cells]; // input vector, NEQ+1
-  soma_scalar_t  vJv[p->n_cells]; // output vector, NEQ+1
-	 
   soma_scalar_t  tmp;  
-
-// c from npos_ions
-for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-			  for (iz = 0 ; iz <  p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-                          c[ix][iy][iz] = p->npos_field[cell];
-			  }
-		     }
-	 	}
-
-// init vv 
-for (i = 0; i < NEQ ; i++) {
-  vv[i]=NVITH(v,i);
-}
-  vv[p->n_cells-1] = 0.0;
 
   for (ix = 0 ; ix < p->nx ; ix++) {
 
@@ -803,63 +798,69 @@ for (i = 0; i < NEQ ; i++) {
 	izp = mod((iz+1),p->nz);
         izm = mod((iz-1),p->nz);
 
-        i = iz + p->nz*iy + p->nz*p->ny*ix ;
+                 i = iz + p->nz*iy + p->nz*p->ny*ix ;
+
+
+	if (i != NEQ) {
+
+		 iixp = iz + p->nz*iy + p->nz*p->ny*ixp ;
+		 iixm = iz + p->nz*iy + p->nz*p->ny*ixm ;
+		 iiyp = iz + p->nz*iyp + p->nz*p->ny*ix ;
+		 iiym = iz + p->nz*iym + p->nz*p->ny*ix ;
+		 iizp = izp + p->nz*iy + p->nz*p->ny*ix ;
+		 iizm = izm + p->nz*iy + p->nz*p->ny*ix ;
 
         // fij for j = i
          tmp  = 0.0;
-         tmp  += -(c[ixp][iy][iz]+2*c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
-         tmp  += -(c[ix][iyp][iz]+2*c[ix][iy][iz]+c[ix][iym][iz])/(p->deltay*p->deltay); 
-         tmp  += -(c[ix][iy][izp]+2*c[ix][iy][iz]+c[ix][iy][izm])/(p->deltaz*p->deltaz); 
+         tmp  += -(p->npos_field[iixp]+2*p->npos_field[i]+p->npos_field[iixm])/(p->deltax*p->deltax); 
+         tmp  += -(p->npos_field[iiyp]+2*p->npos_field[i]+p->npos_field[iiym])/(p->deltay*p->deltay); 
+         tmp  += -(p->npos_field[iizp]+2*p->npos_field[i]+p->npos_field[iizm])/(p->deltaz*p->deltaz); 
          j = i; 
-	 tmp = tmp*vv[j];
-	 vJv[i] = tmp; 
+	 tmp = tmp*NVITH(v,j);
+	 NVITH(Jv,i) = tmp; 
 
-        // fij for j = x+1,y,z 
-         tmp  = (c[ixp][iy][iz]+c[ix][iy][iz])/(p->deltax*p->deltax); 
+ 	 // fij for j = x+1,y,z 
+         tmp  = (p->npos_field[iixp]+p->npos_field[i])/(p->deltax*p->deltax); 
          j = iz + p->nz*iy + p->nz*p->ny*ixp ;
-	 tmp = tmp*vv[j];
-	 vJv[i] += tmp; 
+	 tmp = tmp*NVITH(v,j);
+	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x-1,y,z 
-         tmp  = (c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
+         tmp  = (p->npos_field[iixm]+p->npos_field[i])/(p->deltax*p->deltax); 
          j = iz + p->nz*iy + p->nz*p->ny*ixm ;
-	 tmp = tmp*vv[j];
-	 vJv[i] += tmp; 
+	 tmp = tmp*NVITH(v,j);
+	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x,y+1,z 
-         tmp  = (c[ix][iyp][iz]+c[ix][iy][iz])/(p->deltay*p->deltay); 
+         tmp  = (p->npos_field[iiyp]+p->npos_field[i])/(p->deltay*p->deltay); 
          j = iz + p->nz*iyp + p->nz*p->ny*ix ;
-	 tmp = tmp*vv[j];
-	 vJv[i] += tmp; 
+	 tmp = tmp*NVITH(v,j);
+	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x,y-1,z 
-         tmp  = (c[ix][iym][iz]+c[ix][iy][iz])/(p->deltay*p->deltay); 
+         tmp  = (p->npos_field[iiym]+p->npos_field[i])/(p->deltay*p->deltay); 
          j = iz + p->nz*iym + p->nz*p->ny*ix ;
-	 tmp = tmp*vv[j];
-	 vJv[i] += tmp; 
+	 tmp = tmp*NVITH(v,j);
+	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x,y,z+1 
-         tmp  = (c[ix][iy][izp]+c[ix][iy][iz])/(p->deltaz*p->deltaz); 
+         tmp  = (p->npos_field[iizp]+p->npos_field[i])/(p->deltaz*p->deltaz); 
          j = izp + p->nz*iy + p->nz*p->ny*ix ;
-	 tmp = tmp*vv[j];
-	 vJv[i] += tmp; 
+	 tmp = tmp*NVITH(v,j);
+	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
 	// fij for j = x,y,z-1 
-         tmp  = (c[ix][iy][izm]+c[ix][iy][iz])/(p->deltaz*p->deltaz); 
+         tmp  = (p->npos_field[iizm]+p->npos_field[i])/(p->deltaz*p->deltaz); 
          j = izm + p->nz*iy + p->nz*p->ny*ix ;
-	 tmp = tmp*vv[j];
-	 vJv[i] += tmp; 
+	 tmp = tmp*NVITH(v,j);
+	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
+
+        } // i =! NEQ
 
 	}
       }
     }
 
-
-// output vJv 
-for (i = 0; i < NEQ ; i++) {
-  NVITH(Jv,i)=vJv[i];
-}
- 
   return(0);
 }
 
