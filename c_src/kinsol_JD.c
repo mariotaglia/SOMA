@@ -99,7 +99,7 @@ int call_JD(struct Phase *const p)
   soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg; // in this case, electrostatic potential difference in kBT/e
   realtype fnorm;
-  soma_scalar_t current;
+  soma_scalar_t current0, currentL;
 
 
   soma_scalar_t *psiC = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
@@ -413,29 +413,38 @@ N_VConst(0.0, constraints);  // no constrains c
 // Calculation of ion currents
 
 
-for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
-
-// iz = 0; // no debug
-current = 0.0;
+//for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
+iz = 0; // no debug
+current0 = 0.0;
   for (ix = 0 ; ix < p->nx ; ix++) {
      for (iy = 0 ; iy < p->ny ; iy++) {
 
 	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
 	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
-
-	    current -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
+	    current0 -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
 			    
           } // ix
    } //iy
 
-  current = current * p->deltax*p->deltay/p->deltaz/2.0;
-  printf("check: iz, current: %d  %.3e %.3e %.3e\n", iz, current, psiC[iz], p->electric_field[iz]); // DEBUG
+  current0 = current0 * p->deltax*p->deltay/p->deltaz/2.0;
+//  printf("check: iz, current: %d  %.3e !!!\n", iz, current0); // DEBUG
+//} // iz -- DEBUG
 
-} // iz -- DEBUG
 
+iz = p->nz-2; 
+currentL = 0.0;
+  for (ix = 0 ; ix < p->nx ; ix++) {
+     for (iy = 0 ; iy < p->ny ; iy++) {
+	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
+	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
+	    currentL -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
+          } // ix
+   } //iy
+  currentL = currentL * p->deltax*p->deltay/p->deltaz/2.0;
 
-  p->current=current; // store to save in ana file
+  printf("check: iz, current: %d  %.3e %.3e \n", iz, current0, currentL); // DEBUG
+  p->current=current0; // store to save in ana file
 
 
 // print    
@@ -446,21 +455,12 @@ current = 0.0;
 
     free(psiC);
 
- printf("OK1 \n"); 
     KINFree(&kmem);
- printf("OK2 \n"); 
     SUNLinSolFree(LS);
- printf("OK3 \n"); 
 
-    
- printf("OK4 \n"); 
   N_VDestroy(constraints);
- printf("OK5 \n"); 
   N_VDestroy(cc);
- printf("OK6 \n"); 
   N_VDestroy(sc);
- printf("OK7 \n"); 
-
 
 /*  FreeUserData(data); */
 
@@ -767,6 +767,8 @@ static int jactimes(N_Vector v, N_Vector Jv, N_Vector cc, booleantype *new_u,
   NEQ = (int) p->nx*p->ny*p->nz-1; /* the concentration is fixed near electrodes */
 
   soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
+  soma_scalar_t  vv[p->n_cells]; // input vector, NEQ+1
+  soma_scalar_t  vJv[p->n_cells]; // output vector, NEQ+1
 	 
   soma_scalar_t  tmp;  
 
@@ -779,6 +781,12 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 			  }
 		     }
 	 	}
+
+// init vv 
+for (i = 0; i < NEQ ; i++) {
+  vv[i]=NVITH(v,i);
+}
+  vv[p->n_cells-1] = 0.0;
 
   for (ix = 0 ; ix < p->nx ; ix++) {
 
@@ -803,49 +811,55 @@ for (ix = 0 ; ix < p->nx ; ix++) {
          tmp  += -(c[ix][iyp][iz]+2*c[ix][iy][iz]+c[ix][iym][iz])/(p->deltay*p->deltay); 
          tmp  += -(c[ix][iy][izp]+2*c[ix][iy][iz]+c[ix][iy][izm])/(p->deltaz*p->deltaz); 
          j = i; 
-	 tmp = tmp*NVITH(v,j);
-	 NVITH(Jv,i) = tmp; 
+	 tmp = tmp*vv[j];
+	 vJv[i] = tmp; 
 
         // fij for j = x+1,y,z 
          tmp  = (c[ixp][iy][iz]+c[ix][iy][iz])/(p->deltax*p->deltax); 
          j = iz + p->nz*iy + p->nz*p->ny*ixp ;
-	 tmp = tmp*NVITH(v,j);
-	 NVITH(Jv,i) += tmp; 
+	 tmp = tmp*vv[j];
+	 vJv[i] += tmp; 
 
         // fij for j = x-1,y,z 
          tmp  = (c[ix][iy][iz]+c[ixm][iy][iz])/(p->deltax*p->deltax); 
          j = iz + p->nz*iy + p->nz*p->ny*ixm ;
-	 tmp = tmp*NVITH(v,j);
-	 NVITH(Jv,i) += tmp; 
+	 tmp = tmp*vv[j];
+	 vJv[i] += tmp; 
 
         // fij for j = x,y+1,z 
          tmp  = (c[ix][iyp][iz]+c[ix][iy][iz])/(p->deltay*p->deltay); 
          j = iz + p->nz*iyp + p->nz*p->ny*ix ;
-	 tmp = tmp*NVITH(v,j);
-	 NVITH(Jv,i) += tmp; 
+	 tmp = tmp*vv[j];
+	 vJv[i] += tmp; 
 
         // fij for j = x,y-1,z 
          tmp  = (c[ix][iym][iz]+c[ix][iy][iz])/(p->deltay*p->deltay); 
          j = iz + p->nz*iym + p->nz*p->ny*ix ;
-	 tmp = tmp*NVITH(v,j);
-	 NVITH(Jv,i) += tmp; 
+	 tmp = tmp*vv[j];
+	 vJv[i] += tmp; 
 
         // fij for j = x,y,z+1 
          tmp  = (c[ix][iy][izp]+c[ix][iy][iz])/(p->deltaz*p->deltaz); 
          j = izp + p->nz*iy + p->nz*p->ny*ix ;
-	 tmp = tmp*NVITH(v,j);
-	 NVITH(Jv,i) += tmp; 
+	 tmp = tmp*vv[j];
+	 vJv[i] += tmp; 
 
 	// fij for j = x,y,z-1 
          tmp  = (c[ix][iy][izm]+c[ix][iy][iz])/(p->deltaz*p->deltaz); 
          j = izm + p->nz*iy + p->nz*p->ny*ix ;
-	 tmp = tmp*NVITH(v,j);
-	 NVITH(Jv,i) += tmp; 
+	 tmp = tmp*vv[j];
+	 vJv[i] += tmp; 
 
 	}
       }
     }
 
+
+// output vJv 
+for (i = 0; i < NEQ ; i++) {
+  NVITH(Jv,i)=vJv[i];
+}
+ 
   return(0);
 }
 
