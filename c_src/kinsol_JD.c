@@ -452,7 +452,6 @@ current = 0.0;
   N_VDestroy(sc);
 
 
-  printf("OK0 \n"); 
 /*  FreeUserData(data); */
 
   SUNContext_Free(&sunctx);
