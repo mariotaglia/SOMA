@@ -502,10 +502,17 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
 
 
   soma_scalar_t  res; // residual Poisson Eq.
-  soma_scalar_t  psi[p->nx][p->ny][p->nz]; // electrostatic field 
-  soma_scalar_t  psiC[p->n_cells]; // auxiliary, electrostatic field
   soma_scalar_t  psizm, psizp; // auxiliary for PBC
-	  
+
+  soma_scalar_t *psiC = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (psiC == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
+
   itersJD++;	   
 
 // recover difference electrostatic potential, psi' = psi - psieq
@@ -514,18 +521,6 @@ for (i = 0 ; i < NEQ ; i++) {
         psiC[i] = NVITH(cc,i); 
 }
 psiC[p->n_cells-1] = 0.0;
-
-
-// c from npos_ions
-for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-			  for (iz = 0 ; iz <  p->nz ; iz++) {
-                          cell = cell_coordinate_to_index(p, ix, iy, iz);
-			  psi[ix][iy][iz] = psiC[cell];
-			  }
-		     }
-	 	}
-
 
 soma_scalar_t norma = 0;
 // DO NOT PARALELIZE HERE  
@@ -553,21 +548,21 @@ soma_scalar_t norma = 0;
 		 iizp = izp + p->nz*iy + p->nz*p->ny*ix ;
 		 iizm = izm + p->nz*iy + p->nz*p->ny*ix ;
 
-	psizp = psi[ix][iy][izp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa; 
-	psizm = psi[ix][iy][izm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa; 
+	psizp = psiC[iizp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa; 
+	psizm = psiC[iizm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa; 
      
 	//printf("iz: %d %f %f \n ", c[ix][iy][iz], psi[ix][iy][iz]); 
 
         res = 0.0;
 
-        res += ((p->npos_field[iixp]+p->npos_field[i])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(p->deltax*p->deltax);
-	res += (-(p->npos_field[i]+p->npos_field[iixm])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(p->deltax*p->deltax);
+        res += ((p->npos_field[iixp]+p->npos_field[i])*(psiC[iixp]-psiC[i]))/(p->deltax*p->deltax);
+	res += (-(p->npos_field[i]+p->npos_field[iixm])*(psiC[i]-psiC[iixm]))/(p->deltax*p->deltax);
 
-        res += ((p->npos_field[iiyp]+p->npos_field[i])*(psi[ixp][iy][iz]-psi[ix][iy][iz]))/(p->deltay*p->deltay);
-	res += (-(p->npos_field[i]+p->npos_field[iiym])*(psi[ix][iy][iz]-psi[ixm][iy][iz]))/(p->deltay*p->deltay);
+        res += ((p->npos_field[iiyp]+p->npos_field[i])*(psiC[iiyp]-psiC[i]))/(p->deltay*p->deltay);
+	res += (-(p->npos_field[i]+p->npos_field[iiym])*(psiC[i]-psiC[iiym]))/(p->deltay*p->deltay);
 
-        res += ((p->npos_field[iizp]+p->npos_field[i])*(psizp-psi[ix][iy][iz]))/(p->deltaz*p->deltaz);
-	res += (-(p->npos_field[i]+p->npos_field[iizm])*(psi[ix][iy][iz]-psizm))/(p->deltaz*p->deltaz);
+        res += ((p->npos_field[iizp]+p->npos_field[i])*(psizp-psiC[i]))/(p->deltaz*p->deltaz);
+	res += (-(p->npos_field[i]+p->npos_field[iizm])*(psiC[i]-psizm))/(p->deltaz*p->deltaz);
 
         if (i < NEQ) {NVITH(fval,i) = res;} 
         norma += fabs(res); 
@@ -584,7 +579,7 @@ soma_scalar_t norma = 0;
                      }
                 }
          }
-  printf("func: iter, norma: %d %f %f %f %f \n ", itersJD, norma, psi[0][0][0]); 
+  printf("func: iter, norma: %d %f %f %f %f \n ", itersJD, norma, psiC[0]); 
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
@@ -592,6 +587,8 @@ soma_scalar_t norma = 0;
 //  printf("func: iter, norm %d %.3e \n", iter, norma);
 
 //  exit(1);
+
+  free(psiC);
   return(0);
 }
   
@@ -784,9 +781,9 @@ static int jactimes(N_Vector v, N_Vector Jv, N_Vector cc, booleantype *new_u,
                     void *user_data)
 {
 
-  unsigned int ix, iy, iz, cell, i, j;
+  unsigned int ix, iy, iz, cell, i;
   unsigned int ixp ,ixm, iyp, iym, izp, izm;
-  int iixp ,iixm, iiyp, iiym, iizp, iizm;
+  int iixp ,iixm, iiyp, iiym, iizp, iizm, j;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
