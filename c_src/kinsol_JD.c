@@ -405,7 +405,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
   for (i = 0 ; i < NEQ ; i++) {
         p->electric_field[cell] += NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
-        psiC[cell] = NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
+        psiC[i] = NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
    }
 
    psiC[p->n_cells-1] = 0.0;
@@ -424,13 +424,13 @@ current = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
 
-	    current -= (psiC[cell]+psiC[cellm])*(p->electric_field[cell]-p->electric_field[cellm]);
+	    current -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
 			    
           } // ix
    } //iy
 
   current = current * p->deltax*p->deltay/p->deltaz/2.0;
-  printf("check: iz, current: %d  %.3e \n", iz, current); // DEBUG
+  printf("check: iz, current: %d  %.3e %.3e %.3e\n", iz, current, psiC[iz], p->electric_field[iz]); // DEBUG
 
 } // iz -- DEBUG
 
@@ -444,12 +444,21 @@ current = 0.0;
     
 	/* Free memory */
 
-    KINFree(&kmem);
-    SUNLinSolFree(LS);
 
+ printf("OK1 \n"); 
+    KINFree(&kmem);
+ printf("OK2 \n"); 
+    SUNLinSolFree(LS);
+ printf("OK3 \n"); 
+
+    
+ printf("OK4 \n"); 
   N_VDestroy(constraints);
+ printf("OK5 \n"); 
   N_VDestroy(cc);
+ printf("OK6 \n"); 
   N_VDestroy(sc);
+ printf("OK7 \n"); 
 
 
 /*  FreeUserData(data); */
@@ -527,7 +536,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	psizp = psi[ix][iy][izp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa; 
 	psizm = psi[ix][iy][izm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa; 
      
-	//printf("iz: %d %f %f \n ", iz, psizp, psizm); 
+	//printf("iz: %d %f %f \n ", c[ix][iy][iz], psi[ix][iy][iz]); 
 
      
         cell = cell_coordinate_to_index(p, ix, iy, iz); // cell in simulation box
