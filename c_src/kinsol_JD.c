@@ -101,6 +101,15 @@ int call_JD(struct Phase *const p)
   realtype fnorm;
   soma_scalar_t current;
 
+
+  soma_scalar_t *psiC = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (psiC == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
 #pragma acc update self(p->exp_born_neg[0:p->n_cells])
@@ -160,7 +169,7 @@ constraints = N_VNew_Serial(NEQ, sunctx);
 if (check_flag((void *)constraints, "N_VNew_Serial", 0)) return(1);
 #endif
 
-N_VConst(1.0, constraints);  // constrains c >= 0
+N_VConst(0.0, constraints);  // no constrains c
 
   linsolver = 1  ; // linear solver, use 0 = SPGMR, 1 = SPBCGS, 2 = SPTFQMR, 3 = SPFGMR
 
@@ -183,11 +192,11 @@ N_VConst(1.0, constraints);  // constrains c >= 0
    call_EN(p);
 
    if (flagsolved)  {   
-   // initial guess, electrostatic potential equal to equilibrium
+   // initial guess, electrostatic potential equal to equilibrium, so \delta psi = psi' = 0
    // right solution for alfa -> 0 
    //
         for (i = 0 ; i < NEQ ; i++) {
-              NVITH(cc,i) = p->electric_field[i]-p->electric_field[NEQ-1] ;
+              NVITH(cc,i) = 0.0 ;
         }
 
 
@@ -395,9 +404,11 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 // recover electric field from kinsol
 
   for (i = 0 ; i < NEQ ; i++) {
-        p->electric_field[cell] = NVITH(cc,i);
+        p->electric_field[cell] += NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
+        psiC[cell] = NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
    }
 
+   psiC[p->n_cells-1] = 0.0;
 
 // Calculation of ion currents
 
@@ -413,13 +424,13 @@ current = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
 
-	    current -= (p->npos_field[cell]+p->npos_field[cellm])*(p->electric_field[cell]-p->electric_field[cellm]);
+	    current -= (psiC[cell]+psiC[cellm])*(p->electric_field[cell]-p->electric_field[cellm]);
 			    
           } // ix
    } //iy
 
   current = current * p->deltax*p->deltay/p->deltaz/2.0;
-  printf("check: iz, current: %d  %.3e \n", iz, current); // DEBUG
+  printf("check: iz, current: %d  %.3e %.3e %.3e \n", iz, current, p->electric_field[iz], p->npos_field[iz]); // DEBUG
 
 } // iz -- DEBUG
 
@@ -442,6 +453,9 @@ current = 0.0;
 /*  FreeUserData(data); */
 
   SUNContext_Free(&sunctx);
+
+  printf("OK!");
+
   return(0);
 }
 
@@ -472,10 +486,7 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
 	  
   itersJD++;	   
 
-
-
-
-// recover electrostatic potential
+// recover difference electrostatic potential, psi' = psi - psieq
   
 for (i = 0 ; i < NEQ ; i++) {
         psiC[i] = NVITH(cc,i); 
@@ -544,19 +555,19 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 
   }
 
-/*
 // DEBUG print norm 
+/*
 soma_scalar_t norma = 0;
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
-                  for (iz = 1 ; iz <  p->nz-1 ; iz++) {
+                  for (iz = 0 ; iz <  p->nz ; iz++) {
                   cell = cell_coordinate_to_index(p, ix, iy, iz);
               			  norma += fabs(res[ix][iy][iz]); 
+//  printf("check: iz, %.3e %.3e \n", iz,  c[ix][iy][iz], psi[ix][iy][iz]); // DEBUG
                      }
                 }
          }
   printf("func: iter, norma, res(nx,ny,nz): %d %f %f \n ", itersJD, norma, res[0][0][0]); 
-*/
   
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
@@ -564,6 +575,9 @@ soma_scalar_t norma = 0;
 //  printf("func: iter, norm %d %.3e \n", iter, norma);
 
 //  exit(1);
+//
+//
+*/
   return(0);
 }
   

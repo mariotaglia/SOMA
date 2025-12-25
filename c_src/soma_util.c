@@ -162,7 +162,7 @@ int post_process_args(struct som_args *args, const unsigned int world_rank)
 	return -1;
     }
 
-    	if ((args->efieldsolver_arg != efieldsolver_arg_NP)&&(args->efieldsolver_arg != efieldsolver_arg_NP)&&(args->noneq_ratio_arg != 1)) {
+    	if ((args->efieldsolver_arg != efieldsolver_arg_NP)&&(args->efieldsolver_arg != efieldsolver_arg_JD)&&(args->noneq_ratio_arg != 1)) {
 	fprintf(stderr, "Non-equilibrium ratio only valid for NP and JD solvers \n");
 	return -1;
 
