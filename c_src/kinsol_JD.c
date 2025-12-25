@@ -455,18 +455,25 @@ currentL = 0.0;
 
     free(psiC);
 
+
+  printf("ok1 \n");
     KINFree(&kmem);
+  printf("ok2 \n");
     SUNLinSolFree(LS);
+  printf("ok3 \n");
 
     
+  printf("ok4 \n");
   N_VDestroy(constraints);
   N_VDestroy(cc);
   N_VDestroy(sc);
+  printf("ok5 \n");
 
 
 /*  FreeUserData(data); */
 
   SUNContext_Free(&sunctx);
+  printf("ok6 \n");
 
 
   return(0);
