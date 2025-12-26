@@ -406,6 +406,7 @@ N_VConst(0.0, constraints);  // no constrains c
   for (i = 0 ; i < NEQ ; i++) {
         p->electric_field[cell] += NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
         psiC[i] = NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
+        p->electric_field[i] += p->electric_field[i] + psiC[i];  
    }
 
    psiC[p->n_cells-1] = 0.0;
@@ -452,6 +453,10 @@ currentL = 0.0;
 
     
 	/* Free memory */
+
+// update electric field
+
+
 
     free(psiC);
 
