@@ -402,7 +402,7 @@ if (p->args.efieldsolver_arg != efieldsolver_arg_NO) {
         update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
 	update_rhoF(p);  // update polymer charge density
         update_exp_born(p); // update born energy, always do this after updating invblav		
-        update_electric_field(p);
+        update_electric_field(p, 0);
 	update_NB(p);  // auxiliary field for Born energy calculation, always do this after updating efield
 
 // electric field

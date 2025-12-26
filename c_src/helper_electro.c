@@ -58,7 +58,7 @@ void calc_ions(struct Phase *const p)
   assert(fabs(netcharge) < 1.0e-6);
 }
 
-void update_electric_field(const struct Phase *const p)
+void update_electric_field(const struct Phase *const p, int ana)
 {
     // Update electric potential
     //
@@ -74,8 +74,12 @@ void update_electric_field(const struct Phase *const p)
     if (p->args.efieldsolver_arg == efieldsolver_arg_EN) 
     	call_EN(p);
 
-    if (p->args.efieldsolver_arg == efieldsolver_arg_JD) 
+    if (p->args.efieldsolver_arg == efieldsolver_arg_JD && ana == 0) 
     	call_EN(p); // evolve JD using EN 
+
+    if (p->args.efieldsolver_arg == efieldsolver_arg_JD && ana == 1) 
+    	call_JD(p); // calc and export JD 
+
 
 }  
 
