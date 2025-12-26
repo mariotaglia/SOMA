@@ -404,7 +404,6 @@ N_VConst(0.0, constraints);  // no constrains c
 // recover electric field from kinsol
 
   for (i = 0 ; i < NEQ ; i++) {
-        p->electric_field[cell] += NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
         psiC[i] = NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
         p->electric_field[i] += p->electric_field[i] + psiC[i];  
    }
