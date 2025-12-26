@@ -102,9 +102,6 @@ int call_JD(struct Phase *const p)
   soma_scalar_t current0, currentL;
 
 /* Kinsol runs on CPU only, update fields */
-#pragma acc update self(p->exp_born_pos[0:p->n_cells])
-#pragma acc update self(p->exp_born_neg[0:p->n_cells])
-
 // Calc Born_S
 
   calc_born_S(p);   
@@ -523,7 +520,6 @@ soma_scalar_t norma = 0;
         iyp = mod((iy+1),p->ny);
         iym = mod((iy-1),p->ny);
 
-#pragma omp parallel for  
 	for (iz = 0 ; iz < p->nz ; iz++) {
  
 	izp = mod((iz+1),p->nz);
@@ -564,12 +560,14 @@ soma_scalar_t norma = 0;
                for (iy = 0 ; iy < p->ny ; iy++) {
                   for (iz = 0 ; iz <  p->nz ; iz++) {
                   cell = cell_coordinate_to_index(p, ix, iy, iz);
-//  printf("check: iz, %.3e %.3e \n", iz,  c[ix][iy][iz], psi[ix][iy][iz]); // DEBUG
+
+//  printf("check: iz, %d %.3e %.3e \n", iz, p->npos_field[i],  psiC[i]); // DEBUG
                      }
                 }
          }
   printf("func: iter, norma: %d %f %f %f %f \n ", itersJD, norma, psiC[0]); 
-  
+
+
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
 //  printf("func: Number of Equations: %d \n", NEQ);
 
