@@ -756,12 +756,6 @@ int extent_npos_field(const struct Phase *const p, void *const field_pointer, co
     update_exp_born(p); // update born energy		
     update_electric_field(p);
 
-    if (p->args.efieldsolver_arg == efieldsolver_arg_NP)
-        calc_J_umbrella(p); // calculates J fluxes and put it into umbrella field for export
-
-    if (p->args.efieldsolver_arg == efieldsolver_arg_JD)
-        calc_JD_umbrella(p); // calculates J fluxes and put it into umbrella field for export
-
 
 #pragma acc update self(p->npos_field[0:p->n_cells])
   }
@@ -1348,8 +1342,15 @@ int analytics(struct Phase *const p)
         }
 
     // Total current
-    if (p->ana_info.delta_mc_total_current != 0 && p->time % p->ana_info.delta_mc_total_current == 0)
+    if (p->ana_info.delta_mc_total_current != 0 && p->time % p->ana_info.delta_mc_total_current == 0 && p->time != 0)
         {
+	    
+        if (p->args.efieldsolver_arg == efieldsolver_arg_JD) {
+
+	call_JD(p); // solve for the current 	
+        calc_JD_umbrella(p); // calculates J fluxes and put it into umbrella field for export
+	}
+
             soma_scalar_t total_current = p->current;
             if (p->info_MPI.sim_rank == 0)
                 extent_ana_by_field(&total_current, 1, "/total_current", p->ana_info.file_id);
@@ -1434,6 +1435,7 @@ int analytics(struct Phase *const p)
                 {
 #pragma acc update self(p->fields_unified[0:p->n_cells*p->n_types])
                 }
+
             extent_density_field(p, p->umbrella_field, "/umbrella_field", H5T_SOMA_NATIVE_SCALAR, MPI_SOMA_SCALAR,
                                  sizeof(soma_scalar_t));
             written = true;

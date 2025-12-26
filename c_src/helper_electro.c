@@ -75,7 +75,7 @@ void update_electric_field(const struct Phase *const p)
     	call_EN(p);
 
     if (p->args.efieldsolver_arg == efieldsolver_arg_JD) 
-    	call_JD(p);
+    	call_EN(p); // evolve JD using EN 
 
 }  
 
