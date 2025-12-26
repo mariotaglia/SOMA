@@ -6,6 +6,9 @@
 #include "mpiroutines.h"
 #include "soma_config.h"
 #include "cmdline.h"
+#include "mesh.h"
+
+int mod(int a, int b); // modulus
 
 /*  Helper routines for efield calculation */
 
@@ -358,6 +361,88 @@ void calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put
       p->npos_field[cell] = cions[cell];
   }
 
+}
+
+void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and put it into umbrella field for export
+                                                   
+{
+
+      
+  int ix, iy, iz, cell, i;
+  int ixp ,ixm, iyp, iym, izp, izm;
+  unsigned int iixp ,iixm, iiyp, iiym, iizp, iizm;
+  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
+
+  soma_scalar_t *JDX = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (JDX == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            exit(1);
+        }
+
+  soma_scalar_t *JDY = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (JDY == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            exit(1);
+        }
+  soma_scalar_t *JDZ = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
+    if (JDZ == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            exit(1);
+        }
+
+
+  soma_scalar_t  psizm, psizp; // auxiliary for PBC
+
+  for (ix = 0 ; ix < p->nx ; ix++) {
+
+     ixp = mod((ix+1),p->nx);
+     ixm = mod((ix-1),p->nx);
+
+     for (iy = 0 ; iy < p->ny ; iy++) {
+
+        iyp = mod((iy+1),p->ny);
+        iym = mod((iy-1),p->ny);
+
+#pragma omp parallel for
+        for (iz = 0 ; iz < p->nz ; iz++) {
+
+        izp = mod((iz+1),p->nz);
+        izm = mod((iz-1),p->nz);
+
+                 i = iz + p->nz*iy + p->nz*p->ny*ix ;
+                 iixp = iz + p->nz*iy + p->nz*p->ny*ixp ;
+                 iixm = iz + p->nz*iy + p->nz*p->ny*ixm ;
+                 iiyp = iz + p->nz*iyp + p->nz*p->ny*ix ;
+                 iiym = iz + p->nz*iym + p->nz*p->ny*ix ;
+                 iizp = izp + p->nz*iy + p->nz*p->ny*ix ;
+                 iizm = izm + p->nz*iy + p->nz*p->ny*ix ;
+
+        psizp = p->electric_field[iizp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa;
+        psizm = p->electric_field[iizm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa;
+
+        JDX[i] = -2.0*(p->npos_field[iixp]+p->npos_field[i])/2.0*(p->electric_field[iixp]-p->electric_field[i])/p->deltax;
+        JDX[i] += -2.0*(p->npos_field[i]+p->npos_field[iixm])/2.0*(p->electric_field[i]-p->electric_field[iixm])/p->deltax;
+
+        JDY[i] = -2.0*(p->npos_field[iiyp]+p->npos_field[i])/2.0*(p->electric_field[iiyp]-p->electric_field[i])/p->deltay;
+        JDY[i] += -2.0*(p->npos_field[i]+p->npos_field[iiym])/2.0*(p->electric_field[i]-p->electric_field[iiym])/p->deltay;
+
+        JDZ[i] = -2.0*(p->npos_field[iizp]+p->npos_field[i])/2.0*(psizp-p->electric_field[i])/p->deltaz;
+        JDZ[i] += -2.0*(p->npos_field[i]+p->npos_field[iizm])/2.0*(p->electric_field[i]-psizm)/p->deltaz;
+
+        }
+    }
+  }
+
+// save to umbrella field and restore non-eq solution
+
+  for (cell = 0 ; cell < p->n_cells ; cell++) {
+
+      p->umbrella_field[cell] = JDZ[cell];
+      p->umbrella_field[cell+p->n_cells] = sqrt(JDZ[cell]*JDZ[cell]+JDX[cell]*JDX[cell]+JDY[cell]*JDY[cell]);
+  }
 }
 
 
