@@ -101,15 +101,6 @@ int call_JD(struct Phase *const p)
   realtype fnorm;
   soma_scalar_t current0, currentL;
 
-
-  soma_scalar_t *psiC = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
-    if (psiC == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-
 /* Kinsol runs on CPU only, update fields */
 #pragma acc update self(p->exp_born_pos[0:p->n_cells])
 #pragma acc update self(p->exp_born_neg[0:p->n_cells])
@@ -404,11 +395,10 @@ N_VConst(0.0, constraints);  // no constrains c
 // recover electric field from kinsol
 
   for (i = 0 ; i < NEQ ; i++) {
-        psiC[i] = NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
-        p->electric_field[i] += p->electric_field[i] + psiC[i];  
+        p->psifield[i] = NVITH(cc,i); // note that psi'[NEQ+1] = 0.0 
    }
 
-   psiC[p->n_cells-1] = 0.0;
+   p->psifield[p->n_cells-1] = 0.0;
 
 // Calculation of ion currents
 
@@ -423,7 +413,7 @@ current0 = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
 
-	    current0 -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
+	    current0 -= (p->npos_field[cell]+p->npos_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
 			    
           } // ix
    } //iy
@@ -437,7 +427,7 @@ currentL = 0.0;
 	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
 	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
 
-	    currentL -= (p->npos_field[cell]+p->npos_field[cellm])*(psiC[cell]-psiC[cellm]);
+	    currentL -= (p->npos_field[cell]+p->npos_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
 			    
           } // ix
    } //iy
@@ -454,11 +444,6 @@ currentL = 0.0;
 	/* Free memory */
 
 // update electric field
-
-
-
-    free(psiC);
-
 
     KINFree(&kmem);
     SUNLinSolFree(LS);

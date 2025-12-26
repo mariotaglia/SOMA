@@ -180,6 +180,14 @@ int init_phase(struct Phase *const p)
             return -1;
         }
 
+    p->psifield = (soma_scalar_t *) malloc(p->n_cells_local * sizeof(soma_scalar_t));
+    if (p->psifield == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return -1;
+        }
+
+
     p->temp_prec_field = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
     if (p->temp_prec_field == NULL)
         {
@@ -429,6 +437,7 @@ int copyin_phase(struct Phase *const p)
         }
 
 #pragma acc enter data copyin(p->tempfield[0:p->n_cells_local])
+#pragma acc enter data copyin(p->psifield[0:p->n_cells_local])
 #pragma acc enter data copyin(p->A[0:p->n_types])
 #pragma acc enter data copyin(p->R[0:p->n_types])
 #pragma acc enter data copyin(p->field_scaling_type[0:p->n_types])
@@ -519,6 +528,7 @@ int copyout_phase(struct Phase *const p)
         }
 
 #pragma acc exit data copyout(p->tempfield[0:p->n_cells_local])
+#pragma acc exit data copyout(p->psifield[0:p->n_cells_local])
 #pragma acc exit data copyout(p->A[0:p->n_types])
 #pragma acc exit data copyout(p->R[0:p->n_types])
 #pragma acc exit data copyout(p->field_scaling_type[0:p->n_types])
@@ -580,6 +590,7 @@ int free_phase(struct Phase *const p)
     free(p->right_tmp_buffer);
     free(p->omega_field_unified);
     free(p->tempfield);
+    free(p->psifield);
     free(p->fields_unified);
     free(p->old_fields_unified);
     free(p->fields_32);
@@ -695,6 +706,7 @@ int update_self_phase(Phase * const p, int rng_update_flag)
         }
 
 #pragma acc update self(p->tempfield[0:p->n_cells_local])
+#pragma acc update self(p->psifield[0:p->n_cells_local])
 #pragma acc update self(p->A[0:p->n_types])
 #pragma acc update self(p->R[0:p->n_types])
 #pragma acc update self(p->field_scaling_type[0:p->n_types])
