@@ -171,7 +171,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
     /* (Re-)Initialize user data */
 
-   fnormtol = 1e-5;   
+   fnormtol = 1e-10;   
    scsteptol = 1e-10; 
 
 
@@ -266,8 +266,8 @@ N_VConst(0.0, constraints);  // no constrains c
       LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
-//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
-//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
+      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       /* Attach the linear solver to KINSOL */
       flag = KINSetLinearSolver(kmem, LS, NULL);
@@ -345,8 +345,8 @@ N_VConst(0.0, constraints);  // no constrains c
     if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
 
     /* Set preconditioner functions*/
- //   flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
- //   if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
+    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
+    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 
     mset = 1; // maximum number of iterations before recalc diagonal preconditioner
 
@@ -400,37 +400,45 @@ N_VConst(0.0, constraints);  // no constrains c
 // Calculation of ion currents
 
 
-//for (iz = 0 ; iz < p->nz-1 ; iz++) { // DEBUG
-// iz = 0; // no debug
+//for (iz = 1 ; iz < p->nz-1 ; iz++) { // DEBUG
+
+iz = 1; // no debug
 current0 = 0.0;
   for (ix = 0 ; ix < p->nx ; ix++) {
      for (iy = 0 ; iy < p->ny ; iy++) {
 
-	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
-	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
-
+	    cellm = cell_coordinate_to_index(p, ix, iy, iz-1);
+	    cell = cell_coordinate_to_index(p, ix, iy, iz);
+	    cellp = cell_coordinate_to_index(p, ix, iy, iz+1);
 
 	    current0 -= (p->npos_field[cell]+p->npos_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
+	    current0 -= (p->npos_field[cellp]+p->npos_field[cell])*(p->psifield[cellp]-p->psifield[cell]);
 			    
           } // ix
    } //iy
-  current0 = current0 * p->deltax*p->deltay/p->deltaz/2.0;
-//} // iz -- DEBUG
+  current0 = current0 * p->deltax*p->deltay/p->deltaz;
+  
+//  printf("check: iz, current: %d  %.3e \n", iz, current0); // DEBUG
+// } // iz -- DEBUG
 
 currentL = 0.0;
+iz = p->nz-2;
   for (ix = 0 ; ix < p->nx ; ix++) {
      for (iy = 0 ; iy < p->ny ; iy++) {
 
-	    cellm = cell_coordinate_to_index(p, ix, iy, iz);
-	    cell = cell_coordinate_to_index(p, ix, iy, iz+1);
+            cellm = cell_coordinate_to_index(p, ix, iy, iz-1);
+	    cell = cell_coordinate_to_index(p, ix, iy, iz);
+	    cellp = cell_coordinate_to_index(p, ix, iy, iz+1);
 
 	    currentL -= (p->npos_field[cell]+p->npos_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
-			    
+	    currentL -= (p->npos_field[cellp]+p->npos_field[cell])*(p->psifield[cellp]-p->psifield[cell]);
+	
           } // ix
    } //iy
-  currentL = currentL * p->deltax*p->deltay/p->deltaz/2.0;
+  currentL = currentL * p->deltax*p->deltay/p->deltaz;
 
-  printf("check: iz, current: %d  %.3e %.3e \n", iz, current0, currentL); // DEBUG
+  printf("current: %.3e %.3e \n", iz, current0, currentL); // DEBUG
+
   p->current=current0; // store to save in ana file
 
 

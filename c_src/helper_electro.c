@@ -427,14 +427,14 @@ void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and p
         psizp = p->psifield[iizp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa;
         psizm = p->psifield[iizm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa;
 
-        JDX[i] = -2.0*(p->npos_field[iixp]+p->npos_field[i])/2.0*(p->electric_field[iixp]-p->electric_field[i])/p->deltax;
-        JDX[i] += -2.0*(p->npos_field[i]+p->npos_field[iixm])/2.0*(p->electric_field[i]-p->electric_field[iixm])/p->deltax;
+        JDX[i] = -2.0*(p->npos_field[iixp]+p->npos_field[i])/2.0*(p->psifield[iixp]-p->psifield[i])/p->deltax;
+        JDX[i] += -2.0*(p->npos_field[i]+p->npos_field[iixm])/2.0*(p->psifield[i]-p->psifield[iixm])/p->deltax;
 
-        JDY[i] = -2.0*(p->npos_field[iiyp]+p->npos_field[i])/2.0*(p->electric_field[iiyp]-p->electric_field[i])/p->deltay;
-        JDY[i] += -2.0*(p->npos_field[i]+p->npos_field[iiym])/2.0*(p->electric_field[i]-p->electric_field[iiym])/p->deltay;
+        JDY[i] = -2.0*(p->npos_field[iiyp]+p->npos_field[i])/2.0*(p->psifield[iiyp]-p->psifield[i])/p->deltay;
+        JDY[i] += -2.0*(p->npos_field[i]+p->npos_field[iiym])/2.0*(p->psifield[i]-p->psifield[iiym])/p->deltay;
 
-        JDZ[i] = -2.0*(p->npos_field[iizp]+p->npos_field[i])/2.0*(psizp-p->electric_field[i])/p->deltaz;
-        JDZ[i] += -2.0*(p->npos_field[i]+p->npos_field[iizm])/2.0*(p->electric_field[i]-psizm)/p->deltaz;
+        JDZ[i] = -2.0*(p->npos_field[iizp]+p->npos_field[i])/2.0*(psizp-p->psifield[i])/p->deltaz;
+        JDZ[i] += -2.0*(p->npos_field[i]+p->npos_field[iizm])/2.0*(p->psifield[i]-psizm)/p->deltaz;
 
         }
     }
@@ -445,7 +445,8 @@ void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and p
   for (cell = 0 ; cell < p->n_cells ; cell++) {
 
       p->umbrella_field[cell] = JDZ[cell];
-      p->umbrella_field[cell+p->n_cells] = sqrt(JDZ[cell]*JDZ[cell]+JDX[cell]*JDX[cell]+JDY[cell]*JDY[cell]);
+      p->umbrella_field[cell+p->n_cells] = JDX[cell];
+//      p->umbrella_field[cell+p->n_cells] = sqrt(JDZ[cell]*JDZ[cell]+JDX[cell]*JDX[cell]+JDY[cell]*JDY[cell]);
   }
 }
 
