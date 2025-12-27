@@ -424,8 +424,8 @@ void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and p
                  iizp = izp + p->nz*iy + p->nz*p->ny*ix ;
                  iizm = izm + p->nz*iy + p->nz*p->ny*ix ;
 
-        psizp = p->electric_field[iizp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa;
-        psizm = p->electric_field[iizm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa;
+        psizp = p->psifield[iizp] + floor((soma_scalar_t)(iz+1)/(soma_scalar_t)p->nz)*alfa;
+        psizm = p->psifield[iizm] + floor((soma_scalar_t)(iz-1)/(soma_scalar_t)p->nz)*alfa;
 
         JDX[i] = -2.0*(p->npos_field[iixp]+p->npos_field[i])/2.0*(p->electric_field[iixp]-p->electric_field[i])/p->deltax;
         JDX[i] += -2.0*(p->npos_field[i]+p->npos_field[iixm])/2.0*(p->electric_field[i]-p->electric_field[iixm])/p->deltax;

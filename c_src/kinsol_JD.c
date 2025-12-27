@@ -121,7 +121,7 @@ int call_JD(struct Phase *const p)
   data = NULL; 
 
   /* Allocate memory, and set problem data, initial values, tolerances */
-  globalstrategy = KIN_NONE ; /* KIN_NONE = basic Newton iteration
+  globalstrategy = KIN_PICARD ; /* KIN_NONE = basic Newton iteration
 				KIN_LINESEARCH = Newton with globalization
 				KIN_FP = fixed point interaction
 				KIN_PICARD = Picard interaction */
@@ -211,8 +211,8 @@ N_VConst(0.0, constraints);  // no constrains c
     flag = KINSetUserData(kmem, data);
     if (check_flag(&flag, "KINSetUserData", 1)) return(1);
 
-    flag = KINSetConstraints(kmem, constraints);  // CONSTRAINTS NO NEEDED
-    if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
+//    flag = KINSetConstraints(kmem, constraints);  // CONSTRAINTS NO NEEDED
+//    if (check_flag(&flag, "KINSetConstraints", 1)) return(1);
 
     flag = KINSetFuncNormTol(kmem, fnormtol);
     if (check_flag(&flag, "KINSetFuncNormTol", 1)) return(1);
@@ -274,7 +274,7 @@ N_VConst(0.0, constraints);  // no constrains c
       if (check_flag(&flag, "KINSetLinearSolver", 1)) return 1;
 
       /* Set the maximum number of restarts */
-      maxlrst = 10;
+      maxlrst = 1000;
       flag = SUNLinSol_SPGMRSetMaxRestarts(LS, maxlrst);
       if (check_flag(&flag, "SUNLinSol_SPGMRSetMaxRestarts", 1)) return(1);
 
@@ -345,8 +345,8 @@ N_VConst(0.0, constraints);  // no constrains c
     if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
 
     /* Set preconditioner functions*/
-//    flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
-//    if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
+ //   flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
+ //   if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 
     mset = 1; // maximum number of iterations before recalc diagonal preconditioner
 
@@ -565,7 +565,7 @@ soma_scalar_t norma = 0;
                      }
                 }
          }
-  printf("func: iter, norma: %d %f %f %f %f \n ", itersJD, norma, psiC[0]); 
+  printf("func: iter, norma: %d %f %f %f \n ", itersJD, norma, psiC[0]); 
 
 
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
