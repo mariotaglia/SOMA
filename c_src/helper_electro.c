@@ -445,7 +445,7 @@ void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and p
   for (cell = 0 ; cell < p->n_cells ; cell++) {
 
       p->umbrella_field[cell] = JDZ[cell];
-      p->umbrella_field[cell+p->n_cells] = JDX[cell];
+      p->umbrella_field[cell+p->n_cells] = JDY[cell];
 //      p->umbrella_field[cell+p->n_cells] = sqrt(JDZ[cell]*JDZ[cell]+JDX[cell]*JDX[cell]+JDY[cell]*JDY[cell]);
   }
 }
