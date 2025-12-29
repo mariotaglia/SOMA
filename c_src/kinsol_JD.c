@@ -171,7 +171,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
     /* (Re-)Initialize user data */
 
-   fnormtol = 1e-10;   
+   fnormtol = 1e-8;   
    scsteptol = 1e-10; 
 
 
@@ -367,7 +367,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
         KINGetFuncNorm(kmem, &fnorm);
 //        printf("flag %d \n", flag);
-    if (((flag == 0)||(flag == 1)||(flag == 2))&&(!isnan(fnorm))) {  // converged
+    if (((flag == 0)||(flag == 1)||(flag == 2)||(flag == -13))&&(!isnan(fnorm))) {  // converged
 							       //
 
         p->aviter += itersJD;

@@ -1342,17 +1342,6 @@ int analytics(struct Phase *const p)
             written = true;
         }
 
-    // Total current
-    if (p->ana_info.delta_mc_total_current != 0 && p->time % p->ana_info.delta_mc_total_current == 0 && p->time != 0)
-        {
-	    
-            update_electric_field(p, 1);
-            soma_scalar_t total_current = p->current;
-            if (p->info_MPI.sim_rank == 0)
-                extent_ana_by_field(&total_current, 1, "/total_current", p->ana_info.file_id);
-            written = true;
-        }
-
     // MSD
     if (p->ana_info.delta_mc_MSD != 0 && p->time % p->ana_info.delta_mc_MSD == 0)
         {
@@ -1434,6 +1423,11 @@ int analytics(struct Phase *const p)
 
     
         if (p->args.efieldsolver_arg == efieldsolver_arg_JD) {
+
+	    update_invblav(p); // update invblav (inverse of average Bjerrum length)
+            update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
+            update_rhoF(p);  // update polymer charge density
+            update_exp_born(p); // update born energy		
             update_electric_field(p, 1);
             calc_JD_umbrella(p); // calculates J fluxes and put it into umbrella field for export
 	}
@@ -1560,6 +1554,24 @@ int analytics(struct Phase *const p)
             written = true;
             free(monomer_type_fraction);
         }
+
+    // Total current
+    if (p->ana_info.delta_mc_total_current != 0 && p->time % p->ana_info.delta_mc_total_current == 0 && p->time != 0)
+        {
+	    
+ 	    update_invblav(p); // update invblav (inverse of average Bjerrum length)
+            update_d_invblav(p); // update dinvblav (derivative of inverse of average Bjerrum length respect to number of segments)
+            update_rhoF(p);  // update polymer charge density
+            update_exp_born(p); // update born energy		
+            update_electric_field(p, 1);
+            soma_scalar_t total_current = p->current;
+            if (p->info_MPI.sim_rank == 0)
+                extent_ana_by_field(&total_current, 1, "/total_current", p->ana_info.file_id);
+            written = true;
+        }
+
+
+
 
     //dump
     if (p->ana_info.delta_mc_dump != 0 && p->time % p->ana_info.delta_mc_dump == 0)
