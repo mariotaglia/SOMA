@@ -183,12 +183,25 @@ N_VConst(0.0, constraints);  // no constrains c
    // initial guess, electrostatic potential equal to equilibrium, so \delta psi = psi' = 0
    // right solution for alfa -> 0 
    //
-        for (i = 0 ; i < NEQ ; i++) {
-              NVITH(cc,i) = 0.0 ;
-        }
+   //
+  
 
+        for (iz = 0 ; iz < p->nz ; iz++) {
+        for (ix = 0 ; ix < p->nx ; ix++) {
+        for (iy = 0 ; iy < p->ny ; iy++) {
 
-   }  else {
+	       
+        i = cell_coordinate_to_index(p, ix, iy, iz);
+
+        if(i < NEQ) {
+          //    printf("iz , i, a %d %f \n", iz, ((soma_scalar_t) iz)/((soma_scalar_t) (p->nz-1)) * alfa);
+              NVITH(cc,i) = ((soma_scalar_t) iz)/((soma_scalar_t) (p->nz-1)) * alfa ; 
+	}
+	} } }
+
+       
+
+    }  else {
        for (i = 0 ; i < NEQ ; i++)  {
               NVITH(cc,i) = ccx[i] ;
 	  }
@@ -232,7 +245,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
       /* Create SUNLinSol_SPGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
-      maxl = 1000;
+      maxl = 5000;
 
 //      LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
 //      if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1); 
@@ -263,8 +276,8 @@ N_VConst(0.0, constraints);  // no constrains c
          maximum Krylov dimension maxl */
       maxl = 1000;
 
-      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
-      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
+//      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
+//      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
 
       LS = SUNLinSol_SPBCGS(cc, SUN_PREC_RIGHT, maxl, sunctx);
       if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
@@ -344,15 +357,18 @@ N_VConst(0.0, constraints);  // no constrains c
     flag = KINSetJacTimesVecFn(kmem, jactimes);
     if (check_flag(&flag, "KINSetJacTimesVecFn", 1)) return(1);
 
+    int mbset = 1000;
+    flag = KINSetMaxSetupCalls(kmem, mbset);
+    if (check_flag(&flag, "KINSetMaxSetupCalls", 1)) return(1);
+
     /* Set preconditioner functions*/
     flag = KINSetPreconditioner(kmem, PrecSetupJD, PrecSolveJD);
     if (check_flag(&flag, "KINSetPreconditioner", 1)) return(1);
 
-    mset = 1; // maximum number of iterations before recalc diagonal preconditioner
+    soma_scalar_t damp = 0.9;
+    flag = KINSetDamping(kmem, damp);
+    if (check_flag(&flag, "KINSetDamping", 1)) return(1);
 
-    flag = KINSetMaxSetupCalls(kmem, mset);
-    if (check_flag(&flag, "KINSetMaxSetupCalls", 1)) return(1);
-    
     /* Call KINSol */
 
     flag = KINSol(kmem,           /* KINSol memory block */
@@ -363,11 +379,11 @@ N_VConst(0.0, constraints);  // no constrains c
 
 
 
+    printf("flag %d \n", flag);
     if (check_flag(&flag, "KINSol", 1)) return(1);
 
-        KINGetFuncNorm(kmem, &fnorm);
-//        printf("flag %d \n", flag);
-    if (((flag == 0)||(flag == 1)||(flag == 2)||(flag == -13))&&(!isnan(fnorm))) {  // converged
+    KINGetFuncNorm(kmem, &fnorm);
+    if (((flag == 0)||(flag == 1))&&(!isnan(fnorm))) {  // converged
 							       //
 
         p->aviter += itersJD;
@@ -486,23 +502,14 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
   int NEQ; //<- Number of equations 
   NEQ = (int) p->nx*p->ny*p->nz-1; /* the concentration is fixed near electrodes */
 
-
-  soma_scalar_t *vvin = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
-    if (vvin == NULL)
-        {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
-        }
-
-
   soma_scalar_t  res; // residual Poisson Eq.
   soma_scalar_t  psizm, psizp; // auxiliary for PBC
 
   soma_scalar_t *psiC = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
     if (psiC == NULL)
         {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
+            fprintf(stdout, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return 1;
         }
 
 
@@ -613,7 +620,7 @@ static int check_flag(void *flagvalue, const char *funcname, int opt)
 
   /* Check if SUNDIALS function returned NULL pointer - no memory allocated */
   if (opt == 0 && flagvalue == NULL) {
-    fprintf(stderr,
+    fprintf(stdout,
             "\nSUNDIALS_ERROR: %s() failed - returned NULL pointer\n\n",
 	    funcname);
     return(1);
@@ -623,7 +630,7 @@ static int check_flag(void *flagvalue, const char *funcname, int opt)
   else if (opt == 1) {
     errflag = (int *) flagvalue;
     if (*errflag < 0) {
-      fprintf(stderr,
+      fprintf(stdout,
               "\nSUNDIALS_ERROR: %s() failed with flag = %d\n\n",
 	      funcname, *errflag);
       return(1);
@@ -632,7 +639,7 @@ static int check_flag(void *flagvalue, const char *funcname, int opt)
 
   /* Check if function returned NULL pointer - no memory allocated */
   else if (opt == 2 && flagvalue == NULL) {
-    fprintf(stderr,
+    fprintf(stdout,
             "\nMEMORY_ERROR: %s() failed - returned NULL pointer\n\n",
 	    funcname);
     return(1);
@@ -676,8 +683,8 @@ static int PrecSetupJD(N_Vector cc, N_Vector cscale,
   soma_scalar_t *c = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
     if (c == NULL)
         {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
+            fprintf(stdout, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return 1;
         }
 
 
@@ -742,14 +749,14 @@ static int PrecSolveJD(N_Vector cc, N_Vector cscale,
   soma_scalar_t *vvin = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
     if (vvin == NULL)
         {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
+            fprintf(stdout, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return 1;
         }
   soma_scalar_t *vvout = (soma_scalar_t *) malloc(NEQ * sizeof(soma_scalar_t));
     if (vvout == NULL)
         {
-            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
-            return -1;
+            fprintf(stdout, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            return 1;
         }
 
 
