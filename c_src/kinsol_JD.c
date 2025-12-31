@@ -245,7 +245,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
       /* Create SUNLinSol_SPGMR object with right preconditioning and the
          maximum Krylov dimension maxl */
-      maxl = 5000;
+      maxl = 1000;
 
 //      LS = SUNLinSol_SPGMR(cc, SUN_PREC_NONE, maxl, sunctx);
 //      if(check_flag((void *)LS, "SUNLinSol_SPGMR", 0)) return(1); 
@@ -274,7 +274,7 @@ N_VConst(0.0, constraints);  // no constrains c
 
       /* Create SUNLinSol_SPBCGS object and the
          maximum Krylov dimension maxl */
-      maxl = 1000;
+      maxl = 10000;
 
 //      LS = SUNLinSol_SPBCGS(cc, SUN_PREC_NONE, maxl, sunctx);
 //      if(check_flag((void *)LS, "SUNLinSol_SPBCGS", 0)) return(1); 
