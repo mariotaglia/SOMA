@@ -380,10 +380,10 @@ N_VConst(0.0, constraints);  // no constrains c
 
 
     printf("flag %d \n", flag);
-    if (check_flag(&flag, "KINSol", 1)) return(1);
+//    if (check_flag(&flag, "KINSol", 1)) return(1);
 
     KINGetFuncNorm(kmem, &fnorm);
-    if (((flag == 0)||(flag == 1))&&(!isnan(fnorm))) {  // converged
+    if (((flag == 0)||(flag == 1)||(flag==-13))&&(!isnan(fnorm))) {  // converged
 							       //
 
         p->aviter += itersJD;
@@ -456,6 +456,7 @@ iz = p->nz-2;
   printf("current: %.3e %.3e \n", iz, current0, currentL); // DEBUG
 
   p->current=current0; // store to save in ana file
+  if (flag==-13) p->current = 0.0;
 
 
 // print    

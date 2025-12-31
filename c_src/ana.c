@@ -1564,14 +1564,22 @@ int analytics(struct Phase *const p)
             update_rhoF(p);  // update polymer charge density
             update_exp_born(p); // update born energy		
             update_electric_field(p, 1);
-            soma_scalar_t total_current = p->current;
-            if (p->info_MPI.sim_rank == 0)
-                extent_ana_by_field(&total_current, 1, "/total_current", p->ana_info.file_id);
+
+            soma_scalar_t *const total_current = (soma_scalar_t * const)malloc(2 * sizeof(soma_scalar_t));
+            if (total_current == NULL)
+                {
+                    fprintf(stderr, "ERROR: Malloc %s:%d \n", __FILE__, __LINE__);
+                    return -2;
+                }
+
+            total_current[0] = (soma_scalar_t) p->time;
+            total_current[1] = p->current;
+            if (p->info_MPI.sim_rank == 0) {
+                extent_ana_by_field(total_current, 2, "/total_current", p->ana_info.file_id);
+	    }	
             written = true;
+	    free(total_current);
         }
-
-
-
 
     //dump
     if (p->ana_info.delta_mc_dump != 0 && p->time % p->ana_info.delta_mc_dump == 0)
