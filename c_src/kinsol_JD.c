@@ -456,7 +456,8 @@ iz = p->nz-2;
   printf("current: %.3e %.3e \n", iz, current0, currentL); // DEBUG
 
   p->current=current0; // store to save in ana file
-  if (flag==-13) p->current = 0.0;
+  if (flag==-13) { p->current = 0.0; }
+  if (abs((currentL-current0)/current0) > 0.01) { p->current = 0.0; }
 
 
 // print    
