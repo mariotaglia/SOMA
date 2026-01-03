@@ -432,7 +432,7 @@ current0 = 0.0;
 			    
           } // ix
    } //iy
-  current0 = current0 * p->deltax*p->deltay/p->deltaz;
+  current0 = current0 * p->deltax*p->deltay/p->deltaz/4.0;
   
 //  printf("check: iz, current: %d  %.3e \n", iz, current0); // DEBUG
 // } // iz -- DEBUG
@@ -451,7 +451,7 @@ iz = p->nz-2;
 	
           } // ix
    } //iy
-  currentL = currentL * p->deltax*p->deltay/p->deltaz;
+  currentL = currentL * p->deltax*p->deltay/p->deltaz/4.0;
 
   printf("current: %.3e %.3e \n", iz, current0, currentL); // DEBUG
 
