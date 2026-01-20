@@ -410,7 +410,6 @@ void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and p
         iyp = mod((iy+1),p->ny);
         iym = mod((iy-1),p->ny);
 
-#pragma omp parallel for
         for (iz = 0 ; iz < p->nz ; iz++) {
 
         izp = mod((iz+1),p->nz);
