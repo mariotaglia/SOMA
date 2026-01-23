@@ -101,7 +101,14 @@ unsigned int type;
 void update_invblav(const struct Phase *const p) // Updates invblav = average of inverse Bjerrum length
 
 {
-unsigned int tmpsegsum[p->n_cells];
+
+unsigned int *tmpsegsum = (unsigned int *)malloc((int)p->n_cells * sizeof(unsigned int));
+    if (tmpsegsum == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            exit(1);
+        }
+ 
 unsigned int cell, type;
 
 
@@ -135,14 +142,22 @@ for (type = 0 ; type < p->n_types; type++) {
                 p->invblav[cell] = p->invblav_zero; // prevents divergence if tmpsegsum = 0
 	  }
     }
+
+free(tmpsegsum);
+
 }
 
 void update_d_invblav(const struct Phase *const p) // Updates d_invblav = derivative of average inverse Bjerrum length respect to N_i
 
 {
 unsigned int cell, type;
-unsigned int tmpsegsum[p->n_cells];
-
+unsigned int *tmpsegsum = (unsigned int *)malloc((int)p->n_cells * sizeof(unsigned int));
+    if (tmpsegsum == NULL)
+        {
+            fprintf(stderr, "ERROR: Malloc %s:%d\n", __FILE__, __LINE__);
+            exit(1);
+        }
+ 
 #pragma data create(tmpsegsumacc[0:p->n_cells])  
 {
 
@@ -177,6 +192,8 @@ for (type = 0 ; type < p->n_types; type++) {
   } 
  }
 } // pragma create
+
+free(tmpsegsum);
 
 }
 
