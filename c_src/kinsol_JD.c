@@ -195,7 +195,7 @@ if (phi_sum == 0) {
 	  phi0 = ((soma_scalar_t) p->fields_unified[cell]) / ((soma_scalar_t) phi_sum);
   }
 
-      p->nneg_field[cell] = p->npos_field[cell] * 1.0/(1.0+exp(-(phi0-p->mp)/p->mw)) ;
+      p->nneg_field[cell] = p->npos_field[cell] * (1.0+exp(-(1.0-p->mp)/p->mw))/(1.0+exp(-(phi0-p->mp)/p->mw)) ;
 
 }
 
