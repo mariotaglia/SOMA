@@ -185,14 +185,14 @@ for (cell = 0 ; cell < p->n_cells ; cell++) {
 
 
 	
-int phi_sum = p->fields_unified[cell+p->n_cells] + p->fields_unified[cell+p->n_cells];
+int phi_sum = p->fields_unified[cell+p->n_cells] + p->fields_unified[cell];
 	soma_scalar_t phi0;
 if (phi_sum == 0) {
 	  phi0  = 0.5;
   }
   else
   {
-	  phi0 = ((soma_scalar_t) p->fields_unified[cell+p->n_cells]) / ((soma_scalar_t) phi_sum);
+	  phi0 = ((soma_scalar_t) p->fields_unified[cell]) / ((soma_scalar_t) phi_sum);
   }
 
       p->nneg_field[cell] = p->npos_field[cell] * 1.0/(1.0+exp(-(phi0-p->mp)/p->mw)) ;
