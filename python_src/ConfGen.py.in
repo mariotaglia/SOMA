@@ -1063,6 +1063,8 @@ class SomaXML:
     knownTags += ["Born_neg"] 
     knownTags += ["nxyz"]
     knownTags += ["Nions"]
+    knownTags += ["mp"]
+    knownTags += ["mw"]
     knownTags += ["hamiltonian"]
     knownTags += ["area51"]
     knownTags += ["external_field"]
@@ -1191,6 +1193,12 @@ class Configuration(SomaXML):
         ## Number of positive and negative ions in the grid
         self.Nions = self.create_Nions()
 
+        ## Mask pos for current calculation
+        self.mp = self.create_mp()
+
+        ## Mask width for current calculation
+        self.mw = self.create_mw()
+
         ## Hamiltonian of system
         self.hamiltonian = self.create_hamiltonian()
 
@@ -1263,6 +1271,8 @@ class Configuration(SomaXML):
             create_list += [("/parameter/Born_neg",self.Born_neg)]
             create_list += [("/parameter/nxyz",self.nxyz)]
             create_list += [("/parameter/Nions",self.Nions)]
+            create_list += [("/parameter/mp",self.mp)]
+            create_list += [("/parameter/mw",self.mw)]
             create_list += [("/parameter/hamiltonian",self.hamiltonian)]
             create_list += [("/parameter/k_umbrella",self.k_umbrella)]
             create_list += [("/parameter/xn",self.xn)]
@@ -1766,6 +1776,36 @@ class Configuration(SomaXML):
     def create_Nions(self):
         string = ""
         for element in self.root.iter('Nions'):
+            string += element.text
+        string = string.strip()
+
+        string = string.split()
+        assert len(string) == 1
+        tmp = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
+        for i in range(1):
+            tmp[i] = float(string[i])
+            assert tmp[i] >= 0.0
+        return tmp
+
+## Mask position for current calculation
+    def create_mp(self):
+        string = ""
+        for element in self.root.iter('mp'):
+            string += element.text
+        string = string.strip()
+
+        string = string.split()
+        assert len(string) == 1
+        tmp = numpy.zeros((1,),dtype=soma_type.get_soma_scalar_type())
+        for i in range(1):
+            tmp[i] = float(string[i])
+            assert tmp[i] >= 0.0
+        return tmp
+
+## Mask width for current calculation
+    def create_mw(self):
+        string = ""
+        for element in self.root.iter('mw'):
             string += element.text
         string = string.strip()
 

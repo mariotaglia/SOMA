@@ -617,6 +617,14 @@ int write_config_hdf5(struct Phase *const p, const char *filename)
     status = write_hdf5(1, &one, file_id, "/parameter/Nions", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
 
+    //mp
+    status = write_hdf5(1, &one, file_id, "/parameter/mp", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->mp));
+    HDF5_ERROR_CHECK2(status, "/parameter/mp");
+
+    //mw
+    status = write_hdf5(1, &one, file_id, "/parameter/mw", H5T_SOMA_FILE_SCALAR, H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->mw));
+    HDF5_ERROR_CHECK2(status, "/parameter/mw");
+
     //Lx Ly Lz
     soma_scalar_t lxyz[3] = { p->Lx, p->Ly, p->Lz };
     status =
@@ -1494,6 +1502,14 @@ int read_config_hdf5(struct Phase *const p, const char *filename)
     // read Nions
     status = read_hdf5(file_id, "/parameter/Nions", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Nions));
     HDF5_ERROR_CHECK2(status, "/parameter/Nions");
+
+    // read mp
+    status = read_hdf5(file_id, "/parameter/mp", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->mp));
+    HDF5_ERROR_CHECK2(status, "/parameter/mp");
+
+    // read mw
+    status = read_hdf5(file_id, "/parameter/mw", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->mw));
+    HDF5_ERROR_CHECK2(status, "/parameter/mw");
 
     // read Born_pol
     status = read_hdf5(file_id, "/parameter/Born_pol", H5T_SOMA_NATIVE_SCALAR, plist_id, &(p->Born_pol));

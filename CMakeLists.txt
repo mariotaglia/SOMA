@@ -80,7 +80,7 @@ endif(ENABLE_MPI)
 
 #Check for supported compilers.
 if( NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
-  message("SOMA is intended to be used with either GNU GCC or PGI. Proceed on your own risk, using ${CMAKE_C_COMPILER_ID}")
+  message("SOMA is intended to be used with either GNU GCC or PGI. Proceed on your own risk.")
 endif(NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "PGI" )
 
 
@@ -90,13 +90,13 @@ set(soma_link_flags "-lm -ldl -lz")
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
+  
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -fopenmp -fopenmp -I/home/mario/software/KINSOL/include -L/home/mario/software/KINSOL/lib -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/home/mario/software/KINSOL/lib")
+
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unknown-pragmas")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -fopenmp -I/usr/local/include -L/usr/local/lib -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/usr/local/lib")
-
   set(CMAKE_C_FLAGS_DEBUG "-g -fstack-protector-all -Wstack-protector -fstack-protector-strong")
-
   option(ENABLE_SANITIZE_DEBUG "Activate gcc sanitize debug plugins (undefined and address)." OFF)
   if(ENABLE_SANITIZE_DEBUG)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=undefined -fsanitize=address")
@@ -104,22 +104,6 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
   endif(ENABLE_SANITIZE_DEBUG)
 endif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "NVHPC")
-
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I/home/mtaglia/opt/kinsol_cuda/include -L/home/mtaglia/opt/kinsol_cuda/lib64 -lsundials_kinsol -lsundials_nvecserial -lsundials_nvecmanyvector -lm -Wl,-rpath,/home/mtaglia/opt/kinsol_cuda/lib64")
-
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress cast_to_qualified_type")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress code_is_unreachable ")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress integer_sign_change ")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress nonobject_pointer_arithmetic")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress branch_past_initialization")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress declared_but_not_referenced")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --diag_suppress mixed_enum_type")
-
-endif("${CMAKE_C_COMPILER_ID}" STREQUAL "NVHPC")
-
-
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "PGI")
   #sorry the PGI compiler messages are utterly useless. And I don't know how to shutoff the warnings in the code.
@@ -254,8 +238,6 @@ if(ENABLE_OPENMP)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(SOMA_VERSION_LONG "${SOMA_VERSION_LONG} OpenMP")
 endif(ENABLE_OPENMP)
-
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -fopenmp -I/usr/local/include -L/usr/local/lib -lsundials_kinsol -lsundials_nvecopenmp -lm -Wl,-rpath,/usr/local/lib")
 
 add_subdirectory(c_src)
 add_subdirectory(setups)

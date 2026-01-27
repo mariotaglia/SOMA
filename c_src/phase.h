@@ -323,6 +323,8 @@ typedef struct Phase {
     soma_scalar_t Bjerrum;   //!< Bjerrum lenght in units of Re 
     soma_scalar_t Acharge;   //!< Charge of A segment 
 
+    soma_scalar_t mp; //!< position of the mask for current calculation
+    soma_scalar_t mw; //!< width of the mask for current calculation
 } Phase;
 
 /*! \brief Initializes the values additional after the input init by the read*() functions.
