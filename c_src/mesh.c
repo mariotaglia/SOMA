@@ -307,7 +307,7 @@ int update_density_fields(const struct Phase *const p)
     return 0;
 }
 
-void update_omega_fields(const struct Phase *const p)
+void update_omega_fields(struct Phase *const p)
 {
     static unsigned int last_time_call = 0;
     if (last_time_call == 0 || p->time > last_time_call)
@@ -333,7 +333,7 @@ void update_omega_fields(const struct Phase *const p)
 //! potential.
 //! \private Helper function
 //! \param p Phase of the system to init the omega fields
-void self_omega_field(const struct Phase *const p)
+void self_omega_field(struct Phase *const p)
 {
 
 
@@ -564,13 +564,13 @@ void add_pair_omega_fields_scmf1(const struct Phase *const p)
         }
 }
 
-void update_omega_fields_scmf0(const struct Phase *const p)
+void update_omega_fields_scmf0(struct Phase *const p)
 {
     self_omega_field(p);
     add_pair_omega_fields_scmf0(p);
 }
 
-void update_omega_fields_scmf1(const struct Phase *const p)
+void update_omega_fields_scmf1(struct Phase *const p)
 {
     self_omega_field(p);
     add_pair_omega_fields_scmf1(p);

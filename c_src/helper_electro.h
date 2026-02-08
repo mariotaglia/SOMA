@@ -24,7 +24,7 @@ void update_exp_born(const struct Phase *const p);
 void update_rhoF(const struct Phase *const p);
 void update_NB(const struct Phase *const p);
 
-void update_electric_field(const struct Phase *const p, int ana);
+void update_electric_field(struct Phase *const p, int ana);
 void calc_J_umbrella(const struct Phase *const p);
 void calc_JD_umbrella(const struct Phase *const p);
 

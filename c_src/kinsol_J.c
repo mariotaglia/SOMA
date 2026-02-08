@@ -532,7 +532,7 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
 
 #include <assert.h>
 
-  unsigned int ix, iy, iz, cell, i;
+  int ix, iy, iz, cell, i;
   int ixp ,ixm, iyp, iym, izp, izm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
@@ -545,9 +545,9 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
   iters++;	   
 
 // c from npos_ions
-for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-			  for (iz = 0 ; iz <  p->nz ; iz++) {
+for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int) p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           c[ix][iy][iz] = p->npos_field[cell];
 			  }
@@ -560,9 +560,9 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
 
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 1 ; iz < (int)  p->nz-1 ; iz++) {
                           i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 	                  eps[ix][iy][iz] = NVITH(cc,i);
 	           }
@@ -572,16 +572,16 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 // fill borders
   iz = 0;   
 #pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 	       eps[ix][iy][iz] = alfa;  
            }
    }
 
   iz = p->nz-1;
 #pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
 	       eps[ix][iy][iz] = 1.0; 
            }
    }
@@ -599,18 +599,18 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 //soma_scalar_t slope = (1-alfa)/p->Lz;
 
 // DO NOT PARALELIZE HERE  
-  for (ix = 0 ; ix < p->nx ; ix++) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
-     ixp = mod((ix+1),p->nx);
-     ixm = mod((ix-1),p->nx);
+     ixp = mod((ix+1), (int) p->nx);
+     ixm = mod((ix-1), (int) p->nx);
  
-     for (iy = 0 ; iy < p->ny ; iy++) {
+     for (iy = 0 ; iy < (int) p->ny ; iy++) {
 
-        iyp = mod((iy+1),p->ny);
-        iym = mod((iy-1),p->ny);
+        iyp = mod((iy+1),(int) p->ny);
+        iym = mod((iy-1),(int) p->ny);
 
 #pragma omp parallel for  
-	for (iz = 1 ; iz < p->nz-1 ; iz++) {
+	for (iz = 1 ; iz < (int) p->nz-1 ; iz++) {
       
 	izp = iz+1;       	
 	izm = iz-1;       	
@@ -635,9 +635,9 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 
 
 // DO NOT PARALELIZE #pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-     for (iy = 0 ; iy < p->ny ; iy++) {
-	for (iz = 1 ; iz < p->nz-1 ; iz++) {
+  for (ix = 0 ; ix < (int)  p->nx ; ix++) {
+     for (iy = 0 ; iy < (int)  p->ny ; iy++) {
+	for (iz = 1 ; iz < (int) p->nz-1 ; iz++) {
 
          i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
          NVITH(fval,i) = res[ix][iy][iz];
@@ -737,15 +737,15 @@ static int PrecSetupJ(__attribute__((unused)) N_Vector cc,
 
 #include <assert.h>
 
-  unsigned int ix, iy, iz, i;
+  int ix, iy, iz, i;
   int ixp ,ixm, iyp, iym, izp, izm, cell;
   struct Phase *const p = user_data;
   soma_scalar_t c[p->nx][p->ny][p->nz]; // concentration
 
 // c from npos_ions
-for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-			  for (iz = 0 ; iz <  p->nz ; iz++) {
+for (ix = 0 ; ix < (int) p->nx ; ix++) {
+	  for (iy = 0 ; iy < (int) p->ny ; iy++) {
+			  for (iz = 0 ; iz < (int) p->nz ; iz++) {
                           cell = cell_coordinate_to_index(p, ix, iy, iz);
                           c[ix][iy][iz] = p->npos_field[cell]/p->npos_field[0];
 			  }
@@ -759,17 +759,17 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
 // i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
 
-  for (ix = 0 ; ix < p->nx ; ix++) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
-     ixp = mod((ix+1),p->nx);
-     ixm = mod((ix-1),p->nx);
+     ixp = mod((ix+1),(int) p->nx);
+     ixm = mod((ix-1),(int) p->nx);
  
-     for (iy = 0 ; iy < p->ny ; iy++) {
+     for (iy = 0 ; iy < (int) p->ny ; iy++) {
 
-        iyp = mod((iy+1),p->ny);
-        iym = mod((iy-1),p->ny);
+        iyp = mod((iy+1),(int) p->ny);
+        iym = mod((iy-1),(int) p->ny);
 
-	for (iz = 1 ; iz < p->nz-1 ; iz++) {
+	for (iz = 1 ; iz < (int) p->nz-1 ; iz++) {
         
         	izp = iz+1;
  		izm = iz-1;

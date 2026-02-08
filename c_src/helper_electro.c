@@ -58,7 +58,7 @@ void calc_ions(struct Phase *const p)
   assert(fabs(netcharge) < 1.0e-6);
 }
 
-void update_electric_field(const struct Phase *const p, int ana)
+void update_electric_field(struct Phase *const p, int ana)
 {
     // Update electric potential
     //
@@ -299,7 +299,7 @@ void calc_J_umbrella(const struct Phase *const p) // calculates J fluxes and put
   soma_scalar_t  Jx[p->n_cells]; // c/ceq
   soma_scalar_t  Jy[p->n_cells]; // c/ceq
   soma_scalar_t  Jz[p->n_cells]; // c/ceq
-  unsigned int ix,iy,iz,i,cell; 
+  unsigned int ix,iy,iz,cell; 
   unsigned int ixm,iym,izm,ixp,iyp,izp, cellm, cellp;
  
   int mod(int a, int b); // modulus
@@ -389,7 +389,8 @@ void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and p
 {
 
       
-  int ix, iy, iz, cell, i;
+  int ix, iy, iz, i;
+  uint64_t cell;
   int ixp ,ixm, iyp, iym, izp, izm;
   unsigned int iixp ,iixm, iiyp, iiym, iizp, iizm;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
@@ -417,20 +418,20 @@ void calc_JD_umbrella(const struct Phase *const p) // calculates JD fluxes and p
 
   soma_scalar_t  psizm, psizp; // auxiliary for PBC
 
-  for (ix = 0 ; ix < p->nx ; ix++) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
-     ixp = mod((ix+1),p->nx);
-     ixm = mod((ix-1),p->nx);
+     ixp = mod((ix+1),(int) p->nx);
+     ixm = mod((ix-1),(int) p->nx);
 
-     for (iy = 0 ; iy < p->ny ; iy++) {
+     for (iy = 0 ; iy < (int) p->ny ; iy++) {
 
-        iyp = mod((iy+1),p->ny);
-        iym = mod((iy-1),p->ny);
+        iyp = mod((iy+1),(int) p->ny);
+        iym = mod((iy-1),(int) p->ny);
 
-        for (iz = 0 ; iz < p->nz ; iz++) {
+        for (iz = 0 ; iz < (int) p->nz ; iz++) {
 
-        izp = mod((iz+1),p->nz);
-        izm = mod((iz-1),p->nz);
+        izp = mod((iz+1),(int) p->nz);
+        izm = mod((iz-1),(int) p->nz);
 
                  i = iz + p->nz*iy + p->nz*p->ny*ix ;
                  iixp = iz + p->nz*iy + p->nz*p->ny*ixp ;
