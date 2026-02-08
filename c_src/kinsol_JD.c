@@ -91,12 +91,10 @@ int call_JD(struct Phase *const p)
   static int flagsolved = 1; // turn to 0 after first solution 
   static realtype scale; 
   int num_threads;
-  int flag, maxl, maxlrst, mset;
+  int flag, maxl, maxlrst;
   void *kmem;
   SUNLinearSolver LS;
   Phase *data;
-  soma_scalar_t cions[p->n_cells]; // concentration
-  soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg; // in this case, electrostatic potential difference in kBT/e
   const soma_scalar_t mw = p->args.noneq_mw_arg; // mask function for conductivity calculation
   realtype fnorm;
