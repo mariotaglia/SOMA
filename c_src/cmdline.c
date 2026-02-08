@@ -67,9 +67,8 @@ const char *som_args_detailed_help[] = {
     "      --n_random_q=N            Option to determine the number of random wave\n                                  vectors used for the calculation of structure\n                                  factor.  (default=`32')",
     "  -f, --final-file=filename     Filename to write the final configuration.\n                                  (HDF5-Format)  (default=`end.h5')",
     "      --purpose=description     Describe the purpose of the simulation run.\n                                  Enables automatic self documentation. only\n                                  ASCII",
-    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				NP (Generalized Nernst-Plack approach to solve for ion currents) \n	JD (calc current for non-blocking boundaries) \n				NO (none), (default = NE) \n",
-    "  --noneq-ratio=ratio          NP: Ratio of ion concentrations for non-equilibrium calculations, \n                                c(L)/c(0). Default = 1 (equilibrium)   \n  JD: Potential difference along z direction, units of kBT/e \n",
-    0
+    "  -e, --efieldsolver=SOLVER     Solver for electrostatic field, SOLVER = \n				EN (electroneutrality) \n				PB (Poisson Boltzmann, guess from NE) \n				NP (Generalized Nernst-Plack approach to solve for ion currents) \n				JD (calc current for non-blocking boundaries) \n				NO (none), (default = NE) \n", "  --noneq-ratio=ratio          NP: Ratio of ion concentrations for non-equilibrium calculations, \n                               c(L)/c(0). Default = 1 (equilibrium)   \n			  JD: Potential difference along z direction, units of kBT/e \n","  --noneq-mw=mw			JD: Width of the mask for conductivity calculation, mask = exp((phi-1)*mw) \n",    0
+
 };
 
 static void init_help_array(void)
@@ -80,38 +79,40 @@ static void init_help_array(void)
     som_args_help[3] = som_args_detailed_help[3];
     som_args_help[4] = som_args_detailed_help[4];
     som_args_help[5] = som_args_detailed_help[5];
-    som_args_help[6] = som_args_detailed_help[7];
-    som_args_help[7] = som_args_detailed_help[8];
-    som_args_help[8] = som_args_detailed_help[9];
-    som_args_help[9] = som_args_detailed_help[10];
-    som_args_help[10] = som_args_detailed_help[11];
-    som_args_help[11] = som_args_detailed_help[12];
-    som_args_help[12] = som_args_detailed_help[13];
-    som_args_help[13] = som_args_detailed_help[14];
-    som_args_help[14] = som_args_detailed_help[15];
-    som_args_help[15] = som_args_detailed_help[16];
-    som_args_help[16] = som_args_detailed_help[17];
-    som_args_help[17] = som_args_detailed_help[18];
-    som_args_help[18] = som_args_detailed_help[19];
-    som_args_help[19] = som_args_detailed_help[20];
-    som_args_help[20] = som_args_detailed_help[21];
-    som_args_help[21] = som_args_detailed_help[22];
-    som_args_help[22] = som_args_detailed_help[23];
-    som_args_help[23] = som_args_detailed_help[24];
-    som_args_help[24] = som_args_detailed_help[25];
-    som_args_help[25] = som_args_detailed_help[26];
-    som_args_help[26] = som_args_detailed_help[27];
-    som_args_help[27] = som_args_detailed_help[28];
-    som_args_help[28] = som_args_detailed_help[29];
-    som_args_help[29] = som_args_detailed_help[30];
-    som_args_help[30] = som_args_detailed_help[31];
-    som_args_help[31] = som_args_detailed_help[32];
-    som_args_help[32] = som_args_detailed_help[33];
-    som_args_help[33] = 0;
+    som_args_help[6] = som_args_detailed_help[6];
+    som_args_help[7] = som_args_detailed_help[7];
+    som_args_help[8] = som_args_detailed_help[8];
+    som_args_help[9] = som_args_detailed_help[9];
+    som_args_help[10] = som_args_detailed_help[10];
+    som_args_help[11] = som_args_detailed_help[11];
+    som_args_help[12] = som_args_detailed_help[12];
+    som_args_help[13] = som_args_detailed_help[13];
+    som_args_help[14] = som_args_detailed_help[14];
+    som_args_help[15] = som_args_detailed_help[15];
+    som_args_help[16] = som_args_detailed_help[16];
+    som_args_help[17] = som_args_detailed_help[17];
+    som_args_help[18] = som_args_detailed_help[18];
+    som_args_help[19] = som_args_detailed_help[19];
+    som_args_help[20] = som_args_detailed_help[20];
+    som_args_help[21] = som_args_detailed_help[21];
+    som_args_help[22] = som_args_detailed_help[22];
+    som_args_help[23] = som_args_detailed_help[23];
+    som_args_help[24] = som_args_detailed_help[24];
+    som_args_help[25] = som_args_detailed_help[25];
+    som_args_help[26] = som_args_detailed_help[26];
+    som_args_help[27] = som_args_detailed_help[27];
+    som_args_help[28] = som_args_detailed_help[28];
+    som_args_help[29] = som_args_detailed_help[29];
+    som_args_help[30] = som_args_detailed_help[30];
+    som_args_help[31] = som_args_detailed_help[31];
+    som_args_help[32] = som_args_detailed_help[32];
+    som_args_help[33] = som_args_detailed_help[33];
+    som_args_help[34] = som_args_detailed_help[34];
+    som_args_help[35] = 0;
 
 }
 
-const char *som_args_help[34];
+const char *som_args_help[36];
 
 typedef enum { ARG_NO, ARG_FLAG, ARG_STRING, ARG_INT, ARG_DOUBLE, ARG_ENUM
 } cmdline_parser_arg_type;
@@ -171,6 +172,7 @@ void clear_given(struct som_args *args_info)
     args_info->final_file_given = 0;
     args_info->purpose_given = 0;
     args_info->noneq_ratio_given = 0;
+    args_info->noneq_mw_given = 0;
 }
 
 static
@@ -230,8 +232,9 @@ void clear_args(struct som_args *args_info)
     args_info->purpose_arg = NULL;
     args_info->purpose_orig = NULL;
     args_info->noneq_ratio_arg = 1.;
+    args_info->noneq_mw_arg = 0.0;
     args_info->noneq_ratio_orig = NULL;
- 
+    args_info->noneq_mw_orig = NULL;
 }
 
 static
@@ -272,7 +275,7 @@ void init_args_info(struct som_args *args_info)
     args_info->purpose_help = som_args_detailed_help[31];
     args_info->efieldsolver_help = som_args_detailed_help[32];
     args_info->noneq_ratio_help = som_args_detailed_help[33];
-
+    args_info->noneq_mw_help = som_args_detailed_help[34];
 }
 
 void cmdline_parser_print_version(void)
@@ -395,6 +398,7 @@ static void cmdline_parser_release(struct som_args *args_info)
     free_string_field(&(args_info->purpose_orig));
     free_string_field(&(args_info->efieldsolver_orig));
     free_string_field(&(args_info->noneq_ratio_orig));
+    free_string_field(&(args_info->noneq_mw_orig));
 
     clear_given(args_info);
 }
@@ -531,6 +535,8 @@ int cmdline_parser_dump(FILE * outfile, struct som_args *args_info)
         write_into_file(outfile, "purpose", args_info->purpose_orig, 0);
     if (args_info->noneq_ratio_given)
         write_into_file(outfile, "noneq-ratio", args_info->noneq_ratio_orig, 0);
+     if (args_info->noneq_mw_given)
+        write_into_file(outfile, "noneq-mw", args_info->noneq_mw_orig, 0);
  
     i = 1;
     return i;
@@ -872,6 +878,7 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                 {"final-file", 1, NULL, 'f'},
                 {"purpose", 1, NULL, 0},
                 {"noneq-ratio", 1, NULL, 0},
+                {"noneq-mw", 1, NULL, 0},
                 {0, 0, 0, 0}
             };
 
@@ -1120,6 +1127,20 @@ cmdline_parser_internal(int argc, char **argv, struct som_args *args_info,
                                            &(args_info->noneq_ratio_given),
                                            &(local_args_info.noneq_ratio_given), optarg, 0, "1", ARG_DOUBLE,
                                            check_ambiguity, override, 0, 0, "noneq-ratio", '-',
+                                           additional_error))
+                                goto failure;
+
+                        }
+
+                    /*  [> 0] Width of mask function for non-equilibrium calculations  */
+                    else if (strcmp(long_options[option_index].name, "noneq-mw") == 0)
+                        {
+
+                            if (update_arg((void *)&(args_info->noneq_mw_arg),
+                                           &(args_info->noneq_mw_orig),
+                                           &(args_info->noneq_mw_given),
+                                           &(local_args_info.noneq_mw_given), optarg, 0, "1", ARG_DOUBLE,
+                                           check_ambiguity, override, 0, 0, "noneq-mw", '-',
                                            additional_error))
                                 goto failure;
 

@@ -801,7 +801,7 @@ static int PrecSolve(N_Vector cc, N_Vector cscale,
                        N_Vector fval, N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
-  unsigned int cell;
+  int cell;
   const struct Phase *const p = user_data;
   int NEQ = (int) p->n_cells - 1; /* Due to PBC the set of equations is no longer LI, so psi(nx,ny,nz) can
 				       be fixed to zero (see notes) */

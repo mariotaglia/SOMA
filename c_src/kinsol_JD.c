@@ -98,6 +98,7 @@ int call_JD(struct Phase *const p)
   soma_scalar_t cions[p->n_cells]; // concentration
   soma_scalar_t sumions;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg; // in this case, electrostatic potential difference in kBT/e
+  const soma_scalar_t mw = p->args.noneq_mw_arg; // mask function for conductivity calculation
   realtype fnorm;
   soma_scalar_t current0, currentL;
 
@@ -178,6 +179,33 @@ N_VConst(0.0, constraints);  // no constrains c
    // Calc ions in equilibrium
   
    call_EN(p);
+
+
+   
+   
+// Conductivity  Mask
+// Stores D*c in nneg_field
+
+// c from npos_ions
+for (cell = 0 ; cell < p->n_cells ; cell++) {
+
+
+// if there are no beads in cell, make phi=0.5 	
+int phi_sum = p->fields_unified[cell+p->n_cells] + p->fields_unified[cell];
+	soma_scalar_t phi0;
+if (phi_sum == 0) {
+	  phi0  = 0.5;
+  }
+  else
+  {
+	  phi0 = ((soma_scalar_t) p->fields_unified[cell]) / ((soma_scalar_t) phi_sum);
+  }
+//
+// mask function, see notes
+      p->nneg_field[cell] = p->npos_field[cell] * exp((phi0-1)*mw) ;
+
+}
+
 
    if (flagsolved)  {   
    // initial guess, electrostatic potential equal to equilibrium, so \delta psi = psi' = 0
@@ -427,8 +455,8 @@ current0 = 0.0;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz+1);
 
-	    current0 -= (p->npos_field[cell]+p->npos_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
-	    current0 -= (p->npos_field[cellp]+p->npos_field[cell])*(p->psifield[cellp]-p->psifield[cell]);
+	    current0 -= (p->nneg_field[cell]+p->nneg_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
+	    current0 -= (p->nneg_field[cellp]+p->nneg_field[cell])*(p->psifield[cellp]-p->psifield[cell]);
 			    
           } // ix
    } //iy
@@ -446,8 +474,8 @@ iz = p->nz-2;
 	    cell = cell_coordinate_to_index(p, ix, iy, iz);
 	    cellp = cell_coordinate_to_index(p, ix, iy, iz+1);
 
-	    currentL -= (p->npos_field[cell]+p->npos_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
-	    currentL -= (p->npos_field[cellp]+p->npos_field[cell])*(p->psifield[cellp]-p->psifield[cell]);
+	    currentL -= (p->nneg_field[cell]+p->nneg_field[cellm])*(p->psifield[cell]-p->psifield[cellm]);
+	    currentL -= (p->nneg_field[cellp]+p->nneg_field[cell])*(p->psifield[cellp]-p->psifield[cell]);
 	
           } // ix
    } //iy
@@ -557,14 +585,14 @@ soma_scalar_t norma = 0;
 
         res = 0.0;
 
-        res += ((p->npos_field[iixp]+p->npos_field[i])*(psiC[iixp]-psiC[i]))/(p->deltax*p->deltax);
-	res += (-(p->npos_field[i]+p->npos_field[iixm])*(psiC[i]-psiC[iixm]))/(p->deltax*p->deltax);
+        res += ((p->nneg_field[iixp]+p->nneg_field[i])*(psiC[iixp]-psiC[i]))/(p->deltax*p->deltax);
+	res += (-(p->nneg_field[i]+p->nneg_field[iixm])*(psiC[i]-psiC[iixm]))/(p->deltax*p->deltax);
 
-        res += ((p->npos_field[iiyp]+p->npos_field[i])*(psiC[iiyp]-psiC[i]))/(p->deltay*p->deltay);
-	res += (-(p->npos_field[i]+p->npos_field[iiym])*(psiC[i]-psiC[iiym]))/(p->deltay*p->deltay);
+        res += ((p->nneg_field[iiyp]+p->nneg_field[i])*(psiC[iiyp]-psiC[i]))/(p->deltay*p->deltay);
+	res += (-(p->nneg_field[i]+p->nneg_field[iiym])*(psiC[i]-psiC[iiym]))/(p->deltay*p->deltay);
 
-        res += ((p->npos_field[iizp]+p->npos_field[i])*(psizp-psiC[i]))/(p->deltaz*p->deltaz);
-	res += (-(p->npos_field[i]+p->npos_field[iizm])*(psiC[i]-psizm))/(p->deltaz*p->deltaz);
+        res += ((p->nneg_field[iizp]+p->nneg_field[i])*(psizp-psiC[i]))/(p->deltaz*p->deltaz);
+	res += (-(p->nneg_field[i]+p->nneg_field[iizm])*(psiC[i]-psizm))/(p->deltaz*p->deltaz);
 
         if (i < NEQ) {NVITH(fval,i) = res;} 
         norma += fabs(res); 
@@ -692,7 +720,7 @@ static int PrecSetupJD(N_Vector cc, N_Vector cscale,
 
 // c from npos_ions
 for (i = 0 ; i < p->n_cells ; i++) {
-      c[i] =  p->npos_field[i];
+      c[i] =  p->nneg_field[i];
 }
 
 
@@ -825,45 +853,45 @@ static int jactimes(N_Vector v, N_Vector Jv, N_Vector cc, booleantype *new_u,
 
         // fij for j = i
          tmp  = 0.0;
-         tmp  += -(p->npos_field[iixp]+2*p->npos_field[i]+p->npos_field[iixm])/(p->deltax*p->deltax); 
-         tmp  += -(p->npos_field[iiyp]+2*p->npos_field[i]+p->npos_field[iiym])/(p->deltay*p->deltay); 
-         tmp  += -(p->npos_field[iizp]+2*p->npos_field[i]+p->npos_field[iizm])/(p->deltaz*p->deltaz); 
+         tmp  += -(p->nneg_field[iixp]+2*p->nneg_field[i]+p->nneg_field[iixm])/(p->deltax*p->deltax); 
+         tmp  += -(p->nneg_field[iiyp]+2*p->nneg_field[i]+p->nneg_field[iiym])/(p->deltay*p->deltay); 
+         tmp  += -(p->nneg_field[iizp]+2*p->nneg_field[i]+p->nneg_field[iizm])/(p->deltaz*p->deltaz); 
          j = i; 
 	 tmp = tmp*NVITH(v,j);
 	 NVITH(Jv,i) = tmp; 
 
  	 // fij for j = x+1,y,z 
-         tmp  = (p->npos_field[iixp]+p->npos_field[i])/(p->deltax*p->deltax); 
+         tmp  = (p->nneg_field[iixp]+p->nneg_field[i])/(p->deltax*p->deltax); 
          j = iz + p->nz*iy + p->nz*p->ny*ixp ;
 	 tmp = tmp*NVITH(v,j);
 	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x-1,y,z 
-         tmp  = (p->npos_field[iixm]+p->npos_field[i])/(p->deltax*p->deltax); 
+         tmp  = (p->nneg_field[iixm]+p->nneg_field[i])/(p->deltax*p->deltax); 
          j = iz + p->nz*iy + p->nz*p->ny*ixm ;
 	 tmp = tmp*NVITH(v,j);
 	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x,y+1,z 
-         tmp  = (p->npos_field[iiyp]+p->npos_field[i])/(p->deltay*p->deltay); 
+         tmp  = (p->nneg_field[iiyp]+p->nneg_field[i])/(p->deltay*p->deltay); 
          j = iz + p->nz*iyp + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x,y-1,z 
-         tmp  = (p->npos_field[iiym]+p->npos_field[i])/(p->deltay*p->deltay); 
+         tmp  = (p->nneg_field[iiym]+p->nneg_field[i])/(p->deltay*p->deltay); 
          j = iz + p->nz*iym + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
         // fij for j = x,y,z+1 
-         tmp  = (p->npos_field[iizp]+p->npos_field[i])/(p->deltaz*p->deltaz); 
+         tmp  = (p->nneg_field[iizp]+p->nneg_field[i])/(p->deltaz*p->deltaz); 
          j = izp + p->nz*iy + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 
 
 	// fij for j = x,y,z-1 
-         tmp  = (p->npos_field[iizm]+p->npos_field[i])/(p->deltaz*p->deltaz); 
+         tmp  = (p->nneg_field[iizm]+p->nneg_field[i])/(p->deltaz*p->deltaz); 
          j = izm + p->nz*iy + p->nz*p->ny*ix ;
 	 tmp = tmp*NVITH(v,j);
 	 if (j != NEQ) { NVITH(Jv,i) += tmp; } 

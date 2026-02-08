@@ -82,7 +82,8 @@ int call_J(struct Phase *const p)
 {
   static realtype *ccx; // last solution
 
-  unsigned int ix,iy,iz,i,cell, cellp, cellm; 
+  int cell, cellp, cellm;
+  unsigned int ix,iy,iz,i; 
   int globalstrategy, linsolver;
   realtype fnormtol, scsteptol; // tolerances
   N_Vector cc, sc, constraints;
@@ -384,9 +385,8 @@ N_VConst(1.0, constraints);  // constrains c >= 0
  
 /* Save solution */
         // Save profile  
-        soma_scalar_t avpsi = 0; //average psi
-        for (i = 0 ; i < NEQ ; i++) {
-        	ccx[i] = NVITH(cc,i);
+        for (cell = 0 ; cell < NEQ ; cell++) {
+        	ccx[cell] = NVITH(cc,cell);
                 flagsolved = 0;
          } // converged
 	   
@@ -539,7 +539,7 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
-  int NEQ; //<- Number of equations 
+  int NEQ;
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
 
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
@@ -548,20 +548,6 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
  
 
   iters++;	   
-
-// born_S
-soma_scalar_t  born_S[p->nx][p->ny][p->nz];
-#pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-	        for (iz = 0 ; iz < p->nz ; iz++) {
-	        cell = cell_coordinate_to_index(p, ix, iy, iz);
-	        born_S[ix][iy][iz] = p->born_Sc[cell]; 
-	        }
-          }
-   }
-
-
 
 // c from npos_ions
 for (ix = 0 ; ix < p->nx ; ix++) {

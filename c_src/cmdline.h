@@ -143,6 +143,16 @@ extern "C" {
         double noneq_ratio_arg;
                                         /**< @brief  [<0] Ratio of salt concentration, c(L)/c(0) for non-equilibrium electrostatic calculations (default='1' = equilibrium calculation).  */
 
+	double noneq_mw_arg;
+                                        /**< @brief  [<0] Width of the mask for non-equilibrium calculations in JD (default='0' = no mask).  */
+
+	char *noneq_mw_orig;
+                                        /**< @brief  [<0] Width of the mask for non-equilibrium calculations in JD (default='0' = no mask).  */
+
+	const char *noneq_mw_help;
+                                        /**< @brief  [<0] Width of the mask for non-equilibrium calculations in JD (default='0' = no mask).  */
+
+
 
         char *accepted_load_inbalance_orig;
                                         /**< @brief  [0,100] Percent of step time which is ignored by load balancer. Low values enable better load balancing, but could cause fluctuation of polymers. original value given at command line.  */
@@ -254,6 +264,9 @@ extern "C" {
 
         unsigned int noneq_ratio_given;
                                                 /**< @brief Whether noneq-ratio was given.  */
+        unsigned int noneq_mw_given;
+                                                /**< @brief Whether noneq-mw was given.  */
+
 
         unsigned int autotuner_restart_period_given;
                                                 /**< @brief Whether autotuner-restart-period was given.  */
