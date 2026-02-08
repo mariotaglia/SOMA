@@ -521,9 +521,10 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
 
 #include <assert.h>
 
-  int ix, iy, iz, cell, i;
+  int ix, iy, iz;
+  int cell, i;
   int ixp ,ixm, iyp, iym, izp, izm;
-  unsigned int iixp ,iixm, iiyp, iiym, iizp, iizm;
+  int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
@@ -553,20 +554,20 @@ psiC[p->n_cells-1] = 0.0;
 
 soma_scalar_t norma = 0;
 // DO NOT PARALELIZE HERE  
-  for (ix = 0 ; ix < p->nx ; ix++) {
+  for (ix = 0 ; ix < (int) p->nx ; ix++) {
 
-     ixp = mod((ix+1),p->nx);
-     ixm = mod((ix-1),p->nx);
+     ixp = mod((ix+1),(int) p->nx);
+     ixm = mod((ix-1),(int) p->nx);
  
-     for (iy = 0 ; iy < p->ny ; iy++) {
+     for (iy = 0 ; iy < (int) p->ny ; iy++) {
 
-        iyp = mod((iy+1),p->ny);
-        iym = mod((iy-1),p->ny);
+        iyp = mod((iy+1),(int) p->ny);
+        iym = mod((iy-1),(int) p->ny);
 
-	for (iz = 0 ; iz < p->nz ; iz++) {
+	for (iz = 0 ; iz < (int) p->nz ; iz++) {
  
-	izp = mod((iz+1),p->nz);
-        izm = mod((iz-1),p->nz);
+	izp = mod((iz+1),(int) p->nz);
+        izm = mod((iz-1),(int) p->nz);
 
                  i = iz + p->nz*iy + p->nz*p->ny*ix ;
 		 iixp = iz + p->nz*iy + p->nz*p->ny*ixp ;
