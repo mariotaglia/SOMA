@@ -697,8 +697,10 @@ static Phase *AllocUserData(void)
  * Preconditioner setup routine. Generate and preprocess P.
  */
 
-static int PrecSetupJD(N_Vector cc, N_Vector cscale,
-                       N_Vector fval, N_Vector fscale,
+static int PrecSetupJD(__attribute__((unused)) N_Vector cc, 
+		       __attribute__((unused)) N_Vector cscale,
+                       __attribute__((unused)) N_Vector fval, 
+		       __attribute__((unused)) N_Vector fscale,
                        void *user_data)  {
 
   unsigned int ix, iy, iz, cell, i;
@@ -767,8 +769,10 @@ return(0);
  * Preconditioner solve routine
  */
 
-static int PrecSolveJD(N_Vector cc, N_Vector cscale,
-                       N_Vector fval, N_Vector fscale,
+static int PrecSolveJD(__attribute__((unused)) N_Vector cc, 
+		       __attribute__((unused)) N_Vector cscale,
+                       __attribute__((unused)) N_Vector fval, 
+		       __attribute__((unused)) N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
   unsigned int i;
@@ -809,7 +813,9 @@ static int PrecSolveJD(N_Vector cc, N_Vector cscale,
  * Jacobian vector product function
  */
 
-static int jactimes(N_Vector v, N_Vector Jv, N_Vector cc, booleantype *new_u,
+static int jactimes(N_Vector v, N_Vector Jv, 
+		   __attribute__((unused)) N_Vector cc, 
+		   __attribute__((unused)) booleantype *new_u,
                     void *user_data)
 {
 

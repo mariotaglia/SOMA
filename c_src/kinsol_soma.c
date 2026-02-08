@@ -53,8 +53,10 @@ static int funcPB(N_Vector cc, N_Vector fval, void *user_data);
 
 /* Template for preconditioner, currently not in use */
 
-static int PrecSetup(N_Vector cc, N_Vector cscale,
-                       N_Vector fval, N_Vector fscale,
+static int PrecSetup(N_Vector cc, 
+		     N_Vector cscale,
+                     N_Vector fval, 
+		     N_Vector fscale,
                        void *user_data);
 
 static int PrecSolve(N_Vector cc, N_Vector cscale,
@@ -664,8 +666,10 @@ static Phase *AllocUserData(void)
  * Preconditioner setup routine. Generate and preprocess P.
  */
 
-static int PrecSetup(N_Vector cc, N_Vector cscale,
-                       N_Vector fval, N_Vector fscale,
+static int PrecSetup(__attribute__((unused)) N_Vector cc, 
+		     __attribute__((unused)) N_Vector cscale,
+                     __attribute__((unused)) N_Vector fval, 
+		     __attribute__((unused)) N_Vector fscale,
                        void *user_data)  {
 
 #include <assert.h>
@@ -797,8 +801,10 @@ return(0);
  * Preconditioner solve routine
  */
 
-static int PrecSolve(N_Vector cc, N_Vector cscale,
-                       N_Vector fval, N_Vector fscale,
+static int PrecSolve(__attribute__((unused)) N_Vector cc, 
+		     __attribute__((unused)) N_Vector cscale,
+                     __attribute__((unused)) N_Vector fval, 
+		     __attribute__((unused)) N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
   int cell;

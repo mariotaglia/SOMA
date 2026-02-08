@@ -748,8 +748,10 @@ static Phase *AllocUserData(void)
  * Preconditioner setup routine. Generate and preprocess P.
  */
 
-static int PrecSetupJ(N_Vector cc, N_Vector cscale,
-                       N_Vector fval, N_Vector fscale,
+static int PrecSetupJ(N_Vector cc, 
+		      __attribute__((unused)) N_Vector cscale,
+                      __attribute__((unused)) N_Vector fval, 
+		      __attribute__((unused)) N_Vector fscale,
                        void *user_data)  {
 
 #include <assert.h>
@@ -873,8 +875,10 @@ return(0);
  * Preconditioner solve routine
  */
 
-static int PrecSolveJ(N_Vector cc, N_Vector cscale,
-                       N_Vector fval, N_Vector fscale,
+static int PrecSolveJ(__attribute__((unused)) N_Vector cc, 
+		      __attribute__((unused)) N_Vector cscale,
+                      __attribute__((unused)) N_Vector fval, 
+		      __attribute__((unused)) N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
   unsigned int i;
