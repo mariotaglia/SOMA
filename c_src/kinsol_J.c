@@ -67,7 +67,6 @@ static int PrecSolveJ(N_Vector cc, N_Vector cscale,
 
 static Phase *AllocUserData(void);
 static void SetInitialProfilesJ(N_Vector cc);
-static realtype SetScaleJ(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 int iters;
@@ -214,7 +213,7 @@ N_VConst(1.0, constraints);  // constrains c >= 0
 
 
     /* Set scale vector */
-    if (flagsolved) scale = SetScaleJ(p);
+    if (flagsolved) scale = 1.0 ;
     N_VConst(scale, sc);
 
     /* Call KINCreate/KINInit to initialize KINSOL:
@@ -524,9 +523,9 @@ currentL = 0.0;
 }
 
 /*
- *--------------------------------------------------------------------
+ *---------------------------------------------------------------------
  * FUNCTIONS CALLED BY KINSOL
- *--------------------------------------------------------------------
+ *---------------------------------------------------------------------
  */
 
 static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
@@ -538,9 +537,6 @@ static int funcJ(N_Vector cc, N_Vector fval, void *user_data)
   int ixp ,ixm, iyp, iym, izp, izm;
   struct Phase *const p = user_data;
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
-
-  int NEQ;
-  NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
 
   soma_scalar_t  res[p->nx][p->ny][p->nz]; // residual Poisson Eq.
   soma_scalar_t  c[p->nx][p->ny][p->nz]; // ion concetration
@@ -681,15 +677,6 @@ soma_scalar_t norma = 0;
  */
 
 
-static realtype SetScaleJ(const struct Phase *const p)
-{
-   realtype scale;
-
-   scale = 1.0 ;
-           
-   return(scale);
-   }
-
 static void SetInitialProfilesJ(N_Vector cc)
 { 
   N_VConst(1.0, cc);  
@@ -760,25 +747,7 @@ static int PrecSetupJ(N_Vector cc,
   int ixp ,ixm, iyp, iym, izp, izm, cell;
   struct Phase *const p = user_data;
   soma_scalar_t c[p->nx][p->ny][p->nz]; // concentration
-  soma_scalar_t lc[p->nx][p->ny][p->nz]; // concentration
-  int NEQ;
-  NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
   const soma_scalar_t alfa = p->args.noneq_ratio_arg;
-  soma_scalar_t  eps[p->nx][p->ny][p->nz]; // auxiliary field
-
-// born_S
-soma_scalar_t  born_S[p->nx][p->ny][p->nz];
-#pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-	        for (iz = 0 ; iz < p->nz ; iz++) {
-	        cell = cell_coordinate_to_index(p, ix, iy, iz);
-	        born_S[ix][iy][iz] = p->born_Sc[cell]; 
-	        }
-          }
-   }
-
-
 
 // c from npos_ions
 for (ix = 0 ; ix < p->nx ; ix++) {
@@ -789,50 +758,6 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 			  }
 		     }
 	 	}
-
-
-// epsilon from kinsol's input
-
-// Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
-// index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
-
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-			  for (iz = 1 ; iz < p->nz-1 ; iz++) {
-                          i = iz + (p->nz-2)*iy + (p->nz-2)*p->ny*ix - 1 ;
-	                  eps[ix][iy][iz] = NVITH(cc,i);
-	           }
-           }
-   }
-
-// fill borders
-  iz = 0;   
-#pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-	       eps[ix][iy][iz] = alfa;  
-           }
-   }
-
-  iz = p->nz-1;
-#pragma omp parallel for  
-  for (ix = 0 ; ix < p->nx ; ix++) {
-	  for (iy = 0 ; iy < p->ny ; iy++) {
-	       eps[ix][iy][iz] = 1.0; 
-           }
-   }
-
-/*
-  for (ix = 0 ; ix < p->nx ; ix++) {
-  for (iy = 0 ; iy < p->ny ; iy++) {
-  for (iz = 0 ; iz < p->nz ; iz++) {
-        printf("i %d %d %d %f %f \n", ix, iy, iz, c[ix][iy][iz], born_S[ix][iy][iz]);
-  }
-  }
-  }
-*/
-
-//soma_scalar_t slope = (1-alfa)/p->Lz;
 
 
 /// Calculate diagonal preconditioner, temp_prec_field
