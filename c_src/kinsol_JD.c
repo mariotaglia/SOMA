@@ -83,8 +83,8 @@ int itersJD;
 int call_JD(struct Phase *const p)
 {
   static realtype *ccx; // last solution
-
-  unsigned int ix,iy,iz,i,cell, cellp, cellm; 
+  int i;
+  unsigned int ix,iy,iz,cell, cellp, cellm; 
   int globalstrategy, linsolver;
   realtype fnormtol, scsteptol; // tolerances
   N_Vector cc, sc, constraints;
@@ -481,11 +481,11 @@ iz = p->nz-2;
    } //iy
   currentL = currentL * p->deltax*p->deltay/p->deltaz/4.0;
 
-  printf("current: %.3e %.3e \n", iz, current0, currentL); // DEBUG
+  printf("current: %d %.3e %.3e \n", iz, current0, currentL); // DEBUG
 
   p->current=current0; // store to save in ana file
   if (flag==-13) { p->current = 0.0; }
-  if (abs((currentL-current0)/current0) > 0.01) { p->current = 0.0; }
+  if (fabs((currentL-current0)/current0) > 0.01) { p->current = 0.0; }
 
 
 // print    
