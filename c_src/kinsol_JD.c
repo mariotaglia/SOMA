@@ -68,8 +68,6 @@ static int jactimes(N_Vector v, N_Vector Jv, N_Vector cc, booleantype *new_u,
 /* Private Helper Functions */
 
 static Phase *AllocUserData(void);
-static void SetInitialProfilesJD(N_Vector cc);
-static realtype SetScaleJD(const struct Phase *const p);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 int itersJD;
 
@@ -235,7 +233,7 @@ if (phi_sum == 0) {
 
 
     /* Set scale vector */
-    if (flagsolved) scale = SetScaleJD(p);
+    if (flagsolved) scale = 1.0 ;
     N_VConst(scale, sc);
 
     /* Call KINCreate/KINInit to initialize KINSOL:
@@ -522,7 +520,7 @@ static int funcJD(N_Vector cc, N_Vector fval, void *user_data)
 #include <assert.h>
 
   int ix, iy, iz;
-  int cell, i;
+  int i;
   int ixp ,ixm, iyp, iym, izp, izm;
   int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
@@ -598,7 +596,7 @@ soma_scalar_t norma = 0;
         }
     }
   }
-
+/*
 // DEBUG print norm 
         for (ix = 0 ; ix < p->nx ; ix++) {
                for (iy = 0 ; iy < p->ny ; iy++) {
@@ -609,7 +607,8 @@ soma_scalar_t norma = 0;
                      }
                 }
          }
-  printf("func: iter, norma: %d %f %f %f \n ", itersJD, norma, psiC[0]); 
+*/
+  printf("func: iter, norma: %d %f \n ", itersJD, norma); 
 
 
 //  printf("func: Nposions, Nnegions: %f, %f \n ", p->Nposions, p->Nnegions);
@@ -629,20 +628,6 @@ soma_scalar_t norma = 0;
  */
 
 
-static realtype SetScaleJD(const struct Phase *const p)
-{
-   realtype scale;
-
-   scale = 1.0 ;
-           
-   return(scale);
-   }
-
-static void SetInitialProfilesJD(N_Vector cc)
-{ 
-  N_VConst(1.0, cc);  
-}
- 
 static int check_flag(void *flagvalue, const char *funcname, int opt)
 {
   int *errflag;
@@ -702,14 +687,10 @@ static int PrecSetupJD(__attribute__((unused)) N_Vector cc,
 		       __attribute__((unused)) N_Vector fscale,
                        void *user_data)  {
 
-  unsigned int ix, iy, iz, cell, i;
+  unsigned int ix, iy, iz, i;
   unsigned int ixp ,ixm, iyp, iym, izp, izm;
   unsigned int iixp ,iixm, iiyp, iiym, iizp, iizm;
   struct Phase *const p = user_data;
-  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
-
-  int NEQ; //<- Number of equations 
-  NEQ = (int) p->nx*p->ny*p->nz-1; /* the concentration is fixed near electrodes */
 
   soma_scalar_t *c = (soma_scalar_t *) malloc(p->n_cells * sizeof(soma_scalar_t));
     if (c == NULL)
@@ -774,7 +755,7 @@ static int PrecSolveJD(__attribute__((unused)) N_Vector cc,
 		       __attribute__((unused)) N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
-  unsigned int i;
+  int i;
   struct Phase *const p = user_data;
   int NEQ;
   NEQ = (int) p->nx*p->ny*p->nz-1; 
@@ -818,11 +799,11 @@ static int jactimes(N_Vector v, N_Vector Jv,
                     void *user_data)
 {
 
-  unsigned int ix, iy, iz, cell, i;
+  unsigned int ix, iy, iz;
+  int i;
   unsigned int ixp ,ixm, iyp, iym, izp, izm;
   int iixp ,iixm, iiyp, iiym, iizp, iizm, j;
   struct Phase *const p = user_data;
-  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
   int NEQ; //<- Number of equations 
   NEQ = (int) p->nx*p->ny*p->nz-1; /* the concentration is fixed near electrodes */
