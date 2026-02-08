@@ -66,15 +66,14 @@ static int PrecSolveJ(N_Vector cc, N_Vector cscale,
 /* Private Helper Functions */
 
 static Phase *AllocUserData(void);
-static void SetInitialProfilesJ(N_Vector cc);
 static int check_flag(void *flagvalue, const char *funcname, int opt);
 
 int iters;
 
  /*
- *--------------------------------------------------------------------
+ *---------------------------------------------------------------------
  * MAIN ROUTINE
- *--------------------------------------------------------------------
+ *---------------------------------------------------------------------
  */
 
 int call_J(struct Phase *const p)
@@ -677,11 +676,6 @@ soma_scalar_t norma = 0;
  */
 
 
-static void SetInitialProfilesJ(N_Vector cc)
-{ 
-  N_VConst(1.0, cc);  
-}
- 
 static int check_flag(void *flagvalue, const char *funcname, int opt)
 {
   int *errflag;
@@ -735,7 +729,7 @@ static Phase *AllocUserData(void)
  * Preconditioner setup routine. Generate and preprocess P.
  */
 
-static int PrecSetupJ(N_Vector cc, 
+static int PrecSetupJ(__attribute__((unused)) N_Vector cc, 
 		      __attribute__((unused)) N_Vector cscale,
                       __attribute__((unused)) N_Vector fval, 
 		      __attribute__((unused)) N_Vector fscale,
@@ -747,7 +741,6 @@ static int PrecSetupJ(N_Vector cc,
   int ixp ,ixm, iyp, iym, izp, izm, cell;
   struct Phase *const p = user_data;
   soma_scalar_t c[p->nx][p->ny][p->nz]; // concentration
-  const soma_scalar_t alfa = p->args.noneq_ratio_arg;
 
 // c from npos_ions
 for (ix = 0 ; ix < p->nx ; ix++) {
@@ -760,7 +753,7 @@ for (ix = 0 ; ix < p->nx ; ix++) {
 	 	}
 
 
-/// Calculate diagonal preconditioner, temp_prec_field
+// Calculate diagonal preconditioner, temp_prec_field
 
 // Transform from ix, iy, iz to kinsol's index: (the calculation box is smaller in the z direction than the simulation box)
 // index = iz + (nz-2)*iy + (nz-2)*ny*ix - 1
@@ -806,7 +799,7 @@ static int PrecSolveJ(__attribute__((unused)) N_Vector cc,
 		      __attribute__((unused)) N_Vector fscale,
                        N_Vector vv, void *user_data)
 {
-  unsigned int i;
+  int i;
   struct Phase *const p = user_data;
   int NEQ;
   NEQ = (int) p->nx*p->ny*(p->nz-2); /* the concentration is fixed near electrodes */
